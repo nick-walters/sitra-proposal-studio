@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { WPBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,
@@ -110,10 +111,11 @@ const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 // every control, including on rows that do not render one.
 /* Line 1 of a milestone row: name, then its metadata in fixed columns. */
 const MILESTONE_LINE1_GRID =
-  'grid grid-cols-[1fr_13rem_8rem_2.25rem] items-start gap-x-2';
-/* Line 1 of a risk row: description, then its metadata in fixed columns. */
+  'grid grid-cols-[1fr_17rem_7rem_1.75rem] items-start gap-x-2';
+/* Line 1 of a risk row: description (same 1fr share as the milestone name),
+   narrow i./ii. columns, and a WP column widened with the space freed. */
 const RISK_LINE1_GRID =
-  'grid grid-cols-[1fr_5rem_5rem_13rem_2.25rem] items-start gap-x-2';
+  'grid grid-cols-[1fr_3.75rem_3.75rem_17rem_1.75rem] items-start gap-x-2';
 
 
 
@@ -737,16 +739,34 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                               <span className="text-muted-foreground italic">Select WP(s)…</span>
                             ) : (
                               <span className="flex flex-wrap gap-0.5 items-center">
-                                {isAllWPsSelected(selectedWps.length, wps.length)
-                                  ? <AllWPsBubble />
-                                  : selectedWps.map(wp => (
-                                      <WPBubble
-                                        key={wp.id}
-                                        wpNumber={wp.number}
-                                        wpColor={wp.color}
-                                        showStar={wp.id === m.primary_wp_id}
-                                      />
-                                    ))}
+                                {isAllWPsSelected(selectedWps.length, wps.length) ? (
+                                  <>
+                                    <AllWPsBubble />
+                                    {/* "All WPs" hides which WP is starred as
+                                        primary for the Gantt, so the primary is
+                                        shown alongside it — editor only, never
+                                        mirrored into the preview or export. */}
+                                    {selectedWps
+                                      .filter((wp) => wp.id === m.primary_wp_id)
+                                      .map((wp) => (
+                                        <WPBubble
+                                          key={wp.id}
+                                          wpNumber={wp.number}
+                                          wpColor={wp.color}
+                                          showStar
+                                        />
+                                      ))}
+                                  </>
+                                ) : (
+                                  selectedWps.map(wp => (
+                                    <WPBubble
+                                      key={wp.id}
+                                      wpNumber={wp.number}
+                                      wpColor={wp.color}
+                                      showStar={wp.id === m.primary_wp_id}
+                                    />
+                                  ))
+                                )}
                               </span>
                             )}
                           </button>
@@ -775,13 +795,13 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
                   {/* ── Line 2: means of verification, aligned with the name above ── */}
                   <div className="col-start-2">
-                    <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
                     <DebouncedRichField
                       value={m.means_of_verification || ''}
                       disabled={!canEdit}
                       minHeight="30px"
                       proposalId={proposalId}
                       staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                      placeholder="Means of verification"
                       onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                     />
                   </div>
@@ -824,7 +844,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {/* Column labels for the second line — same fixed grid as every row,
                 indented to align with the risk description above. */}
             {risks.length > 0 && (
-              <div className="grid grid-cols-[26px_1fr] gap-x-2 px-1 pb-1 border-b">
+              <div className="grid grid-cols-[18px_1fr] gap-x-1 px-1 pb-1 border-b">
                 <div />
                 <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
                   <div>Risk description</div>
@@ -909,13 +929,15 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ── */}
-      <span className="flex-none w-[26px] flex items-center justify-center pt-1">
+    <div ref={setNodeRef} style={style} className="group grid grid-cols-[18px_1fr] gap-x-1 border-b py-1.5 space-y-1 px-1">
+      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ──
+          The grip is permanently visible (no hover reveal) and sits close to
+          the description field. */}
+      <span className="flex-none w-[18px] flex items-center justify-start pt-1">
         {canEdit && (
           <button
             type="button"
-            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+            className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
             {...attributes}
             {...listeners}
             aria-label="Drag to reorder"
@@ -970,13 +992,13 @@ function SortableRiskRow({
 
       {/* ── Line 2: mitigation & adaptation measures, aligned with the description above ── */}
       <div className="col-start-2">
-        <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
           minHeight="30px"
           proposalId={proposalId}
           staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          placeholder="Mitigation & adaptation measures"
           onChange={(html) => onUpdate({ mitigation: html })}
         />
       </div>
@@ -1362,7 +1384,11 @@ function MsReorderRow({ m, wpsById }: { m: Milestone; wpsById: Map<string, WPRow
         <GripVertical className="w-4 h-4 text-blue-500" />
       </button>
       <MilestoneBadge number={m.number} />
-      <span className="text-sm truncate flex-1">{m.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
+      {/* Stored titles are rich text; the dialog shows them as plain text
+          (tags stripped, entities decoded). */}
+      <span className="text-sm truncate flex-1">
+        {htmlToPlainText(m.title || '') || <span className="italic text-muted-foreground">Untitled</span>}
+      </span>
       <span className="flex flex-wrap gap-0.5">
         {isAllWPsSelected(selectedWps.length, wpsById.size)
           ? <AllWPsBubble />

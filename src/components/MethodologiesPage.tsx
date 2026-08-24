@@ -25,7 +25,7 @@ import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
-import { EditorChrome, EditorFeatureBar } from '@/components/EditorChrome';
+import { EditorChrome, EditorTopBar, EditorFieldBar } from "@/components/EditorChrome";
 import { supabase } from '@/integrations/supabase/client';
 import {
   MethodologyEditorFocusProvider,
@@ -411,17 +411,20 @@ export default function MethodologiesPage({
 
         <EditorChrome
           proposalId={proposalId}
-          featureBar={
-            <EditorFeatureBar
-              hasFocusedField={!!focusedSubsection}
-              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
+          topBar={
+            <EditorTopBar
               saving={saving || manualSaving}
               lastSaved={savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved}
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
-
+            />
+          }
+          fieldBar={
+            <EditorFieldBar
+              hasFocusedField={!!focusedSubsection}
+              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
             />
           }
           formattingBar={

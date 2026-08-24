@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { EditorContent, type Editor } from '@tiptap/react';
 import { useRichTextEditor } from './RichTextEditor';
 import { useMethodologyEditorFocus } from './MethodologyEditorFocusContext';
@@ -18,6 +18,12 @@ interface MethodologyRichEditorProps {
   activeRingClass?: string;
   /** Called once with the live TipTap instance when it is created. */
   onEditorReady?: (editor: Editor) => void;
+  /**
+   * Grey italic hint shown INSIDE the field while it is empty. It is a true
+   * placeholder — never part of the document — so it survives typing and
+   * reappears when the content is fully removed.
+   */
+  placeholder?: string;
 }
 
 
@@ -35,6 +41,7 @@ export function MethodologyRichEditor({
   minHeight = '2.5rem',
   activeRingClass = 'border-primary ring-1 ring-primary/40',
   onEditorReady,
+  placeholder,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -105,9 +112,24 @@ export function MethodologyRichEditor({
 
   const isActive = Boolean(editor) && activeEditor === editor;
 
+  // Placeholder visibility tracks the live document, not the incoming prop, so
+  // it disappears on the first keystroke and returns when the field is cleared.
+  const [isEmpty, setIsEmpty] = useState(true);
+  useEffect(() => {
+    if (!editor || !placeholder) return;
+    const sync = () => setIsEmpty(editor.isEmpty);
+    sync();
+    editor.on('update', sync);
+    editor.on('transaction', sync);
+    return () => {
+      editor.off('update', sync);
+      editor.off('transaction', sync);
+    };
+  }, [editor, placeholder]);
+
   return (
     <div
-      className={`overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+      className={`relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
         canEdit ? 'cursor-text' : 'cursor-default select-text'
       } ${isActive && canEdit ? activeRingClass : 'border-border'}`}
       style={{ minHeight }}
@@ -141,6 +163,14 @@ export function MethodologyRichEditor({
         if (!canEdit) e.preventDefault();
       }}
     >
+      {placeholder && isEmpty && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-2.5 top-1.5 select-none text-sm italic text-muted-foreground"
+        >
+          {placeholder}
+        </span>
+      )}
       <EditorContent editor={editor} />
     </div>
   );

@@ -35,6 +35,11 @@ export interface LazyRichFieldProps {
    * A2 participant set; case drafts pass a richer one.
    */
   staticExtensions?: Extensions;
+  /**
+   * Grey italic hint shown inside the field while it holds no content, in
+   * both the static and the mounted state. Never written to the document.
+   */
+  placeholder?: string;
 }
 
 /**
@@ -84,6 +89,7 @@ export function LazyRichField({
   onBlur,
   shouldStayMounted,
   staticExtensions = LAZY_RICH_FIELD_EXTENSIONS,
+  placeholder,
 }: LazyRichFieldProps) {
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
@@ -231,25 +237,36 @@ export function LazyRichField({
           isCoordinator={false}
           minHeight={minHeight}
           onEditorReady={handleEditorReady}
+          placeholder={placeholder}
         />
       ) : (
-        <div
-          role="textbox"
-          tabIndex={disabled ? -1 : 0}
-          aria-readonly={disabled}
-          className={cn(
-            'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
-            disabled ? 'cursor-default' : 'cursor-text',
+        <div className="relative">
+          {placeholder && !staticHtml.trim() && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-2.5 top-1.5 select-none text-sm italic text-muted-foreground"
+            >
+              {placeholder}
+            </span>
           )}
-          style={{ minHeight }}
-          onMouseDown={(e) => {
-            if (disabled) return;
-            e.preventDefault();
-            activate({ left: e.clientX, top: e.clientY });
-          }}
-          onFocus={() => activate(null)}
-          dangerouslySetInnerHTML={{ __html: staticHtml }}
-        />
+          <div
+            role="textbox"
+            tabIndex={disabled ? -1 : 0}
+            aria-readonly={disabled}
+            className={cn(
+              'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
+              disabled ? 'cursor-default' : 'cursor-text',
+            )}
+            style={{ minHeight }}
+            onMouseDown={(e) => {
+              if (disabled) return;
+              e.preventDefault();
+              activate({ left: e.clientX, top: e.clientY });
+            }}
+            onFocus={() => activate(null)}
+            dangerouslySetInnerHTML={{ __html: staticHtml }}
+          />
+        </div>
       )}
     </div>
   );

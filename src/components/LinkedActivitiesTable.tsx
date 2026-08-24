@@ -284,7 +284,6 @@ function SortableActivityRow({
       </Dialog>
 
       <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">How the project will be linked</div>
         <MethodologyRichEditor
           proposalId={proposalId}
           value={activity.linkDescriptionHtml ?? ''}
@@ -292,6 +291,7 @@ function SortableActivityRow({
           canEdit={canEdit}
           isCoordinator={isCoordinator}
           minHeight="2.5rem"
+          placeholder="How the project will be linked"
         />
       </div>
     </div>

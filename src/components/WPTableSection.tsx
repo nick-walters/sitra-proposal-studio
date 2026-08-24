@@ -334,25 +334,45 @@ function SortableTaskCard({
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
+            {/* The black pill lives on an INNER span, never on the trigger
+                itself. Styling the trigger meant the pill inherited the
+                trigger's own box (fixed 17px height around a taller 11pt
+                Times line box, clipped by the base `[&>span]:line-clamp-1`
+                overflow rule); where the row landed on a fractional pixel the
+                rounded corners rasterised a stray 1px strip of black along the
+                top edge. The inner span owns its own overflow and background
+                clip, so nothing paints outside the rounded shape. */}
             <SelectTrigger
-              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-draft", task.lead_participant_id ? "font-bold" : "font-normal")}
-              style={task.lead_participant_id ? {
-                backgroundColor: '#000000',
-                color: '#ffffff',
-                height: '17px',
-                fontFamily: 'Times New Roman, serif',
-                fontSize: '11pt',
-                lineHeight: '17px',
-                borderRadius: '9999px',
-                paddingLeft: '18px',
-                paddingRight: '6px',
-                position: 'relative',
-              } : undefined}
-            >
-              {task.lead_participant_id && (
-                <Crown className="w-3 h-3 text-white fill-white absolute left-1.5 top-1/2 -translate-y-1/2" style={{ zIndex: 1 }} />
+              className={cn(
+                "h-auto border-0 bg-transparent shadow-none p-0 w-auto gap-0 text-draft",
+                task.lead_participant_id ? "font-bold" : "font-normal",
               )}
-              <SelectValue placeholder="Select" className="font-normal" />
+            >
+              {task.lead_participant_id ? (
+                <span
+                  className="relative inline-flex items-center overflow-hidden whitespace-nowrap"
+                  style={{
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
+                    height: '17px',
+                    lineHeight: '17px',
+                    fontFamily: "'Times New Roman', Times, serif",
+                    fontSize: '11pt',
+                    borderRadius: '9999px',
+                    paddingLeft: '18px',
+                    paddingRight: '6px',
+                    backgroundClip: 'padding-box',
+                  }}
+                >
+                  <Crown
+                    className="w-3 h-3 text-white fill-white absolute left-1.5 top-1/2 -translate-y-1/2"
+                    style={{ zIndex: 1 }}
+                  />
+                  <SelectValue placeholder="Select" className="font-normal" />
+                </span>
+              ) : (
+                <SelectValue placeholder="Select" className="font-normal" />
+              )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
