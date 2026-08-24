@@ -8,7 +8,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SaveIndicator } from '@/components/SaveIndicator';
+import {
+  EditorTopBar,
+  EditorFieldBar,
+  type EditorTopBarProps,
+  type EditorFieldBarProps,
+} from '@/components/EditorChrome';
 import { FULL_FIELD_CAPABILITIES, type FieldCapabilityFlags } from '@/lib/fieldCapabilities';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
