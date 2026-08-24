@@ -120,21 +120,29 @@ function SortableActivityRow({
           <span />
         )}
 
-        {/* Acronym */}
+        {/* Acronym — single-line rich text, title-field controls only
+            (undo, redo, font colour). Legacy plain strings upgrade on read. */}
         {canEdit ? (
-          <Input
-            value={activity.acronym}
-            onChange={(e) => onUpdate(activity.id, { acronym: e.target.value })}
+          <LazyRichField
+            singleLine
+            proposalId={proposalId}
+            value={ensureRichHtml(activity.acronym)}
             placeholder="Acronym"
-            className="h-8 text-xs"
+            minHeight="32px"
+            className="text-xs [&_p]:m-0"
+            staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+            onChange={(html) => onUpdate(activity.id, { acronym: html })}
           />
         ) : (
-          <span className="truncate text-xs">{activity.acronym || '—'}</span>
+          <span
+            className="truncate text-xs [&_p]:m-0 [&_p]:inline"
+            dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
+          />
         )}
 
         {/* Instrument */}
         {canEdit ? (
-          <div className="flex min-w-0 items-center gap-1">
+          <div data-scalar-field="" className="flex min-w-0 items-center gap-1">
             <Select
               value={activity.instrumentCode ?? NONE}
               onValueChange={(v) =>
