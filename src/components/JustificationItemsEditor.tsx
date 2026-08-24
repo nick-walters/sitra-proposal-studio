@@ -84,6 +84,7 @@ function SortableRow({ item, proposalId, editable, onUpdate, onDelete }: {
 }
 
 export function JustificationItemsEditor({
+  proposalId,
   budgetRowId, category, items, editable, helpText,
   onAdd, onUpdate, onDelete, onReorder,
 }: Props) {
@@ -119,7 +120,7 @@ export function JustificationItemsEditor({
           <SortableContext items={rowItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-1.5">
               {rowItems.map(item => (
-                <SortableRow key={item.id} item={item} editable={editable} onUpdate={onUpdate} onDelete={onDelete} />
+                <SortableRow key={item.id} item={item} proposalId={proposalId} editable={editable} onUpdate={onUpdate} onDelete={onDelete} />
               ))}
             </div>
           </SortableContext>
