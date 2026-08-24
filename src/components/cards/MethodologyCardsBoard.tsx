@@ -581,7 +581,10 @@ function FieldRow({
                     id={`include-header-${field.id}`}
                     checked={field.headingEnabled}
                     onCheckedChange={(v) => onToggleHeading(field, v)}
-                    className="scale-75"
+                    // Explicit tones: the shared default read almost white
+                    // against the card surface once the header row was
+                    // restyled.
+                    className="scale-75 border border-border data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/40"
                   />
                 </Tip>
                 <Label
