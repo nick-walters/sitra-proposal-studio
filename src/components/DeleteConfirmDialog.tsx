@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { Tip } from '@/components/ui/control-tip';
+
 
 interface DeleteConfirmDialogProps {
   itemLabel?: string;
