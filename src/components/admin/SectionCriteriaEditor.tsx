@@ -119,12 +119,13 @@ export function SectionCriteriaEditor({ sectionId }: { sectionId: string }) {
           key={c.id}
           className="rounded-lg border-2 border-destructive bg-destructive/5 p-3 space-y-2"
         >
-          <Textarea
-            rows={4}
+          <AdminRichTextField
             value={drafts[c.id] ?? c.content}
-            onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
-            className="text-sm bg-background"
+            onChange={(html) => setDrafts((d) => ({ ...d, [c.id]: html }))}
+            minHeight="7rem"
+            className="bg-background"
           />
+
           <div className="flex items-center justify-end gap-2">
             <Button
               variant="ghost"
