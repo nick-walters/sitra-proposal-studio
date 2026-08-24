@@ -1706,6 +1706,32 @@ function BoardInner({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Collapse all blocks"
+              disabled={
+                setAllCollapsed.isPending ||
+                (visibleCardIds.length > 0 &&
+                  visibleCardIds.every((id) => collapsedIds.has(id)))
+              }
+              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: true })}
+            >
+              <ChevronsDownUp className="mr-1 h-3.5 w-3.5" />
+              Collapse all
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Expand all blocks"
+              disabled={
+                setAllCollapsed.isPending || visibleCardIds.every((id) => !collapsedIds.has(id))
+              }
+              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: false })}
+            >
+              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
+              Expand all
+            </Button>
             {canEdit && (
               <Button
                 variant="outline"
