@@ -843,7 +843,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {/* Column labels for the second line — same fixed grid as every row,
                 indented to align with the risk description above. */}
             {risks.length > 0 && (
-              <div className="grid grid-cols-[26px_1fr] gap-x-2 px-1 pb-1 border-b">
+              <div className="grid grid-cols-[18px_1fr] gap-x-1 px-1 pb-1 border-b">
                 <div />
                 <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
                   <div>Risk description</div>
