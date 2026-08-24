@@ -105,6 +105,16 @@ interface Risk {
 const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
 const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 
+// Fixed column tracks shared by each row's metadata line and the label header
+// row above the list, so fields align across rows. A column is reserved for
+// every control, including on rows that do not render one.
+const MILESTONE_META_GRID =
+  'grid grid-cols-[13rem_8rem_1fr_2.25rem] items-start gap-x-2';
+const RISK_META_GRID =
+  'grid grid-cols-[5rem_5rem_13rem_1fr_2.25rem] items-start gap-x-2';
+
+
+
 
 // ── Hexagon MS badge (matches B31TablesEditor.MilestoneBadge) ──
 function MilestoneBadge({ number }: { number: number | null | undefined }) {
