@@ -45,11 +45,14 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 
-function versionLabel(v: { major: number; minor: number; name?: string | null; status: string }) {
+function versionLabel(v: { major: number | null; minor: number | null; name?: string | null; status: string }) {
+  /* A draft has no number until it is published, so show its name if it has
+     one rather than an empty "null.null". */
+  if (v.status === 'draft') return v.name ? `Draft — ${v.name}` : 'Draft (unpublished)';
   const num = `${v.major}.${v.minor}`;
-  const named = v.name ? `${num} — ${v.name}` : num;
-  return v.status === 'draft' ? `Draft (from ${named})` : named;
+  return v.name ? `${num} — ${v.name}` : num;
 }
+
 
 /* ------------------------------------------------------------------ */
 
