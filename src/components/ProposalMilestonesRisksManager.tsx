@@ -115,7 +115,7 @@ const MILESTONE_LINE1_GRID =
 /* Line 1 of a risk row: description (same 1fr share as the milestone name),
    narrow i./ii. columns, and a WP column widened with the space freed. */
 const RISK_LINE1_GRID =
-  'grid grid-cols-[1fr_3.75rem_3.75rem_17rem_1.75rem] items-start gap-x-2';
+  'grid grid-cols-[1fr_3rem_3rem_17.5rem_1.75rem] items-start gap-x-2';
 
 
 
@@ -641,7 +641,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
       {/* Shared focus-dependent toolbars, as on every other editing surface. */}
       {canEdit && (
-        <div className="sticky top-0 z-20">
+        <div className="relative z-40">
           <DraftFormattingToolbar
             hasFocusedField={!!activeEditor}
             capabilities={getEditorCapabilities(activeEditor)}
