@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { ParticipantBubble } from '@/components/B31Pill';
 import {
   FUNDING_INSTRUMENTS,
@@ -81,7 +82,9 @@ function useMirrorParticipants(proposalId: string) {
 
 function projectLabel(a: ActivityRow): string {
   const parts = [
-    (a.acronym || '').trim(),
+    // The acronym is rich text (colour only); the merged label is plain, so
+    // markup is stripped rather than printed.
+    htmlToPlainText(a.acronym || '').trim(),
     getInstrumentAbbreviation(a.instrumentCode, a.instrumentCustom).trim(),
     formatDurationShort(a.durationStart, a.durationEnd).trim(),
   ].filter((p) => p.length > 0);

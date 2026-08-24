@@ -12,18 +12,20 @@ import { useMethodologyEditorFocus } from '@/components/MethodologyEditorFocusCo
  * fields the surface renders itself and fields rendered by shared tables.
  */
 export function useFocusedGuidelineKey(): string | null {
-  const { activeEditor } = useMethodologyEditorFocus();
+  const { activeEditor, scalarField } = useMethodologyEditorFocus();
   const [key, setKey] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeEditor) {
+    // A focused scalar control (select, date picker, assign button) belongs to
+    // a block just as much as a rich field does, so it resolves a key too.
+    const from = (activeEditor?.view.dom as HTMLElement | undefined) ?? scalarField;
+    if (!from) {
       setKey(null);
       return;
     }
-    const dom = activeEditor.view.dom as HTMLElement;
-    const holder = dom.closest('[data-guideline-key]') as HTMLElement | null;
+    const holder = from.closest('[data-guideline-key]') as HTMLElement | null;
     setKey(holder?.getAttribute('data-guideline-key') || null);
-  }, [activeEditor]);
+  }, [activeEditor, scalarField]);
 
   return key;
 }

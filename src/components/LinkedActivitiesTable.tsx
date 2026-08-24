@@ -43,6 +43,10 @@ import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FUNDING_INSTRUMENTS, getInstrumentAbbreviation } from '@/lib/fundingInstruments';
 import { YearRangePicker, formatYearRange } from '@/components/YearRangePicker';
 import { useLinkedActivities, type LinkedActivity } from '@/hooks/useLinkedActivities';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { HEADING_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 interface ParticipantSummary {
   id: string;
@@ -120,21 +124,29 @@ function SortableActivityRow({
           <span />
         )}
 
-        {/* Acronym */}
+        {/* Acronym — single-line rich text, title-field controls only
+            (undo, redo, font colour). Legacy plain strings upgrade on read. */}
         {canEdit ? (
-          <Input
-            value={activity.acronym}
-            onChange={(e) => onUpdate(activity.id, { acronym: e.target.value })}
+          <LazyRichField
+            singleLine
+            proposalId={proposalId}
+            value={ensureRichHtml(activity.acronym)}
             placeholder="Acronym"
-            className="h-8 text-xs"
+            minHeight="32px"
+            className="text-xs [&_p]:m-0"
+            staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+            onChange={(html) => onUpdate(activity.id, { acronym: html })}
           />
         ) : (
-          <span className="truncate text-xs">{activity.acronym || '—'}</span>
+          <span
+            className="truncate text-xs [&_p]:m-0 [&_p]:inline"
+            dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
+          />
         )}
 
         {/* Instrument */}
         {canEdit ? (
-          <div className="flex min-w-0 items-center gap-1">
+          <div data-scalar-field="" className="flex min-w-0 items-center gap-1">
             <Select
               value={activity.instrumentCode ?? NONE}
               onValueChange={(v) =>
@@ -174,13 +186,15 @@ function SortableActivityRow({
 
         {/* Duration */}
         {canEdit ? (
-          <YearRangePicker
-            startYear={activity.durationStart}
-            endYear={activity.durationEnd}
-            onChange={(start, end) =>
-              onUpdate(activity.id, { durationStart: start, durationEnd: end })
-            }
-          />
+          <div data-scalar-field="" className="min-w-0">
+            <YearRangePicker
+              startYear={activity.durationStart}
+              endYear={activity.durationEnd}
+              onChange={(start, end) =>
+                onUpdate(activity.id, { durationStart: start, durationEnd: end })
+              }
+            />
+          </div>
         ) : (
           <span className="truncate text-xs">
             {formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}
@@ -188,7 +202,9 @@ function SortableActivityRow({
         )}
 
         {/* Responsible participant + delete control */}
-        <div className="min-w-0 flex items-center gap-1">
+        {/* tabIndex makes the chip itself focusable on click, so the features
+            tier opens for this scalar field like it does for the others. */}
+        <div data-scalar-field="" tabIndex={-1} className="min-w-0 flex items-center gap-1 outline-none">
           {selected ? (
             <ParticipantBubble
               onClick={() => {
@@ -438,7 +454,9 @@ export default function LinkedActivitiesTable({
                   className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    {a.acronym || <span className="italic text-muted-foreground">No acronym</span>}
+                    {htmlToPlainText(a.acronym ?? '') || (
+                      <span className="italic text-muted-foreground">No acronym</span>
+                    )}
                   </span>
                   <Button
                     variant="outline"

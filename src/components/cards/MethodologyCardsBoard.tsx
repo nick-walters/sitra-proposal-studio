@@ -76,6 +76,7 @@ import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { useCardGuidelines, useSectionCriteria } from '@/hooks/useCardGuidelines';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { supabase } from '@/integrations/supabase/client';
 import {
   CardLockProvider,
@@ -1128,7 +1129,13 @@ function CardBlock({
 
         {/* Hidden, not unmounted: editors keep their state and no unmount-time
             flush can fire. Collapse changes nothing the document records. */}
-        <CardContent className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}>
+        {/* Every field inside the block — card fields and the relational
+            tables alike — inherits the block's guideline key from here, so
+            the Guidelines button resolves from any of them. */}
+        <CardContent
+          data-guideline-key={card.templateKey ?? undefined}
+          className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}
+        >
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
@@ -1554,8 +1561,12 @@ function BoardInner({
     }
     return null;
   }, [cards, fieldsByCard, focusedBox]);
+  /* Blocks whose fields are NOT card fields — the linked-activities table
+     owns its own relational rows — resolve no focused card, so the key falls
+     back to the `data-guideline-key` the block writes onto its content. */
+  const focusedGuidelineKey = useFocusedGuidelineKey();
   const { data: focusedGuidelines = [] } = useCardGuidelines(
-    focusedCard?.templateKey ?? null,
+    focusedCard?.templateKey ?? focusedGuidelineKey ?? null,
   );
 
   /* Criteria are a category of their own: they belong to the SECTION, not to a

@@ -44,8 +44,11 @@ function ReadOnlyHtmlCell({
     return <span className="text-muted-foreground italic">—</span>;
   }
   return (
+    // Mirror cells are always LEFT aligned: the source fields store justified
+    // paragraphs (inline `text-align: justify`), which reads badly in a narrow
+    // table column, so the override is baked in here rather than per table.
     <div
-      className={`font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0 ${className ?? ''}`}
+      className={`font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight !text-left [&_p]:my-0 [&_p]:!text-left [&_li]:!text-left [&_div]:!text-left ${className ?? ''}`}
       dangerouslySetInnerHTML={{ __html: renderRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)), refData) }}
     />
   );
@@ -823,7 +826,7 @@ function B31RisksTableInner({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={r.id}>
-              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} className="[&_p]:!text-left [&_li]:!text-left" /></MCell>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
               <MCell index={1} last={last} cellClass="cell-px-0" className="text-left">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>
