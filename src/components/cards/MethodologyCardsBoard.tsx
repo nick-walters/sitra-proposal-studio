@@ -1128,7 +1128,13 @@ function CardBlock({
 
         {/* Hidden, not unmounted: editors keep their state and no unmount-time
             flush can fire. Collapse changes nothing the document records. */}
-        <CardContent className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}>
+        {/* Every field inside the block — card fields and the relational
+            tables alike — inherits the block's guideline key from here, so
+            the Guidelines button resolves from any of them. */}
+        <CardContent
+          data-guideline-key={card.templateKey ?? undefined}
+          className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}
+        >
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
