@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { B31OptionalJustificationsCard } from '@/components/B31OptionalJustificationsCard';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
@@ -456,7 +457,7 @@ export function BudgetPortalSheet({
       const concatJustifications = (cat: 'subcontracting' | 'travel' | 'equipment' | 'other_goods') =>
         justificationItems
           .filter(i => i.budgetRowId === row.id && i.category === cat)
-          .map(i => i.justification?.trim())
+          .map(i => htmlToPlainText(i.justification ?? '').trim())
           .filter((s): s is string => !!s)
           .join('\n');
 
