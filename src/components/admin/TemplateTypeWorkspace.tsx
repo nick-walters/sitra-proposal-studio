@@ -40,10 +40,10 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 
 const CATEGORY_LABEL: Record<string, string> = {
-  official: 'Official EC guidelines',
-  sitra_tip: "Sitra's tips",
+  commission: 'Official guidelines from the European Commission',
   criteria: 'Criteria',
 };
+
 
 function versionLabel(v: { major: number; minor: number; name?: string | null; status: string }) {
   const num = `${v.major}.${v.minor}`;
