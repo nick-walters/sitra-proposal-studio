@@ -622,7 +622,7 @@ function FieldRow({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{(field.headingEnabled && field.heading) || 'this module'}”?
+                      Delete “{(field.headingEnabled && htmlToPlainText(field.heading ?? '')) || 'this module'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       The whole module — both text boxes and their version histories — moves to
@@ -1107,7 +1107,7 @@ function CardBlock({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{card.title || 'this block'}”?
+                      Delete “{htmlToPlainText(card.title ?? '') || 'this block'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       The block and its modules move to the recycle bin and can be restored.
@@ -1536,7 +1536,7 @@ function BoardInner({
     if (!focusedBox) return '';
     for (const list of Object.values(fieldsByCard)) {
       const found = list.find((f) => f.id === focusedBox.fieldId);
-      if (found) return (found.headingEnabled && found.heading) || 'Untitled module';
+      if (found) return (found.headingEnabled && htmlToPlainText(found.heading ?? '')) || 'Untitled module';
     }
     return 'Untitled module';
   }, [fieldsByCard, focusedBox]);
@@ -1779,7 +1779,7 @@ function BoardInner({
     };
 
     for (const card of ordered) {
-      const cardLabel = card.title?.trim() || 'Untitled block';
+      const cardLabel = htmlToPlainText(card.title ?? '').trim() || 'Untitled block';
       const hidden = !card.isVisible;
       const readOnly = !canEdit || card.isSourceFed;
 
@@ -1838,7 +1838,7 @@ function BoardInner({
         if (field.contentHtml) {
           out.push({
             id: `field:${field.id}:content`,
-            label: `${cardLabel} › ${field.heading?.trim() || 'module content'}`,
+            label: `${cardLabel} › ${htmlToPlainText(field.heading ?? '').trim() || 'module content'}`,
             groupId: card.id,
             groupLabel: cardLabel,
             hidden,
@@ -2000,7 +2000,7 @@ function BoardInner({
         <GuidelinesDialog
           isOpen={guidelinesOpen}
           onClose={() => setGuidelinesOpen(false)}
-          sectionTitle={focusedCard?.title || focusedFieldLabel || 'Guidelines'}
+          sectionTitle={htmlToPlainText(focusedCard?.title ?? '') || focusedFieldLabel || 'Guidelines'}
           guidelines={focusedGuidelines}
         />
 
