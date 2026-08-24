@@ -427,7 +427,7 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
             padding: '8px 10px',
             border: '1px dashed #9ca3af',
             borderRadius: 4,
-            color: '#6b7280',
+            color: '#000',
             fontFamily: 'system-ui, sans-serif',
             fontSize: 12,
           }}
@@ -472,12 +472,12 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
                   style={{ fontStyle: 'normal' }}
                 />
               ) : (
-                <span className="text-muted-foreground text-[9pt] italic">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
+                <span className="text-[9pt] italic text-black">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
             </div>
 
             <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              {(c.title || '').trim() ? c.title : <span className="text-muted-foreground italic font-normal">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
+              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
             <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
