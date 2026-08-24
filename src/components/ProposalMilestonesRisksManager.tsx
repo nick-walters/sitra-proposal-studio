@@ -611,16 +611,36 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     <div className="p-6 space-y-6 compact-ref-badges">
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
-        {canEdit && (
-          <SaveIndicator
-            saving={activeSaves > 0}
-            lastSaved={lastSaved}
-            hasUnsavedChanges={pendingTextareas > 0}
-            saveError={saveError}
-            onSaveNow={saveNow}
-          />
-        )}
       </div>
+
+      {/* Shared focus-dependent toolbars, as on every other editing surface. */}
+      {canEdit && (
+        <div className="sticky top-0 z-20">
+          <DraftFormattingToolbar
+            hasFocusedField={!!activeEditor}
+            capabilities={getEditorCapabilities(activeEditor)}
+            save={{
+              saving: activeSaves > 0,
+              lastSaved,
+              saveError,
+              onSaveNow: saveNow,
+            }}
+            onCommand={execCommand}
+            trailing={
+              getEditorCapabilities(activeEditor).crossReferences ? (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    acronymSegments={acronymSegments}
+                    editor={activeEditor}
+                  />
+                </>
+              ) : null
+            }
+          />
+        </div>
+      )}
 
 
       {/* Milestones */}
@@ -630,31 +650,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
-          {canEdit && (
-            <div
-              className="mb-3 p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) e.preventDefault();
-              }}
-            >
-              <span className="text-xs text-muted-foreground px-1.5">Means of verification:</span>
-              <TextFormattingGroup
-                onBold={() => runOnActiveEditor((c) => c.toggleBold().run())}
-                onItalic={() => runOnActiveEditor((c) => c.toggleItalic().run())}
-                onUnderline={() => runOnActiveEditor((c) => c.toggleUnderline().run())}
-              />
-              {getEditorCapabilities(activeEditor).crossReferences && (
-                <>
-                  <Separator orientation="vertical" className="h-5 mx-1.5" />
-                  <ParticipantCrossRefDropdown
-                    proposalId={proposalId}
-                    acronymSegments={acronymSegments}
-                    editor={activeEditor}
-                  />
-                </>
-              )}
-            </div>
-          )}
+
 
 
 
