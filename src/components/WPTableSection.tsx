@@ -164,8 +164,8 @@ export function WPTableSection({
             <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
                 {tasks.map((task) => (
+                  <div key={task.id} id={`wp-task-row-${task.id}`}>
                   <SortableTaskCard
-                    key={task.id}
                     task={task}
                     wpNumber={wpNumber}
                     wpColor={wpColor}
