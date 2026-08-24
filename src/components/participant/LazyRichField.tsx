@@ -235,7 +235,7 @@ export function LazyRichField({
       dom.addEventListener('focusout', handleFocusOut);
       editor.on('destroy', () => dom.removeEventListener('focusout', handleFocusOut));
     },
-    [capabilities, shouldStayMounted, unmountEditor],
+    [capabilities, shouldStayMounted, unmountEditor, singleLine],
   );
 
   const activate = useCallback(
@@ -250,6 +250,17 @@ export function LazyRichField({
     },
     [disabled, mounted, onFocus, value, staticExtensions, refData],
   );
+
+  // Click-to-edit surfaces render the field only once the user asked to edit,
+  // so it mounts its editor straight away.
+  const activateRef = useRef(activate);
+  activateRef.current = activate;
+  useEffect(() => {
+    if (autoFocus) activateRef.current(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus]);
+
+
 
 
   return (
