@@ -15,7 +15,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, Plus, Recycle, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Plus,
+  Recycle,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -94,6 +106,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useCardCollapse } from '@/hooks/useCardCollapse';
+import { useCardFigureSummaries } from '@/hooks/useCardFigureSummaries';
 import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
@@ -680,6 +694,13 @@ interface CardBlockProps {
   /** Caption letters for case-study placeholder modules, keyed by field id. */
   caseLetterByFieldId: Record<string, number>;
   collapsed: boolean;
+  /** Per-user view preference: content hidden, header + summary stay. */
+  userCollapsed: boolean;
+  onToggleCollapse: () => void;
+  /** For the references block's collapsed summary. */
+  referenceCount: number;
+  /** Caption or figure title, for a figure block's collapsed summary. */
+  figureSummary?: string;
   binCount: number;
   onOpenBin: (card: ProposalCard) => void;
   onRename: (card: ProposalCard, title: string | null) => void;
@@ -711,6 +732,10 @@ function CardBlock({
   caseTypeLabels,
   caseLetterByFieldId,
   collapsed,
+  userCollapsed,
+  onToggleCollapse,
+  referenceCount,
+  figureSummary,
   binCount,
   onOpenBin,
   onRename,
