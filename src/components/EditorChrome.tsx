@@ -216,23 +216,26 @@ export function EditorTopBar({
         />
       )}
 
-      {collapseAll && (
-        <FeatureButton
-          icon={
-            collapseAll.allCollapsed ? (
-              <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-            ) : (
-              <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
-            )
-          }
-          primary={collapseAll.allCollapsed ? 'Expand' : 'Collapse'}
-          secondary="all blocks"
-          secondarySmall
-          disabled={collapseAll.disabled}
-          tooltip={collapseAll.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
-          onClick={collapseAll.onToggle}
-        />
-      )}
+      {/* Collapse all, Comments, Find and replace and Shortcuts are page-wide
+          controls EVERY surface carries; they show disabled where a surface
+          has not wired them. Preview / Add block / Restore block are Part B
+          only and appear solely when their handler is supplied. */}
+      <FeatureButton
+        icon={
+          collapseAll?.allCollapsed ? (
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+          )
+        }
+        primary={collapseAll?.allCollapsed ? 'Expand' : 'Collapse'}
+        secondary="all blocks"
+        secondarySmall
+        disabled={!collapseAll || collapseAll.disabled}
+        tooltip={collapseAll?.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
+        onClick={collapseAll?.onToggle}
+      />
+
 
       {onAddBlock && (
         <FeatureButton
