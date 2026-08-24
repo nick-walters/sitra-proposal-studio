@@ -95,7 +95,7 @@ export function PartAGuidelinesDialog({
                       <BookOpen className="h-5 w-5" />
                     </div>
                     <span className="text-sm font-bold text-blue-600">
-                      Official guidelines from European Commission
+                      Official guidelines from the European Commission
                     </span>
                   </div>
                   

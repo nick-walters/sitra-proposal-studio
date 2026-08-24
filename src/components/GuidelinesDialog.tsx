@@ -138,7 +138,7 @@ function ConsolidatedGuidelineBox({
     },
     official: {
       icon: Info,
-      label: "Official guidelines from European Commission",
+      label: "Official guidelines from the European Commission",
       borderColor: "border-blue-500",
       titleColor: "text-blue-600",
       bgColor: "bg-blue-50/50",
