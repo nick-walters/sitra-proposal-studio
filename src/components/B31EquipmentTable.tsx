@@ -6,6 +6,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
+import { MirroredRichText } from '@/components/MirroredRichText';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
@@ -102,7 +103,7 @@ export function B31EquipmentTable({ items, participants, proposalId, tableLabel 
                   <td className={`${cellStyles} text-right ${isFirstItem ? topBorder : ''}`}>
                     {formatCurrency(item.amount)}
                   </td>
-                  <td className={`${cellStyles} ${isFirstItem ? topBorder : ''}`}>{item.justification || '—'}</td>
+                  <td className={`${cellStyles} ${isFirstItem ? topBorder : ''}`}><MirroredRichText proposalId={proposalId ?? ''} value={item.justification} /></td>
                 </tr>
               );
             });
