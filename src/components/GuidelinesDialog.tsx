@@ -24,73 +24,88 @@ interface GuidelinesDialogProps {
   isOpen: boolean;
   onClose: () => void;
   sectionTitle: string;
+  /** Overrides the default "Guidelines for …" heading. */
+  dialogTitle?: string;
   guidelines: Guideline[];
 }
 
-const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+/**
+ * Guideline content is stored as HTML: the Commission wording carries `<br>`
+ * breaks, `&amp;` entities and anchors that must stay clickable. It is split
+ * into paragraphs on blank lines / double breaks, and any paragraph opening
+ * with a warning marker becomes a highlighted note.
+ */
+const HTML_CONFIG = {
+  ALLOWED_TAGS: [...FOOTNOTE_CONFIG.ALLOWED_TAGS, 'ul', 'ol', 'li', 'p'],
+  ALLOWED_ATTR: FOOTNOTE_CONFIG.ALLOWED_ATTR,
+};
 
-// Render text with bare URLs as clickable links
-function renderWithLinks(text: string): React.ReactNode {
-  const parts = text.split(URL_REGEX);
-  return parts.map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline break-all"
-      >
-        {part}
-      </a>
-    ) : (
-      part
-    )
-  );
+const LINK_CLASSES =
+  "[&_a]:text-inherit [&_a]:underline [&_a]:break-words [&_a]:font-medium";
+
+function sanitize(html: string): string {
+  return DOMPurify.sanitize(html, HTML_CONFIG);
 }
 
-// Parse content to handle special markers (e.g., yellow exclamation marks become blue warning triangles)
+function splitParagraphs(content: string): string[] {
+  return content
+    // double <br> = paragraph break; single newlines behave the same way for
+    // the older plain-text rows that have not been re-seeded as HTML.
+    .split(/(?:\s*<br\s*\/?>\s*){2,}|\n{2,}|\n/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 function parseGuidelineContent(content: string): React.ReactNode {
-  // Split by newlines to handle bullet points
-  const lines = content.split('\n');
-  
+  const paragraphs = splitParagraphs(content);
+
   return (
-    <div className="space-y-1.5">
-      {lines.map((line, index) => {
-        // Check for warning markers (⚠️, ⚠, !, [!], etc.) at the start of line
-        const hasWarning = /^[⚠️⚠!]/.test(line.trim());
-        // Clean the line of warning markers at the start
-        const cleanLine = line.replace(/^[⚠️⚠!]\s*/, '').trim();
-        
-        // Handle bullet points - reduced indent
-        if (cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–')) {
-          const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
+    <div className="space-y-2">
+      {paragraphs.map((para, index) => {
+        const isWarning = /^[⚠️⚠!]/.test(para);
+        const clean = para.replace(/^[⚠️⚠!]\s*/, '').trim();
+        if (!clean) return null;
+
+        if (isWarning) {
+          return (
+            <div
+              key={index}
+              className={cn(
+                "flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200 text-blue-700",
+                LINK_CLASSES,
+              )}
+            >
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span
+                className="text-sm"
+                dangerouslySetInnerHTML={{ __html: sanitize(clean) }}
+              />
+            </div>
+          );
+        }
+
+        // Bullet lines kept from the older plain-text rows.
+        if (/^[•\-–]\s/.test(clean)) {
           return (
             <div key={index} className="flex items-start gap-1.5">
               <span className="text-muted-foreground mt-0.5">•</span>
-              <span className="text-sm text-muted-foreground">{bulletContent}</span>
+              <span
+                className={cn("text-sm text-muted-foreground", LINK_CLASSES)}
+                dangerouslySetInnerHTML={{
+                  __html: sanitize(clean.replace(/^[•\-–]\s*/, '')),
+                }}
+              />
             </div>
           );
         }
-        
-        // Line starting with warning marker - show with blue warning triangle
-        if (hasWarning && cleanLine) {
-          return (
-            <div key={index} className="flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
-              <span className="text-sm text-blue-700">{renderWithLinks(cleanLine)}</span>
-            </div>
-          );
-        }
-        
-        // Regular line
-        if (cleanLine) {
-          return (
-            <p key={index} className="text-sm text-muted-foreground">{renderWithLinks(cleanLine)}</p>
-          );
-        }
-        
-        return null;
+
+        return (
+          <p
+            key={index}
+            className={cn("text-sm text-muted-foreground", LINK_CLASSES)}
+            dangerouslySetInnerHTML={{ __html: sanitize(clean) }}
+          />
+        );
       })}
     </div>
   );
@@ -105,6 +120,14 @@ function ConsolidatedGuidelineBox({
   guidelines: Guideline[];
 }) {
   const config = {
+    criteria: {
+      icon: ClipboardCheck,
+      label: "Evaluation criteria for this section",
+      borderColor: "border-destructive",
+      titleColor: "text-destructive",
+      bgColor: "bg-destructive/5",
+      iconColor: "text-destructive",
+    },
     evaluation: {
       icon: ClipboardCheck,
       label: "Evaluation criterion",
@@ -172,10 +195,17 @@ function ConsolidatedGuidelineBox({
   );
 }
 
-export function GuidelinesDialog({ isOpen, onClose, sectionTitle, guidelines }: GuidelinesDialogProps) {
-  // Group guidelines by type and maintain order: evaluation, official, sitra_tip
+export function GuidelinesDialog({
+  isOpen,
+  onClose,
+  sectionTitle,
+  dialogTitle,
+  guidelines,
+}: GuidelinesDialogProps) {
+  // Group guidelines by type and maintain order: criteria, evaluation, official, sitra_tip
   const groupedGuidelines = useMemo(() => {
     const groups: Record<GuidelineType, Guideline[]> = {
+      criteria: [],
       evaluation: [],
       official: [],
       sitra_tip: [],
@@ -201,13 +231,13 @@ export function GuidelinesDialog({ isOpen, onClose, sectionTitle, guidelines }: 
   }, [guidelines]);
 
   // Order of display
-  const typeOrder: GuidelineType[] = ['evaluation', 'official', 'sitra_tip'];
+  const typeOrder: GuidelineType[] = ['criteria', 'evaluation', 'official', 'sitra_tip'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] w-[90vw]">
         <DialogHeader>
-          <DialogTitle>Guidelines for Part {sectionTitle}</DialogTitle>
+          <DialogTitle>{dialogTitle ?? `Guidelines for Part ${sectionTitle}`}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-4">
