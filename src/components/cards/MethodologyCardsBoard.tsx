@@ -570,12 +570,20 @@ function FieldRow({
 
             {canEdit && (
               <div className="flex shrink-0 items-center gap-1.5">
-                <Switch
-                  id={`include-header-${field.id}`}
-                  checked={field.headingEnabled}
-                  onCheckedChange={(v) => onToggleHeading(field, v)}
-                  className="scale-75"
-                />
+                <Tip
+                  label={
+                    field.headingEnabled
+                      ? 'Remove this module’s header from Part B'
+                      : 'Include a header for this module in Part B'
+                  }
+                >
+                  <Switch
+                    id={`include-header-${field.id}`}
+                    checked={field.headingEnabled}
+                    onCheckedChange={(v) => onToggleHeading(field, v)}
+                    className="scale-75"
+                  />
+                </Tip>
                 <Label
                   htmlFor={`include-header-${field.id}`}
                   className="cursor-pointer whitespace-nowrap text-[11px] text-muted-foreground"
@@ -588,15 +596,17 @@ function FieldRow({
             {canEdit && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Delete module"
-                    className="h-7 w-7 text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Tip label="Delete module">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </Tip>
                 </AlertDialogTrigger>
+
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
