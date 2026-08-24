@@ -32,11 +32,13 @@ type GuidelineRow = {
 
 function toGuideline(row: GuidelineRow, order: number): CardGuideline {
   const type: GuidelineType =
-    row.guideline_type === 'evaluation'
-      ? 'evaluation'
-      : row.guideline_type === 'sitra_tip'
-        ? 'sitra_tip'
-        : 'official';
+    row.guideline_type === 'criteria'
+      ? 'criteria'
+      : row.guideline_type === 'evaluation'
+        ? 'evaluation'
+        : row.guideline_type === 'sitra_tip'
+          ? 'sitra_tip'
+          : 'official';
   return {
     id: row.id,
     type,
@@ -87,6 +89,45 @@ export function useCardGuidelines(templateKey: string | null, document = 'part_b
       }
 
       return out;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Evaluation criteria for a SECTION as a whole.
+ *
+ * Criteria are their own category (`criteria`) and attach at section level via
+ * `card_guideline_sections`, not per block: the Commission scores the
+ * subsection, not the individual text box. The board passes the proposal's
+ * section id; the link is stored against the TEMPLATE section it was copied
+ * from, so that is resolved first.
+ */
+export function useSectionCriteria(proposalSectionId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['section-criteria', proposalSectionId],
+    enabled: !!proposalSectionId,
+    queryFn: async (): Promise<CardGuideline[]> => {
+      const { data: section } = await supabase
+        .from('proposal_template_sections')
+        .select('source_section_id')
+        .eq('id', proposalSectionId!)
+        .maybeSingle();
+      const sourceId = section?.source_section_id;
+      if (!sourceId) return [];
+
+      const { data } = await supabase
+        .from('card_guideline_sections')
+        .select('card_guidelines(*)')
+        .eq('section_source_id', sourceId);
+
+      const out: CardGuideline[] = [];
+      for (const link of data ?? []) {
+        const row = (link as any).card_guidelines as GuidelineRow | null;
+        if (!row?.is_active || row.guideline_type !== 'criteria') continue;
+        out.push(toGuideline(row, row.order_index));
+      }
+      return out.sort((a, b) => a.order_index - b.order_index);
     },
     staleTime: 5 * 60 * 1000,
   });

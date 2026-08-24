@@ -14,6 +14,7 @@ import {
   Recycle,
   ChevronDown,
   ChevronUp,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -170,6 +171,8 @@ export interface EditorTopBarProps extends SaveStateButtonProps {
   commentCount?: number;
   /** Find and replace. */
   onFindReplace?: () => void;
+  /** Evaluation criteria for the SECTION as a whole. */
+  onOpenCriteria?: () => void;
   /** Keyboard shortcuts — always pinned to the far right. */
   onOpenShortcuts?: () => void;
   /** Extra page-wide controls appended before the shortcuts button. */
@@ -192,6 +195,7 @@ export function EditorTopBar({
   onOpenComments,
   commentCount,
   onFindReplace,
+  onOpenCriteria,
   onOpenShortcuts,
   trailing,
 }: EditorTopBarProps) {
@@ -277,6 +281,19 @@ export function EditorTopBar({
         tooltip="Find and replace text"
         disabled={!onFindReplace}
         onClick={onFindReplace}
+      />
+
+      {/* Criteria are section-wide, not per block, so they live in the
+          page-wide tier next to the other page-level controls. */}
+      <FeatureButton
+        icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+        primary="Criteria"
+        secondary="for this section"
+        secondarySmall
+        tone="destructive"
+        tooltip="Evaluation criteria for this section"
+        disabled={!onOpenCriteria}
+        onClick={onOpenCriteria}
       />
 
       {trailing}

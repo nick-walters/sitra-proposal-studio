@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
+import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
 import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline } from "@/types/templates";
@@ -1338,6 +1339,10 @@ function SectionAccordionItem({
               </Accordion>
             </div>
           )}
+
+          {/* Criteria — their own category, attached to the section as a whole
+              and surfaced by the page-wide "Criteria" button. */}
+          <SectionCriteriaEditor sectionId={section.id} />
 
           {/* Guidelines - sorted by type priority then order_index */}
           <div className="space-y-2">

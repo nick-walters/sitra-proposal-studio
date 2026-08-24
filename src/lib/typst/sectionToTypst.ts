@@ -13,7 +13,7 @@ import { mapCard, mapField, type CardField, type ProposalCard } from '@/types/ca
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
-import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColorsFromHtml';
+import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColors';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 /**

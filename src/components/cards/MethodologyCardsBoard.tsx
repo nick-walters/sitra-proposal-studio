@@ -75,7 +75,7 @@ import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
-import { useCardGuidelines } from '@/hooks/useCardGuidelines';
+import { useCardGuidelines, useSectionCriteria } from '@/hooks/useCardGuidelines';
 import { supabase } from '@/integrations/supabase/client';
 import {
   CardLockProvider,
@@ -1359,6 +1359,7 @@ function BoardInner({
   );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
+  const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const { warning, locks, myUserId } = useCardLocks();
 
@@ -1556,6 +1557,10 @@ function BoardInner({
   const { data: focusedGuidelines = [] } = useCardGuidelines(
     focusedCard?.templateKey ?? null,
   );
+
+  /* Criteria are a category of their own: they belong to the SECTION, not to a
+     block, so they hang off the page-wide tier and never follow the focus. */
+  const { data: sectionCriteria = [] } = useSectionCriteria(sectionId);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -1929,6 +1934,8 @@ function BoardInner({
                 canEdit && deletedBlockCount > 0 ? () => setBinOpen(true) : undefined,
               restoreBlockCount: deletedBlockCount,
               onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+              onOpenCriteria:
+                sectionCriteria.length > 0 ? () => setCriteriaOpen(true) : undefined,
 
           }}
           fieldBar={{
@@ -2010,6 +2017,14 @@ function BoardInner({
           onClose={() => setGuidelinesOpen(false)}
           sectionTitle={htmlToPlainText(focusedCard?.title ?? '') || focusedFieldLabel || 'Guidelines'}
           guidelines={focusedGuidelines}
+        />
+
+        <GuidelinesDialog
+          isOpen={criteriaOpen}
+          onClose={() => setCriteriaOpen(false)}
+          sectionTitle=""
+          dialogTitle="Evaluation criteria for this section"
+          guidelines={sectionCriteria}
         />
 
         {historyOpen && focusedBox && (
