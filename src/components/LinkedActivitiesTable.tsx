@@ -214,12 +214,18 @@ function SortableActivityRow({
             <span className="text-xs text-muted-foreground">—</span>
           )}
           {canEdit && (
-            <DeleteConfirmDialog
-              itemLabel="this linked activity"
-              onConfirm={() => onDelete(activity.id)}
-            />
+            // Pushed to the right edge of its column so every row's delete
+            // icon lines up vertically, whatever the participant chip's width.
+            <span className="ml-auto shrink-0">
+              <DeleteConfirmDialog
+                itemLabel="this linked activity"
+                tooltip="Delete this linked activity"
+                onConfirm={() => onDelete(activity.id)}
+              />
+            </span>
           )}
         </div>
+
       </div>
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
