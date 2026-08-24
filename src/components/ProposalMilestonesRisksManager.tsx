@@ -775,7 +775,11 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 .filter((w): w is WPRow => !!w)
                 .sort((a, b) => a.number - b.number);
               return (
-                <div key={m.id} className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
+                <div
+                  key={m.id}
+                  id={`milestone-row-${m.id}`}
+                  className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1"
+                >
                   {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
                   <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
                     <MilestoneBadge number={m.number} />
@@ -936,8 +940,8 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                   <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
                 )}
                 {risks.map((r) => (
+                  <div key={r.id} id={`risk-row-${r.id}`}>
                   <SortableRiskRow
-                    key={r.id}
                     risk={r}
                     wps={wps}
                     canEdit={canEdit}
