@@ -163,6 +163,14 @@ export function MethodologyRichEditor({
         if (!canEdit) e.preventDefault();
       }}
     >
+      {placeholder && isEmpty && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-2.5 top-1.5 select-none text-sm italic text-muted-foreground"
+        >
+          {placeholder}
+        </span>
+      )}
       <EditorContent editor={editor} />
     </div>
   );
