@@ -266,14 +266,19 @@ export function LazyRichField({
   return (
     <div className={cn('relative', className)}>
       {prefix && (
+        // `relative z-10`: the static render sits in a POSITIONED wrapper
+        // (added with the placeholder), and positioned boxes paint above
+        // floats — without its own stacking the badge was painted over by
+        // the field's opaque background.
         <span
-          className="float-left mr-1 select-none"
+          className="relative z-10 float-left mr-1 select-none"
           contentEditable={false}
           data-participant-prefix="1"
         >
           {prefix}
         </span>
       )}
+
       {mounted ? (
         <MethodologyRichEditor
           proposalId={proposalId}
