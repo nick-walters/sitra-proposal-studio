@@ -81,7 +81,9 @@ function useMirrorParticipants(proposalId: string) {
 
 function projectLabel(a: ActivityRow): string {
   const parts = [
-    (a.acronym || '').trim(),
+    // The acronym is rich text (colour only); the merged label is plain, so
+    // markup is stripped rather than printed.
+    htmlToPlainText(a.acronym || '').trim(),
     getInstrumentAbbreviation(a.instrumentCode, a.instrumentCustom).trim(),
     formatDurationShort(a.durationStart, a.durationEnd).trim(),
   ].filter((p) => p.length > 0);
