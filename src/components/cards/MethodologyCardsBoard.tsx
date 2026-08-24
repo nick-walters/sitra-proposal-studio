@@ -76,6 +76,7 @@ import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { useCardGuidelines, useSectionCriteria } from '@/hooks/useCardGuidelines';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { supabase } from '@/integrations/supabase/client';
 import {
   CardLockProvider,
