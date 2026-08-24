@@ -161,8 +161,8 @@ export function BudgetParticipantForm({
 
   return (
     <PartAPageLayout
-      title={`${row.participantNumber}
-      proposalId={proposalId}. ${row.participantShortName || row.participantName}`}
+      title={`${row.participantNumber}. ${row.participantShortName || row.participantName}`}
+      proposalId={proposalId}
       titleAs="h2"
       titleClassName="text-lg font-semibold"
       titleNode={

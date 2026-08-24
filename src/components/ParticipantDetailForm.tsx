@@ -185,8 +185,8 @@ export function ParticipantDetailForm({
 
   return (
     <PartAPageLayout
-      title={participant.organisationName
-      proposalId={proposalId} || 'New Participant'}
+      title={participant.organisationName || 'New Participant'}
+      proposalId={proposalId}
       titleNode={
         <h1 className="text-xl font-semibold">
           {participant.organisationName || 'New Participant'}
