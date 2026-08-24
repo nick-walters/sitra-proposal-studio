@@ -20,7 +20,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   BookOpen, ChevronDown, ChevronRight, ClipboardCheck, GripVertical, History,
-  Lightbulb, Plus, Settings2, Trash2, Upload, Pencil,
+  Lightbulb, Lock, Plus, Settings2, Trash2, Upload, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -34,8 +34,10 @@ import { CSS } from '@dnd-kit/utilities';
 import type { TemplateType } from '@/types/templates';
 import {
   useAllTemplateVersions, useVersionBlocks, useBlockGuidelines, useSectionCriteriaAdmin,
-  useEnsureDraft, usePublishVersion, type CardTemplateRow, type CardGuidelineRow,
+  useClaimDraft, useLockHolderName, usePublishVersion,
+  type CardTemplateRow, type CardGuidelineRow,
 } from '@/hooks/useTemplateVersioning';
+import { useAuth } from '@/hooks/useAuth';
 
 const CATEGORY_LABEL: Record<string, string> = {
   official: 'Official EC guidelines',
@@ -60,7 +62,9 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const { data: versions = [] } = useAllTemplateVersions(typeId || null);
-  const ensureDraft = useEnsureDraft();
+  const claimDraft = useClaimDraft();
+  const { user } = useAuth();
+  const [takeoverOpen, setTakeoverOpen] = useState(false);
 
   const activeVersionId = useMemo(() => {
     if (versionId && versions.find((v) => v.id === versionId)) return versionId;
@@ -68,6 +72,13 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
   }, [versionId, versions]);
   const activeVersion = versions.find((v) => v.id === activeVersionId) ?? null;
   const isDraft = activeVersion?.status === 'draft';
+  /* The draft is one coherent set of changes, so the lock covers the whole
+     draft rather than any single field, and is cleared by publishing. */
+  const lockedBy = isDraft ? activeVersion?.locked_by ?? null : null;
+  const iHoldLock = !!lockedBy && lockedBy === user?.id;
+  const lockedByOther = !!lockedBy && !iHoldLock;
+  const { data: holderName } = useLockHolderName(lockedByOther ? lockedBy : null);
+  const editable = isDraft && iHoldLock;
 
   const { data: blocks = [] } = useVersionBlocks(activeVersionId || null);
 
@@ -101,12 +112,20 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
     [grouped],
   );
 
-  const openDraft = async () => {
+  const openDraft = async (takeover = false) => {
     if (!typeId) return;
     try {
-      const id = await ensureDraft.mutateAsync(typeId);
-      setVersionId(id);
-      toast.success('Draft opened — edits are saved into it until you publish.');
+      const res = await claimDraft.mutateAsync({ templateTypeId: typeId, takeover });
+      setVersionId(res.version_id);
+      if (!res.ok) {
+        setTakeoverOpen(true);
+        return;
+      }
+      toast.success(
+        takeover
+          ? 'You now hold this draft — the existing edits are unchanged.'
+          : 'Draft locked to you — edits are saved into it until you publish.',
+      );
     } catch (e: any) {
       toast.error(e.message ?? 'Could not open a draft');
     }
@@ -148,11 +167,16 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
             </Select>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            {isDraft
+            {editable
               ? <Badge variant="secondary">Editing draft</Badge>
               : <Badge variant="outline">Read only</Badge>}
-            {!isDraft && (
-              <Button variant="outline" size="sm" onClick={openDraft} className="gap-2">
+            {!editable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => (lockedByOther ? setTakeoverOpen(true) : openDraft(false))}
+                className="gap-2"
+              >
                 <Pencil className="h-4 w-4" /> Edit
               </Button>
             )}
@@ -161,7 +185,7 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
             </Button>
             <Button
               size="sm"
-              disabled={!isDraft}
+              disabled={!editable}
               onClick={() => setPublishOpen(true)}
               className="gap-2"
             >
@@ -170,6 +194,20 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
           </div>
         </CardContent>
       </Card>
+
+      {lockedByOther && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            This draft is being edited by <b>{holderName ?? 'another owner'}</b>
+            {activeVersion?.locked_at && (
+              <> since {new Date(activeVersion.locked_at).toLocaleString('en-GB', {
+                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+              })}</>
+            )}. It is read-only for you until they publish, or until you take it over.
+          </p>
+        </div>
+      )}
 
       {subsectionOrder.length > 0 && (
         <div className="flex justify-end">
@@ -201,7 +239,7 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
             title={(meta as any)?.title ?? ''}
             sectionSourceId={sourceId}
             versionId={activeVersionId}
-            editable={isDraft}
+            editable={editable}
             blocks={rows}
             open={isOpen}
             onToggle={() => setCollapsed((c) => ({ ...c, [sectionNumber]: isOpen }))}
@@ -215,6 +253,29 @@ export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateTy
           No Part B blocks in this version.
         </p>
       )}
+
+      <AlertDialog open={takeoverOpen} onOpenChange={setTakeoverOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Take over this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The draft is currently held by {holderName ?? 'another owner'}
+              {activeVersion?.locked_at && (
+                <> since {new Date(activeVersion.locked_at).toLocaleString('en-GB', {
+                  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                })}</>
+              )}. Taking over does not discard anything — their edits stay in the draft and you
+              continue from them. They will lose editing rights until they take it back.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setTakeoverOpen(false); void openDraft(true); }}>
+              Take over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <PublishDialog
         open={publishOpen}
