@@ -930,31 +930,40 @@ function SectionsPanel({
     }
   };
 
+  /* Default to the type that actually carries Part B content rather than
+     whichever code sorts first alphabetically. */
+  const { data: blockCounts } = useQuery({
+    queryKey: ['admin-type-block-counts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('card_templates').select('template_type_id');
+      const counts: Record<string, number> = {};
+      for (const r of data ?? []) {
+        const k = (r as any).template_type_id as string;
+        counts[k] = (counts[k] ?? 0) + 1;
+      }
+      return counts;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  useEffect(() => {
+    if (selectedTemplateTypeId || templateTypes.length === 0) return;
+    const best = [...templateTypes].sort(
+      (a, b) => (blockCounts?.[b.id] ?? 0) - (blockCounts?.[a.id] ?? 0),
+    )[0];
+    if (best) onSelectTemplateType(best.id);
+  }, [selectedTemplateTypeId, templateTypes, blockCounts, onSelectTemplateType]);
+
   if (!selectedTemplateTypeId) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Sections & Guidelines</CardTitle>
-          <CardDescription>Select a template type to manage its sections</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {templateTypes.map((type) => (
-              <Button
-                key={type.id}
-                variant="outline"
-                className="h-auto py-4 flex flex-col items-start"
-                onClick={() => onSelectTemplateType(type.id)}
-              >
-                <Badge variant="secondary" className="mb-2">{type.code}</Badge>
-                <span className="text-sm">{type.name}</span>
-              </Button>
-            ))}
-          </div>
+        <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          Loading template types…
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <Card>
