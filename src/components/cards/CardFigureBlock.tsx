@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image as ImageIcon, Pencil, Plus, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tip } from '@/components/ui/control-tip';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -114,10 +115,12 @@ export function CardFigureBlock({
                   : 'No figure chosen for this block yet.'}
               </p>
               {canEdit && (
-                <Button size="sm" onClick={() => setManagerOpen(true)}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Insert a figure
-                </Button>
+                <Tip label="Insert a figure into this block">
+                  <Button size="sm" onClick={() => setManagerOpen(true)}>
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Insert a figure
+                  </Button>
+                </Tip>
               )}
             </div>
           ) : imageUrl ? (
@@ -273,14 +276,18 @@ export function CardFigureBlock({
           {/* No figure: the empty state's "Insert a figure" is the only entry point. */}
           {!missingAsset && (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
-                <Pencil className="mr-1 h-3.5 w-3.5" />
-                Change figure
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setRemoveOpen(true)}>
-                <Unlink className="mr-1 h-3.5 w-3.5" />
-                Remove the figure from this block
-              </Button>
+              <Tip label="Change the figure shown in this block">
+                <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Change figure
+                </Button>
+              </Tip>
+              <Tip label="Remove the figure from this block (the figure itself is kept)">
+                <Button size="sm" variant="outline" onClick={() => setRemoveOpen(true)}>
+                  <Unlink className="mr-1 h-3.5 w-3.5" />
+                  Remove the figure from this block
+                </Button>
+              </Tip>
             </div>
           )}
         </div>
