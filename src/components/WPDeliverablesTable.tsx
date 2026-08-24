@@ -97,7 +97,7 @@ const DISSEMINATION_LEVELS = [
 // in the same horizontal position on every row — the same fixed-column approach
 // used for the block control rows on the cards board.
 const DELIVERABLE_META_GRID =
-  'grid grid-cols-[7rem_6rem_9rem_9rem_10rem_1fr_2.25rem_2.25rem] items-start gap-x-2';
+  'grid grid-cols-[7rem_6rem_9rem_6.5rem_7.5rem_1fr_4.5rem_2.25rem] items-start gap-x-2 pl-2';
 
 
 // ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),

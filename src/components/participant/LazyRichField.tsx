@@ -238,7 +238,7 @@ export function LazyRichField({
           tabIndex={disabled ? -1 : 0}
           aria-readonly={disabled}
           className={cn(
-            'document-content rounded-md border border-border bg-background px-4 py-2 text-sm',
+            'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
             disabled ? 'cursor-default' : 'cursor-text',
           )}
           style={{ minHeight }}

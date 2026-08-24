@@ -630,6 +630,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
         <DraftFormattingToolbar
           onOpenGuidelines={() => setGuidelinesOpen(true)}
+          hasFocusedField={!!activeEditor}
           capabilities={getEditorCapabilities(activeEditor)}
           save={{
             saving: updateMutation.isPending,
@@ -749,7 +750,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
         {/* Header with white bg + black outline (case bubble style) */}
         <div
-          className="rounded-lg p-4 bg-white border-[1.5px] border-black"
+          className="relative isolate rounded-lg p-4 bg-white border-[1.5px] border-black before:absolute before:inset-x-0 before:top-0 before:h-3 before:-z-10 before:bg-white before:content-['']"
         >
           {/* Row 1: Short name + Leader */}
           <div className="flex items-center gap-4 flex-wrap mb-2">

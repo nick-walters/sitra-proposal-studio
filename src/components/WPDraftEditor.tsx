@@ -709,6 +709,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <div data-wp-draft-toolbar="1" className="sticky top-0 z-20">
         <DraftFormattingToolbar
           onOpenGuidelines={() => setGuidelinesDialogOpen(true)}
+          hasFocusedField={!!activeEditor}
           capabilities={getEditorCapabilities(activeEditor)}
           save={{ saving, lastSaved, saveError, onSaveNow: () => {} }}
           isReadOnly={readOnly}
