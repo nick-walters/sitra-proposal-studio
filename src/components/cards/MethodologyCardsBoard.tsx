@@ -904,32 +904,34 @@ function CardBlock({
           {/* Left edge control stack: collapse chevron on top, drag grip
               beneath it, so both sit together at the block's left edge. */}
           <div className="-ml-3.5 flex shrink-0 flex-col items-center gap-0.5 self-start">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
-              title={userCollapsed ? 'Expand block' : 'Collapse block'}
-              onClick={onToggleCollapse}
-              className="h-6 w-6"
-            >
-              {userCollapsed ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronUp className="h-4 w-4" />
-              )}
-            </Button>
-            {draggable && canEdit && (
-              <button
-                type="button"
-                className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
-                aria-label="Reorder block"
-                {...sortable.attributes}
-                {...sortable.listeners}
+            <Tip label={userCollapsed ? 'Expand block' : 'Collapse block'}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleCollapse}
+                className="h-6 w-6"
               >
-                <GripVertical className="h-4 w-4 text-blue-500" />
-              </button>
+                {userCollapsed ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
+            </Tip>
+            {draggable && canEdit && (
+              <Tip label="Drag to reorder this block">
+                <button
+                  type="button"
+                  className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
+                  {...sortable.attributes}
+                  {...sortable.listeners}
+                >
+                  <GripVertical className="h-4 w-4 text-blue-500" />
+                </button>
+              </Tip>
             )}
           </div>
+
 
           {/* Figure blocks carry no title: the caption under the figure is the
               only label, so a block title would duplicate it. */}
