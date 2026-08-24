@@ -636,29 +636,17 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('template_sections')
-        .select(`
-          *,
-          guidelines:section_guidelines(*),
-          form_fields:template_form_fields(*)
-        `)
-        .eq('template_type_id', templateTypeId)
-        .eq('is_active', true)
-        .order('order_index');
+      const data = await fetchTemplateSections(templateTypeId, proposalId);
 
-      if (error) {
-        console.error('Error fetching template sections:', error);
-        setTemplateSections([]);
-        setHasTemplateSections(false);
-      } else if (data && data.length > 0) {
-        const sections = buildSectionHierarchy(data as TemplateSectionData[]);
+      if (data && data.length > 0) {
+        const sections = buildSectionHierarchy(data);
         setTemplateSections(sections);
         setHasTemplateSections(true);
       } else {
         setTemplateSections([]);
         setHasTemplateSections(false);
       }
+
     } catch (error) {
       console.error('Error fetching template sections:', error);
       setTemplateSections([]);
