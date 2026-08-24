@@ -1154,7 +1154,7 @@ function CardBlock({
                         onLostText={onLostText}
                         onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
-                        collapsed={collapsed}
+                        collapsed={contentHidden}
                       />
                     ))}
                   </div>
@@ -1234,6 +1234,15 @@ function BoardInner({
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
+
+  // Per-user collapse preferences — view state only, never document state.
+  const allCardIds = useMemo(() => cards.map((c) => c.id), [cards]);
+  const { collapsedIds, setCollapsed, setAllCollapsed } = useCardCollapse(allCardIds);
+  const figureCardIds = useMemo(
+    () => cards.filter((c) => c.kind === 'figure').map((c) => c.id),
+    [cards],
+  );
+  const { data: figureSummaries = {} } = useCardFigureSummaries(figureCardIds);
 
   /**
    * Section-level rule, read off the template rather than a hardcoded section
@@ -1516,9 +1525,19 @@ function BoardInner({
 
   // A references block appears only when the section cites something. It stays
   // undeletable and unhideable; it simply renders nothing when empty.
-  const { hasAny: sectionCitesAnything } = useSectionCitedReferences(proposalId, sectionId);
+  const { hasAny: sectionCitesAnything, entries: sectionCitedEntries } =
+    useSectionCitedReferences(proposalId, sectionId);
+  const referenceCount = sectionCitedEntries.length;
   const visibleCard = (c: ProposalCard) =>
     (c.kind !== 'references' || sectionCitesAnything) && (c.isVisible || isCoordinator);
+
+  /** Blocks this user can see — the target set for Collapse all / Expand all. */
+  const visibleCardIds = useMemo(
+    () => [...headCards, ...orderedFree, ...tailCards].filter(visibleCard).map((c) => c.id),
+    // visibleCard derives from sectionCitesAnything and isCoordinator.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [headCards, orderedFree, tailCards, sectionCitesAnything, isCoordinator],
+  );
 
   /** Deleted modules per live block, for the per-block bin icon. */
   const deletedModulesByCard = useMemo(() => {
@@ -1606,6 +1625,11 @@ function BoardInner({
     draggable,
     caseTypeLabels,
     collapsed: isDragging,
+    userCollapsed: collapsedIds.has(card.id),
+    onToggleCollapse: () =>
+      setCollapsed.mutate({ cardId: card.id, collapsed: !collapsedIds.has(card.id) }),
+    referenceCount,
+    figureSummary: figureSummaries[card.id],
     binCount: deletedModulesByCard[card.id] ?? 0,
     onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
     onRename: async (c: ProposalCard, title: string | null) => {
