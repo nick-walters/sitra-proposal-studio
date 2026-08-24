@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { cardFieldsKey } from './useCardFields';
 import { sectionCardsKey } from './useSectionCards';
 import type { CardDeletionEntry } from '@/types/cards';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 /**
  * Deleted cards and fields awaiting restore or purge.
@@ -44,7 +45,7 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
           .from('proposal_cards')
           .select('id, title')
           .in('id', cardIds);
-        for (const c of cards || []) labels.set(c.id, c.title || null);
+        for (const c of cards || []) labels.set(c.id, htmlToPlainText(c.title || '').trim() || null);
 
         const { data: cardFields } = await supabase
           .from('card_fields')
@@ -89,7 +90,10 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
           .select('id, heading, heading_enabled, content_html')
           .in('id', fieldIds);
         for (const f of fields || []) {
-          labels.set(f.id, f.heading_enabled ? (f.heading || null) : null);
+          labels.set(
+            f.id,
+            f.heading_enabled ? (htmlToPlainText(f.heading || '').trim() || null) : null,
+          );
           previews.set(f.id, f.content_html ?? '');
         }
       }
