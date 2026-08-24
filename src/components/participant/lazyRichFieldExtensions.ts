@@ -1,5 +1,6 @@
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import type { Extensions } from '@tiptap/core';
@@ -10,6 +11,7 @@ import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode'
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { FieldCapabilities, A2_DESCRIPTION_CAPABILITIES } from '@/lib/fieldCapabilities';
 
 /**
  * Schema used to render A2 participant-description fields as STATIC HTML
