@@ -220,5 +220,5 @@ export function stripWordHtml(html: string): string {
 
   // 6. Hand the cleaned HTML to the canonical sanitiser. It enforces the
   //    project allow-list and is the source of truth for tag/attr policy.
-  return sanitizeEditorHtml(root.innerHTML);
+  return sanitizeEditorHtml(stripForeignBlockColour(root.innerHTML));
 }
