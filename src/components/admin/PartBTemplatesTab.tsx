@@ -277,10 +277,12 @@ export function TemplateTypeWorkspace({
       })}
 
       {subsectionOrder.length === 0 && (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          No Part B blocks in this version.
+        <p className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+          No Part B blocks have been seeded for this template type yet. Open a draft and add
+          blocks to a subsection to get started.
         </p>
       )}
+
 
       <AlertDialog open={takeoverOpen} onOpenChange={setTakeoverOpen}>
         <AlertDialogContent>
