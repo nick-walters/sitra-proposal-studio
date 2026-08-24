@@ -418,6 +418,10 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     span.textContent = `T${task.wp_number}.${task.number}`;
     span.setAttribute('data-task-reference', '');
     span.setAttribute('data-task-id', task.id);
+    // Carry the work-package colour on the inserted markup so the mounted
+    // editor's node view paints the chip immediately, instead of falling back
+    // to black until the field is blurred and re-rendered from resolved data.
+    if (task.wp_color) span.setAttribute('data-wp-color', task.wp_color);
     markBadgeElement(span, 'task');
     insertNodeAtCursor(span);
     toast.success(`T${task.wp_number}.${task.number} reference inserted`);
@@ -428,6 +432,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     wrapper.setAttribute('data-deliverable-reference', '');
     wrapper.setAttribute('data-deliverable-id', del.id);
     wrapper.setAttribute('data-deliverable-label', String(del.number));
+    if (del.wp_color) wrapper.setAttribute('data-wp-color', del.wp_color);
     wrapper.textContent = String(del.number);
     markBadgeTree(wrapper, 'deliverable');
     insertNodeAtCursor(wrapper);
