@@ -526,7 +526,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   return (
     <PartAPageLayout
       title="Part A4: Ethics self-assessment"
-      proposalId={proposalId}
+      proposalId={ethicsData.proposalId || null}
       titleRightSlot={
         <Badge
           variant={issuesCount > 0 ? 'destructive' : 'default'}
