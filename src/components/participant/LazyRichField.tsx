@@ -40,7 +40,15 @@ export interface LazyRichFieldProps {
    * both the static and the mounted state. Never written to the document.
    */
   placeholder?: string;
+  /**
+   * Title behaviour: Enter never opens a new paragraph and pasted multi-line
+   * content is flattened, so the stored HTML always holds one line.
+   */
+  singleLine?: boolean;
+  /** Mount the editor immediately (click-to-edit surfaces). */
+  autoFocus?: boolean;
 }
+
 
 /**
  * Render stored HTML through the TipTap schema, resolving every cross
