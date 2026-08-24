@@ -31,7 +31,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
-import { SaveIndicator } from '@/components/SaveIndicator';
 import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
