@@ -103,15 +103,17 @@ function SortableActivityRow({
     <div ref={setNodeRef} style={style} className="space-y-2 rounded-md border border-border p-3">
       <div className={GRID}>
         {canEdit ? (
-          <button
-            type="button"
-            className="cursor-grab touch-none text-[#2563EB]"
-            aria-label="Reorder linked activity"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
+          <Tip label="Drag to reorder this activity">
+            <button
+              type="button"
+              className="cursor-grab touch-none text-[#2563EB]"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          </Tip>
+
         ) : (
           <span />
         )}
