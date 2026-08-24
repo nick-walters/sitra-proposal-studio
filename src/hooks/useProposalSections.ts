@@ -225,10 +225,6 @@ async function fetchTemplateSections(
 
 
 export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean, isCoordinator?: boolean) {
-  // TEMPORARY (beta): the card-model Methodologies page is platform-owner only.
-  // `isAdminOrOwner` mirrors the server-side `is_global_admin()` helper — a
-  // user_roles row with proposal_id IS NULL. Proposal coordinators never qualify.
-  const { isAdminOrOwner: isPlatformOwner } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
@@ -531,16 +527,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       ],
     };
 
-    // Define the Figures section (always needed for Part B)
-    const figuresSection: Section = {
-      id: 'figures',
-      number: '',
-      title: 'Figures',
-      guidelines: {
-        text: 'Manage and edit figures referenced in Part B sections. Figures are numbered based on their parent section (e.g., Figure 1.1.a).',
-      },
-    };
-
     // Milestones & risks (proposal-level managers)
     const milestonesRisksSection: Section = {
       id: 'milestones-risks',
@@ -560,21 +546,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
-    const methodologiesSection: Section = {
-      id: 'methodologies',
-      number: '',
-      title: 'Methodologies',
-      guidelines: {
-        text: 'Write section B1.2 one subsection at a time. Content written here is mirrored into Part B section B1.2. Cards can be reordered, and the coordinator can rename them or hide the ones that do not apply.',
-      },
-    };
-
-    // Temporary parallel card-model copy of B1.2 (beta, additive only).
-    const methodologiesCardsSection: Section = {
-      id: 'methodologies-cards',
-      number: '',
-      title: 'Methodologies (cards — beta)',
-    };
 
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
@@ -587,7 +558,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts, Milestones & risks, then Figures
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts, Milestones & risks
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
 
       // Add combined WPs & cases section if there are any WP or case drafts
@@ -595,15 +566,8 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         result.push(wpAndCasesSection);
       }
 
-      // Methodologies tool page (always shown)
-      result.push(methodologiesSection);
-      if (isPlatformOwner) result.push(methodologiesCardsSection);
-
       // Add Milestones & risks manager (always shown)
       result.push(milestonesRisksSection);
-
-      // Add Figures as standalone top-level section (after Milestones & risks)
-      result.push(figuresSection);
 
       return result;
     }
@@ -616,19 +580,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       fallbackSections.push(wpAndCasesSection);
     }
 
-    // Methodologies tool page (always shown)
-    fallbackSections.push(methodologiesSection);
-    if (isPlatformOwner) fallbackSections.push(methodologiesCardsSection);
-
     // Add Milestones & risks manager
     fallbackSections.push(milestonesRisksSection);
 
-    // Add Figures after Milestones & risks
-    fallbackSections.push(figuresSection);
-    
     return fallbackSections;
 
-  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags, isPlatformOwner]);
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags]);
+
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {

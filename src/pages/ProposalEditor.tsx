@@ -845,6 +845,7 @@ export function ProposalEditor() {
           </div>
         );
       },
+      // Legacy Methodologies page — kept as the rollback path, reachable from nothing.
       'methodologies': () => (
         <div className="flex-1 overflow-y-auto">
           <MethodologiesPage
@@ -856,17 +857,7 @@ export function ProposalEditor() {
           />
         </div>
       ),
-      'methodologies-cards': () => (
-        <div className="flex-1 overflow-y-auto">
-          <MethodologiesCardsPanel
-            proposalId={id || ''}
-            canEdit={canEdit}
-            isCoordinator={canEdit && isCoordinator}
-            proposalAcronym={proposal?.acronym}
-            acronymSegments={(proposal as any)?.acronymSegments}
-          />
-        </div>
-      ),
+
       'milestones-risks': () => (
         <div className="flex-1 overflow-y-auto">
           <ProposalMilestonesRisksManager proposalId={id || ''} canEdit={canEdit} projectDuration={proposal?.duration || 36} />
@@ -986,9 +977,27 @@ export function ProposalEditor() {
       }
     }
 
-    // 3. Default fallback: Part A → Part A DocumentEditor; otherwise Part B DocumentEditor
+    // 3. B1.2 opens the block board (the legacy editor stays as rollback only).
+    const sectionNumber = (activeSection as Section).number?.replace(/^B/, '') || '';
+    if (!activeSection.isPartA && sectionNumber === '1.2') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <MethodologiesCardsPanel
+            proposalId={id || ''}
+            sourceSectionId={sectionId}
+            canEdit={canEdit}
+            isCoordinator={canEdit && isCoordinator}
+            proposalAcronym={proposal?.acronym}
+            acronymSegments={(proposal as any)?.acronymSegments}
+          />
+        </div>
+      );
+    }
+
+    // 4. Default fallback: Part A → Part A DocumentEditor; otherwise Part B DocumentEditor
     if (activeSection.isPartA) return renderPartADefault();
     return renderPartBDefault();
+
   };
 
   // Get work programme and destination info

@@ -77,6 +77,8 @@ export function B12MirrorSlotLiveView({
   const html = row?.contentHtml ? sanitizeEditorHtml(row.contentHtml) : '';
 
   const isMethodologies = slotKey === 'methodologies';
+  // RETIRED: the linked activities table now lives in its own B1.2 block, so
+  // the mirror slot would render it a second time. The slot renders nothing.
   const isLinkedActivities = slotKey === 'linked_activities';
 
   return (
@@ -86,10 +88,8 @@ export function B12MirrorSlotLiveView({
       data-b12-run-index={runIndex === null ? undefined : String(runIndex)}
       style={{ userSelect: 'text' }}
     >
-      {isMethodologies ? (
+      {isLinkedActivities ? null : isMethodologies ? (
         <B12MethodologiesSlotContent proposalId={proposalId} runIndex={runIndex ?? 0} />
-      ) : isLinkedActivities ? (
-        <B12LinkedActivitiesSlotContent proposalId={proposalId} />
       ) : html ? (
         <div className="ProseMirror-mirrored" dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
@@ -97,6 +97,7 @@ export function B12MirrorSlotLiveView({
           No content yet — write it on the Methodologies page.
         </p>
       )}
+
     </div>
   );
 
