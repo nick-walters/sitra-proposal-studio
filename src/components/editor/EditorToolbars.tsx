@@ -146,7 +146,7 @@ export function EditorToolbars({
       }
       fieldBar={<EditorFieldBar hasFocusedField={hasFocusedField} {...(fieldBar ?? {})} />}
       formattingBar={
-        formatting && hasFocusedField ? (
+        formatting && hasFocusedEditor ? (
           <div
             onMouseDown={(e) => {
               // Keep the caret in the field the toolbar is acting on, unless
