@@ -269,10 +269,10 @@ export function LazyRichField({
         // `relative z-10`: the static render sits in a POSITIONED wrapper
         // (added with the placeholder), and positioned boxes paint above
         // floats — without its own stacking the badge was painted over by
-        // the field's opaque background.
+        // the field's opaque background. `ml-2.5 mt-1.5` mirrors the field
+        // box's own `px-2.5 py-1.5`, so the badge is inset from the border
+        // and sits on the first line of text.
         <span
-          // `ml-2.5 mt-1.5` mirrors the field box's own `px-2.5 py-1.5`, so
-          // the badge sits inset from the border and on the first text line.
           className="relative z-10 float-left ml-2.5 mt-1.5 mr-1 select-none leading-5"
           contentEditable={false}
           data-participant-prefix="1"
