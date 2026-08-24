@@ -47,6 +47,15 @@ import {
 } from '@/components/MethodologyEditorFocusContext';
 import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
+import {
+  PageSearchProvider,
+  usePageSearch,
+  usePageSearchSource,
+} from '@/lib/findReplace/PageSearchProvider';
+import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types';
+import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
+import { jumpToElementId } from '@/lib/jumpToElement';
+
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
 import { useVersionConflict } from '@/hooks/useVersionConflict';
