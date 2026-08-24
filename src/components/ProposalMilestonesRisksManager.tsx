@@ -723,9 +723,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
       {/* Shared focus-dependent toolbars, as on every other editing surface. */}
       {canEdit && (
-        {/* `display: contents` so the toolbar's own `sticky top-0` measures
-            against the page column, not against a wrapper that hugs its
-            height (which is what stopped it floating). */}
+        // `display: contents` so the toolbar's own `sticky top-0` measures
+        // against the page column, not against a wrapper that hugs its height
+        // (which is what stopped it floating).
         <div className="contents">
           <EditorToolbars
             proposalId={proposalId}
