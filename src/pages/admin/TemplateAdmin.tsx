@@ -965,20 +965,81 @@ function SectionsPanel({
   }
 
 
+  const partABlock = loading ? (
+    <div className="space-y-4">
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
+    </div>
+  ) : partASections.length === 0 ? (
+    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+      <Badge variant="outline" className="mr-2">Part A</Badge>
+      No Part A sections yet.
+    </div>
+  ) : (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Badge variant="outline">Part A</Badge>
+          Administrative forms
+        </h3>
+        <div className="ml-auto flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setExpandedPartA(getAllSectionIds(partASections))}>
+            Expand all
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setExpandedPartA([])}>
+            Collapse all
+          </Button>
+        </div>
+      </div>
+      <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
+        {partASections.map((section) => (
+          <SectionAccordionItem
+            key={section.id}
+            section={section}
+            allSections={sections}
+            expandedSections={expandedPartA}
+            onExpandChange={setExpandedPartA}
+            onEdit={() => handleOpenSectionDialog(section)}
+            onDelete={() => handleDeleteSection(section.id)}
+            onEditSection={handleOpenSectionDialog}
+            onDeleteSection={handleDeleteSection}
+            onCreateGuideline={createGuideline}
+            onUpdateGuideline={updateGuideline}
+            onDeleteGuideline={deleteGuideline}
+            onCreateFormField={createFormField}
+            onUpdateFormField={updateFormField}
+            onDeleteFormField={deleteFormField}
+          />
+        ))}
+      </Accordion>
+    </div>
+  );
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="sm" onClick={() => onSelectTemplateType(null)}>
-              ← Back
-            </Button>
+      <CardHeader className="flex flex-row items-end justify-between">
+        <div className="space-y-1.5">
+          <CardTitle>Sections & Guidelines</CardTitle>
+          <CardDescription>
+            Everything below belongs to the selected template type.
+          </CardDescription>
+          <div className="pt-2">
+            <Select
+              value={selectedTemplateTypeId}
+              onValueChange={(v) => onSelectTemplateType(v)}
+            >
+              <SelectTrigger className="w-[320px]">
+                <SelectValue placeholder="Select template type" />
+              </SelectTrigger>
+              <SelectContent>
+                {templateTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.code} — {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <CardTitle className="flex items-center gap-2">
-            <Badge>{selectedType?.code}</Badge>
-            {selectedType?.name}
-          </CardTitle>
-          <CardDescription>Manage sections, guidelines, and form fields</CardDescription>
         </div>
         <Button onClick={() => handleOpenSectionDialog()} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -986,85 +1047,13 @@ function SectionsPanel({
         </Button>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : sections.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No sections yet. Create one to get started.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Collapse / expand all */}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setExpandedPartA(getAllSectionIds(partASections));
-                  setExpandedPartB(getAllSectionIds(partBSections));
-                }}
-              >
-                Expand all
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setExpandedPartA([]);
-                  setExpandedPartB([]);
-                }}
-              >
-                Collapse all
-              </Button>
-            </div>
-
-            {/* Part A */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge variant="outline">Part A</Badge>
-                Administrative Forms
-              </h3>
-              <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
-                {partASections.map((section) => (
-                  <SectionAccordionItem
-                    key={section.id}
-                    section={section}
-                    allSections={sections}
-                    expandedSections={expandedPartA}
-                    onExpandChange={setExpandedPartA}
-                    onEdit={() => handleOpenSectionDialog(section)}
-                    onDelete={() => handleDeleteSection(section.id)}
-                    onEditSection={handleOpenSectionDialog}
-                    onDeleteSection={handleDeleteSection}
-                    onCreateGuideline={createGuideline}
-                    onUpdateGuideline={updateGuideline}
-                    onDeleteGuideline={deleteGuideline}
-                    onCreateFormField={createFormField}
-                    onUpdateFormField={updateFormField}
-                    onDeleteFormField={deleteFormField}
-                  />
-                ))}
-              </Accordion>
-            </div>
-
-            {/* Part B lives in its own versioned tab, so each piece of
-                guidance has exactly one home. */}
-            {partBSections.length > 0 && (
-              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                <Badge variant="outline" className="mr-2">Part B</Badge>
-                Part B blocks, guidelines & criteria are managed in the <strong>Part B templates</strong> tab,
-                where they are versioned.
-              </div>
-            )}
-
-          </div>
-        )}
+        <TemplateTypeWorkspace
+          key={selectedTemplateTypeId}
+          typeId={selectedTemplateTypeId}
+          partASlot={partABlock}
+        />
       </CardContent>
+
 
       {/* Section Dialog - keyed to force re-render for different sections */}
       <Dialog key={editingSection?.id || 'new-section'} open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
