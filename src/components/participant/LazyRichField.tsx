@@ -35,6 +35,11 @@ export interface LazyRichFieldProps {
    * A2 participant set; case drafts pass a richer one.
    */
   staticExtensions?: Extensions;
+  /**
+   * Grey italic hint shown inside the field while it holds no content, in
+   * both the static and the mounted state. Never written to the document.
+   */
+  placeholder?: string;
 }
 
 /**
