@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, forwardRef, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
@@ -9,21 +9,31 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * wording and the two can never drift apart. `title` is deliberately removed
  * from the child: the browser's native tooltip would otherwise appear
  * alongside ours.
+ *
+ * Radix triggers used with `asChild` (`AlertDialogTrigger`, `DropdownMenuTrigger`
+ * …) hand their behaviour — onClick, aria-* and a ref — to whatever element they
+ * wrap. When that element is a `Tip`, those props must be forwarded onto the
+ * child control, otherwise the control renders but does nothing.
  */
-export function Tip({
-  label,
-  side = 'top',
-  children,
-}: {
+interface TipProps {
   label: string;
   side?: 'top' | 'right' | 'bottom' | 'left';
   children: ReactNode;
-}) {
+  /** Behaviour props injected by a Radix `asChild` trigger. */
+  [key: string]: unknown;
+}
+
+export const Tip = forwardRef<HTMLElement, TipProps>(function Tip(
+  { label, side = 'top', children, ...rest }: TipProps,
+  ref,
+) {
+
   if (!isValidElement(children)) return <>{children}</>;
 
   const trigger = cloneElement(
     children as ReactElement<{ 'aria-label'?: string; title?: string }>,
-    { 'aria-label': label, title: undefined },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { ...(rest as object), ref, 'aria-label': label, title: undefined } as any,
   );
 
   return (
@@ -32,4 +42,4 @@ export function Tip({
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   );
-}
+});

@@ -230,18 +230,22 @@ export function DraftFormattingToolbar({
     },
   };
 
-  // Solid background on every tier: page content scrolling beneath the
-  // floating toolbar must never show through.
+  // Opaque on every tier. The rounded card cannot carry the sticky background
+  // on its own: outside its corner radius the element is transparent, so page
+  // content (the pilot header most visibly) shows through at the corners. The
+  // sticky element is therefore a square, fully opaque backdrop and the rounded
+  // card lives inside it — the same structure as EditorChrome.
   const containerClass = showGuidelinesRow
-    ? 'border rounded-md bg-card sticky top-0 z-10 divide-y divide-border overflow-hidden'
+    ? 'rounded-md border bg-card divide-y divide-border overflow-hidden shadow-sm'
     : 'p-1.5 border-b bg-card';
 
   const row2Class = showGuidelinesRow
     ? 'flex items-center gap-0.5 flex-wrap px-2 py-1.5 bg-card'
     : 'flex items-center gap-0 flex-wrap';
 
-  return (
+  const content = (
     <div className={containerClass}>
+
       {/* TOP TIER — page-wide controls, always visible */}
       {showGuidelinesRow && (
         <EditorTopBar
@@ -424,4 +428,11 @@ export function DraftFormattingToolbar({
       )}
     </div>
   );
+
+  if (!showGuidelinesRow) return content;
+
+  return (
+    <div className="sticky top-0 z-40 -mx-1 bg-background px-1 py-1">{content}</div>
+  );
 }
+

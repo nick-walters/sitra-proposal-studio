@@ -1781,7 +1781,7 @@ function BoardInner({
             />
           }
         >
-          <div className="space-y-3 pt-4">
+          <div className="space-y-3 pt-2">
             {headCards.filter(visibleCard).map((c) => (
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}
