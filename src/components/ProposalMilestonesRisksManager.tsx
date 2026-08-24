@@ -1148,7 +1148,7 @@ function RiskLevelSelect({
 // ── Inline guidelines rendered under each card title ──
 function MilestonesGuidelinesInline() {
   return (
-    <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
+    <div className="text-sm text-muted-foreground space-y-1.5 pt-1">
       <p>
         This list is mirrored to Table 3.1.d (List of milestones). Milestones are automatically ordered by due month.
         Each milestone is linked to one or more work packages (no tasks); one of those WPs is marked the
@@ -1175,7 +1175,7 @@ function MilestonesGuidelinesInline() {
 
 function RisksGuidelinesInline() {
   return (
-    <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
+    <div className="text-sm text-muted-foreground space-y-1.5 pt-1">
       <p>
         This list is mirrored to Table 3.1.e (Risk table). Risks appear in the order you arrange them &mdash; drag the
         grip to reorder.

@@ -153,16 +153,13 @@ export const HEADING_TITLE_FIELD_CAPABILITIES: FieldCapabilityFlags = {
 
 
 /**
- * A1 AI usage statement: baseline + bullets, numbered, alignment, line
- * height, table, cross-reference. No subheading, figure or citations.
+ * A1 AI usage statement: undo, redo, bold, italic, underline and
+ * cross-reference ONLY — no lists, alignment, spacing, table, colour,
+ * subheading, figure or citations.
  */
 export const A1_AI_STATEMENT_CAPABILITIES: FieldCapabilityFlags = {
   ...NOTHING_BEYOND_BASELINE,
-  bulletList: true,
-  orderedList: true,
-  alignment: true,
-  paragraphSpacing: true,
-  tables: true,
+  colour: false,
   crossReferences: true,
 };
 
