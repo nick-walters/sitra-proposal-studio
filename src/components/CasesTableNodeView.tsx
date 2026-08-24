@@ -196,7 +196,7 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
     if (headingPrefixHtml) {
       return (
         <div
-          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify text-black [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<p>${headingPrefixHtml}</p>`, CROSS_REF_RICH_TEXT_CONFIG) }}
         />
       );
@@ -237,10 +237,10 @@ function ReadOnlyRichBody({ html, headingPrefixHtml }: { html: string | null | u
   }
 
   return (
-    <div
-      className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
-      dangerouslySetInnerHTML={{ __html: renderRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG), refData) }}
-    />
+      <div
+        className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify text-black [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
+        dangerouslySetInnerHTML={{ __html: renderRefBadges(DOMPurify.sanitize(finalHtml, CROSS_REF_RICH_TEXT_CONFIG), refData) }}
+      />
   );
 }
 
