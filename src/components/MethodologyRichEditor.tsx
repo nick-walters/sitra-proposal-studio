@@ -70,13 +70,26 @@ export function MethodologyRichEditor({
 
   // Register on focus (DOM listener on the ProseMirror element — the shared
   // useRichTextEditor hook does not expose TipTap's onFocus option).
+  //
+  // Lazily-mounted fields (<LazyRichField />) focus the editor programmatically
+  // in the ready callback above, which runs BEFORE this effect attaches its
+  // listener: the initial focus event is therefore missed and the field would
+  // never become the active editor, leaving the shared formatting bar hidden.
+  // Registering up-front whenever the instance already holds focus closes that
+  // gap; TipTap's own 'focus' event is also used, since a programmatic
+  // `commands.focus()` on an already-focused document emits no DOM event.
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
     const handler = () => registerFocus(editor);
     dom.addEventListener('focus', handler);
+    editor.on('focus', handler);
+    if (editor.isFocused || document.activeElement === dom || dom.contains(document.activeElement)) {
+      registerFocus(editor);
+    }
     return () => {
       dom.removeEventListener('focus', handler);
+      editor.off('focus', handler);
     };
   }, [editor, registerFocus]);
 
