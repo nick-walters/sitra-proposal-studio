@@ -355,3 +355,17 @@ export function htmlToTypstBlocks(html: string | null | undefined, ctx: ConvertC
   });
   return out;
 }
+
+/**
+ * Converts a single-line HTML fragment (block titles, module headers) to ONE
+ * inline Typst expression, keeping character-level marks — notably font
+ * colour — on the individual runs instead of flattening them onto the whole
+ * heading.
+ */
+export function htmlToTypstInline(html: string | null | undefined, ctx: ConvertContext): string {
+  const raw = (html ?? '').toString().trim();
+  if (!raw) return lit('');
+  const tpl = document.createElement('template');
+  tpl.innerHTML = raw;
+  return convertInlineChildren(tpl.content, ctx);
+}
