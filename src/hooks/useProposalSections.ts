@@ -213,9 +213,13 @@ async function fetchTemplateSections(
     bySource.set(sourceId, list);
   }
 
-  // A section with no copies keeps an empty list rather than falling back to
-  // the live template rows — falling back is the leak.
+  // A proposal that has copies uses only those: a section with none genuinely
+  // has no guidance, and falling back to the live template rows is the leak.
+  // A proposal with no copies at all predates the per-proposal copy and keeps
+  // the template rows so its guidance does not simply vanish.
+  if (bySource.size === 0) return sections;
   return sections.map((s) => ({ ...s, guidelines: bySource.get(s.id) ?? [] }));
+
 }
 
 
