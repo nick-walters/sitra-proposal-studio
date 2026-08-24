@@ -8,6 +8,7 @@ import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
 import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
 import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
 import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
+import { collapseToSingleLineHtml } from '@/lib/richTextUpgrade';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
