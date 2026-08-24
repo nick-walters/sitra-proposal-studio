@@ -118,6 +118,15 @@ export interface DraftFormattingToolbarProps {
    * been wired to a focus context yet.
    */
   hasFocusedField?: boolean;
+
+  /**
+   * TOP TIER — page-wide controls, always visible. Controls that do not apply
+   * to a surface are simply omitted (no handler supplied).
+   */
+  topBar?: Omit<EditorTopBarProps, 'saving' | 'lastSaved' | 'isDirty' | 'onSaveNow' | 'savedMode'>;
+
+  /** MIDDLE TIER — extra field-specific features beyond Guidelines. */
+  fieldBar?: Omit<EditorFieldBarProps, 'hasFocusedField' | 'onOpenGuidelines'>;
 }
 
 
