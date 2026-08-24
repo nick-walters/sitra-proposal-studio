@@ -25,7 +25,7 @@ import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
-import { EditorChrome, EditorTopBar, EditorFieldBar } from "@/components/EditorChrome";
+import { EditorToolbars } from "@/components/editor/EditorToolbars";
 import { supabase } from '@/integrations/supabase/client';
 import {
   MethodologyEditorFocusProvider,
@@ -409,33 +409,33 @@ export default function MethodologiesPage({
           </div>
         </div>
 
-        <EditorChrome
+        <EditorToolbars
           proposalId={proposalId}
-          topBar={
-            <EditorTopBar
-              saving={saving || manualSaving}
-              lastSaved={savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved}
-              savedMode={savedMode}
-              isDirty={isDirty}
-              onSaveNow={handleSaveNow}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
-            />
-          }
-          fieldBar={
-            <EditorFieldBar
-              hasFocusedField={!!focusedSubsection}
-              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
-            />
-          }
-          formattingBar={
-            <MethodologiesToolbar
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              proposalAcronym={proposalAcronym}
-              acronymSegments={acronymSegments}
-            />
-          }
+          save={{
+            saving: saving || manualSaving,
+            lastSaved: savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved,
+            savedMode,
+            isDirty,
+            onSaveNow: handleSaveNow,
+          }}
+          fieldBar={{
+            onOpenGuidelines: () => focusedSubsection && setGuidelinesId(focusedSubsection.id),
+          }}
+          formatting={{
+            proposalId,
+            canManageCustomColors: isCoordinator,
+            isPartB: true,
+            isReadOnly: !canEdit,
+            crossRefDropdown: (editor) => (
+              <PartBCrossRefControls
+                editor={editor}
+                proposalId={proposalId}
+                disabled={!canEdit}
+                showKeyboardButton={false}
+                acronymSegments={acronymSegments}
+              />
+            ),
+          }}
         >
             <DndContext
             sensors={sensors}
@@ -463,9 +463,7 @@ export default function MethodologiesPage({
               </div>
             </SortableContext>
           </DndContext>
-        </EditorChrome>
-
-        <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+        </EditorToolbars>
 
         {guidelinesSubsection && (
           <GuidelinesDialog
