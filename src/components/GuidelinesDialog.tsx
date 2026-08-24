@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import DOMPurify from "dompurify";
 import { FOOTNOTE_CONFIG } from "@/lib/sanitizePresets";
 
-export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation' | 'criteria';
+export type GuidelineType = 'official' | 'sitra_tip' | 'criteria';
 
 interface Guideline {
   id: string;
