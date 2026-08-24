@@ -320,23 +320,27 @@ export function DraftFormattingToolbar({
           )}
 
 
-          {caps.lists && (
+          {(caps.bulletList || caps.orderedList) && (
             <>
               <Separator orientation="vertical" className="h-5 mx-1.5" />
 
               {/* Lists */}
-              <ToolbarButton
-                icon={<List className="h-4 w-4" />}
-                label="Bullet list"
-                onClick={() => exec('insertUnorderedList')}
-                disabled={disabled}
-              />
-              <ToolbarButton
-                icon={<ListOrdered className="h-4 w-4" />}
-                label="Numbered list"
-                onClick={() => exec('insertOrderedList')}
-                disabled={disabled}
-              />
+              {caps.bulletList && (
+                <ToolbarButton
+                  icon={<List className="h-4 w-4" />}
+                  label="Bullet list"
+                  onClick={() => exec('insertUnorderedList')}
+                  disabled={disabled}
+                />
+              )}
+              {caps.orderedList && (
+                <ToolbarButton
+                  icon={<ListOrdered className="h-4 w-4" />}
+                  label="Numbered list"
+                  onClick={() => exec('insertOrderedList')}
+                  disabled={disabled}
+                />
+              )}
             </>
           )}
 
