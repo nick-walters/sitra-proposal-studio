@@ -347,12 +347,14 @@ export function TemplateTypeWorkspace({
 /* ------------------------------------------------------------------ */
 
 function SubsectionPanel({
-  sectionNumber, title, sectionSourceId, versionId, editable, blocks, open, onToggle, onChanged,
+  sectionNumber, title, sectionSourceId, templateTypeId, versionId, editable, blocks, open, onToggle, onChanged,
 }: {
   sectionNumber: string;
   title: string;
   sectionSourceId: string | null;
+  templateTypeId: string;
   versionId: string;
+
   editable: boolean;
   blocks: CardTemplateRow[];
   open: boolean;
