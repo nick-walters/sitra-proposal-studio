@@ -653,7 +653,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       setHasTemplateSections(false);
     }
     setLoading(false);
-  }, [templateTypeId]);
+  }, [templateTypeId, proposalId]);
 
   return {
     loading,
