@@ -987,72 +987,60 @@ function SectionsPanel({
             <p>No sections yet. Create one to get started.</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Collapse / expand all */}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setExpandedPartA(getAllSectionIds(partASections));
-                  setExpandedPartB(getAllSectionIds(partBSections));
-                }}
-              >
-                Expand all
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setExpandedPartA([]);
-                  setExpandedPartB([]);
-                }}
-              >
-                Collapse all
-              </Button>
-            </div>
-
-            {/* Part A */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge variant="outline">Part A</Badge>
-                Administrative Forms
-              </h3>
-              <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
-                {partASections.map((section) => (
-                  <SectionAccordionItem
-                    key={section.id}
-                    section={section}
-                    allSections={sections}
-                    expandedSections={expandedPartA}
-                    onExpandChange={setExpandedPartA}
-                    onEdit={() => handleOpenSectionDialog(section)}
-                    onDelete={() => handleDeleteSection(section.id)}
-                    onEditSection={handleOpenSectionDialog}
-                    onDeleteSection={handleDeleteSection}
-                    onCreateGuideline={createGuideline}
-                    onUpdateGuideline={updateGuideline}
-                    onDeleteGuideline={deleteGuideline}
-                    onCreateFormField={createFormField}
-                    onUpdateFormField={updateFormField}
-                    onDeleteFormField={deleteFormField}
-                  />
-                ))}
-              </Accordion>
-            </div>
-
-            {/* Part B lives in its own versioned tab, so each piece of
-                guidance has exactly one home. */}
-            {partBSections.length > 0 && (
-              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                <Badge variant="outline" className="mr-2">Part B</Badge>
-                Part B blocks, guidelines & criteria are managed in the <strong>Part B templates</strong> tab,
-                where they are versioned.
+          /* Version, draft lock, History and Publish cover the whole template
+             type; Part A and Part B are listed below them in document order. */
+          <TemplateTypeWorkspace
+            templateTypes={templateTypes}
+            typeId={selectedTemplateTypeId}
+            partASlot={
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Part A</Badge>
+                  <h3 className="text-lg font-semibold">Administrative forms</h3>
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const all = getAllSectionIds(partASections);
+                        setExpandedPartA(expandedPartA.length ? [] : all);
+                      }}
+                    >
+                      {expandedPartA.length ? 'Collapse all' : 'Expand all'}
+                    </Button>
+                  </div>
+                </div>
+                <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
+                  {partASections.map((section) => (
+                    <SectionAccordionItem
+                      key={section.id}
+                      section={section}
+                      allSections={sections}
+                      expandedSections={expandedPartA}
+                      onExpandChange={setExpandedPartA}
+                      onEdit={() => handleOpenSectionDialog(section)}
+                      onDelete={() => handleDeleteSection(section.id)}
+                      onEditSection={handleOpenSectionDialog}
+                      onDeleteSection={handleDeleteSection}
+                      onCreateGuideline={createGuideline}
+                      onUpdateGuideline={updateGuideline}
+                      onDeleteGuideline={deleteGuideline}
+                      onCreateFormField={createFormField}
+                      onUpdateFormField={updateFormField}
+                      onDeleteFormField={deleteFormField}
+                    />
+                  ))}
+                  {partASections.length === 0 && (
+                    <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
+                      No Part A sections for this template type.
+                    </p>
+                  )}
+                </Accordion>
               </div>
-            )}
-
-          </div>
+            }
+          />
         )}
+
       </CardContent>
 
       {/* Section Dialog - keyed to force re-render for different sections */}
