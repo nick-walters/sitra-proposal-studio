@@ -901,19 +901,36 @@ function CardBlock({
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
         <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 px-5 py-3">
-          {/* Grip sits in the header padding, out of flow, so the block title
-              starts at the same left edge as the module boxes below it. */}
-          {draggable && canEdit && (
-            <button
-              type="button"
-              className="absolute left-0.5 top-1/2 shrink-0 -translate-y-1/2 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
-              aria-label="Reorder block"
-              {...sortable.attributes}
-              {...sortable.listeners}
+          {/* Left edge control stack: collapse chevron on top, drag grip
+              beneath it, so both sit together at the block's left edge. */}
+          <div className="-ml-3.5 flex shrink-0 flex-col items-center gap-0.5 self-start">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
+              title={userCollapsed ? 'Expand block' : 'Collapse block'}
+              onClick={onToggleCollapse}
+              className="h-6 w-6"
             >
-              <GripVertical className="h-4 w-4 text-blue-500" />
-            </button>
-          )}
+              {userCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
+            {draggable && canEdit && (
+              <button
+                type="button"
+                className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
+                aria-label="Reorder block"
+                {...sortable.attributes}
+                {...sortable.listeners}
+              >
+                <GripVertical className="h-4 w-4 text-blue-500" />
+              </button>
+            )}
+          </div>
+
           {/* Figure blocks carry no title: the caption under the figure is the
               only label, so a block title would duplicate it. */}
           <div className="min-w-0 flex-1">
@@ -963,22 +980,7 @@ function CardBlock({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {/* Per-user collapse — a view preference, so offered to viewers as
-                well as editors. It never touches document state. */}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
-              title={userCollapsed ? 'Expand block' : 'Collapse block'}
-              onClick={onToggleCollapse}
-              className="h-7 w-7"
-            >
-              {userCollapsed ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronUp className="h-4 w-4" />
-              )}
-            </Button>
+
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
 
