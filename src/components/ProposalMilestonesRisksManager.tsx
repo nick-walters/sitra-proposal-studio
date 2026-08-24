@@ -738,16 +738,34 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                               <span className="text-muted-foreground italic">Select WP(s)…</span>
                             ) : (
                               <span className="flex flex-wrap gap-0.5 items-center">
-                                {isAllWPsSelected(selectedWps.length, wps.length)
-                                  ? <AllWPsBubble />
-                                  : selectedWps.map(wp => (
-                                      <WPBubble
-                                        key={wp.id}
-                                        wpNumber={wp.number}
-                                        wpColor={wp.color}
-                                        showStar={wp.id === m.primary_wp_id}
-                                      />
-                                    ))}
+                                {isAllWPsSelected(selectedWps.length, wps.length) ? (
+                                  <>
+                                    <AllWPsBubble />
+                                    {/* "All WPs" hides which WP is starred as
+                                        primary for the Gantt, so the primary is
+                                        shown alongside it — editor only, never
+                                        mirrored into the preview or export. */}
+                                    {selectedWps
+                                      .filter((wp) => wp.id === m.primary_wp_id)
+                                      .map((wp) => (
+                                        <WPBubble
+                                          key={wp.id}
+                                          wpNumber={wp.number}
+                                          wpColor={wp.color}
+                                          showStar
+                                        />
+                                      ))}
+                                  </>
+                                ) : (
+                                  selectedWps.map(wp => (
+                                    <WPBubble
+                                      key={wp.id}
+                                      wpNumber={wp.number}
+                                      wpColor={wp.color}
+                                      showStar={wp.id === m.primary_wp_id}
+                                    />
+                                  ))
+                                )}
                               </span>
                             )}
                           </button>
