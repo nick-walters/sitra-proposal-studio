@@ -643,6 +643,74 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   const [msReorderOpen, setMsReorderOpen] = useState(false);
 
+  /**
+   * Page-wide find and replace over the stored milestone and risk text. These
+   * rows are plain text, never HTML, and they carry no chips of their own, so
+   * every field here is searched verbatim. Writes reuse the same versioned
+   * RPCs as ordinary editing, so a stale row is rejected, not overwritten.
+   */
+  const searchFieldsForPage = useCallback((): SearchableField[] => {
+    const out: SearchableField[] = [];
+
+    const push = (
+      kind: 'milestone' | 'risk',
+      rowId: string,
+      rowLabel: string,
+      column: string,
+      columnLabel: string,
+      value: string | null,
+      version: number | null,
+    ) => {
+      if (!value) return;
+      out.push({
+        id: `${kind}:${rowId}:${column}`,
+        label: `${rowLabel} › ${columnLabel}`,
+        groupId: rowId,
+        groupLabel: rowLabel,
+        format: 'text',
+        value,
+        readOnly: !canEdit,
+        reveal: () => jumpToElementId(`${kind}-row-${rowId}`),
+        save: !canEdit
+          ? undefined
+          : async (next): Promise<FieldSaveOutcome> => {
+              const table = kind === 'milestone' ? 'proposal_milestones' : 'proposal_risks';
+              const res = await saveVersionedRow(table, rowId, { [column]: next }, version);
+              if (res.conflict) return { ok: false, conflict: true };
+              if (!res.ok) return { ok: false, conflict: false, error: res.error };
+              qc.invalidateQueries({
+                queryKey: kind === 'milestone' ? MS_KEY(proposalId) : RISK_KEY(proposalId),
+              });
+              return { ok: true };
+            },
+      });
+    };
+
+    for (const m of milestones) {
+      const label = `MS${m.number}`;
+      push('milestone', m.id, label, 'title', 'name', m.title, m.version ?? null);
+      push(
+        'milestone',
+        m.id,
+        label,
+        'means_of_verification',
+        'means of verification',
+        m.means_of_verification,
+        m.version ?? null,
+      );
+    }
+    for (const r of risks) {
+      const label = `Risk ${r.number}`;
+      push('risk', r.id, label, 'title', 'description', r.title, r.version ?? null);
+      push('risk', r.id, label, 'mitigation', 'mitigation', r.mitigation, r.version ?? null);
+    }
+    return out;
+  }, [milestones, risks, canEdit, qc, proposalId]);
+
+  usePageSearchSource('milestones-risks', 'Milestones & risks', searchFieldsForPage);
+  const pageSearch = usePageSearch();
+
+
   return (
     <SaveTrackerContext.Provider value={tracker}>
     <TooltipProvider>
