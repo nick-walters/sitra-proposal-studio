@@ -47,6 +47,8 @@ export function useAllTemplateVersions(templateTypeId: string | null) {
   return useQuery({
     queryKey: ['admin-template-versions', templateTypeId],
     enabled: !!templateTypeId,
+    // Viewers must see a lock being taken or released without a reload.
+    refetchInterval: 30_000,
     queryFn: async (): Promise<TemplateVersionRow[]> => {
       const { data, error } = await supabase
         .from('template_versions')
