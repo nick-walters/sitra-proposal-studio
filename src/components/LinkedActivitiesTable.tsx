@@ -54,9 +54,15 @@ interface LinkedActivitiesTableProps {
   proposalId: string;
   canEdit: boolean;
   isCoordinator: boolean;
+  /**
+   * When supplied (cards board), the hook result is owned by the caller so it
+   * can render the Add/Restore buttons in the block header; this component
+   * then hides its own control row and restore dialog.
+   */
+  controller?: ReturnType<typeof useLinkedActivities>;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(7rem,0.7fr)_minmax(11rem,1.4fr)_1.5rem]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(6.3rem,0.63fr)_minmax(11rem,1.4fr)_1.5rem]';
 
 const NONE = '__none__';
 
@@ -287,9 +293,11 @@ export default function LinkedActivitiesTable({
   proposalId,
   canEdit,
   isCoordinator,
+  controller,
 }: LinkedActivitiesTableProps) {
+  const internal = useLinkedActivities(controller ? '' : proposalId);
   const { activities, deletedActivities, addActivity, deleteActivity, restoreActivity, updateField, reorder } =
-    useLinkedActivities(proposalId);
+    controller ?? internal;
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
   const [binOpen, setBinOpen] = useState(false);
 
@@ -370,7 +378,7 @@ export default function LinkedActivitiesTable({
         </SortableContext>
       </DndContext>
 
-      {canEdit && (
+      {canEdit && !controller && (
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -395,6 +403,7 @@ export default function LinkedActivitiesTable({
         </div>
       )}
 
+      {!controller && (
       <Dialog open={binOpen} onOpenChange={setBinOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -434,6 +443,7 @@ export default function LinkedActivitiesTable({
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

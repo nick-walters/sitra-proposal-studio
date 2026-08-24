@@ -15,14 +15,21 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Plus, Recycle, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +82,9 @@ import { ReferencesBlock } from './ReferencesBlock';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
+import { useLinkedActivities } from '@/hooks/useLinkedActivities';
+import { CasesTableLiveView } from '@/components/CasesTableNodeView';
+import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
@@ -338,6 +348,8 @@ interface FieldRowProps {
   /** Bumped when authoritative content is reloaded, to remount the editor. */
   reloadNonce: number;
   collapsed: boolean;
+  /** 0-based caption letter for case-study placeholder tables. */
+  caseLetterIndex?: number;
 }
 
 function FieldRow({
@@ -345,7 +357,6 @@ function FieldRow({
   proposalId,
   canEdit,
   isCoordinator,
-  caseTypeLabel,
   onHeadingChange,
   onContentChange,
   onDelete,
@@ -355,6 +366,7 @@ function FieldRow({
   onFlushContent,
   reloadNonce,
   collapsed,
+  caseLetterIndex,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -465,11 +477,11 @@ function FieldRow({
       style={style}
       className="space-y-2 rounded-md border border-border p-3 transition-shadow"
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         {canEdit && (
           <button
             type="button"
-            className="shrink-0 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
+            className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
             aria-label="Reorder module"
             {...attributes}
             {...listeners}
@@ -480,9 +492,15 @@ function FieldRow({
 
 
         {isPlaceholder ? (
-          <p className="flex-1 text-sm italic text-muted-foreground">
-            {caseTypeLabel ?? 'Cases'} table — renders in a later phase
-          </p>
+          <div className={collapsed ? 'hidden' : 'min-w-0 flex-1'}>
+            <RefDataProvider proposalId={proposalId}>
+              <CasesTableLiveView
+                proposalId={proposalId}
+                caseTypeId={field.placeholderCaseTypeId ?? null}
+                letterIndex={caseLetterIndex ?? 0}
+              />
+            </RefDataProvider>
+          </div>
         ) : (
           <>
             {field.headingEnabled ? (
@@ -491,7 +509,7 @@ function FieldRow({
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-4 py-1 text-sm font-bold ring-1 ring-destructive/40"
+                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40"
                     aria-readonly="true"
                   >
                     {headingView}
@@ -520,7 +538,7 @@ function FieldRow({
                       }
                       headerLock.onBlur();
                     }}
-                    className={`h-8 flex-1 px-4 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
+                    className={`h-7 flex-1 px-2.5 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
                   />
                 )}
                 {headerLock.lockedByOther && headerLock.holder && (
@@ -583,7 +601,7 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-[26px]' : ''}`}>
+        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''}`}>
           <div
             className={`min-w-0 flex-1 rounded-md ${
               contentLock.lockedByOther
@@ -659,6 +677,8 @@ interface CardBlockProps {
   isCoordinator: boolean;
   draggable: boolean;
   caseTypeLabels: Record<string, string>;
+  /** Caption letters for case-study placeholder modules, keyed by field id. */
+  caseLetterByFieldId: Record<string, number>;
   collapsed: boolean;
   binCount: number;
   onOpenBin: (card: ProposalCard) => void;
@@ -689,6 +709,7 @@ function CardBlock({
   isCoordinator,
   draggable,
   caseTypeLabels,
+  caseLetterByFieldId,
   collapsed,
   binCount,
   onOpenBin,
@@ -712,6 +733,12 @@ function CardBlock({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(card.title ?? '');
   const [localFieldOrder, setLocalFieldOrder] = useState<string[] | null>(null);
+
+  // Linked-activities block: the controller lives here so its Add/Restore
+  // buttons can sit in the block header with the other blocks' controls.
+  const isLinkedActivities = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
+  const linkedActivities = useLinkedActivities(isLinkedActivities ? proposalId : '');
+  const [activityBinOpen, setActivityBinOpen] = useState(false);
 
   const fieldSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -828,13 +855,13 @@ function CardBlock({
   return (
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
-        <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 py-3">
+        <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 px-5 py-3">
           {/* Grip sits in the header padding, out of flow, so the block title
               starts at the same left edge as the module boxes below it. */}
           {draggable && canEdit && (
             <button
               type="button"
-              className="absolute left-1 top-1/2 shrink-0 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
+              className="absolute left-0.5 top-1/2 shrink-0 -translate-y-1/2 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
               aria-label="Reorder block"
               {...sortable.attributes}
               {...sortable.listeners}
@@ -888,19 +915,13 @@ function CardBlock({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {!card.isVisible && (
-              <Badge variant="secondary" className="text-muted-foreground">
-                Hidden
-              </Badge>
-            )}
-
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
 
-
             {canEdit && card.isHideable && (
-              // Two-state toggle (mock-evaluation model switch style):
-              // green knob on the left = visible, red knob on the right = hidden.
+              // Two-state toggle (mock-evaluation model switch style): green
+              // knob on the left with an eye = visible, red knob on the right
+              // with a struck-through eye = hidden. No separate chip.
               <button
                 type="button"
                 role="switch"
@@ -911,31 +932,70 @@ function CardBlock({
                 className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
               >
                 <span
-                  className="absolute left-0 top-1/2 h-3.5 w-3.5 rounded-full shadow transition-transform"
+                  className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
                   style={{
                     backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
                     transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
                   }}
-                />
+                >
+                  {card.isVisible ? (
+                    <Eye className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
+                  ) : (
+                    <EyeOff className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
+                  )}
+                </span>
               </button>
             )}
 
+            {isLinkedActivitiesCard && canEdit && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    linkedActivities
+                      .addActivity()
+                      .catch(() => toast.error('Could not add the activity'))
+                  }
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+                {linkedActivities.deletedActivities.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Restore activity (${linkedActivities.deletedActivities.length} deleted)`}
+                    onClick={() => setActivityBinOpen(true)}
+                  >
+                    <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                    Restore
+                  </Button>
+                )}
+              </>
+            )}
+
             {canAddModule && (
-              <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Add module"
+                onClick={() => onAddField(card)}
+              >
                 <Plus className="mr-1 h-3.5 w-3.5" />
-                Add module
+                Add
               </Button>
             )}
 
             {canEdit && binCount > 0 && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                aria-label={`Restore module (${binCount})`}
+                aria-label={`Restore module (${binCount} deleted)`}
                 onClick={() => onOpenBin(card)}
               >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore module ({binCount})
+                Restore
               </Button>
             )}
 
@@ -970,7 +1030,7 @@ function CardBlock({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 px-5">
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
@@ -978,6 +1038,7 @@ function CardBlock({
               proposalId={proposalId}
               canEdit={canEdit}
               isCoordinator={isCoordinator}
+              controller={linkedActivities}
             />
           ) : isPlaceholderCard ? (
             <SourceFedBlock
@@ -1018,6 +1079,7 @@ function CardBlock({
                             ? caseTypeLabels[f.placeholderCaseTypeId]
                             : undefined
                         }
+                        caseLetterIndex={caseLetterByFieldId[f.id] ?? 0}
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
@@ -1036,6 +1098,48 @@ function CardBlock({
             </>
           )}
         </CardContent>
+
+        <Dialog open={activityBinOpen} onOpenChange={setActivityBinOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Restore activity</DialogTitle>
+              <DialogDescription>
+                Deleted linked activities are kept here. Restoring brings the row back with all of
+                its content.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[320px]">
+              <div className="space-y-1 p-1">
+                {linkedActivities.deletedActivities.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {a.acronym || <span className="italic text-muted-foreground">No acronym</span>}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        linkedActivities
+                          .restoreActivity(a.id)
+                          .then(() => {
+                            if (linkedActivities.deletedActivities.length === 1)
+                              setActivityBinOpen(false);
+                          })
+                          .catch(() => toast.error('Could not restore the activity'))
+                      }
+                    >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       </Card>
     </div>
   );
@@ -1391,6 +1495,27 @@ function BoardInner({
     return labels;
   }, [headCards, freeCards, tailCards]);
 
+  /**
+   * Case-study placeholder tables are lettered per section in document order
+   * (a, b, c…), like figure block labels. Hidden blocks do not burn a letter.
+   */
+  const caseLetterByFieldId = useMemo(() => {
+    const map: Record<string, number> = {};
+    let idx = 0;
+    for (const card of [...headCards, ...orderedFree, ...tailCards]) {
+      if (!visibleCard(card)) continue;
+      for (const f of fieldsByCard[card.id] ?? []) {
+        if (f.fieldRole === 'case_placeholder') {
+          map[f.id] = idx;
+          idx += 1;
+        }
+      }
+    }
+    return map;
+    // visibleCard derives from sectionCitesAnything and isCoordinator.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headCards, orderedFree, tailCards, fieldsByCard, sectionCitesAnything, isCoordinator]);
+
   const handleCreateBlock = (choice: NewBlockChoice) => {
     const onSuccess = (newCardId: string) => {
       setAddBlockOpen(false);
@@ -1408,6 +1533,7 @@ function BoardInner({
     captionLabel: captionLabels[card.id],
     figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
+    caseLetterByFieldId,
     proposalId,
     canEdit,
     isCoordinator,
