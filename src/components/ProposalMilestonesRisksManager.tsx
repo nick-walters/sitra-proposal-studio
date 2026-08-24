@@ -910,8 +910,8 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_40px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: grip + risk number + full-width description ── */}
+    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
+      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ── */}
       <span className="flex-none w-[26px] flex items-center justify-center pt-1">
         {canEdit && (
           <button
@@ -925,30 +925,17 @@ function SortableRiskRow({
           </button>
         )}
       </span>
-      <span
-        className="flex-none whitespace-nowrap pt-0.5 w-[40px]"
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
-          fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
-          borderRadius: '9999px', marginTop: 4,
-        }}
-      >
-        R{risk.number}
-      </span>
-      <div className="min-w-0">
-        <DebouncedRichField
-          value={risk.title || ''}
-          disabled={!canEdit}
-          minHeight="30px"
-          proposalId={proposalId}
-          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-          onChange={(html) => onUpdate({ title: html })}
-        />
-      </div>
-
-      {/* ── Line 2: likelihood / severity / WP(s) in fixed columns ── */}
-      <div className={cn(RISK_META_GRID, 'col-start-3')}>
+      <div className={RISK_LINE1_GRID}>
+        <div className="min-w-0">
+          <DebouncedRichField
+            value={risk.title || ''}
+            disabled={!canEdit}
+            minHeight="30px"
+            proposalId={proposalId}
+            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+            onChange={(html) => onUpdate({ title: html })}
+          />
+        </div>
         <div className="flex justify-center">
           <RiskLevelSelect
             value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
@@ -971,7 +958,6 @@ function SortableRiskRow({
             onChange={onSetWps}
           />
         </div>
-        <div />
         <div className="flex justify-center">
           <Button
             size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
@@ -983,8 +969,8 @@ function SortableRiskRow({
         </div>
       </div>
 
-      {/* ── Line 3: mitigation & adaptation measures, full width, aligned with the description above ── */}
-      <div className="col-start-3">
+      {/* ── Line 2: mitigation & adaptation measures, aligned with the description above ── */}
+      <div className="col-start-2">
         <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
@@ -1030,16 +1016,6 @@ function RiskLevelSelect({
   );
 }
 // ── Inline guidelines rendered under each card title ──
-function LMHBadgesInline() {
-  return (
-    <span className="inline-flex items-center gap-1 align-middle mx-1">
-      <RiskBadge level="L" />
-      <RiskBadge level="M" />
-      <RiskBadge level="H" />
-    </span>
-  );
-}
-
 function MilestonesGuidelinesInline() {
   return (
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
@@ -1080,13 +1056,18 @@ function RisksGuidelinesInline() {
         a high adverse impact on the ability of the project to achieve its objectives.
       </p>
       <p>
-        <span className="font-medium text-foreground">i. Level of likelihood to occur</span><LMHBadgesInline />: the
+        <span className="font-medium text-foreground">i. Level of likelihood to occur</span>: the
         estimated probability that the risk will materialise, even after taking account of the mitigating measures put
         in place.
       </p>
       <p>
-        <span className="font-medium text-foreground">ii. Level of severity</span><LMHBadgesInline />: the relative
+        <span className="font-medium text-foreground">ii. Level of severity</span>: the relative
         seriousness of the risk and the significance of its effect.
+      </p>
+      <p className="flex flex-wrap items-center gap-1">
+        <RiskBadge level="L" /><span>= low likelihood or severity;</span>
+        <RiskBadge level="M" /><span>= medium;</span>
+        <RiskBadge level="H" /><span>= high.</span>
       </p>
     </div>
   );
