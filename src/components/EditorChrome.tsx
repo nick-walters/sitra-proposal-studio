@@ -325,65 +325,63 @@ export function EditorFieldBar({
 }: EditorFieldBarProps) {
   if (!hasFocusedField) return null;
 
+  // The features tier is UNIFORM on every surface and for every field type:
+  // all five controls always appear. A surface that has not wired one yet
+  // shows it disabled rather than omitting it.
   return (
     <div className="flex items-center gap-1.5 px-2 py-1">
-      {onOpenGuidelines && (
-        <FeatureButton
-          icon={<Info className="h-3.5 w-3.5" />}
-          primary="Guidelines"
-          tooltip="Commission guidelines for the focused field"
-          secondary="for this field"
-          secondarySmall
-          tone="destructive"
-          onClick={onOpenGuidelines}
-        />
-      )}
+      <FeatureButton
+        icon={<Info className="h-3.5 w-3.5" />}
+        primary="Guidelines"
+        tooltip="Commission guidelines for the focused field"
+        secondary="for this field"
+        secondarySmall
+        tone="destructive"
+        disabled={!onOpenGuidelines}
+        onClick={onOpenGuidelines}
+      />
 
-      {onOpenVersionHistory && (
-        <FeatureButton
-          icon={<History className="h-3.5 w-3.5" />}
-          primary="Version"
-          tooltip="Version history for the focused text box"
-          secondary="history"
-          onClick={onOpenVersionHistory}
-        />
-      )}
+      <FeatureButton
+        icon={<History className="h-3.5 w-3.5" />}
+        primary="Version"
+        tooltip="Version history for the focused text box"
+        secondary="history"
+        disabled={!onOpenVersionHistory}
+        onClick={onOpenVersionHistory}
+      />
 
-      {trackChanges && (
-        <FeatureButton
-          asDiv={!trackChanges.onToggle}
-          leading={
-            <Switch checked={trackChanges.enabled} className="pointer-events-none scale-75" />
-          }
-          primary="Track my"
-          tooltip="Track my changes while editing"
-          secondary="changes"
-          onClick={trackChanges.onToggle}
-        />
-      )}
+      <FeatureButton
+        asDiv={!trackChanges?.onToggle}
+        leading={
+          <Switch checked={!!trackChanges?.enabled} className="pointer-events-none scale-75" />
+        }
+        primary="Track my"
+        tooltip="Track my changes while editing"
+        secondary="changes"
+        disabled={!trackChanges?.onToggle}
+        onClick={trackChanges?.onToggle}
+      />
 
-      {onReviewChanges && (
-        <FeatureButton
-          icon={<GitCompare className="h-3.5 w-3.5" />}
-          primary="Review"
-          tooltip="Review tracked changes"
-          secondary={
-            typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
-          }
-          secondarySmall
-          onClick={onReviewChanges}
-        />
-      )}
+      <FeatureButton
+        icon={<GitCompare className="h-3.5 w-3.5" />}
+        primary="Review"
+        tooltip="Review tracked changes"
+        secondary={
+          typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
+        }
+        secondarySmall
+        disabled={!onReviewChanges}
+        onClick={onReviewChanges}
+      />
 
-      {onOpenAiTools && (
-        <FeatureButton
-          icon={<Sparkles className="h-3.5 w-3.5" />}
-          primary="AI"
-          secondary="tools"
-          tooltip="AI writing tools"
-          onClick={onOpenAiTools}
-        />
-      )}
+      <FeatureButton
+        icon={<Sparkles className="h-3.5 w-3.5" />}
+        primary="AI"
+        secondary="tools"
+        tooltip="AI writing tools"
+        disabled={!onOpenAiTools}
+        onClick={onOpenAiTools}
+      />
 
       {trailing}
     </div>
