@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { WPBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
   DndContext,
@@ -1383,7 +1384,11 @@ function MsReorderRow({ m, wpsById }: { m: Milestone; wpsById: Map<string, WPRow
         <GripVertical className="w-4 h-4 text-blue-500" />
       </button>
       <MilestoneBadge number={m.number} />
-      <span className="text-sm truncate flex-1">{m.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
+      {/* Stored titles are rich text; the dialog shows them as plain text
+          (tags stripped, entities decoded). */}
+      <span className="text-sm truncate flex-1">
+        {htmlToPlainText(m.title || '') || <span className="italic text-muted-foreground">Untitled</span>}
+      </span>
       <span className="flex flex-wrap gap-0.5">
         {isAllWPsSelected(selectedWps.length, wpsById.size)
           ? <AllWPsBubble />
