@@ -8,8 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Info, Lightbulb, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import DOMPurify from "dompurify";
+import { FOOTNOTE_CONFIG } from "@/lib/sanitizePresets";
 
-export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
+export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation' | 'criteria';
 
 interface Guideline {
   id: string;
