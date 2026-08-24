@@ -800,46 +800,42 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           <RisksGuidelinesInline />
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="platform-table text-sm">
-              <thead>
-                <tr>
-                  <th style={{ width: '26px' }}></th>
-                  <th>Risk description</th>
-                  <th style={{ width: '28px', textAlign: 'center' }}>i.</th>
-                  <th style={{ width: '28px', textAlign: 'center' }}>ii.</th>
-                  <th style={{ width: '113px' }}>WP(s)</th>
-                  <th>Mitigation &amp; adaptation measures</th>
-                  <th style={{ width: '28px' }}></th>
-                </tr>
-              </thead>
-              <DndContext
-                sensors={riskSensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleRiskDragEnd}
-              >
-                <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                  <tbody>
-                    {risks.length === 0 && (
-                      <tr><td colSpan={7} className="py-4 text-center text-muted-foreground italic">No risks yet.</td></tr>
-                    )}
-                    {risks.map((r) => (
-                      <SortableRiskRow
-                        key={r.id}
-                        risk={r}
-                        wps={wps}
-                        canEdit={canEdit}
-                        onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
-                        onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
-                        onDelete={() => deleteRisk.mutate(r.id)}
-                        proposalId={proposalId}
-                      />
-                    ))}
-                  </tbody>
-                </SortableContext>
-              </DndContext>
-            </table>
+          <div className="space-y-1">
+            {/* Column labels for the second line — same fixed grid as every row. */}
+            {risks.length > 0 && (
+              <div className={cn(RISK_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
+                <div className="text-center">i.</div>
+                <div className="text-center">ii.</div>
+                <div>WP(s)</div>
+                <div />
+                <div />
+              </div>
+            )}
+            <DndContext
+              sensors={riskSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleRiskDragEnd}
+            >
+              <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                {risks.length === 0 && (
+                  <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
+                )}
+                {risks.map((r) => (
+                  <SortableRiskRow
+                    key={r.id}
+                    risk={r}
+                    wps={wps}
+                    canEdit={canEdit}
+                    onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
+                    onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
+                    onDelete={() => deleteRisk.mutate(r.id)}
+                    proposalId={proposalId}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
+
 
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
