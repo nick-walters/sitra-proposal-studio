@@ -983,32 +983,32 @@ function CardBlock({
                 mistaken for the delete control. */}
 
             {canEdit && card.isHideable && (
-              // Two-state toggle (mock-evaluation model switch style): green
-              // knob on the left with an eye = visible, red knob on the right
-              // with a struck-through eye = hidden. No separate chip.
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!card.isVisible}
-                aria-label={card.isVisible ? 'Block visible — click to hide' : 'Block hidden — click to show'}
-                title={card.isVisible ? 'Visible' : 'Hidden'}
-                onClick={() => onToggleVisible(card)}
-                className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
-              >
-                <span
-                  className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
-                  style={{
-                    backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
-                    transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
-                  }}
+              // Icon outside the toggle: large enough to read, swaps with the
+              // green/red state (eye = visible, struck-through eye = hidden).
+              <div className="flex items-center gap-1.5">
+                {card.isVisible ? (
+                  <Eye className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
+                ) : (
+                  <EyeOff className="h-4 w-4 text-destructive" strokeWidth={2.5} />
+                )}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!card.isVisible}
+                  aria-label={card.isVisible ? 'Block visible — click to hide' : 'Block hidden — click to show'}
+                  title={card.isVisible ? 'Visible' : 'Hidden'}
+                  onClick={() => onToggleVisible(card)}
+                  className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
                 >
-                  {card.isVisible ? (
-                    <Eye className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
-                  ) : (
-                    <EyeOff className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
-                  )}
-                </span>
-              </button>
+                  <span
+                    className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
+                    style={{
+                      backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
+                      transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
+                    }}
+                  />
+                </button>
+              </div>
             )}
 
             {isLinkedActivitiesCard && canEdit && (
