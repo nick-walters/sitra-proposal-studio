@@ -183,8 +183,8 @@ function SortableActivityRow({
           </span>
         )}
 
-        {/* Responsible participant */}
-        <div className="min-w-0">
+        {/* Responsible participant + delete control */}
+        <div className="min-w-0 flex items-center gap-1">
           {selected ? (
             <ParticipantBubble
               onClick={() => {
@@ -213,16 +213,13 @@ function SortableActivityRow({
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
+          {canEdit && (
+            <DeleteConfirmDialog
+              itemLabel="this linked activity"
+              onConfirm={() => onDelete(activity.id)}
+            />
+          )}
         </div>
-
-        {canEdit ? (
-          <DeleteConfirmDialog
-            itemLabel="this linked activity"
-            onConfirm={() => onDelete(activity.id)}
-          />
-        ) : (
-          <span />
-        )}
       </div>
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
