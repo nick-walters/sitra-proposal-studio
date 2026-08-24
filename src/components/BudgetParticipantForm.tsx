@@ -273,6 +273,7 @@ export function BudgetParticipantForm({
           )}
         </div>
         <JustificationItemsEditor
+          proposalId={proposalId}
           budgetRowId={row.id}
           category="subcontracting"
           items={justificationItems}
@@ -320,6 +321,7 @@ export function BudgetParticipantForm({
             )}
           </div>
           <JustificationItemsEditor
+            proposalId={proposalId}
             budgetRowId={row.id}
             category="travel"
             items={justificationItems}
@@ -363,6 +365,7 @@ export function BudgetParticipantForm({
             </div>
           )}
           <JustificationItemsEditor
+            proposalId={proposalId}
             budgetRowId={row.id}
             category="equipment"
             items={justificationItems}
@@ -400,6 +403,7 @@ export function BudgetParticipantForm({
             )}
           </div>
           <JustificationItemsEditor
+            proposalId={proposalId}
             budgetRowId={row.id}
             category="other_goods"
             items={justificationItems}
@@ -444,6 +448,7 @@ export function BudgetParticipantForm({
         </div>
 
         <JustificationItemsEditor
+          proposalId={proposalId}
           budgetRowId={row.id}
           category="fstp"
           items={justificationItems}
@@ -478,6 +483,7 @@ export function BudgetParticipantForm({
         </div>
 
         <JustificationItemsEditor
+          proposalId={proposalId}
           budgetRowId={row.id}
           category="internally_invoiced"
           items={justificationItems}
