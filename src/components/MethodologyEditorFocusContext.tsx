@@ -99,9 +99,43 @@ export function MethodologyEditorFocusProvider({ children }: { children: ReactNo
     [cancelPendingClear],
   );
 
+  /**
+   * Scalar focus is observed in the DOM rather than wired per control: a
+   * surface marks the wrapper of a non-rich control with `data-scalar-field`
+   * and everything else follows, exactly as `data-guideline-key` does for
+   * guidance lookup.
+   */
+  const [scalarField, setScalarField] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const el = e.target as HTMLElement | null;
+      const scalar = el?.closest?.('[data-scalar-field]') as HTMLElement | null;
+      if (scalar) {
+        setScalarField(scalar);
+        return;
+      }
+      // Focus in the toolbars, or a menu/dialog they raised, keeps the scalar
+      // field selected — the same grace the active editor gets.
+      if (
+        el &&
+        (el.closest('[data-editor-chrome]') ||
+          el.closest('[role="dialog"]') ||
+          el.closest('[role="menu"]') ||
+          el.closest('[role="listbox"]') ||
+          el.closest('[data-radix-popper-content-wrapper]') ||
+          el.closest('[data-radix-portal]'))
+      ) {
+        return;
+      }
+      setScalarField(null);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, []);
+
   const value = useMemo(
-    () => ({ activeEditor, registerFocus, notifyBlur, unregister }),
-    [activeEditor, registerFocus, notifyBlur, unregister]
+    () => ({ activeEditor, registerFocus, notifyBlur, unregister, scalarField }),
+    [activeEditor, registerFocus, notifyBlur, unregister, scalarField]
   );
 
   return (
