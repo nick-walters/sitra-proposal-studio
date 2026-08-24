@@ -745,6 +745,7 @@ export type Database = {
           guideline_id: string
           id: string
           order_index: number
+          template_version_id: string | null
           updated_at: string
         }
         Insert: {
@@ -753,6 +754,7 @@ export type Database = {
           guideline_id: string
           id?: string
           order_index?: number
+          template_version_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -761,6 +763,7 @@ export type Database = {
           guideline_id?: string
           id?: string
           order_index?: number
+          template_version_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -771,6 +774,13 @@ export type Database = {
             referencedRelation: "card_guidelines"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "card_guideline_documents_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       card_guideline_sections: {
@@ -779,6 +789,7 @@ export type Database = {
           guideline_id: string
           id: string
           section_source_id: string
+          template_version_id: string | null
           updated_at: string
         }
         Insert: {
@@ -786,6 +797,7 @@ export type Database = {
           guideline_id: string
           id?: string
           section_source_id: string
+          template_version_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -793,6 +805,7 @@ export type Database = {
           guideline_id?: string
           id?: string
           section_source_id?: string
+          template_version_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -810,6 +823,13 @@ export type Database = {
             referencedRelation: "template_sections"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "card_guideline_sections_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       card_guideline_templates: {
@@ -819,6 +839,7 @@ export type Database = {
           guideline_id: string
           id: string
           order_index: number
+          template_version_id: string | null
           updated_at: string
         }
         Insert: {
@@ -827,6 +848,7 @@ export type Database = {
           guideline_id: string
           id?: string
           order_index?: number
+          template_version_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -835,6 +857,7 @@ export type Database = {
           guideline_id?: string
           id?: string
           order_index?: number
+          template_version_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -852,6 +875,13 @@ export type Database = {
             referencedRelation: "card_guidelines"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "card_guideline_templates_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       card_guidelines: {
@@ -866,6 +896,7 @@ export type Database = {
           id: string
           is_active: boolean
           order_index: number
+          template_version_id: string | null
           title: string | null
           updated_at: string
         }
@@ -880,6 +911,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           order_index?: number
+          template_version_id?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -894,10 +926,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           order_index?: number
+          template_version_id?: string | null
           title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "card_guidelines_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       card_target_locks: {
         Row: {
@@ -975,6 +1016,7 @@ export type Database = {
           section_source_id: string | null
           source_key: string | null
           template_type_id: string
+          template_version_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1002,6 +1044,7 @@ export type Database = {
           section_source_id?: string | null
           source_key?: string | null
           template_type_id: string
+          template_version_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1029,6 +1072,7 @@ export type Database = {
           section_source_id?: string | null
           source_key?: string | null
           template_type_id?: string
+          template_version_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1044,6 +1088,13 @@ export type Database = {
             columns: ["template_type_id"]
             isOneToOne: false
             referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_templates_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -5044,6 +5095,7 @@ export type Database = {
           submission_stage: string | null
           submitted_at: string | null
           template_type_id: string | null
+          template_version_id: string | null
           title: string
           topic_content_imported_at: string | null
           topic_description: string | null
@@ -5124,6 +5176,7 @@ export type Database = {
           submission_stage?: string | null
           submitted_at?: string | null
           template_type_id?: string | null
+          template_version_id?: string | null
           title: string
           topic_content_imported_at?: string | null
           topic_description?: string | null
@@ -5204,6 +5257,7 @@ export type Database = {
           submission_stage?: string | null
           submitted_at?: string | null
           template_type_id?: string | null
+          template_version_id?: string | null
           title?: string
           topic_content_imported_at?: string | null
           topic_description?: string | null
@@ -5236,6 +5290,13 @@ export type Database = {
             columns: ["template_type_id"]
             isOneToOne: false
             referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -6030,6 +6091,59 @@ export type Database = {
           {
             foreignKeyName: "template_types_parent_type_id_fkey"
             columns: ["parent_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          major: number | null
+          minor: number | null
+          name: string | null
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string
+          template_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          major?: number | null
+          minor?: number | null
+          name?: string | null
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          template_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          major?: number | null
+          minor?: number | null
+          name?: string | null
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          template_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_type_id_fkey"
+            columns: ["template_type_id"]
             isOneToOne: false
             referencedRelation: "template_types"
             referencedColumns: ["id"]
@@ -6932,6 +7046,7 @@ export type Database = {
           p_destination?: string
           p_submission_stage?: string
           p_template_type_id?: string
+          p_template_version_id?: string
           p_title: string
           p_topic_url?: string
           p_type: Database["public"]["Enums"]["proposal_type"]
@@ -6943,6 +7058,10 @@ export type Database = {
       delete_and_resequence: {
         Args: { p_expected_version?: number; p_id: string; p_table: string }
         Returns: Json
+      }
+      ensure_template_draft: {
+        Args: { p_template_type_id: string }
+        Returns: string
       }
       get_my_private_profile: {
         Args: never
@@ -6993,6 +7112,10 @@ export type Database = {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
+      latest_published_template_version: {
+        Args: { p_template_type_id: string }
+        Returns: string
+      }
       migrate_b12_to_cards: { Args: { p_proposal_id: string }; Returns: Json }
       move_child_to_wp: {
         Args: {
@@ -7011,6 +7134,19 @@ export type Database = {
       numbered_parent_column: { Args: { p_table: string }; Returns: string }
       preview_proposal_restore: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
+        Returns: Json
+      }
+      proposal_template_version: {
+        Args: { p_proposal_id: string }
+        Returns: string
+      }
+      publish_template_version: {
+        Args: {
+          p_major?: boolean
+          p_name?: string
+          p_notes?: string
+          p_version_id: string
+        }
         Returns: Json
       }
       purge_deleted_cards: { Args: never; Returns: number }
