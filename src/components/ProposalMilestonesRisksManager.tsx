@@ -704,11 +704,11 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 .sort((a, b) => a.number - b.number);
               return (
                 <div key={m.id} className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-                  {/* ── Line 1: MS chip + full-width milestone name ── */}
+                  {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
                   <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
                     <MilestoneBadge number={m.number} />
                   </span>
-                  {/* ── Line 1: name + WP(s) + due month + delete ── */}
+
                   <div className={MILESTONE_LINE1_GRID}>
                     <div className="min-w-0">
                       <DebouncedRichField
