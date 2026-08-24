@@ -13,5 +13,5 @@
 import { stripWordHtml } from '@/lib/stripWordHtml';
 
 export const wordCleanPasteProps = {
-  transformPastedHTML: (html: string) => stripWordHtml(html),
+  transformPastedHTML: (html: string) => stripWordHtml(html, { stripBlockColour: true }),
 };
