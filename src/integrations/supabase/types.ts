@@ -445,7 +445,7 @@ export type Database = {
         Insert: {
           card_id: string
           created_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           card_id?: string
