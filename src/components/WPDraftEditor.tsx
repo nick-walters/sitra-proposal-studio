@@ -1140,6 +1140,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           proposalId={proposalId}
           shouldStayMounted={shouldStayMounted}
         />
+        </div>
+
 
 
 
