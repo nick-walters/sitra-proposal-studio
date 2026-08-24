@@ -133,6 +133,23 @@ export function CreateProposalDialog({
     }
   }, [filteredTemplateTypes, templateTypeId]);
 
+  /* Template versions for the chosen type, newest first. The proposal is
+     pinned to whichever is chosen and is never altered by later template
+     edits, so the default is the latest published version. */
+  const { data: templateVersions = [] } = useTemplateVersions(templateTypeId || null);
+
+  useEffect(() => {
+    if (templateVersions.length === 0) {
+      setTemplateVersionId('');
+      return;
+    }
+    if (!templateVersions.find((v) => v.id === templateVersionId)) {
+      setTemplateVersionId(templateVersions[0].id);
+    }
+  }, [templateVersions, templateVersionId]);
+
+
+
   const handleWorkProgrammeChange = (value: string) => {
     setWorkProgramme(value);
     setDestination(''); // Reset destination when work programme changes
