@@ -202,7 +202,9 @@ function SortableActivityRow({
         )}
 
         {/* Responsible participant + delete control */}
-        <div data-scalar-field="" className="min-w-0 flex items-center gap-1">
+        {/* tabIndex makes the chip itself focusable on click, so the features
+            tier opens for this scalar field like it does for the others. */}
+        <div data-scalar-field="" tabIndex={-1} className="min-w-0 flex items-center gap-1 outline-none">
           {selected ? (
             <ParticipantBubble
               onClick={() => {
