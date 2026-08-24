@@ -278,13 +278,14 @@ export function LazyRichField({
         <MethodologyRichEditor
           proposalId={proposalId}
           value={resolvedValue}
-          onChange={onChange}
+          onChange={emitChange}
           canEdit={!disabled}
           isCoordinator={false}
           minHeight={minHeight}
           onEditorReady={handleEditorReady}
           placeholder={placeholder}
         />
+
       ) : (
         <div className="relative">
           {placeholder && !staticHtml.trim() && (
