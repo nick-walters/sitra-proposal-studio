@@ -109,10 +109,12 @@ const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 // Fixed column tracks shared by each row's metadata line and the label header
 // row above the list, so fields align across rows. A column is reserved for
 // every control, including on rows that do not render one.
-const MILESTONE_META_GRID =
-  'grid grid-cols-[13rem_8rem_1fr_2.25rem] items-start gap-x-2';
-const RISK_META_GRID =
-  'grid grid-cols-[5rem_5rem_13rem_1fr_2.25rem] items-start gap-x-2';
+/* Line 1 of a milestone row: name, then its metadata in fixed columns. */
+const MILESTONE_LINE1_GRID =
+  'grid grid-cols-[1fr_13rem_8rem_2.25rem] items-start gap-x-2';
+/* Line 1 of a risk row: description, then its metadata in fixed columns. */
+const RISK_LINE1_GRID =
+  'grid grid-cols-[1fr_5rem_5rem_13rem_2.25rem] items-start gap-x-2';
 
 
 
@@ -684,10 +686,10 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {orderedMs.length > 0 && (
               <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
                 <div />
-                <div className={cn(MILESTONE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                <div className={cn(MILESTONE_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Milestone name</div>
                   <div>WP(s)</div>
                   <div>Due month</div>
-                  <div />
                   <div />
                 </div>
               </div>
@@ -706,19 +708,18 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                   <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
                     <MilestoneBadge number={m.number} />
                   </span>
-                  <div className="min-w-0">
-                    <DebouncedRichField
-                      value={m.title || ''}
-                      disabled={!canEdit}
-                      minHeight="30px"
-                      proposalId={proposalId}
-                      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                    />
-                  </div>
-
-                  {/* ── Line 2: shorter metadata fields in fixed columns ── */}
-                  <div className={cn(MILESTONE_META_GRID, 'col-start-2')}>
+                  {/* ── Line 1: name + WP(s) + due month + delete ── */}
+                  <div className={MILESTONE_LINE1_GRID}>
+                    <div className="min-w-0">
+                      <DebouncedRichField
+                        value={m.title || ''}
+                        disabled={!canEdit}
+                        minHeight="30px"
+                        proposalId={proposalId}
+                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                      />
+                    </div>
                     <div>
                       <MilestoneWpDialog
                         wps={wps}
@@ -762,7 +763,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                         onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
                       />
                     </div>
-                    <div />
                     <div className="flex justify-center">
                       <Button
                         size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
@@ -774,7 +774,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                     </div>
                   </div>
 
-                  {/* ── Line 3: means of verification, full width, aligned with the name above ── */}
+                  {/* ── Line 2: means of verification, aligned with the name above ── */}
                   <div className="col-start-2">
                     <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
                     <DebouncedRichField
@@ -825,13 +825,13 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {/* Column labels for the second line — same fixed grid as every row,
                 indented to align with the risk description above. */}
             {risks.length > 0 && (
-              <div className="grid grid-cols-[26px_40px_1fr] gap-x-2 px-1 pb-1 border-b">
-                <div /><div />
-                <div className={cn(RISK_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+              <div className="grid grid-cols-[26px_1fr] gap-x-2 px-1 pb-1 border-b">
+                <div />
+                <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Risk description</div>
                   <div className="text-center">i.</div>
                   <div className="text-center">ii.</div>
                   <div>WP(s)</div>
-                  <div />
                   <div />
                 </div>
               </div>
