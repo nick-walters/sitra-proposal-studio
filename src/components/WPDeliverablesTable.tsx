@@ -92,6 +92,14 @@ const DISSEMINATION_LEVELS = [
   { value: 'EU-SEC', label: 'EU Secret', description: 'Classified with the mention of the classification level SECRET UE/EU SECRET' },
 ];
 
+// Fixed column track for the second line of every deliverable (and its header
+// labels), so partner / type / dissemination / due month / task / controls land
+// in the same horizontal position on every row — the same fixed-column approach
+// used for the block control rows on the cards board.
+const DELIVERABLE_META_GRID =
+  'grid grid-cols-[7rem_6rem_9rem_9rem_10rem_1fr_2.25rem_2.25rem] items-start gap-x-2';
+
+
 // ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),
 //    then order_index (intra-month manual), then id stable ──
 function sortDeliverables(
