@@ -53,9 +53,26 @@ function versionLabel(v: { major: number; minor: number; name?: string | null; s
 
 /* ------------------------------------------------------------------ */
 
-export function PartBTemplatesTab({ templateTypes }: { templateTypes: TemplateType[] }) {
+/**
+ * The workspace for one template TYPE: version selection, draft lock, publish
+ * and history sit at the top and cover the whole type. Part A guideline
+ * editing is passed in through `partASlot` so both parts live in one place, in
+ * document order.
+ */
+export function TemplateTypeWorkspace({
+  templateTypes,
+  typeId: typeIdProp,
+  partASlot,
+}: {
+  templateTypes: TemplateType[];
+  typeId?: string;
+  partASlot?: React.ReactNode;
+}) {
   const qc = useQueryClient();
-  const [typeId, setTypeId] = useState<string>(templateTypes[0]?.id ?? '');
+  const [typeIdState, setTypeIdState] = useState<string>(templateTypes[0]?.id ?? '');
+  const typeId = typeIdProp ?? typeIdState;
+  const setTypeId = setTypeIdState;
+
   const [versionId, setVersionId] = useState<string>('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
