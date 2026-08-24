@@ -49,6 +49,10 @@ import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
+import { useCardGuidelines } from '@/hooks/useCardGuidelines';
+import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
+import DOMPurify from 'dompurify';
+
 
 interface WPDraftEditorProps {
   wpId: string;
