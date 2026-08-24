@@ -411,17 +411,20 @@ export default function MethodologiesPage({
 
         <EditorChrome
           proposalId={proposalId}
-          featureBar={
-            <EditorFeatureBar
-              hasFocusedField={!!focusedSubsection}
-              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
+          topBar={
+            <EditorTopBar
               saving={saving || manualSaving}
               lastSaved={savedMode === 'manual' ? manualSavedAt ?? lastSaved : lastSaved}
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
-
+            />
+          }
+          fieldBar={
+            <EditorFieldBar
+              hasFocusedField={!!focusedSubsection}
+              onOpenGuidelines={() => focusedSubsection && setGuidelinesId(focusedSubsection.id)}
             />
           }
           formattingBar={
