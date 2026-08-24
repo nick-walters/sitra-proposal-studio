@@ -495,16 +495,18 @@ function FieldRow({
     >
       <div className="flex items-center gap-1">
         {canEdit && (
-          <button
-            type="button"
-            className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
-            aria-label="Reorder module"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4 text-blue-500" />
-          </button>
+          <Tip label="Drag to reorder this module">
+            <button
+              type="button"
+              className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4 text-blue-500" />
+            </button>
+          </Tip>
         )}
+
 
 
         {isPlaceholder ? (
