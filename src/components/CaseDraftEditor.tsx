@@ -658,6 +658,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             canManageCustom: isCoordinator,
             getEditableElement: () =>
               (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
+            getEditor: () => getEditor() ?? null,
           }}
 
           onSaveSelection={saveSelection}

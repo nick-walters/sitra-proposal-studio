@@ -727,6 +727,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             proposalId,
             canManageCustom: isCoordinator,
             getEditableElement: () => (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
+            getEditor: () => getEditor() ?? null,
           }}
           onSaveSelection={saveSelection}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}

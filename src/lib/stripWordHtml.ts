@@ -104,16 +104,26 @@ export function stripForeignBlockColour(html: string): string {
 /**
  * Public entry point. Returns sanitised HTML (always passed through
  * sanitizeEditorHtml as a final canonicalisation step).
+ *
+ * `stripBlockColour` is OPT-IN and must only be used on the way IN (paste).
+ * Render/load paths must never rewrite stored colour: a mirror has to show
+ * the true state of its source.
  */
-export function stripWordHtml(html: string): string {
+export function stripWordHtml(
+  html: string,
+  opts?: { stripBlockColour?: boolean },
+): string {
   if (!html || typeof html !== 'string') return '';
 
+  const blockColour = (s: string) =>
+    opts?.stripBlockColour ? stripForeignBlockColour(s) : s;
+
   // Fast path: if there's no Word-junk signature, just run the canonical
-  // sanitiser. Foreign block-level colour is still normalised, since pasted
-  // Confluence/Docs markup carries no MSO signature at all.
+  // sanitiser.
   if (!looksLikeWordHtml(html)) {
-    return sanitizeEditorHtml(stripForeignBlockColour(html));
+    return sanitizeEditorHtml(blockColour(html));
   }
+
 
 
   if (typeof document === 'undefined') {
@@ -220,5 +230,5 @@ export function stripWordHtml(html: string): string {
 
   // 6. Hand the cleaned HTML to the canonical sanitiser. It enforces the
   //    project allow-list and is the source of truth for tag/attr policy.
-  return sanitizeEditorHtml(stripForeignBlockColour(root.innerHTML));
+  return sanitizeEditorHtml(blockColour(root.innerHTML));
 }
