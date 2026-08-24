@@ -110,10 +110,11 @@ const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 // every control, including on rows that do not render one.
 /* Line 1 of a milestone row: name, then its metadata in fixed columns. */
 const MILESTONE_LINE1_GRID =
-  'grid grid-cols-[1fr_13rem_8rem_2.25rem] items-start gap-x-2';
-/* Line 1 of a risk row: description, then its metadata in fixed columns. */
+  'grid grid-cols-[1fr_17rem_7rem_1.75rem] items-start gap-x-2';
+/* Line 1 of a risk row: description (same 1fr share as the milestone name),
+   narrow i./ii. columns, and a WP column widened with the space freed. */
 const RISK_LINE1_GRID =
-  'grid grid-cols-[1fr_5rem_5rem_13rem_2.25rem] items-start gap-x-2';
+  'grid grid-cols-[1fr_3.75rem_3.75rem_17rem_1.75rem] items-start gap-x-2';
 
 
 
