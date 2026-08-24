@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
+import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
 import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline } from "@/types/templates";
