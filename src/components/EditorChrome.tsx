@@ -68,7 +68,8 @@ export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, Feat
     const commonProps = {
       ref: ref as Ref<HTMLButtonElement & HTMLDivElement>,
       className: cn(
-        'flex items-center gap-1.5 self-stretch rounded-md border bg-transparent px-2 py-1 text-left transition-colors',
+        // TOOLBAR_CONTROL_H: every control in all three tiers is this tall.
+        'flex h-7 items-center gap-1.5 rounded-md border bg-transparent px-2 py-0 text-left transition-colors',
         toneClass,
         disabled && 'cursor-default opacity-70 hover:bg-transparent',
         asDiv && 'cursor-default',
@@ -80,10 +81,10 @@ export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, Feat
     const content = (
       <>
         <span className="flex shrink-0 items-center justify-center">{leading ?? icon}</span>
-        <span className="flex flex-col leading-tight">
+        <span className="flex min-w-0 flex-col justify-center leading-none">
           <span className="text-[11px] font-medium">{primary}</span>
           {secondary && (
-            <span className={secondarySmall ? 'text-[9px] opacity-80' : 'text-[11px] opacity-80'}>
+            <span className={secondarySmall ? 'text-[9px] opacity-80' : 'text-[10px] opacity-80'}>
               {secondary}
             </span>
           )}
@@ -195,7 +196,7 @@ export function EditorTopBar({
   trailing,
 }: EditorTopBarProps) {
   return (
-    <div className="flex w-full items-stretch gap-1.5 px-2 py-1.5">
+    <div className="flex w-full items-center gap-1.5 px-2 py-1">
       <SaveStateButton
         saving={saving}
         lastSaved={lastSaved}
@@ -325,7 +326,7 @@ export function EditorFieldBar({
   if (!hasFocusedField) return null;
 
   return (
-    <div className="flex items-stretch gap-1.5 px-2 py-1.5">
+    <div className="flex items-center gap-1.5 px-2 py-1">
       {onOpenGuidelines && (
         <FeatureButton
           icon={<Info className="h-3.5 w-3.5" />}
