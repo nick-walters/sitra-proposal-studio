@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import {
   DndContext,
   closestCenter,
