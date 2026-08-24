@@ -217,18 +217,20 @@ function SortableActivityRow({
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
+        </div>
+
+        {/* Fixed delete column: inside the block, identical position on every
+            row whatever the participant chip's width. */}
+        <div className="flex w-9 shrink-0 items-center justify-center">
           {canEdit && (
-            // Pushed to the right edge of its column so every row's delete
-            // icon lines up vertically, whatever the participant chip's width.
-            <span className="ml-auto shrink-0">
-              <DeleteConfirmDialog
-                itemLabel="this linked activity"
-                tooltip="Delete this linked activity"
-                onConfirm={() => onDelete(activity.id)}
-              />
-            </span>
+            <DeleteConfirmDialog
+              itemLabel="this linked activity"
+              tooltip="Delete this linked activity"
+              onConfirm={() => onDelete(activity.id)}
+            />
           )}
         </div>
+
 
       </div>
 
