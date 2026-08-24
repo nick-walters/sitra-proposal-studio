@@ -186,13 +186,15 @@ function SortableActivityRow({
 
         {/* Duration */}
         {canEdit ? (
-          <YearRangePicker
-            startYear={activity.durationStart}
-            endYear={activity.durationEnd}
-            onChange={(start, end) =>
-              onUpdate(activity.id, { durationStart: start, durationEnd: end })
-            }
-          />
+          <div data-scalar-field="" className="min-w-0">
+            <YearRangePicker
+              startYear={activity.durationStart}
+              endYear={activity.durationEnd}
+              onChange={(start, end) =>
+                onUpdate(activity.id, { durationStart: start, durationEnd: end })
+              }
+            />
+          </div>
         ) : (
           <span className="truncate text-xs">
             {formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}
