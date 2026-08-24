@@ -35,6 +35,7 @@ import { htmlToPlainText } from "@/lib/htmlToPlainText";
 import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement";
 import { LazyRichField } from "@/components/participant/LazyRichField";
 import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
+import { A1_STATEMENT_FIELD_EXTENSIONS } from "@/components/participant/a1StatementFieldExtensions";
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
@@ -1043,7 +1044,7 @@ function AiStatementField({
         disabled={!canEdit}
         minHeight="90px"
         proposalId={proposalId}
-        staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
+        staticExtensions={A1_STATEMENT_FIELD_EXTENSIONS}
         shouldStayMounted={() =>
           !!(document.activeElement as HTMLElement | null)?.closest('[data-ai-statement-toolbar]')
         }

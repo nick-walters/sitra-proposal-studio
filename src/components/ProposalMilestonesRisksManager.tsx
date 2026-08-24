@@ -883,7 +883,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                       disabled={!canEdit}
                       minHeight="30px"
                       proposalId={proposalId}
-                      staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                      staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
                       placeholder="Means of verification"
                       onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                     />
@@ -1082,7 +1082,7 @@ function SortableRiskRow({
           disabled={!canEdit}
           minHeight="30px"
           proposalId={proposalId}
-          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
           placeholder="Mitigation & adaptation measures"
           onChange={(html) => onUpdate({ mitigation: html })}
         />
