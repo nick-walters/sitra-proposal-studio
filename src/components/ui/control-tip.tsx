@@ -15,14 +15,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * wrap. When that element is a `Tip`, those props must be forwarded onto the
  * child control, otherwise the control renders but does nothing.
  */
-export const Tip = forwardRef<
-  HTMLElement,
-  {
-    label: string;
-    side?: 'top' | 'right' | 'bottom' | 'left';
-    children: ReactNode;
-  } & Record<string, unknown>
->(function Tip({ label, side = 'top', children, ...rest }, ref) {
+interface TipProps {
+  label: string;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  children: ReactNode;
+  /** Behaviour props injected by a Radix `asChild` trigger. */
+  [key: string]: unknown;
+}
+
+export const Tip = forwardRef<HTMLElement, TipProps>(function Tip(
+  { label, side = 'top', children, ...rest }: TipProps,
+  ref,
+) {
+
   if (!isValidElement(children)) return <>{children}</>;
 
   const trigger = cloneElement(
