@@ -175,6 +175,21 @@ export function LazyRichField({
       editor.on('destroy', () => unregisterFieldCapabilities(editor));
       const dom = editor.view.dom as HTMLElement;
 
+      // Single-line fields swallow Enter entirely (capture phase, so neither
+      // ProseMirror nor any parent list/table keymap sees it).
+      if (singleLine) {
+        const blockEnter = (e: KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        };
+        dom.addEventListener('keydown', blockEnter, true);
+        editor.on('destroy', () => dom.removeEventListener('keydown', blockEnter, true));
+      }
+
+
+
 
       const coords = clickCoordsRef.current;
       clickCoordsRef.current = null;
