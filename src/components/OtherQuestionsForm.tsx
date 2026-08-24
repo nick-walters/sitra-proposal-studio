@@ -172,6 +172,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
   return (
     <PartAPageLayout
       title="Part A5: Other questions"
+      proposalId={proposalId}
       saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} /> : undefined}
     >
 

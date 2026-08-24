@@ -601,6 +601,7 @@ export function ParticipantListView({
     <TooltipProvider>
       <PartAPageLayout
         title="Part A2: Participants"
+        proposalId={proposalId}
         titleRightSlot={
           <div className="flex gap-2">
             {canAddParticipant && onAddParticipant && (

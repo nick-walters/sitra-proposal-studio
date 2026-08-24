@@ -514,6 +514,7 @@ export function GeneralInfoForm({
   return (
     <PartAPageLayout
       title="A1. General information"
+      proposalId={proposalId}
       padding="p-4"
       spacing="space-y-4"
       guidelines={
