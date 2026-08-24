@@ -1101,6 +1101,32 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
+                {/* Commission guidance authored against the matching B3.1
+                    block, shown here where the author writes it. */}
+                {blockGuidelines.length > 0 && (
+                  <div className="rounded-lg border-2 border-blue-500 bg-blue-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 flex-shrink-0 text-blue-500" />
+                      <span className="text-sm font-bold text-blue-600">
+                        Official guidelines from the European Commission
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      {blockGuidelines.map((g) => (
+                        <div key={g.id}>
+                          {g.title && (
+                            <h4 className="mb-2 font-semibold text-blue-600">{g.title}</h4>
+                          )}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(g.content) }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Official EC Guidelines */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
@@ -1111,6 +1137,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                     </div>
                   ))}
                 </div>
+
 
                 {/* Sitra's Tips Box - matching Part B style */}
                 <div
