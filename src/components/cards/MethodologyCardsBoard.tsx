@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import {
   DndContext,
   closestCenter,
@@ -375,12 +379,19 @@ function FieldRow({
     id: field.id,
   });
   const [headingDraft, setHeadingDraft] = useState(field.heading ?? '');
+  // The rich field emits its final value and blurs within the same tick, so
+  // the blur handler reads the draft from a ref rather than from state.
+  const headingDraftRef = useRef(field.heading ?? '');
+  const setHeadingDraftBoth = (v: string) => {
+    headingDraftRef.current = v;
+    setHeadingDraft(v);
+  };
   const headingFocused = useRef(false);
   // The editor is uncontrolled after mount — feed it the loaded value once.
   const initialHtml = useRef(field.contentHtml ?? '');
 
   useEffect(() => {
-    if (!headingFocused.current) setHeadingDraft(field.heading ?? '');
+    if (!headingFocused.current) setHeadingDraftBoth(field.heading ?? '');
   }, [field.heading]);
 
   const contentRef = useRef(field.contentHtml ?? '');
@@ -404,19 +415,19 @@ function FieldRow({
   }, [field.heading]);
 
   const headerLock = useLockedBox(headerTarget, {
-    getTyped: () => headingDraft,
+    getTyped: () => headingDraftRef.current,
     onLoseRace: (typed, holderName) => {
-      setHeadingDraft(field.heading ?? '');
+      setHeadingDraftBoth(field.heading ?? '');
       onLostText(lostTextPayload(typed, holderName));
     },
     save: async () => {
-      const next = headingDraft.trim();
+      const next = headingDraftRef.current.trim();
       if (lastCommittedHeading.current !== next) {
         lastCommittedHeading.current = next;
         onHeadingChange(field, next || null);
       }
     },
-    snapshot: () => headingDraft,
+    snapshot: () => headingDraftRef.current,
   });
 
   const contentLock = useLockedBox(contentTarget, {
@@ -446,7 +457,7 @@ function FieldRow({
     if (!wasHeaderLocked.current) return;
     wasHeaderLocked.current = false;
     if (mirroredHeading.current !== null) {
-      setHeadingDraft(mirroredHeading.current);
+      setHeadingDraftBoth(mirroredHeading.current);
       lastCommittedHeading.current = mirroredHeading.current.trim();
     }
   }, [headerLock.lockedByOther]);
@@ -514,38 +525,42 @@ function FieldRow({
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40"
+                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline"
                     aria-readonly="true"
-                  >
-                    {headingView}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
+                  />
                 ) : (
-                  <Input
-                    value={headingDraft}
+                  // Single-line rich text, baseline formatting only.
+                  <LazyRichField
+                    singleLine
+                    proposalId={proposalId}
+                    value={ensureRichHtml(headingDraft)}
                     placeholder="Header"
                     disabled={!canEdit}
+                    minHeight="28px"
+                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
+                    staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
                     onFocus={() => {
                       headingFocused.current = true;
                       onFocusField(field.id, 'header');
                     }}
-                    onMouseDown={() => onFocusField(field.id, 'header')}
-                    onKeyDown={() => headerLock.onType()}
-                    onChange={(e) => {
-                      setHeadingDraft(e.target.value);
-                      headerLock.push(e.target.value);
+                    onChange={(html) => {
+                      headerLock.onType();
+                      setHeadingDraftBoth(html);
+                      headerLock.push(html);
                     }}
                     onBlur={() => {
                       headingFocused.current = false;
-                      const next = headingDraft.trim();
+                      const next = headingDraftRef.current.trim();
                       if (lastCommittedHeading.current !== next) {
                         lastCommittedHeading.current = next;
                         onHeadingChange(field, next || null);
                       }
                       headerLock.onBlur();
                     }}
-                    className={`h-7 flex-1 px-2.5 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
                   />
                 )}
+
                 {headerLock.lockedByOther && headerLock.holder && (
                   <LockHolderBadge holder={headerLock.holder} />
                 )}
@@ -607,7 +622,7 @@ function FieldRow({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{(field.headingEnabled && field.heading) || 'this module'}”?
+                      Delete “{(field.headingEnabled && htmlToPlainText(field.heading ?? '')) || 'this module'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       The whole module — both text boxes and their version histories — moves to
@@ -767,7 +782,14 @@ function CardBlock({
 }: CardBlockProps) {
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(card.title ?? '');
+  const [titleDraft, setTitleDraftState] = useState(card.title ?? '');
+  // Same reason as the module header: the rich field emits and blurs in one
+  // tick, so commits read the draft from a ref.
+  const titleDraftRef = useRef(card.title ?? '');
+  const setTitleDraft = (v: string) => {
+    titleDraftRef.current = v;
+    setTitleDraftState(v);
+  };
   const [localFieldOrder, setLocalFieldOrder] = useState<string[] | null>(null);
 
   // Linked-activities block: the controller lives here so its Add/Restore
@@ -791,7 +813,7 @@ function CardBlock({
 
   const titleTarget = cardTitleTargetId(card.id);
   const titleLock = useLockedBox(titleTarget, {
-    getTyped: () => titleDraft,
+    getTyped: () => titleDraftRef.current,
     onLoseRace: (typed, holderName) => {
       setTitleDraft(card.title ?? '');
       setEditingTitle(false);
@@ -799,13 +821,13 @@ function CardBlock({
     },
 
     save: async () => {
-      const next = titleDraft.trim();
+      const next = titleDraftRef.current.trim();
       if (next !== lastCommittedTitle.current) {
         lastCommittedTitle.current = next;
         onRename(card, next || null);
       }
     },
-    snapshot: () => titleDraft,
+    snapshot: () => titleDraftRef.current,
   });
 
   // Title mirroring — as for module headers and content boxes: keep the last
@@ -865,7 +887,7 @@ function CardBlock({
 
   const commitTitle = () => {
     setEditingTitle(false);
-    const next = titleDraft.trim();
+    const next = titleDraftRef.current.trim();
     if (next !== lastCommittedTitle.current) {
       lastCommittedTitle.current = next;
       onRename(card, next || null);
@@ -953,45 +975,44 @@ function CardBlock({
               only label, so a block title would duplicate it. */}
           <div className="min-w-0 flex-1">
             {card.kind === 'figure' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
-              <Input
+              // Single-line rich text: baseline formatting only (see
+              // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
+              // upgraded to HTML on read by `ensureRichHtml`.
+              <LazyRichField
                 autoFocus
-                value={titleDraft}
-                onKeyDownCapture={() => titleLock.onType()}
-                onChange={(e) => {
-                  setTitleDraft(e.target.value);
-                  titleLock.push(e.target.value);
+                singleLine
+                proposalId={proposalId}
+                value={ensureRichHtml(titleDraft)}
+                minHeight="32px"
+                className={`[&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
+                staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                onChange={(html) => {
+                  titleLock.onType();
+                  setTitleDraft(html);
+                  titleLock.push(html);
                 }}
                 onBlur={() => {
                   commitTitle();
                   titleLock.onBlur();
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitTitle();
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setTitleDraft(card.title ?? '');
-                    setEditingTitle(false);
-                  }
-                }}
-                className={`h-8 ${lockBorderClass(titleLock.isMine, false)}`}
               />
             ) : (
               <div className="flex min-w-0 items-center gap-2">
                 <h3
-                  className={`truncate font-bold underline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
+                  className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
                     displayedTitle ? '' : 'italic text-muted-foreground no-underline'
                   } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
-                >
-                  {displayedTitle ?? 'No title'}
-                </h3>
+                  {...(displayedTitle
+                    ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
+                    : { children: 'No title' })}
+                />
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
                 )}
               </div>
             )}
+
             {userCollapsed && (
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
             )}
@@ -1086,7 +1107,7 @@ function CardBlock({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete “{card.title || 'this block'}”?
+                      Delete “{htmlToPlainText(card.title ?? '') || 'this block'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       The block and its modules move to the recycle bin and can be restored.
@@ -1515,7 +1536,7 @@ function BoardInner({
     if (!focusedBox) return '';
     for (const list of Object.values(fieldsByCard)) {
       const found = list.find((f) => f.id === focusedBox.fieldId);
-      if (found) return (found.headingEnabled && found.heading) || 'Untitled module';
+      if (found) return (found.headingEnabled && htmlToPlainText(found.heading ?? '')) || 'Untitled module';
     }
     return 'Untitled module';
   }, [fieldsByCard, focusedBox]);
@@ -1758,7 +1779,7 @@ function BoardInner({
     };
 
     for (const card of ordered) {
-      const cardLabel = card.title?.trim() || 'Untitled block';
+      const cardLabel = htmlToPlainText(card.title ?? '').trim() || 'Untitled block';
       const hidden = !card.isVisible;
       const readOnly = !canEdit || card.isSourceFed;
 
@@ -1769,8 +1790,10 @@ function BoardInner({
           groupId: card.id,
           groupLabel: cardLabel,
           hidden,
-          format: 'text',
-          value: card.title,
+          // Stored as HTML since the title became a rich-text field; legacy
+          // plain strings are upgraded on read.
+          format: 'html',
+          value: ensureRichHtml(card.title),
           readOnly,
           reveal: revealCard(card.id),
           save: readOnly
@@ -1807,8 +1830,8 @@ function BoardInner({
             groupId: card.id,
             groupLabel: cardLabel,
             hidden,
-            format: 'text',
-            value: field.heading,
+            format: 'html',
+            value: ensureRichHtml(field.heading),
             readOnly,
             reveal: revealField,
             save: readOnly ? undefined : saveText(field.id, 'header', card.id),
@@ -1817,7 +1840,7 @@ function BoardInner({
         if (field.contentHtml) {
           out.push({
             id: `field:${field.id}:content`,
-            label: `${cardLabel} › ${field.heading?.trim() || 'module content'}`,
+            label: `${cardLabel} › ${htmlToPlainText(field.heading ?? '').trim() || 'module content'}`,
             groupId: card.id,
             groupLabel: cardLabel,
             hidden,
@@ -1985,7 +2008,7 @@ function BoardInner({
         <GuidelinesDialog
           isOpen={guidelinesOpen}
           onClose={() => setGuidelinesOpen(false)}
-          sectionTitle={focusedCard?.title || focusedFieldLabel || 'Guidelines'}
+          sectionTitle={htmlToPlainText(focusedCard?.title ?? '') || focusedFieldLabel || 'Guidelines'}
           guidelines={focusedGuidelines}
         />
 

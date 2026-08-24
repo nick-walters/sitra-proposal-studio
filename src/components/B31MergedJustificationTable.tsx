@@ -6,6 +6,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ParticipantBubble } from '@/components/B31Pill';
+import { MirroredRichText } from '@/components/MirroredRichText';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
@@ -146,7 +147,7 @@ export function B31MergedJustificationTable({
                 );
                 cells.push(
                   <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
-                    <strong><em>{cat.categoryLabel}:</em></strong> {item.justification || '—'}
+                    <strong><em>{cat.categoryLabel}:</em></strong> <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
                   </td>,
                 );
                 rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);

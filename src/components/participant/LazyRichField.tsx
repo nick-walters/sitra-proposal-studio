@@ -8,6 +8,7 @@ import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
 import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
 import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
 import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
+import { collapseToSingleLineHtml } from '@/lib/richTextUpgrade';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
@@ -40,7 +41,15 @@ export interface LazyRichFieldProps {
    * both the static and the mounted state. Never written to the document.
    */
   placeholder?: string;
+  /**
+   * Title behaviour: Enter never opens a new paragraph and pasted multi-line
+   * content is flattened, so the stored HTML always holds one line.
+   */
+  singleLine?: boolean;
+  /** Mount the editor immediately (click-to-edit surfaces). */
+  autoFocus?: boolean;
 }
+
 
 /**
  * Render stored HTML through the TipTap schema, resolving every cross
@@ -90,7 +99,10 @@ export function LazyRichField({
   shouldStayMounted,
   staticExtensions = LAZY_RICH_FIELD_EXTENSIONS,
   placeholder,
+  singleLine = false,
+  autoFocus = false,
 }: LazyRichFieldProps) {
+
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -129,16 +141,24 @@ export function LazyRichField({
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
   }, []);
 
+  // Title fields flatten whatever the editor produces, so a paste can never
+  // leave a second paragraph behind in a one-line field.
+  const emitChange = useCallback(
+    (html: string) => onChange(singleLine ? collapseToSingleLineHtml(html) : html),
+    [onChange, singleLine],
+  );
+
   const unmountEditor = useCallback(() => {
     const editor = editorRef.current;
     if (editor && !editor.isDestroyed) {
       const html = editor.getHTML();
-      if (html !== valueRef.current) onChange(html);
+      if (html !== valueRef.current) emitChange(html);
     }
     editorRef.current = null;
     setMounted(false);
     onBlur?.();
-  }, [onChange, onBlur]);
+  }, [emitChange, onBlur]);
+
 
   // What this field's own schema allows. The mounted instance is created by
   // the shared editor hook (full schema), so the capabilities of the field's
@@ -154,6 +174,21 @@ export function LazyRichField({
       registerFieldCapabilities(editor, capabilities);
       editor.on('destroy', () => unregisterFieldCapabilities(editor));
       const dom = editor.view.dom as HTMLElement;
+
+      // Single-line fields swallow Enter entirely (capture phase, so neither
+      // ProseMirror nor any parent list/table keymap sees it).
+      if (singleLine) {
+        const blockEnter = (e: KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        };
+        dom.addEventListener('keydown', blockEnter, true);
+        editor.on('destroy', () => dom.removeEventListener('keydown', blockEnter, true));
+      }
+
+
 
 
       const coords = clickCoordsRef.current;
@@ -200,7 +235,7 @@ export function LazyRichField({
       dom.addEventListener('focusout', handleFocusOut);
       editor.on('destroy', () => dom.removeEventListener('focusout', handleFocusOut));
     },
-    [capabilities, shouldStayMounted, unmountEditor],
+    [capabilities, shouldStayMounted, unmountEditor, singleLine],
   );
 
   const activate = useCallback(
@@ -215,6 +250,17 @@ export function LazyRichField({
     },
     [disabled, mounted, onFocus, value, staticExtensions, refData],
   );
+
+  // Click-to-edit surfaces render the field only once the user asked to edit,
+  // so it mounts its editor straight away.
+  const activateRef = useRef(activate);
+  activateRef.current = activate;
+  useEffect(() => {
+    if (autoFocus) activateRef.current(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus]);
+
+
 
 
   return (
@@ -232,13 +278,14 @@ export function LazyRichField({
         <MethodologyRichEditor
           proposalId={proposalId}
           value={resolvedValue}
-          onChange={onChange}
+          onChange={emitChange}
           canEdit={!disabled}
           isCoordinator={false}
           minHeight={minHeight}
           onEditorReady={handleEditorReady}
           placeholder={placeholder}
         />
+
       ) : (
         <div className="relative">
           {placeholder && !staticHtml.trim() && (

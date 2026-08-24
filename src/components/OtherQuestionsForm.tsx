@@ -3,6 +3,9 @@ import { PartACard } from '@/components/PartACard';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml } from '@/lib/richTextUpgrade';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -217,12 +220,16 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
                 <Label className="text-sm font-medium">
                   Please list the substantial differences, and indicate the reasons
                 </Label>
-                <Textarea
-                  value={formData.substantialDifferencesText}
-                  onChange={(e) => updateFormData({ substantialDifferencesText: e.target.value })}
+                {/* Rich text: legacy plain-string answers are upgraded to
+                    HTML on read and only rewritten when edited. */}
+                <LazyRichField
+                  proposalId={proposalId}
+                  value={ensureRichHtml(formData.substantialDifferencesText)}
+                  onChange={(html) => updateFormData({ substantialDifferencesText: html })}
                   placeholder="List the substantial differences and indicate the reasons"
-                  className="min-h-[120px]"
+                  minHeight="120px"
                   disabled={!canEdit}
+                  staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
                 />
               </div>
             )}

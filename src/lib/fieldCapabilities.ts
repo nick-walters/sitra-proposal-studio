@@ -130,18 +130,6 @@ const NOTHING_BEYOND_BASELINE: FieldCapabilityFlags = {
  */
 export const TITLE_FIELD_CAPABILITIES: FieldCapabilityFlags = { ...NOTHING_BEYOND_BASELINE };
 
-/**
- * Part B table cell: baseline + bullets, numbered, alignment, citations,
- * cross-reference. No subheading, table, figure or line height.
- */
-export const PART_B_TABLE_CELL_CAPABILITIES: FieldCapabilityFlags = {
-  ...NOTHING_BEYOND_BASELINE,
-  bulletList: true,
-  orderedList: true,
-  alignment: true,
-  citations: true,
-  crossReferences: true,
-};
 
 /**
  * A1 AI usage statement: baseline + bullets, numbered, alignment, line

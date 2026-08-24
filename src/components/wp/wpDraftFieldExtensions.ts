@@ -24,6 +24,7 @@ import {
   TITLE_FIELD_CAPABILITIES,
   WP_OBJECTIVES_CAPABILITIES,
   A2_DESCRIPTION_CAPABILITIES,
+  A3_JUSTIFICATION_CAPABILITIES,
 } from '@/lib/fieldCapabilities';
 import { CitationMark, CitationNode } from '@/components/CitationMark';
 
@@ -167,4 +168,24 @@ export const WP_SHORT_NARRATIVE_FIELD_EXTENSIONS: Extensions = [
   FieldCapabilities.configure(A2_DESCRIPTION_CAPABILITIES),
 ];
 
-
+/**
+ * A3 cost justification text: baseline + bullets and cross-reference.
+ * No numbered lists, alignment, line height, table, figure or citations.
+ */
+export const A3_JUSTIFICATION_FIELD_EXTENSIONS: Extensions = [
+  StarterKit.configure({
+    heading: false,
+    orderedList: false,
+    underline: false,
+    codeBlock: false,
+    code: false,
+    dropcursor: false,
+    gapcursor: false,
+    undoRedo: { depth: 100, newGroupDelay: 1200 },
+  }),
+  Underline,
+  TextStyle,
+  Color,
+  ...REFERENCE_NODES,
+  FieldCapabilities.configure(A3_JUSTIFICATION_CAPABILITIES),
+];
