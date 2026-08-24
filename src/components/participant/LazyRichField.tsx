@@ -98,7 +98,10 @@ export function LazyRichField({
   shouldStayMounted,
   staticExtensions = LAZY_RICH_FIELD_EXTENSIONS,
   placeholder,
+  singleLine = false,
+  autoFocus = false,
 }: LazyRichFieldProps) {
+
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
   const editorRef = useRef<Editor | null>(null);
