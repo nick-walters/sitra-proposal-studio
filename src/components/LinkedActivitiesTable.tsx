@@ -43,6 +43,10 @@ import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { FUNDING_INSTRUMENTS, getInstrumentAbbreviation } from '@/lib/fundingInstruments';
 import { YearRangePicker, formatYearRange } from '@/components/YearRangePicker';
 import { useLinkedActivities, type LinkedActivity } from '@/hooks/useLinkedActivities';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { HEADING_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 interface ParticipantSummary {
   id: string;
