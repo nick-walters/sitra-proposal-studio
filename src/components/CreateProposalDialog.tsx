@@ -174,6 +174,8 @@ export function CreateProposalDialog({
       topicUrl: topicUrl || undefined,
       deadline: deadline || undefined,
       templateTypeId: templateTypeId || undefined,
+      templateVersionId: templateVersionId || undefined,
+
       usesFstp,
       isTwoStageSecondStage: submissionStage === 'full' ? isTwoStageSecondStage : false,
     });
