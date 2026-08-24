@@ -596,8 +596,9 @@ function DeliverableRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
+                    <Button variant="ghost" size="sm" className="h-7 px-1.5 gap-1 text-xs" aria-label="Move deliverable to another WP">
                       <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                      Move
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
