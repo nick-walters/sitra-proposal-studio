@@ -1852,6 +1852,12 @@ function BoardInner({
   usePageSearchSource('cards-board', 'Methodologies', searchFieldsForPage);
   const pageSearch = usePageSearch();
 
+  // Guards live AFTER every hook: an early return above them would change the
+  // hook count between the loading and loaded renders.
+  if (isLoading) {
+    return <p className="p-6 text-sm text-muted-foreground">Loading blocks…</p>;
+  }
+
   if (cards.length === 0) {
     return (
       <p className="p-6 text-sm italic text-muted-foreground">
