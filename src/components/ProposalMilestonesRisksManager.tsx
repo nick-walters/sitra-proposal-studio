@@ -57,6 +57,7 @@ import {
 import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types';
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { jumpToElementId } from '@/lib/jumpToElement';
+import { GuidelineBox } from '@/components/GuidelineBox';
 
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
@@ -762,7 +763,14 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
               {guidelineKey === 'risks' ? 'Guidelines: critical risks' : 'Guidelines: milestones'}
             </DialogTitle>
           </DialogHeader>
-          {guidelineKey === 'risks' ? <RisksGuidelinesInline /> : <MilestonesGuidelinesInline />}
+          {/* Styled as Commission guidance, exactly like every other surface. */}
+          <GuidelineBox
+            type="official"
+            title={guidelineKey === 'risks' ? 'Critical risks' : 'Milestones'}
+          >
+            {guidelineKey === 'risks' ? <RisksGuidelinesInline /> : <MilestonesGuidelinesInline />}
+          </GuidelineBox>
+
         </DialogContent>
       </Dialog>
 
@@ -770,7 +778,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       <Card data-guideline-key="milestones">
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-base">Milestones</CardTitle>
-          <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
 
@@ -938,7 +945,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       <Card data-guideline-key="risks">
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-base">Critical risks</CardTitle>
-          <RisksGuidelinesInline />
         </CardHeader>
         <CardContent>
           <div className="space-y-1">

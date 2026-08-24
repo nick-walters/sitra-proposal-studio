@@ -903,15 +903,19 @@ export function FormattingToolbar({
           );
         })()}
 
-        {/* Bold / Italic / Underline */}
-        <TextFormattingGroup
-          onBold={() => editor.chain().focus().toggleBold().run()}
-          onItalic={() => editor.chain().focus().toggleItalic().run()}
-          onUnderline={() => editor.chain().focus().toggleUnderline().run()}
-          isBoldActive={editor.isActive('bold')}
-          isItalicActive={editor.isActive('italic')}
-          isUnderlineActive={editor.isActive('underline')}
-        />
+        {/* Bold / Italic / Underline — hidden where the OUTPUT fixes the
+            styling (Part B block titles and module headers). */}
+        {caps.inlineEmphasis && (
+          <TextFormattingGroup
+            onBold={() => editor.chain().focus().toggleBold().run()}
+            onItalic={() => editor.chain().focus().toggleItalic().run()}
+            onUnderline={() => editor.chain().focus().toggleUnderline().run()}
+            isBoldActive={editor.isActive('bold')}
+            isItalicActive={editor.isActive('italic')}
+            isUnderlineActive={editor.isActive('underline')}
+          />
+        )}
+
 
         {/* Link (standalone) */}
         {showLinkButton && (

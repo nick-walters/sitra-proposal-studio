@@ -19,8 +19,7 @@ import { PartAPageLayout } from './PartAPageLayout';
 import { SaveIndicator } from './SaveIndicator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { LAZY_RICH_FIELD_EXTENSIONS } from '@/components/participant/lazyRichFieldExtensions';
-import { EditorToolbars } from '@/components/editor/EditorToolbars';
-import { MethodologyEditorFocusProvider } from '@/components/MethodologyEditorFocusContext';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import ethicsQuestionsRaw from '@/data/ethicsQuestions.json';
 
@@ -529,7 +528,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   };
 
   return (
-    <MethodologyEditorFocusProvider>
     <PartAPageLayout
       title="Part A4: Ethics self-assessment"
       proposalId={ethicsData.proposalId || null}
@@ -578,18 +576,23 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           ]}
         />
       }
-      saveIndicator={canEdit ? <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
+      save={{ saving: false, lastSaved }}
+      formatting={{
+        proposalId: ethicsData.proposalId || null,
+        isPartB: false,
+        isReadOnly: !canEdit,
+        // A4 narrative fields take the A2 participant-description set, which
+        // includes cross-reference insertion; the surface supplies the menu.
+        crossRefDropdown: ethicsData.proposalId
+          ? (editor) => (
+              <ParticipantCrossRefDropdown
+                proposalId={ethicsData.proposalId!}
+                editor={editor}
+              />
+            )
+          : undefined,
+      }}
     >
-        {/* Same three-tier floating toolbar as every other editing surface. */}
-        <EditorToolbars
-          proposalId={ethicsData.proposalId || undefined}
-          save={{ saving: false, lastSaved, onSaveNow: () => {} }}
-          formatting={{
-            proposalId: ethicsData.proposalId || null,
-            isPartB: false,
-            isReadOnly: !canEdit,
-          }}
-        />
 
 
 
@@ -796,6 +799,5 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           </p>
         </PartACard>
     </PartAPageLayout>
-    </MethodologyEditorFocusProvider>
   );
 }

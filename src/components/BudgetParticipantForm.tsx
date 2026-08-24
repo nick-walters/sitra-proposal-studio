@@ -4,6 +4,7 @@ import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { JustificationItemsEditor } from '@/components/JustificationItemsEditor';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { formatCurrency, formatPercent } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -179,6 +180,15 @@ export function BudgetParticipantForm({
         </span>
       ) : undefined}
       maxWidth="max-w-2xl"
+      save={{ saving, lastSaved: null }}
+      formatting={{
+        proposalId,
+        isPartB: false,
+        isReadOnly: !canEdit,
+        crossRefDropdown: (editor) => (
+          <ParticipantCrossRefDropdown proposalId={proposalId} editor={editor} />
+        ),
+      }}
     >
 
 

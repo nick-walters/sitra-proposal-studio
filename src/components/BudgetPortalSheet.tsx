@@ -682,7 +682,7 @@ export function BudgetPortalSheet({
           }]}
         />
       }
-      saveIndicator={activeTab !== 'validation' ? <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} /> : undefined}
+      save={{ saving, lastSaved: null, onSaveNow: refetchBudgetRows }}
     >
 
 

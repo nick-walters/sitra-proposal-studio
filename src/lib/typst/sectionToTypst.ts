@@ -13,6 +13,7 @@ import { mapCard, mapField, type CardField, type ProposalCard } from '@/types/ca
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
+import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColorsFromHtml';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 /**
@@ -22,6 +23,22 @@ import { htmlToPlainText } from '@/lib/htmlToPlainText';
  */
 function titleText(value: string | null | undefined): string {
   return htmlToPlainText(value ?? '').trim();
+}
+
+/**
+ * Font colour is the one mark a title field keeps — the output fixes
+ * everything else (block titles bold + underlined, module headers bold +
+ * italic). Take the first colour used in the field, if any.
+ */
+function titleColour(value: string | null | undefined): string | null {
+  const colours = extractHexTextColorsFromHtml(value ?? '');
+  const first = [...colours][0];
+  return first ? first.toLowerCase() : null;
+}
+
+function titleFill(value: string | null | undefined): string {
+  const c = titleColour(value);
+  return c ? `fill: rgb("${c}"), ` : '';
 }
 
 
@@ -118,14 +135,14 @@ export function buildSectionTypstDocument(
 
     if (card.title) {
       out.push(
-        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", t(${typstString(titleText(card.title))})))`,
+        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", ${titleFill(card.title)}underline(t(${typstString(titleText(card.title))}))))`,
       );
     }
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
         out.push(
-          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", t(${typstString(titleText(field.heading))})))`,
+          `block(above: 10pt, below: 4pt, text(size: 11pt, weight: "bold", style: "italic", ${titleFill(field.heading)}t(${typstString(titleText(field.heading))})))`,
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));

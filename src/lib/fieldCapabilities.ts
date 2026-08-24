@@ -29,6 +29,13 @@ export interface FieldCapabilityFlags {
   paragraphSpacing: boolean;
   figures: boolean;
   citations: boolean;
+  /**
+   * Bold / italic / underline. Off for fields whose OUTPUT styling is fixed
+   * (Part B block titles are always bold+underlined, module headers always
+   * bold+italic), so offering the marks would only let an author set
+   * something the export overrides.
+   */
+  inlineEmphasis: boolean;
 }
 
 export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
@@ -42,6 +49,7 @@ export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
   paragraphSpacing: true,
   figures: true,
   citations: true,
+  inlineEmphasis: true,
 };
 
 /**
@@ -92,6 +100,7 @@ function schemaCapabilities(extensions: Extensions): FieldCapabilityFlags {
     paragraphSpacing: lists || tables || headings,
     figures: tables || headings,
     citations: hasMark('citation') || hasNode('citation'),
+    inlineEmphasis: hasMark('bold') || hasMark('italic') || hasMark('underline'),
   };
 }
 
@@ -121,6 +130,7 @@ const NOTHING_BEYOND_BASELINE: FieldCapabilityFlags = {
   paragraphSpacing: false,
   figures: false,
   citations: false,
+  inlineEmphasis: true,
 };
 
 /**
@@ -129,6 +139,17 @@ const NOTHING_BEYOND_BASELINE: FieldCapabilityFlags = {
  * description.
  */
 export const TITLE_FIELD_CAPABILITIES: FieldCapabilityFlags = { ...NOTHING_BEYOND_BASELINE };
+
+/**
+ * Part B block titles (H3) and module headers (H4). The export fixes their
+ * styling — bold + underline for H3, bold + italic for H4 — so the field
+ * offers only undo, redo and font colour; the colour is the one attribute
+ * the output does carry through.
+ */
+export const HEADING_TITLE_FIELD_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  inlineEmphasis: false,
+};
 
 
 /**
@@ -156,11 +177,16 @@ export const A2_DESCRIPTION_CAPABILITIES: FieldCapabilityFlags = {
   crossReferences: true,
 };
 
-/** A3 cost justification text: baseline + bullets, cross-reference. */
+/**
+ * A3 cost justification text: baseline + bullets, cross-reference.
+ * Citations are deliberately OFF here — A3 justifications are not a
+ * bibliography-bearing surface.
+ */
 export const A3_JUSTIFICATION_CAPABILITIES: FieldCapabilityFlags = {
   ...NOTHING_BEYOND_BASELINE,
   bulletList: true,
   crossReferences: true,
+  citations: false,
 };
 
 /**

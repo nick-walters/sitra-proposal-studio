@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { renderRefBadges } from '@/lib/renderRefBadges';
 import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
@@ -29,7 +30,14 @@ interface Props {
 const tableFont = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellBase = "align-middle px-2 py-0 leading-tight";
 
-function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
+function ReadOnlyHtmlCell({
+  html,
+  className,
+}: {
+  html: string | null | undefined;
+  /** Extra classes — e.g. forcing left alignment over a stored justification. */
+  className?: string;
+}) {
   const refData = useRefSnapshot();
   const raw = (html ?? '').toString();
   if (!raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '') {
@@ -37,14 +45,19 @@ function ReadOnlyHtmlCell({ html }: { html: string | null | undefined }) {
   }
   return (
     <div
-      className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0"
+      className={`font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0 ${className ?? ''}`}
       dangerouslySetInnerHTML={{ __html: renderRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)), refData) }}
     />
   );
 }
 
+/**
+ * Plain-text mirror cell. Sources that were converted to rich text (milestone
+ * names, for instance) store HTML, so markup and entities are stripped rather
+ * than printed raw.
+ */
 function ReadOnlyTextCell({ text }: { text: string | null | undefined }) {
-  const v = (text ?? '').toString();
+  const v = htmlToPlainText((text ?? '').toString());
   if (!v.trim()) return <span className="text-muted-foreground italic">—</span>;
   return <span>{v}</span>;
 }
@@ -810,7 +823,7 @@ function B31RisksTableInner({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={r.id}>
-              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} /></MCell>
+              <MCell index={0} last={last} cellClass="cell-pl-0"><ReadOnlyHtmlCell html={r.title} className="[&_p]:text-left" /></MCell>
               <MCell index={1} last={last} cellClass="cell-px-0" className="text-left">
                 {r.likelihood ? <RiskBadge level={r.likelihood as 'L' | 'M' | 'H'} /> : <span className="text-muted-foreground">—</span>}
               </MCell>

@@ -36,10 +36,8 @@ import { DEFAULT_AI_STATEMENT, resolveAiStatementHtml } from "@/lib/aiStatement"
 import { LazyRichField } from "@/components/participant/LazyRichField";
 import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
 import { A1_STATEMENT_FIELD_EXTENSIONS } from "@/components/participant/a1StatementFieldExtensions";
-import {
-  MethodologyEditorFocusProvider,
-  useMethodologyEditorFocus,
-} from "@/components/MethodologyEditorFocusContext";
+import { useMethodologyEditorFocus } from "@/components/MethodologyEditorFocusContext";
+
 import { TextFormattingGroup } from "@/components/toolbar";
 
 
@@ -525,7 +523,7 @@ export function GeneralInfoForm({
           sitraTips={sitraTips}
         />
       }
-      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} /> : undefined}
+      save={{ saving, lastSaved, onSaveNow: () => saveContent(formData) }}
     >
 
 
@@ -986,14 +984,12 @@ export function GeneralInfoForm({
             </Label>
           </div>
           {formData.aiStatementEnabled && (
-            <MethodologyEditorFocusProvider>
               <AiStatementField
                 proposalId={proposalId}
                 canEdit={canEdit}
                 value={formData.aiStatementText}
                 onChange={(html) => setFormData(prev => ({ ...prev, aiStatementText: html }))}
               />
-            </MethodologyEditorFocusProvider>
           )}
 
         </PartACard>

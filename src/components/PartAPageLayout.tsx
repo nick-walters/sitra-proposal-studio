@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { FeatureButton } from '@/components/EditorChrome';
 import { PartACollapseProvider, usePartACollapseAll } from '@/components/PartACard';
+import { MethodologyEditorFocusProvider } from '@/components/MethodologyEditorFocusContext';
+import {
+  EditorToolbars,
+  type EditorToolbarsFormattingProps,
+} from '@/components/editor/EditorToolbars';
+import type { EditorFieldBarProps, SaveStateButtonProps } from '@/components/EditorChrome';
 
 interface PartAPageLayoutProps {
   /** Page title text, e.g. "A1. General information" */
@@ -18,12 +22,16 @@ interface PartAPageLayoutProps {
   subtitle?: React.ReactNode;
   /** Optional element rendered to the RIGHT of the title row (e.g. status badge, action buttons) */
   titleRightSlot?: React.ReactNode;
-  /** Optional element rendered to the LEFT of the save indicator in the toolbar row below the title */
+  /** Extra page-wide control, rendered in the shared toolbar's top tier. */
   saveIndicatorLeftSlot?: React.ReactNode;
-  /** Optional PartAGuidelinesDialog — rendered in the toolbar row below the title */
+  /** Optional PartAGuidelinesDialog — rendered in the shared toolbar's top tier. */
   guidelines?: React.ReactNode;
-  /** Optional SaveIndicator — rendered in the toolbar row below the title */
-  saveIndicator?: React.ReactNode;
+  /** Save state for the shared toolbar's save button. */
+  save?: SaveStateButtonProps;
+  /** Field-level features this page wires beyond what capabilities decide. */
+  fieldBar?: Omit<EditorFieldBarProps, 'hasFocusedField'>;
+  /** Bottom formatting tier configuration. */
+  formatting?: EditorToolbarsFormattingProps;
   /** Container max-width class. Default 'max-w-7xl'. */
   maxWidth?: string;
   /** Content spacing class. Default 'space-y-6' */
@@ -49,7 +57,9 @@ export function PartAPageLayout({
   titleRightSlot,
   saveIndicatorLeftSlot,
   guidelines,
-  saveIndicator,
+  save,
+  fieldBar,
+  formatting,
   maxWidth = 'max-w-7xl',
   spacing = 'space-y-6',
   padding = 'p-6',
@@ -65,32 +75,32 @@ export function PartAPageLayout({
   }>({ keys: [], allCollapsed: false, pending: false });
   const setCollapsed = usePartACollapseAll(proposalId);
 
-  const collapseAllControl =
-    proposalId && collapseState.keys.length > 0 ? (
-      <FeatureButton
-        icon={
-          collapseState.allCollapsed ? (
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-          ) : (
-            <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
-          )
+  const collapseAll =
+    proposalId && collapseState.keys.length > 0
+      ? {
+          allCollapsed: collapseState.allCollapsed,
+          disabled: collapseState.pending,
+          onToggle: () =>
+            setCollapsed.mutate({
+              keys: collapseState.keys,
+              collapsed: !collapseState.allCollapsed,
+            }),
         }
-        primary={collapseState.allCollapsed ? 'Expand' : 'Collapse'}
-        secondary="all cards"
-        secondarySmall
-        disabled={collapseState.pending}
-        tooltip={collapseState.allCollapsed ? 'Expand all cards' : 'Collapse all cards'}
-        onClick={() =>
-          setCollapsed.mutate({
-            keys: collapseState.keys,
-            collapsed: !collapseState.allCollapsed,
-          })
-        }
-      />
-    ) : null;
+      : undefined;
+
+  const trailing =
+    guidelines || saveIndicatorLeftSlot ? (
+      <>
+        {guidelines}
+        {saveIndicatorLeftSlot}
+      </>
+    ) : undefined;
 
   return (
-    <div className={`flex-1 overflow-auto ${padding} bg-muted/30`}>
+    // No overflow container here: every Part A page is already mounted inside
+    // a scrolling wrapper, and a second (non-scrolling) one would become the
+    // toolbar's nearest scrollport and stop `position: sticky` from floating.
+    <div className={`flex-1 ${padding} bg-muted/30`}>
       <div className={`${maxWidth} mx-auto ${spacing}`}>
         {/* Header */}
         <div className="space-y-2">
@@ -104,19 +114,22 @@ export function PartAPageLayout({
             </div>
             {titleRightSlot}
           </div>
-          {(guidelines || saveIndicatorLeftSlot || saveIndicator || collapseAllControl) && (
-            <div className="flex items-center gap-3">
-              {collapseAllControl}
-              {guidelines}
-              {saveIndicatorLeftSlot}
-              {saveIndicator}
-            </div>
-          )}
         </div>
-        {/* Body */}
-        <PartACollapseProvider proposalId={proposalId} onStateChange={setCollapseState}>
-          {children}
-        </PartACollapseProvider>
+        {/* The SAME three-tier toolbar every other surface uses. The focus
+            provider wraps the body too, so any rich-text field on a Part A
+            page drives the field and formatting tiers. */}
+        <MethodologyEditorFocusProvider>
+          <EditorToolbars
+            proposalId={proposalId || undefined}
+            save={save ?? { saving: false, lastSaved: null }}
+            topBar={{ collapseAll, trailing }}
+            fieldBar={fieldBar}
+            formatting={formatting}
+          />
+          <PartACollapseProvider proposalId={proposalId} onStateChange={setCollapseState}>
+            {children}
+          </PartACollapseProvider>
+        </MethodologyEditorFocusProvider>
       </div>
     </div>
   );
