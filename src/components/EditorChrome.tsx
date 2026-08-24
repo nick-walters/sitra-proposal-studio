@@ -10,7 +10,10 @@ import {
   FileText,
   Loader2,
   Keyboard,
-
+  Plus,
+  Recycle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -101,71 +104,180 @@ export const FeatureButton = forwardRef<HTMLButtonElement | HTMLDivElement, Feat
 );
 
 /* ------------------------------------------------------------------ */
-/* Standard feature bar                                                */
+/* Shared save-state button (the unified autosave-indicator-in-button) */
 /* ------------------------------------------------------------------ */
 
-export interface EditorFeatureBarProps {
-  hasFocusedField: boolean;
-  onOpenGuidelines?: () => void;
+export interface SaveStateButtonProps {
   saving: boolean;
   lastSaved: Date | null;
-  savedMode: 'auto' | 'manual';
-  onSaveNow?: () => void;
+  savedMode?: 'auto' | 'manual';
   /** True when there are edits not yet persisted; drives the grey/green state. */
   isDirty?: boolean;
-  trackChangesOn?: boolean;
-  pendingChangeCount?: number;
-  commentCount?: number;
-  previewLabel?: string;
-  /** Handler for the Preview button; without one the button stays inert. */
-  onPreview?: () => void;
-  onOpenShortcuts?: () => void;
-  /** Opens version history for the text box that currently has the cursor. */
-  onOpenVersionHistory?: () => void;
+  onSaveNow?: () => void;
 }
 
-export function EditorFeatureBar({
-  hasFocusedField,
-  onOpenGuidelines,
+export function SaveStateButton({
   saving,
   lastSaved,
-  savedMode,
-  onSaveNow,
+  savedMode = 'auto',
   isDirty = false,
-  trackChangesOn = false,
-  pendingChangeCount,
-  commentCount,
-  previewLabel = 'Part B1.2',
-  onPreview,
-  onOpenShortcuts,
-  onOpenVersionHistory,
-}: EditorFeatureBarProps) {
-  const savePrimary = saving
+  onSaveNow,
+}: SaveStateButtonProps) {
+  const primary = saving
     ? 'Saving…'
     : lastSaved
       ? `${savedMode === 'manual' ? 'Saved' : 'Autosaved'} at ${formatTime(lastSaved)}`
       : 'Not saved yet';
 
-  const saveTone: 'muted' | 'success' = !saving && !isDirty && lastSaved ? 'success' : 'muted';
+  const tone: 'muted' | 'success' = !saving && !isDirty && lastSaved ? 'success' : 'muted';
 
   return (
-    <div className="flex items-stretch gap-1.5 px-2 py-1.5">
-      {/* Save state is page-wide, so it stays visible with no field focused. */}
-      <FeatureButton
-        icon={
-          saving ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Cloud className="h-3.5 w-3.5" />
-          )
-        }
-        primary={savePrimary}
-        tooltip="Save all changes now"
-        secondary="Click to save now"
-        secondarySmall
-        tone={saveTone}
-        onClick={onSaveNow}
+    <FeatureButton
+      icon={
+        saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Cloud className="h-3.5 w-3.5" />
+      }
+      primary={primary}
+      tooltip="Save all changes now"
+      secondary="Click to save now"
+      secondarySmall
+      tone={tone}
+      onClick={onSaveNow}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* TOP TIER — page-wide controls, always visible                       */
+/* ------------------------------------------------------------------ */
+
+export interface EditorTopBarProps extends SaveStateButtonProps {
+  /** Preview button — omitted entirely when no handler is supplied. */
+  onPreview?: () => void;
+  previewLabel?: string;
+  /** Expand / collapse all blocks. Omitted when no handler is supplied. */
+  collapseAll?: {
+    allCollapsed: boolean;
+    disabled?: boolean;
+    onToggle: () => void;
+  };
+  onAddBlock?: () => void;
+  addBlockDisabled?: boolean;
+  onRestoreBlock?: () => void;
+  restoreBlockCount?: number;
+  /** Comments panel. */
+  onOpenComments?: () => void;
+  commentCount?: number;
+  /** Find and replace. */
+  onFindReplace?: () => void;
+  /** Keyboard shortcuts — always pinned to the far right. */
+  onOpenShortcuts?: () => void;
+  /** Extra page-wide controls appended before the shortcuts button. */
+  trailing?: ReactNode;
+}
+
+export function EditorTopBar({
+  saving,
+  lastSaved,
+  savedMode = 'auto',
+  isDirty = false,
+  onSaveNow,
+  onPreview,
+  previewLabel = 'Part B1.2',
+  collapseAll,
+  onAddBlock,
+  addBlockDisabled,
+  onRestoreBlock,
+  restoreBlockCount = 0,
+  onOpenComments,
+  commentCount,
+  onFindReplace,
+  onOpenShortcuts,
+  trailing,
+}: EditorTopBarProps) {
+  return (
+    <div className="flex w-full items-stretch gap-1.5 px-2 py-1.5">
+      <SaveStateButton
+        saving={saving}
+        lastSaved={lastSaved}
+        savedMode={savedMode}
+        isDirty={isDirty}
+        onSaveNow={onSaveNow}
       />
+
+      {onPreview && (
+        <FeatureButton
+          icon={<FileText className="h-3.5 w-3.5" />}
+          primary="Preview"
+          tooltip={`Preview ${previewLabel}`}
+          secondary={previewLabel}
+          secondarySmall
+          onClick={onPreview}
+        />
+      )}
+
+      {collapseAll && (
+        <FeatureButton
+          icon={
+            collapseAll.allCollapsed ? (
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+            ) : (
+              <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+            )
+          }
+          primary={collapseAll.allCollapsed ? 'Expand' : 'Collapse'}
+          secondary="all blocks"
+          secondarySmall
+          disabled={collapseAll.disabled}
+          tooltip={collapseAll.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
+          onClick={collapseAll.onToggle}
+        />
+      )}
+
+      {onAddBlock && (
+        <FeatureButton
+          icon={<Plus className="h-3.5 w-3.5" />}
+          primary="Add"
+          secondary="block"
+          secondarySmall
+          tooltip="Add block"
+          disabled={addBlockDisabled}
+          onClick={onAddBlock}
+        />
+      )}
+
+      {onRestoreBlock && (
+        <FeatureButton
+          icon={<Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />}
+          primary="Restore"
+          secondary={restoreBlockCount > 0 ? `block · ${restoreBlockCount}` : 'block'}
+          secondarySmall
+          tooltip={`Restore deleted block (${restoreBlockCount} in the recycle bin)`}
+          onClick={onRestoreBlock}
+        />
+      )}
+
+      {onOpenComments && (
+        <FeatureButton
+          icon={<MessageSquare className="h-3.5 w-3.5" />}
+          primary="Comments"
+          secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
+          secondarySmall
+          tooltip="Open the comments panel"
+          onClick={onOpenComments}
+        />
+      )}
+
+      {onFindReplace && (
+        <FeatureButton
+          icon={<Search className="h-3.5 w-3.5" />}
+          primary="Find &"
+          secondary="replace"
+          tooltip="Find and replace text"
+          onClick={onFindReplace}
+        />
+      )}
+
+      {trailing}
 
       {onOpenShortcuts && (
         <FeatureButton
@@ -177,93 +289,139 @@ export function EditorFeatureBar({
           onClick={onOpenShortcuts}
         />
       )}
+    </div>
+  );
+}
 
-      {hasFocusedField && (
-        <>
-          <FeatureButton
-            icon={<Info className="h-3.5 w-3.5" />}
-            primary="Guidelines"
-            tooltip="Commission guidelines for the focused field"
-            secondary="for this field"
-            secondarySmall
-            tone="destructive"
-            onClick={onOpenGuidelines}
-          />
+/* ------------------------------------------------------------------ */
+/* MIDDLE TIER — field-specific features, only with a focused field    */
+/* ------------------------------------------------------------------ */
 
-          <FeatureButton
-            icon={<History className="h-3.5 w-3.5" />}
-            primary="Version"
-            tooltip="Version history for the focused text box"
-            secondary="history"
-            onClick={onOpenVersionHistory}
-          />
+export interface EditorFieldBarProps {
+  hasFocusedField: boolean;
+  onOpenGuidelines?: () => void;
+  onOpenVersionHistory?: () => void;
+  trackChanges?: {
+    enabled: boolean;
+    onToggle?: () => void;
+  };
+  onReviewChanges?: () => void;
+  pendingChangeCount?: number;
+  onOpenAiTools?: () => void;
+  /** Extra field-specific controls. */
+  trailing?: ReactNode;
+}
 
-          <FeatureButton icon={<Search className="h-3.5 w-3.5" />} primary="Find &" secondary="replace" tooltip="Find and replace text" />
+export function EditorFieldBar({
+  hasFocusedField,
+  onOpenGuidelines,
+  onOpenVersionHistory,
+  trackChanges,
+  onReviewChanges,
+  pendingChangeCount,
+  onOpenAiTools,
+  trailing,
+}: EditorFieldBarProps) {
+  if (!hasFocusedField) return null;
 
-          <FeatureButton
-            asDiv
-            leading={<Switch checked={trackChangesOn} className="pointer-events-none scale-75" />}
-            primary="Track my"
-            tooltip="Track my changes while editing"
-            secondary="changes"
-          />
-
-          <FeatureButton
-            icon={<GitCompare className="h-3.5 w-3.5" />}
-            primary="Review"
-            tooltip="Review tracked changes"
-            secondary={
-              typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
-            }
-            secondarySmall
-          />
-
-          <FeatureButton
-            icon={<MessageSquare className="h-3.5 w-3.5" />}
-            primary="Comment"
-            tooltip="Open the comment panel"
-            secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
-            secondarySmall
-          />
-
-          <FeatureButton icon={<Sparkles className="h-3.5 w-3.5" />} primary="AI" secondary="tools" tooltip="AI writing tools" />
-        </>
+  return (
+    <div className="flex items-stretch gap-1.5 px-2 py-1.5">
+      {onOpenGuidelines && (
+        <FeatureButton
+          icon={<Info className="h-3.5 w-3.5" />}
+          primary="Guidelines"
+          tooltip="Commission guidelines for the focused field"
+          secondary="for this field"
+          secondarySmall
+          tone="destructive"
+          onClick={onOpenGuidelines}
+        />
       )}
 
-      <FeatureButton
-        icon={<FileText className="h-3.5 w-3.5" />}
-        primary="Preview"
-        tooltip={`Preview ${previewLabel}`}
-        secondary={previewLabel}
-        secondarySmall
-        onClick={onPreview}
-      />
+      {onOpenVersionHistory && (
+        <FeatureButton
+          icon={<History className="h-3.5 w-3.5" />}
+          primary="Version"
+          tooltip="Version history for the focused text box"
+          secondary="history"
+          onClick={onOpenVersionHistory}
+        />
+      )}
+
+      {trackChanges && (
+        <FeatureButton
+          asDiv={!trackChanges.onToggle}
+          leading={
+            <Switch checked={trackChanges.enabled} className="pointer-events-none scale-75" />
+          }
+          primary="Track my"
+          tooltip="Track my changes while editing"
+          secondary="changes"
+          onClick={trackChanges.onToggle}
+        />
+      )}
+
+      {onReviewChanges && (
+        <FeatureButton
+          icon={<GitCompare className="h-3.5 w-3.5" />}
+          primary="Review"
+          tooltip="Review tracked changes"
+          secondary={
+            typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
+          }
+          secondarySmall
+          onClick={onReviewChanges}
+        />
+      )}
+
+      {onOpenAiTools && (
+        <FeatureButton
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+          primary="AI"
+          secondary="tools"
+          tooltip="AI writing tools"
+          onClick={onOpenAiTools}
+        />
+      )}
+
+      {trailing}
     </div>
   );
 }
 
 
 /* ------------------------------------------------------------------ */
-/* Chrome                                                                */
+/* Chrome — three tiers                                                 */
 /* ------------------------------------------------------------------ */
 
 interface EditorChromeProps {
-  proposalId: string;
-  featureBar: ReactNode;
+  proposalId?: string;
+  /** Page-wide controls (always visible). */
+  topBar: ReactNode;
+  /** Field-specific features (rendered only when it returns content). */
+  fieldBar?: ReactNode;
   formattingBar: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
-export function EditorChrome({ featureBar, formattingBar, children }: EditorChromeProps) {
+export function EditorChrome({ topBar, fieldBar, formattingBar, children }: EditorChromeProps) {
   return (
     <>
-      {/* Permanently pinned: present from first paint, never scroll-triggered. */}
+      {/* Permanently pinned: present from first paint, never scroll-triggered.
+          The bars carry a solid background so page content never shows through. */}
       <div data-editor-chrome className="sticky top-0 z-40 -mx-1 px-1 py-1 bg-background">
         <div className="rounded-md border border-border bg-card shadow-sm">
-          <div className="border-b border-border">
-            <ScrollableToolbarRow>{featureBar}</ScrollableToolbarRow>
+          <div className="border-b border-border bg-card">
+            <ScrollableToolbarRow>{topBar}</ScrollableToolbarRow>
           </div>
-          <ScrollableToolbarRow>{formattingBar}</ScrollableToolbarRow>
+          {fieldBar && (
+            <div className="border-b border-border bg-card empty:hidden">
+              <ScrollableToolbarRow>{fieldBar}</ScrollableToolbarRow>
+            </div>
+          )}
+          <div className="bg-card">
+            <ScrollableToolbarRow>{formattingBar}</ScrollableToolbarRow>
+          </div>
         </div>
       </div>
       {children}
