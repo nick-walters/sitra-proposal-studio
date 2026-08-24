@@ -1560,8 +1560,12 @@ function BoardInner({
     }
     return null;
   }, [cards, fieldsByCard, focusedBox]);
+  /* Blocks whose fields are NOT card fields — the linked-activities table
+     owns its own relational rows — resolve no focused card, so the key falls
+     back to the `data-guideline-key` the block writes onto its content. */
+  const focusedGuidelineKey = useFocusedGuidelineKey();
   const { data: focusedGuidelines = [] } = useCardGuidelines(
-    focusedCard?.templateKey ?? null,
+    focusedCard?.templateKey ?? focusedGuidelineKey ?? null,
   );
 
   /* Criteria are a category of their own: they belong to the SECTION, not to a
