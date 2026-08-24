@@ -808,6 +808,10 @@ function CardBlock({
   // Authored, but backed by its own relational table rather than card fields:
   // the block renders the same editor as the old methodologies page.
   const isLinkedActivitiesCard = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
+  // Only authored text cards grow new modules; source-fed, figure and
+  // linked-activities blocks have a fixed structure.
+  const canAddModule =
+    canEdit && !isPlaceholderCard && !isLinkedActivitiesCard && card.kind !== 'figure';
 
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -1029,12 +1033,6 @@ function CardBlock({
                 </SortableContext>
               </DndContext>
 
-              {canEdit && (
-                <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add module
-                </Button>
-              )}
             </>
           )}
         </CardContent>
@@ -1507,22 +1505,13 @@ function BoardInner({
               <Button
                 variant="outline"
                 size="sm"
-                aria-label={`Restore a block (${deletedBlockCount})`}
+                aria-label={`Restore block (${deletedBlockCount})`}
                 onClick={() => setBinOpen(true)}
               >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore a block ({deletedBlockCount})
+                Restore block ({deletedBlockCount})
               </Button>
             )}
-            {isAdminOrOwner && (
-              <Button variant="outline" size="sm" onClick={() => setTypstOpen(true)}>
-                <FileType2 className="mr-1 h-3.5 w-3.5" />
-                Typst preview (beta)
-              </Button>
-            )}
-
-
-
           </div>
         </div>
 
@@ -1538,6 +1527,7 @@ function BoardInner({
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
               onOpenVersionHistory={() => setHistoryOpen(true)}
+              onPreview={isAdminOrOwner ? () => setTypstOpen(true) : undefined}
             />
           }
           formattingBar={
