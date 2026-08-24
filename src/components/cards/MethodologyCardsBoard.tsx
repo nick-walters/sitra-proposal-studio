@@ -70,6 +70,8 @@ import {
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
+import { GuidelinesDialog } from '@/components/GuidelinesDialog';
+import { useCardGuidelines } from '@/hooks/useCardGuidelines';
 import { supabase } from '@/integrations/supabase/client';
 import {
   CardLockProvider,
@@ -1335,6 +1337,7 @@ function BoardInner({
     null,
   );
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const { warning, locks, myUserId } = useCardLocks();
 
@@ -1516,6 +1519,22 @@ function BoardInner({
     }
     return 'Untitled module';
   }, [fieldsByCard, focusedBox]);
+
+  /* Commission guidelines follow the FOCUSED block: its template key selects
+     the block-level guidelines, and the document-level ones (formatting,
+     definitions) are always appended by the hook. */
+  const focusedCard = useMemo(() => {
+    if (!focusedBox) return null;
+    for (const [cardId, list] of Object.entries(fieldsByCard)) {
+      if (list.some((f) => f.id === focusedBox.fieldId)) {
+        return cards.find((c) => c.id === cardId) ?? null;
+      }
+    }
+    return null;
+  }, [cards, fieldsByCard, focusedBox]);
+  const { data: focusedGuidelines = [] } = useCardGuidelines(
+    focusedCard?.templateKey ?? null,
+  );
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -1883,7 +1902,11 @@ function BoardInner({
               onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
 
           }}
-          fieldBar={{ onOpenVersionHistory: () => setHistoryOpen(true) }}
+          fieldBar={{
+            onOpenVersionHistory: () => setHistoryOpen(true),
+            onOpenGuidelines:
+              focusedGuidelines.length > 0 ? () => setGuidelinesOpen(true) : undefined,
+          }}
           formatting={{
             proposalId,
             canManageCustomColors: isCoordinator,
@@ -1952,6 +1975,13 @@ function BoardInner({
         />
 
         {warning && <LockTimeoutWarning secondsLeft={warning.secondsLeft} />}
+
+        <GuidelinesDialog
+          isOpen={guidelinesOpen}
+          onClose={() => setGuidelinesOpen(false)}
+          sectionTitle={focusedCard?.title || focusedFieldLabel || 'Guidelines'}
+          guidelines={focusedGuidelines}
+        />
 
         {historyOpen && focusedBox && (
           <CardFieldHistoryDialog
