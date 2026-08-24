@@ -345,6 +345,32 @@ export function CreateProposalDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {templateVersions.length > 0 && (
+                  <div className="grid gap-2 pt-2">
+                    <Label className="text-sm">Template version</Label>
+                    <Select value={templateVersionId} onValueChange={setTemplateVersionId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select version" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateVersions.map((v, i) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{formatVersionLabel(v)}</span>
+                              {i === 0 && (
+                                <Badge variant="secondary" className="text-xs">Latest</Badge>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      The proposal is pinned to this version & is not affected by later template changes.
+                    </p>
+                  </div>
+                )}
+
                 {templateTypeId && (
                   <p className="text-xs text-green-600">
                     ✓ Template sections will be loaded automatically
