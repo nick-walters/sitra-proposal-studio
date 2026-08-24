@@ -111,6 +111,14 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useCardCollapse } from '@/hooks/useCardCollapse';
 import { useCardFigureSummaries } from '@/hooks/useCardFigureSummaries';
 import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
+import {
+  PageSearchProvider,
+  usePageSearch,
+  usePageSearchSource,
+} from '@/lib/findReplace/PageSearchProvider';
+import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types';
+import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
+
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 
