@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/logger';
 import type { Participant } from '@/types/proposal';
 
 export interface ExpertiseRow {
@@ -121,15 +122,20 @@ export function useExpertiseMatrix(proposalId: string, participants: Participant
     (async () => {
       let changed = false;
       if (toInsert.length) {
-        const { error } = await supabase
-          .from('expertise_matrix_columns')
-          .upsert(toInsert, { onConflict: 'proposal_id,participant_id', ignoreDuplicates: true });
+        // Plain insert, NOT upsert: the uniqueness guarantee is a PARTIAL
+        // unique index, which Postgres cannot use as an ON CONFLICT arbiter,
+        // so an upsert here always failed (and the error was swallowed).
+        // Missing rows are already computed above, and a database trigger
+        // creates the column on participant insert anyway.
+        const { error } = await supabase.from('expertise_matrix_columns').insert(toInsert);
         if (!error) changed = true;
+        else logError('Expertise matrix column reconcile', error);
       }
       if (orphanIds.length) {
         const { error } = await supabase.from('expertise_matrix_columns').delete().in('id', orphanIds);
         if (!error) changed = true;
       }
+
       if (changed) {
         qc.invalidateQueries({ queryKey: colsKey });
         qc.invalidateQueries({ queryKey: cellsKey });
