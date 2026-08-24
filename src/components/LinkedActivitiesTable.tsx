@@ -386,26 +386,30 @@ export default function LinkedActivitiesTable({
 
       {canEdit && !controller && (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() => addActivity().catch(() => toast.error('Could not add the activity'))}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add activity
-          </Button>
-          {deletedActivities.length > 0 && (
+          <Tip label="Add activity">
             <Button
               variant="outline"
               size="sm"
-              aria-label={`Restore activity (${deletedActivities.length})`}
-              onClick={() => setBinOpen(true)}
+              className="gap-1"
+              onClick={() => addActivity().catch(() => toast.error('Could not add the activity'))}
             >
-              <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-              Restore activity ({deletedActivities.length})
+              <Plus className="h-3.5 w-3.5" />
+              Add activity
             </Button>
+          </Tip>
+          {deletedActivities.length > 0 && (
+            <Tip label={`Restore deleted activity (${deletedActivities.length} in the recycle bin)`}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBinOpen(true)}
+              >
+                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                Restore activity ({deletedActivities.length})
+              </Button>
+            </Tip>
           )}
+
         </div>
       )}
 
