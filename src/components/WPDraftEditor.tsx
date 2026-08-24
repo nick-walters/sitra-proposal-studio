@@ -136,6 +136,19 @@ const GUIDELINE_SCOPES: Record<string, { ec: string[]; sitra: string[] }> = {
   'wp.deliverables': { ec: ['ec-deliverables'], sitra: ['sitra-1', 'sitra-3'] },
 };
 
+/* WP drafts are not block-based, so they have no card of their own to hang
+   guidance off. The Commission guidance for Table 3.1.b (work package
+   descriptions) and Table 3.1.c (deliverables) is authored once against those
+   B3.1 blocks and reached from here by block key, so the author sees it where
+   the writing actually happens. Resolved against the proposal's template
+   version like every other guideline lookup. */
+const BLOCK_GUIDELINE_KEYS: Record<string, string> = {
+  'wp.methodology': 'b31.table_b',
+  'wp.tasks': 'b31.table_b',
+  'wp.deliverables': 'b31.table_c',
+};
+
+
 const GUIDELINE_TITLES: Record<string, string> = {
   'wp.objectives': 'Guidelines: WP objective',
   'wp.methodology': 'Guidelines: methodology',
