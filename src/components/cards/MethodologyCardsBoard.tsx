@@ -1127,7 +1127,7 @@ function CardBlock({
 
         {/* Hidden, not unmounted: editors keep their state and no unmount-time
             flush can fire. Collapse changes nothing the document records. */}
-        <CardContent className={contentHidden ? 'hidden' : 'space-y-3 px-5'}>
+        <CardContent className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}>
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
