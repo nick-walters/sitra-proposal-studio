@@ -76,17 +76,10 @@ export function useCardGuidelines(templateKey: string | null, document = 'part_b
         }
       }
 
-      const { data: docLinks } = await supabase
-        .from('card_guideline_documents')
-        .select('order_index, card_guidelines(*)')
-        .eq('document', document)
-        .order('order_index');
-      for (const link of docLinks ?? []) {
-        const row = (link as any).card_guidelines as GuidelineRow | null;
-        if (!row?.is_active || seen.has(row.id)) continue;
-        seen.add(row.id);
-        out.push(toGuideline(row, 1000 + ((link as any).order_index ?? row.order_index)));
-      }
+      // Document-level entries (general definitions, formatting requirements)
+      // are deliberately NOT merged here: a block's dialog shows that block's
+      // guidance only. They remain available through the document-level
+      // guidelines surfaces via `useDocumentGuidelines`.
 
       return out;
     },
