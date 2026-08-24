@@ -53,6 +53,8 @@ interface CreateProposalDialogProps {
     topicUrl?: string;
     deadline?: Date;
     templateTypeId?: string;
+    templateVersionId?: string;
+
     usesFstp?: boolean;
     isTwoStageSecondStage?: boolean;
   }) => void;
