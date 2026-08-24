@@ -792,6 +792,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         {/* The toolbar itself is `sticky top-0`; a plain wrapper that hugs its
             height gives it no room to travel, so the sticky classes must live
             on this wrapper (as on pilot drafts, which have no wrapper at all). */}
+        <PageFindReplacePanel />
         <div data-wp-draft-toolbar="1" className="relative z-40">
         <EditorToolbars
           proposalId={proposalId}
