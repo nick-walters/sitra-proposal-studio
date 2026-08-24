@@ -1994,6 +1994,8 @@ function BoardInner({
             onRestored={jumpToRestored}
           />
         )}
+
+        <PageFindReplacePanel />
       </div>
     </>
   );
@@ -2007,8 +2009,11 @@ export function MethodologyCardsBoard(props: BoardProps) {
         sectionId={props.sectionId}
         enabled
       >
-        <BoardInner {...props} />
+        <PageSearchProvider>
+          <BoardInner {...props} />
+        </PageSearchProvider>
       </CardLockProvider>
+
     </MethodologyEditorFocusProvider>
   );
 }
