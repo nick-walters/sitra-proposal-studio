@@ -16,6 +16,16 @@ interface MethodologyEditorFocusValue {
   /** Editor lost DOM focus; the toolbars hide unless focus lands on chrome. */
   notifyBlur: (editor: Editor) => void;
   unregister: (editor: Editor) => void;
+  /**
+   * The focused SCALAR control (select, date picker, assign button) that
+   * belongs to an editing block, marked in the DOM with `data-scalar-field`.
+   *
+   * Scalar fields carry no rich text, so they never become the active editor
+   * — but they still belong to a block, and the block's guidelines and
+   * version history must stay reachable while the caret sits on them. The
+   * features tier therefore opens for them too; the formatting tier does not.
+   */
+  scalarField: HTMLElement | null;
 }
 
 const MethodologyEditorFocusContext = createContext<MethodologyEditorFocusValue | null>(null);
