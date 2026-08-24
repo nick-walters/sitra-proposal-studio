@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, FileType2, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
+import { GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -486,12 +486,12 @@ function FieldRow({
         ) : (
           <>
             {field.headingEnabled ? (
-              <div className="ml-[15px] flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 {headerLock.lockedByOther ? (
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-3 py-1 text-sm font-bold ring-1 ring-destructive/40"
+                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-4 py-1 text-sm font-bold ring-1 ring-destructive/40"
                     aria-readonly="true"
                   >
                     {headingView}
@@ -520,7 +520,7 @@ function FieldRow({
                       }
                       headerLock.onBlur();
                     }}
-                    className={`h-8 flex-1 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
+                    className={`h-8 flex-1 px-4 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
                   />
                 )}
                 {headerLock.lockedByOther && headerLock.holder && (
@@ -583,7 +583,7 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-6' : ''}`}>
+        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-[26px]' : ''}`}>
           <div
             className={`min-w-0 flex-1 rounded-md ${
               contentLock.lockedByOther
