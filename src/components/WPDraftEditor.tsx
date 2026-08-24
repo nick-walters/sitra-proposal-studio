@@ -604,6 +604,81 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     }
   }, [isLocked, isCoordinator, lockWarningDismissed]);
 
+  /**
+   * Page-wide find and replace over this work package's stored text: the WP
+   * narrative fields plus every task and deliverable title and description,
+   * including rows whose editors have never mounted. Writes go through
+   * `save_versioned_row`, the same version-checked RPC ordinary editing uses.
+   */
+  const searchFieldsForPage = useCallback((): SearchableField[] => {
+    if (!wpDraft) return [];
+    const out: SearchableField[] = [];
+    const wpLabel = `WP${wpDraft.number}`;
+    const editable = canEdit && !isLocked;
+
+    const push = (
+      table: 'wp_drafts' | 'wp_draft_tasks' | 'wp_draft_deliverables',
+      rowId: string,
+      version: number,
+      column: string,
+      label: string,
+      value: string | null,
+      format: 'html' | 'text',
+      anchorId?: string,
+    ) => {
+      if (!value) return;
+      out.push({
+        id: `${table}:${rowId}:${column}`,
+        label,
+        groupId: rowId,
+        groupLabel: wpLabel,
+        format,
+        value,
+        readOnly: !editable,
+        reveal: anchorId ? () => jumpToElementId(anchorId) : undefined,
+        save: !editable
+          ? undefined
+          : async (next): Promise<FieldSaveOutcome> => {
+              const res = await saveVersionedRow(table, rowId, { [column]: next }, version);
+              if (res.conflict) return { ok: false, conflict: true };
+              if (!res.ok) return { ok: false, conflict: false, error: res.error };
+              await refetchDraft();
+              return { ok: true };
+            },
+      });
+    };
+
+    push('wp_drafts', wpDraft.id, wpDraft.version, 'title', `${wpLabel} › title`, wpDraft.title, 'text');
+    push('wp_drafts', wpDraft.id, wpDraft.version, 'short_name', `${wpLabel} › short name`, wpDraft.short_name, 'text');
+    push('wp_drafts', wpDraft.id, wpDraft.version, 'objectives', `${wpLabel} › objectives`, wpDraft.objectives, 'html');
+    push(
+      'wp_drafts',
+      wpDraft.id,
+      wpDraft.version,
+      'description_before_tasks',
+      `${wpLabel} › description`,
+      wpDraft.description_before_tasks,
+      'html',
+    );
+
+    for (const task of wpDraft.tasks ?? []) {
+      const label = `T${wpDraft.number}.${task.number}`;
+      const anchor = `wp-task-row-${task.id}`;
+      push('wp_draft_tasks', task.id, task.version, 'title', `${label} › title`, task.title, 'text', anchor);
+      push('wp_draft_tasks', task.id, task.version, 'description', `${label} › description`, task.description, 'html', anchor);
+    }
+    for (const d of wpDraft.deliverables ?? []) {
+      const label = `D${wpDraft.number}.${d.number}`;
+      push('wp_draft_deliverables', d.id, d.version, 'title', `${label} › title`, d.title, 'text');
+      push('wp_draft_deliverables', d.id, d.version, 'description', `${label} › description`, d.description, 'html');
+    }
+    return out;
+  }, [wpDraft, canEdit, isLocked, refetchDraft]);
+
+  usePageSearchSource('wp-draft', 'Work package', searchFieldsForPage);
+  const pageSearch = usePageSearch();
+
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
