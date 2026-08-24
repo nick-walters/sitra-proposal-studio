@@ -215,6 +215,9 @@ export function DraftFormattingToolbar({
   const selectionInTable = useSelectionInTable();
   const [internalHoveredCell, setInternalHoveredCell] = useState<{ row: number; col: number } | null>(null);
 
+  if (hideToolbar) return null;
+
+
   const caps: FieldCapabilityFlags = { ...FULL_FIELD_CAPABILITIES, ...(capabilities ?? {}) };
 
   const exec = (cmd: string, value?: string) => onCommand(cmd, value);
