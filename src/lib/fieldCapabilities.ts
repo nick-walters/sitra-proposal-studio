@@ -6,17 +6,26 @@ import type { Editor } from '@tiptap/react';
  *
  * Everything is derived from the field's own extension set — never from a
  * list of field names — so converting another field to TipTap automatically
- * gives the toolbar the right answer.
+ * gives the toolbar the right answer. Where the schema alone gives the wrong
+ * answer, a field declares the difference with the `FieldCapabilities`
+ * marker below, using one of the named presets at the bottom of this file.
+ *
+ * The BASELINE (undo, redo, bold, italic, underline, font colour) is offered
+ * by every rich-text field and is therefore not represented as a flag —
+ * except `colour`, which some legacy read-only paths still switch off.
  */
 export interface FieldCapabilityFlags {
   /** Cross-reference INSERTION (chips already stored always render). */
   crossReferences: boolean;
-  lists: boolean;
+  bulletList: boolean;
+  orderedList: boolean;
   tables: boolean;
+  /** Subheading dropdown. */
   headings: boolean;
   /** Font colour picker. */
   colour: boolean;
   alignment: boolean;
+  /** Line height / paragraph spacing popover. */
   paragraphSpacing: boolean;
   figures: boolean;
   citations: boolean;
@@ -24,7 +33,8 @@ export interface FieldCapabilityFlags {
 
 export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
   crossReferences: true,
-  lists: true,
+  bulletList: true,
+  orderedList: true,
   tables: true,
   headings: true,
   colour: true,
@@ -40,7 +50,7 @@ export const FULL_FIELD_CAPABILITIES: FieldCapabilityFlags = {
  *
  * Reference nodes and TextStyle are present in title fields purely so stored
  * chips and colours keep RENDERING; their presence must not be read as "this
- * field may insert references or recolour text". Those two flags are declared
+ * field may insert references or recolour text". Those flags are declared
  * here instead. Anything not declared falls back to schema inspection.
  */
 export const FieldCapabilities = Extension.create<Partial<FieldCapabilityFlags>>({
@@ -59,7 +69,9 @@ function schemaCapabilities(extensions: Extensions): FieldCapabilityFlags {
   }
   const hasNode = (name: string) => !!schema?.nodes[name];
   const hasMark = (name: string) => !!schema?.marks[name];
-  const lists = hasNode('bulletList') || hasNode('orderedList');
+  const bulletList = hasNode('bulletList');
+  const orderedList = hasNode('orderedList');
+  const lists = bulletList || orderedList;
   const tables = hasNode('table');
   const headings = hasNode('heading');
   const colour = hasMark('textStyle');
@@ -70,7 +82,8 @@ function schemaCapabilities(extensions: Extensions): FieldCapabilityFlags {
     hasNode('caseReference');
   return {
     crossReferences: hasRefNodes,
-    lists,
+    bulletList,
+    orderedList,
     tables,
     headings,
     colour,
@@ -91,6 +104,89 @@ function declaredCapabilities(extensions: Extensions): Partial<FieldCapabilityFl
 export function capabilitiesOfExtensions(extensions: Extensions): FieldCapabilityFlags {
   return { ...schemaCapabilities(extensions), ...declaredCapabilities(extensions) };
 }
+
+// ── Named presets — the configuration, expressed once per FIELD TYPE ────────
+// A field type declares one of these on its extension set; no page ever
+// decides which controls appear.
+
+/** Everything off but the baseline. Colour stays on: it IS baseline. */
+const NOTHING_BEYOND_BASELINE: FieldCapabilityFlags = {
+  crossReferences: false,
+  bulletList: false,
+  orderedList: false,
+  tables: false,
+  headings: false,
+  colour: true,
+  alignment: false,
+  paragraphSpacing: false,
+  figures: false,
+  citations: false,
+};
+
+/**
+ * Title fields: Part B block title (H3), Part B module header (H4), WP task
+ * title, WP deliverable title, pilot case title, milestone name, risk
+ * description.
+ */
+export const TITLE_FIELD_CAPABILITIES: FieldCapabilityFlags = { ...NOTHING_BEYOND_BASELINE };
+
+/**
+ * Part B table cell: baseline + bullets, numbered, alignment, citations,
+ * cross-reference. No subheading, table, figure or line height.
+ */
+export const PART_B_TABLE_CELL_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  bulletList: true,
+  orderedList: true,
+  alignment: true,
+  citations: true,
+  crossReferences: true,
+};
+
+/**
+ * A1 AI usage statement: baseline + bullets, numbered, alignment, line
+ * height, table, cross-reference. No subheading, figure or citations.
+ */
+export const A1_AI_STATEMENT_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  bulletList: true,
+  orderedList: true,
+  alignment: true,
+  paragraphSpacing: true,
+  tables: true,
+  crossReferences: true,
+};
+
+/**
+ * A2 participant descriptions — also A4 text fields, means of verification
+ * and mitigation measures: baseline + bullets, alignment, cross-reference.
+ */
+export const A2_DESCRIPTION_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  bulletList: true,
+  alignment: true,
+  crossReferences: true,
+};
+
+/** A3 cost justification text: baseline + bullets, cross-reference. */
+export const A3_JUSTIFICATION_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  bulletList: true,
+  crossReferences: true,
+};
+
+/**
+ * WP objectives: baseline + bullets, numbered, alignment, line height,
+ * cross-reference. No subheading, table, figure or citations.
+ */
+export const WP_OBJECTIVES_CAPABILITIES: FieldCapabilityFlags = {
+  ...NOTHING_BEYOND_BASELINE,
+  bulletList: true,
+  orderedList: true,
+  alignment: true,
+  paragraphSpacing: true,
+  crossReferences: true,
+};
 
 // ── Per-editor registry ──────────────────────────────────────────────────────
 // A field's mounted TipTap instance is created by the shared editor hook, so
