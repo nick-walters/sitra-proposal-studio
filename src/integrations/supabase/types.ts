@@ -6036,6 +6036,35 @@ export type Database = {
           },
         ]
       }
+      ui_collapse_states: {
+        Row: {
+          card_key: string
+          created_at: string
+          proposal_id: string
+          user_id: string
+        }
+        Insert: {
+          card_key: string
+          created_at?: string
+          proposal_id: string
+          user_id?: string
+        }
+        Update: {
+          card_key?: string
+          created_at?: string
+          proposal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ui_collapse_states_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_availability: {
         Row: {
           created_at: string

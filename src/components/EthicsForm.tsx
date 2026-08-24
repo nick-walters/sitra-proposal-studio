@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { PartACard } from '@/components/PartACard';
 import { formatNumber } from '@/lib/formatNumber';
 
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
@@ -525,6 +526,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   return (
     <PartAPageLayout
       title="Part A4: Ethics self-assessment"
+      proposalId={ethicsData.proposalId || null}
       titleRightSlot={
         <Badge
           variant={issuesCount > 0 ? 'destructive' : 'default'}
@@ -575,11 +577,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
 
         {/* ETHICS ISSUES TABLE SUBSECTION */}
-        <Card>
-          <CardHeader className="pb-3">
-            <h2 className="font-semibold text-base">Ethics issues table</h2>
-          </CardHeader>
-          <CardContent className="px-6 pt-0 pb-2">
+        <PartACard
+          collapseKey="ethics.ethics-issues-table"
+          title="Ethics issues table"
+          titleClassName="text-base"
+          contentClassName="px-6 pt-0 pb-2"
+        >
             {/* Sections 1-9 */}
             {ETHICS_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
@@ -615,8 +618,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* Ethics Confirmation Checkbox */}
         <div className="flex items-start space-x-3 py-4 px-4 bg-muted/50 rounded-lg border">
@@ -643,69 +645,67 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
         </div>
 
         {/* ETHICS SELF-ASSESSMENT */}
-        <Card>
-          <CardHeader className="pb-3">
-            <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
-          </CardHeader>
-          <CardContent className="space-y-3 px-6 pt-0 pb-4">
-            {/* Ethical dimension */}
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">
-                Ethical dimension of the objectives, methodology and likely impact
-              </Label>
-              <CardDescription className="text-xs">
-                Explain in detail the identified issues in relation to:
-              </CardDescription>
-              <ul className="text-xs text-muted-foreground list-disc list-inside ml-2 space-y-0.5">
-                <li>objectives of the activities (e.g. study of vulnerable populations, etc.)</li>
-                <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
-                <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
-              </ul>
-              <DebouncedTextarea
-                value={ethicsData.ethicsSelfAssessmentObjectives || ''}
-                onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
-                placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
-                className="min-h-[80px] text-sm mt-1"
-                disabled={!canEdit}
-              />
-            </div>
+        <PartACard
+          collapseKey="ethics.ethics-self-assessment"
+          title="ETHICS SELF-ASSESSMENT"
+          contentClassName="space-y-3 px-6 pt-0 pb-4"
+        >
+          {/* Ethical dimension */}
+          <div className="space-y-1">
+            <Label className="text-sm font-medium">
+              Ethical dimension of the objectives, methodology and likely impact
+            </Label>
+            <CardDescription className="text-xs">
+              Explain in detail the identified issues in relation to:
+            </CardDescription>
+            <ul className="text-xs text-muted-foreground list-disc list-inside ml-2 space-y-0.5">
+              <li>objectives of the activities (e.g. study of vulnerable populations, etc.)</li>
+              <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
+              <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
+            </ul>
+            <DebouncedTextarea
+              value={ethicsData.ethicsSelfAssessmentObjectives || ''}
+              onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
+              placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
+              className="min-h-[80px] text-sm mt-1"
+              disabled={!canEdit}
+            />
+          </div>
 
-            {/* Compliance */}
-            <div className="space-y-1">
-              <Label className="text-sm font-medium">
-                Compliance with ethical principles and relevant legislations
-              </Label>
-              <CardDescription className="text-xs">
-                Describe how the issue(s) identified in the ethics issues table above will be addressed in order to adhere 
-                to the ethical principles and what will be done to ensure that the activities are compliant with the EU/national 
-                legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
-                that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
-              </CardDescription>
-              <DebouncedTextarea
-                value={ethicsData.ethicsSelfAssessmentCompliance || ''}
-                onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
-                placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
-                className="min-h-[80px] text-sm mt-1"
-                disabled={!canEdit}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Compliance */}
+          <div className="space-y-1">
+            <Label className="text-sm font-medium">
+              Compliance with ethical principles and relevant legislations
+            </Label>
+            <CardDescription className="text-xs">
+              Describe how the issue(s) identified in the ethics issues table above will be addressed in order to adhere 
+              to the ethical principles and what will be done to ensure that the activities are compliant with the EU/national 
+              legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
+              that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
+            </CardDescription>
+            <DebouncedTextarea
+              value={ethicsData.ethicsSelfAssessmentCompliance || ''}
+              onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
+              placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
+              className="min-h-[80px] text-sm mt-1"
+              disabled={!canEdit}
+            />
+          </div>
+        </PartACard>
 
         {/* SECURITY ISSUES TABLE */}
-        <Card className={cn(SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && 'border-warning/50')}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Security issues table
-              </h3>
-              {SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && (
-                <AlertTriangle className="w-4 h-4 text-warning" />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="px-6 pt-0 pb-2">
+        <PartACard
+          collapseKey="ethics.security-issues-table"
+          title="Security issues table"
+          icon={<Shield className="w-4 h-4" />}
+          className={cn(SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) && 'border-warning/50')}
+          headerRight={
+            SECURITY_SECTIONS.some(s => s.questions.some(q => ethicsData[q.id] === true)) ? (
+              <AlertTriangle className="w-4 h-4 text-warning" />
+            ) : null
+          }
+          contentClassName="px-6 pt-0 pb-2"
+        >
             {/* Security Sections */}
             {SECURITY_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
@@ -752,28 +752,26 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* SECURITY SELF-ASSESSMENT */}
-        <Card>
-          <CardHeader className="pb-3">
-            <h3 className="font-semibold text-sm">SECURITY SELF-ASSESSMENT</h3>
-          </CardHeader>
-          <CardContent className="px-6 pt-0 pb-4">
-            <DebouncedTextarea
-              value={ethicsData.securitySelfAssessment || ''}
-              onDebouncedChange={(value) => handleUpdate({ securitySelfAssessment: value })}
-              placeholder="Describe the measures you intend to take to address the security issues..."
-              className="min-h-[80px] text-sm"
-              maxLength={5000}
-              disabled={!canEdit}
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-right">
-              {formatNumber((ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
-            </p>
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="ethics.security-self-assessment"
+          title="SECURITY SELF-ASSESSMENT"
+          contentClassName="px-6 pt-0 pb-4"
+        >
+          <DebouncedTextarea
+            value={ethicsData.securitySelfAssessment || ''}
+            onDebouncedChange={(value) => handleUpdate({ securitySelfAssessment: value })}
+            placeholder="Describe the measures you intend to take to address the security issues..."
+            className="min-h-[80px] text-sm"
+            maxLength={5000}
+            disabled={!canEdit}
+          />
+          <p className="text-xs text-muted-foreground mt-1 text-right">
+            {formatNumber((ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
+          </p>
+        </PartACard>
     </PartAPageLayout>
 
   );

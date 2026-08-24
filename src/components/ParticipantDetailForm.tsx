@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { PartACard } from '@/components/PartACard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -185,6 +186,7 @@ export function ParticipantDetailForm({
   return (
     <PartAPageLayout
       title={participant.organisationName || 'New Participant'}
+      proposalId={proposalId}
       titleNode={
         <h1 className="text-xl font-semibold">
           {participant.organisationName || 'New Participant'}
@@ -228,147 +230,147 @@ export function ParticipantDetailForm({
 
 
         {/* 1. Organisation Details */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Organisation details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Legal name *</Label>
-                <DebouncedInput
-                  value={participant.organisationName || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('organisationName', v)}
-                  placeholder="Full legal name of the organisation"
-                  disabled={!canEdit}
-                  required
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>English name</Label>
-                <DebouncedInput
-                  value={participant.englishName || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('englishName', v)}
-                  placeholder="English name (if legal name is not in English)"
-                  disabled={!canEdit}
-                />
-                <p className="text-xs text-muted-foreground">
-                  If the legal name is not in English, provide the English translation here
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Short name *</Label>
-                <DebouncedInput
-                  value={participant.organisationShortName || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('organisationShortName', v)}
-                  placeholder="e.g. UH, CNRS"
-                  disabled={!canEdit}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>PIC number *</Label>
-                <PicNumberInput
-                  value={participant.picNumber || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
-                  disabled={!canEdit}
-                />
-                {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
-                  <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Participant type *</Label>
-                <Select
-                  value={participant.organisationType}
-                  onValueChange={(v) => handleFieldUpdate('organisationType', v)}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Legal entity type *</Label>
-                <Select
-                  value={participant.legalEntityType || ''}
-                  onValueChange={(v) => handleFieldUpdate('legalEntityType', v)}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
-                      <SelectItem key={code} value={code}>
-                        {code} – {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <PartACard
+          collapseKey="a2.organisation-details"
+          title="Organisation details"
+          titleClassName="text-lg"
+          contentClassName="space-y-3"
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Legal name *</Label>
+              <DebouncedInput
+                value={participant.organisationName || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('organisationName', v)}
+                placeholder="Full legal name of the organisation"
+                disabled={!canEdit}
+                required
+              />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Country *</Label>
-                {canEdit ? (
-                  <CountrySelect
-                    value={participant.country || ''}
-                    onValueChange={(v) => handleFieldUpdate('country', v)}
-                  />
-                ) : (
-                  <Input value={participant.country || ''} disabled />
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Website</Label>
-                <DebouncedInput
-                  value={participant.website || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('website', v)}
-                  placeholder="https://www.example.org"
-                  disabled={!canEdit}
-                />
-              </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>English name</Label>
+              <DebouncedInput
+                value={participant.englishName || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('englishName', v)}
+                placeholder="English name (if legal name is not in English)"
+                disabled={!canEdit}
+              />
+              <p className="text-xs text-muted-foreground">
+                If the legal name is not in English, provide the English translation here
+              </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Street address</Label>
-                <DebouncedInput
-                  value={participant.street || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('street', v)}
-                  placeholder="e.g. Campusvej 55"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Postcode</Label>
-                <DebouncedInput
-                  value={participant.postcode || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
-                  placeholder="e.g. 5230"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>City / town</Label>
-                <DebouncedInput
-                  value={participant.town || ''}
-                  onDebouncedChange={(v) => handleFieldUpdate('town', v)}
-                  placeholder="e.g. Odense"
-                  disabled={!canEdit}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Short name *</Label>
+              <DebouncedInput
+                value={participant.organisationShortName || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('organisationShortName', v)}
+                placeholder="e.g. UH, CNRS"
+                disabled={!canEdit}
+                required
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              <Label>PIC number *</Label>
+              <PicNumberInput
+                value={participant.picNumber || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
+                disabled={!canEdit}
+              />
+              {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
+                <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Participant type *</Label>
+              <Select
+                value={participant.organisationType}
+                onValueChange={(v) => handleFieldUpdate('organisationType', v)}
+                disabled={!canEdit}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Legal entity type *</Label>
+              <Select
+                value={participant.legalEntityType || ''}
+                onValueChange={(v) => handleFieldUpdate('legalEntityType', v)}
+                disabled={!canEdit}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
+                    <SelectItem key={code} value={code}>
+                      {code} – {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Country *</Label>
+              {canEdit ? (
+                <CountrySelect
+                  value={participant.country || ''}
+                  onValueChange={(v) => handleFieldUpdate('country', v)}
+                />
+              ) : (
+                <Input value={participant.country || ''} disabled />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Website</Label>
+              <DebouncedInput
+                value={participant.website || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('website', v)}
+                placeholder="https://www.example.org"
+                disabled={!canEdit}
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Street address</Label>
+              <DebouncedInput
+                value={participant.street || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('street', v)}
+                placeholder="e.g. Campusvej 55"
+                disabled={!canEdit}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Postcode</Label>
+              <DebouncedInput
+                value={participant.postcode || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
+                placeholder="e.g. 5230"
+                disabled={!canEdit}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>City / town</Label>
+              <DebouncedInput
+                value={participant.town || ''}
+                onDebouncedChange={(v) => handleFieldUpdate('town', v)}
+                placeholder="e.g. Odense"
+                disabled={!canEdit}
+              />
+            </div>
+          </div>
+        </PartACard>
 
         {/* Departments */}
         <DepartmentsSection

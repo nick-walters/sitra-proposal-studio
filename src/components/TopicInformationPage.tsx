@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PartACard } from '@/components/PartACard';
 import { EuroCurrencyInput } from '@/components/EuroCurrencyInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -525,6 +526,7 @@ export function TopicInformationPage({
   return (
     <PartAPageLayout
       title="Topic information"
+      proposalId={proposalId}
       padding="p-4"
       spacing="space-y-4"
       saveIndicator={userCanEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} /> : undefined}
@@ -532,13 +534,11 @@ export function TopicInformationPage({
 
 
         {/* General Topic Information Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4" />
-                General topic information
-              </CardTitle>
+        <PartACard
+          collapseKey="topic.general-topic-information"
+          title="General topic information"
+          icon={<Target className="w-4 h-4" />}
+          headerRight={
               <div className="flex items-center gap-2 flex-wrap justify-end">
                 {userCanEdit && (
                   <Button
@@ -578,10 +578,9 @@ export function TopicInformationPage({
                   </Button>
                 )}
               </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-3">
+          }
+          contentClassName="space-y-3"
+        >
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
               {isEditing && editedProposal ? (
@@ -774,304 +773,288 @@ export function TopicInformationPage({
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* Budget Overview Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Euro className="w-4 h-4" />
-              Budget overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget (topic)</label>
-                {isEditing && editedProposal ? (
-                  <EuroCurrencyInput
-                    value={(editedProposal as any).totalBudgetText || (editedProposal.totalBudget ? editedProposal.totalBudget.toString() : '')}
-                    onChange={(val) => {
-                      const firstNum = parseFloat(val.replace(/[^0-9]/g, ''));
-                      setEditedProposal({ ...editedProposal, totalBudgetText: val, totalBudget: isNaN(firstNum) ? undefined : firstNum } as any);
+        <PartACard
+          collapseKey="topic.budget-overview"
+          title="Budget overview"
+          icon={<Euro className="w-4 h-4" />}
+          contentClassName="space-y-3"
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget (topic)</label>
+              {isEditing && editedProposal ? (
+                <EuroCurrencyInput
+                  value={(editedProposal as any).totalBudgetText || (editedProposal.totalBudget ? editedProposal.totalBudget.toString() : '')}
+                  onChange={(val) => {
+                    const firstNum = parseFloat(val.replace(/[^0-9]/g, ''));
+                    setEditedProposal({ ...editedProposal, totalBudgetText: val, totalBudget: isNaN(firstNum) ? undefined : firstNum } as any);
+                  }}
+                  placeholder="e.g. 21,000,000"
+                  className="h-8 text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {(proposal as any)?.totalBudgetText
+                    ? `€${(proposal as any).totalBudgetText}`
+                    : proposal?.totalBudget
+                      ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                      : '–'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
+              {isEditing && editedProposal ? (
+                <>
+                  <Select
+                    value={editedProposal.budgetType}
+                    onValueChange={(v: 'traditional' | 'lump_sum') => {
+                      if (v !== editedProposal.budgetType) setPendingBudgetType(v);
                     }}
-                    placeholder="e.g. 21,000,000"
-                    className="h-8 text-sm"
-                  />
-                ) : (
-                  <p className="text-sm font-medium">
-                    {(proposal as any)?.totalBudgetText
-                      ? `€${(proposal as any).totalBudgetText}`
-                      : proposal?.totalBudget
-                        ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                        : '–'}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
-                {isEditing && editedProposal ? (
-                  <>
-                    <Select
-                      value={editedProposal.budgetType}
-                      onValueChange={(v: 'traditional' | 'lump_sum') => {
-                        if (v !== editedProposal.budgetType) setPendingBudgetType(v);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="traditional">Actual costs</SelectItem>
-                        <SelectItem value="lump_sum">Lump sum</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Changing from <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>. Are you sure?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => { if (pendingBudgetType) setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType }); setPendingBudgetType(null); }}>
-                            Change budget type
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
-                )}
-              </div>
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="traditional">Actual costs</SelectItem>
+                      <SelectItem value="lump_sum">Lump sum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Change budget type?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Changing from <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>. Are you sure?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { if (pendingBudgetType) setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType }); setPendingBudgetType(null); }}>
+                          Change budget type
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              ) : (
+                <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget per project</label>
+              {isEditing && editedProposal ? (
+                <EuroCurrencyInput
+                  value={(editedProposal as any).indicativeBudgetPerProject || ''}
+                  onChange={(val) => setEditedProposal({ ...editedProposal, indicativeBudgetPerProject: val } as any)}
+                  placeholder="e.g. 3,500,000–4,000,000"
+                  className="h-8 text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {(proposal as any)?.indicativeBudgetPerProject ? `€${(proposal as any).indicativeBudgetPerProject}` : '–'}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
+              {isEditing && editedProposal ? (
+                (() => {
+                  const computed = computeIndicativeProjects(
+                    (editedProposal as any)?.totalBudgetText,
+                    editedProposal?.totalBudget,
+                    (editedProposal as any)?.indicativeBudgetPerProject || ''
+                  );
+                  const current = (editedProposal as any)?.expectedProjects ?? '';
+                  const displayValue = current !== '' ? current : computed;
+                  return (
+                    <Input
+                      value={displayValue}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value } as any)}
+                      placeholder={computed || 'e.g. 3–4'}
+                      className="h-8 text-sm"
+                    />
+                  );
+                })()
+              ) : (proposal as any)?.expectedProjects ? (
+                <p className="text-sm font-medium">{(proposal as any).expectedProjects}</p>
+              ) : (
+                <IndicativeProjectsField
+                  totalBudgetText={(proposal as any)?.totalBudgetText}
+                  totalBudget={proposal?.totalBudget}
+                  budgetPerProject={(proposal as any)?.indicativeBudgetPerProject || ''}
+                />
+              )}
             </div>
 
+          </div>
+
+          <div className="space-y-2">
+            {canEdit ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="uses-fstp-topic"
+                    checked={editedProposal?.usesFstp || false}
+                    onCheckedChange={(checked) => {
+                      if (isEditing && editedProposal) {
+                        setEditedProposal({ ...editedProposal, usesFstp: checked === true } as any);
+                      } else {
+                        onUpdateProposal({ usesFstp: checked === true });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
+                    FSTP possible under this topic
+                  </Label>
+                </div>
+                {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
+                  <RadioGroup
+                    value={(isEditing ? (editedProposal as any)?.fstpType : (proposal as any)?.fstpType) || 'grant'}
+                    onValueChange={(val: string) => {
+                      if (isEditing && editedProposal) {
+                        setEditedProposal({ ...editedProposal, fstpType: val } as any);
+                      } else {
+                        onUpdateProposal({ fstpType: val } as any);
+                      }
+                    }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="grant" id="fstp-grant" />
+                      <Label htmlFor="fstp-grant" className="text-sm cursor-pointer">Grant</Label>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <RadioGroupItem value="prize" id="fstp-prize" />
+                      <Label htmlFor="fstp-prize" className="text-sm cursor-pointer">Prize</Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              </div>
+            ) : proposal?.usesFstp ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="uses-fstp-topic-ro" checked disabled />
+                  <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
+                    FSTP possible under this topic
+                  </Label>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  ({(proposal as any)?.fstpType === 'prize' ? 'Prize' : 'Grant'})
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget per project</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available for FSTP</label>
                 {isEditing && editedProposal ? (
                   <EuroCurrencyInput
-                    value={(editedProposal as any).indicativeBudgetPerProject || ''}
-                    onChange={(val) => setEditedProposal({ ...editedProposal, indicativeBudgetPerProject: val } as any)}
-                    placeholder="e.g. 3,500,000–4,000,000"
+                    value={(editedProposal as any).fstpBudget || ''}
+                    onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudget: val } as any)}
+                    placeholder="e.g. 1,000,000 or 20%"
                     className="h-8 text-sm"
+                    allowPercent
+                    showEuroPrefix={!((editedProposal as any).fstpBudget || '').includes('%')}
                   />
                 ) : (
                   <p className="text-sm font-medium">
-                    {(proposal as any)?.indicativeBudgetPerProject ? `€${(proposal as any).indicativeBudgetPerProject}` : '–'}
+                    {(proposal as any)?.fstpBudget || '–'}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available per third party</label>
                 {isEditing && editedProposal ? (
-                  (() => {
-                    const computed = computeIndicativeProjects(
-                      (editedProposal as any)?.totalBudgetText,
-                      editedProposal?.totalBudget,
-                      (editedProposal as any)?.indicativeBudgetPerProject || ''
-                    );
-                    const current = (editedProposal as any)?.expectedProjects ?? '';
-                    const displayValue = current !== '' ? current : computed;
-                    return (
-                      <Input
-                        value={displayValue}
-                        onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value } as any)}
-                        placeholder={computed || 'e.g. 3–4'}
-                        className="h-8 text-sm"
-                      />
-                    );
-                  })()
-                ) : (proposal as any)?.expectedProjects ? (
-                  <p className="text-sm font-medium">{(proposal as any).expectedProjects}</p>
-                ) : (
-                  <IndicativeProjectsField
-                    totalBudgetText={(proposal as any)?.totalBudgetText}
-                    totalBudget={proposal?.totalBudget}
-                    budgetPerProject={(proposal as any)?.indicativeBudgetPerProject || ''}
+                  <EuroCurrencyInput
+                    value={(editedProposal as any).fstpBudgetPerThirdParty || ''}
+                    onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudgetPerThirdParty: val } as any)}
+                    placeholder="e.g. 60,000–100,000"
+                    className="h-8 text-sm"
                   />
+                ) : (
+                  <p className="text-sm font-medium">
+                    {(proposal as any)?.fstpBudgetPerThirdParty ? `€${(proposal as any).fstpBudgetPerThirdParty}` : '–'}
+                  </p>
                 )}
               </div>
-
             </div>
-
-            <div className="space-y-2">
-              {canEdit ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="uses-fstp-topic"
-                      checked={editedProposal?.usesFstp || false}
-                      onCheckedChange={(checked) => {
-                        if (isEditing && editedProposal) {
-                          setEditedProposal({ ...editedProposal, usesFstp: checked === true } as any);
-                        } else {
-                          onUpdateProposal({ usesFstp: checked === true });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
-                      FSTP possible under this topic
-                    </Label>
-                  </div>
-                  {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
-                    <RadioGroup
-                      value={(isEditing ? (editedProposal as any)?.fstpType : (proposal as any)?.fstpType) || 'grant'}
-                      onValueChange={(val: string) => {
-                        if (isEditing && editedProposal) {
-                          setEditedProposal({ ...editedProposal, fstpType: val } as any);
-                        } else {
-                          onUpdateProposal({ fstpType: val } as any);
-                        }
-                      }}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="flex items-center space-x-1.5">
-                        <RadioGroupItem value="grant" id="fstp-grant" />
-                        <Label htmlFor="fstp-grant" className="text-sm cursor-pointer">Grant</Label>
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        <RadioGroupItem value="prize" id="fstp-prize" />
-                        <Label htmlFor="fstp-prize" className="text-sm cursor-pointer">Prize</Label>
-                      </div>
-                    </RadioGroup>
-                  )}
-                </div>
-              ) : proposal?.usesFstp ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="uses-fstp-topic-ro" checked disabled />
-                    <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
-                      FSTP possible under this topic
-                    </Label>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    ({(proposal as any)?.fstpType === 'prize' ? 'Prize' : 'Grant'})
-                  </span>
-                </div>
-              ) : null}
-            </div>
-
-            {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Budget available for FSTP</label>
-                  {isEditing && editedProposal ? (
-                    <EuroCurrencyInput
-                      value={(editedProposal as any).fstpBudget || ''}
-                      onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudget: val } as any)}
-                      placeholder="e.g. 1,000,000 or 20%"
-                      className="h-8 text-sm"
-                      allowPercent
-                      showEuroPrefix={!((editedProposal as any).fstpBudget || '').includes('%')}
-                    />
-                  ) : (
-                    <p className="text-sm font-medium">
-                      {(proposal as any)?.fstpBudget || '–'}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Budget available per third party</label>
-                  {isEditing && editedProposal ? (
-                    <EuroCurrencyInput
-                      value={(editedProposal as any).fstpBudgetPerThirdParty || ''}
-                      onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudgetPerThirdParty: val } as any)}
-                      placeholder="e.g. 60,000–100,000"
-                      className="h-8 text-sm"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium">
-                      {(proposal as any)?.fstpBudgetPerThirdParty ? `€${(proposal as any).fstpBudgetPerThirdParty}` : '–'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </PartACard>
 
         {/* Topic Description Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4" />
-              Topic description
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {renderRichTextField('expectedOutcome', 'Expected outcome', 'topicExpectedOutcome', 'No expected outcome available')}
-            {renderRichTextField('scope', 'Scope', 'topicScope', 'No scope available')}
-            {proposal?.topicContentImportedAt && (
-              <p className="text-xs text-muted-foreground italic">
-                Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="topic.topic-description"
+          title="Topic description"
+          icon={<FileText className="w-4 h-4" />}
+          contentClassName="space-y-4"
+        >
+          {renderRichTextField('expectedOutcome', 'Expected outcome', 'topicExpectedOutcome', 'No expected outcome available')}
+          {renderRichTextField('scope', 'Scope', 'topicScope', 'No scope available')}
+          {proposal?.topicContentImportedAt && (
+            <p className="text-xs text-muted-foreground italic">
+              Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
+            </p>
+          )}
+        </PartACard>
 
         {/* Destination Description Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4" />
-                Destination description
-              </CardTitle>
-              {renderEditButton('destination')}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
-          </CardContent>
-        </Card>
+        <PartACard
+          collapseKey="topic.destination-description"
+          title="Destination description"
+          icon={<FileText className="w-4 h-4" />}
+          headerRight={renderEditButton('destination')}
+        >
+          {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
+        </PartACard>
 
         {/* Evaluation Notes Card — coordinators only */}
         {isCoordinator && (
-          <Card>
-            <CardHeader className="pb-2 pt-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <ClipboardList className="w-4 h-4" />
-                Evaluation notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {userCanEdit && editedProposal ? (
-                <>
-                  <Label htmlFor="eval-notes" className="text-xs text-muted-foreground">
-                    Topic-specific evaluation criteria or additional context for evaluators
-                  </Label>
-                  <textarea
-                    id="eval-notes"
-                    value={(editedProposal as any).evaluationCriteriaNotes || ''}
-                    onChange={(e) =>
-                      setEditedProposal({
-                        ...editedProposal,
-                        evaluationCriteriaNotes: e.target.value,
-                      } as any)
-                    }
-                    rows={5}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    placeholder="e.g. The topic emphasises citizen co-creation; evaluators should pay particular attention to participatory methodology in WP2..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Use this field to note any specific aspects of this topic that evaluators
-                    should consider — for example, unusual scope requirements, topic-specific
-                    evaluation priorities, or context that is not obvious from the proposal text.
-                    This is injected into every evaluator's prompt when running a panel evaluation.
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {(proposal as any)?.evaluationCriteriaNotes || 'No evaluation notes added'}
+          <PartACard
+            collapseKey="topic.evaluation-notes"
+            title="Evaluation notes"
+            icon={<ClipboardList className="w-4 h-4" />}
+            contentClassName="space-y-2"
+          >
+            {userCanEdit && editedProposal ? (
+              <>
+                <Label htmlFor="eval-notes" className="text-xs text-muted-foreground">
+                  Topic-specific evaluation criteria or additional context for evaluators
+                </Label>
+                <textarea
+                  id="eval-notes"
+                  value={(editedProposal as any).evaluationCriteriaNotes || ''}
+                  onChange={(e) =>
+                    setEditedProposal({
+                      ...editedProposal,
+                      evaluationCriteriaNotes: e.target.value,
+                    } as any)
+                  }
+                  rows={5}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="e.g. The topic emphasises citizen co-creation; evaluators should pay particular attention to participatory methodology in WP2..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use this field to note any specific aspects of this topic that evaluators
+                  should consider — for example, unusual scope requirements, topic-specific
+                  evaluation priorities, or context that is not obvious from the proposal text.
+                  This is injected into every evaluator's prompt when running a panel evaluation.
                 </p>
-              )}
-            </CardContent>
-          </Card>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {(proposal as any)?.evaluationCriteriaNotes || 'No evaluation notes added'}
+              </p>
+            )}
+          </PartACard>
         )}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

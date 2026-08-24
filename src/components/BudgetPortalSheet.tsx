@@ -664,6 +664,7 @@ export function BudgetPortalSheet({
   return (
     <PartAPageLayout
       title="Part A3: Budget"
+      proposalId={proposalId}
       maxWidth="max-w-full"
       guidelines={
         <PartAGuidelinesDialog

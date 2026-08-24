@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { FeatureButton } from '@/components/EditorChrome';
+import { PartACollapseProvider, usePartACollapseAll } from '@/components/PartACard';
 
 interface PartAPageLayoutProps {
   /** Page title text, e.g. "A1. General information" */
@@ -29,6 +32,11 @@ interface PartAPageLayoutProps {
   padding?: string;
   /** Page body content */
   children: React.ReactNode;
+  /**
+   * Proposal the page belongs to. Supplying it turns on the page-wide
+   * "Collapse all" control and persists each card's collapse state per user.
+   */
+  proposalId?: string | null;
 }
 
 export function PartAPageLayout({
@@ -46,7 +54,41 @@ export function PartAPageLayout({
   spacing = 'space-y-6',
   padding = 'p-6',
   children,
+  proposalId,
 }: PartAPageLayoutProps) {
+  // Collapse state is a view preference only: it never touches the proposal's
+  // data, validation, exports or numbering.
+  const [collapseState, setCollapseState] = useState<{
+    keys: string[];
+    allCollapsed: boolean;
+    pending: boolean;
+  }>({ keys: [], allCollapsed: false, pending: false });
+  const setCollapsed = usePartACollapseAll(proposalId);
+
+  const collapseAllControl =
+    proposalId && collapseState.keys.length > 0 ? (
+      <FeatureButton
+        icon={
+          collapseState.allCollapsed ? (
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+          )
+        }
+        primary={collapseState.allCollapsed ? 'Expand' : 'Collapse'}
+        secondary="all cards"
+        secondarySmall
+        disabled={collapseState.pending}
+        tooltip={collapseState.allCollapsed ? 'Expand all cards' : 'Collapse all cards'}
+        onClick={() =>
+          setCollapsed.mutate({
+            keys: collapseState.keys,
+            collapsed: !collapseState.allCollapsed,
+          })
+        }
+      />
+    ) : null;
+
   return (
     <div className={`flex-1 overflow-auto ${padding} bg-muted/30`}>
       <div className={`${maxWidth} mx-auto ${spacing}`}>
@@ -62,8 +104,9 @@ export function PartAPageLayout({
             </div>
             {titleRightSlot}
           </div>
-          {(guidelines || saveIndicatorLeftSlot || saveIndicator) && (
+          {(guidelines || saveIndicatorLeftSlot || saveIndicator || collapseAllControl) && (
             <div className="flex items-center gap-3">
+              {collapseAllControl}
               {guidelines}
               {saveIndicatorLeftSlot}
               {saveIndicator}
@@ -71,7 +114,9 @@ export function PartAPageLayout({
           )}
         </div>
         {/* Body */}
-        {children}
+        <PartACollapseProvider proposalId={proposalId} onStateChange={setCollapseState}>
+          {children}
+        </PartACollapseProvider>
       </div>
     </div>
   );
