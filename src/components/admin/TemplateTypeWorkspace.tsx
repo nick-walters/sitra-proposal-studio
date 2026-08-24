@@ -224,11 +224,18 @@ export function TemplateTypeWorkspace({
         </div>
       )}
 
-      {subsectionOrder.length > 0 && (
-        <div className="flex justify-end">
+      {partASlot}
+
+      <div className="flex items-center gap-2 pt-2">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Badge variant="outline">Part B</Badge>
+          Technical description
+        </h3>
+        {subsectionOrder.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
+            className="ml-auto"
             onClick={() => {
               const next: Record<string, boolean> = {};
               for (const s of subsectionOrder) next[s] = !allCollapsed;
@@ -237,22 +244,20 @@ export function TemplateTypeWorkspace({
           >
             {allCollapsed ? 'Expand all' : 'Collapse all'}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {subsectionOrder.map((sectionNumber) => {
+      {subsections.map((section: any) => {
+        const sectionNumber = section.section_number as string;
         const rows = grouped.get(sectionNumber) ?? [];
-        const sourceId = rows[0]?.section_number
-          ? (blocks.find((b) => b.section_number === sectionNumber) as any)?.section_source_id ?? null
-          : null;
-        const meta = sections.find((s: any) => s.section_number === sectionNumber);
         const isOpen = !collapsed[sectionNumber];
         return (
           <SubsectionPanel
-            key={sectionNumber}
+            key={section.id}
             sectionNumber={sectionNumber}
-            title={(meta as any)?.title ?? ''}
-            sectionSourceId={sourceId}
+            title={section.title ?? ''}
+            sectionSourceId={section.id}
+            templateTypeId={typeId}
             versionId={activeVersionId}
             editable={editable}
             blocks={rows}
@@ -263,11 +268,12 @@ export function TemplateTypeWorkspace({
         );
       })}
 
-      {subsectionOrder.length === 0 && (
+      {subsections.length === 0 && (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          No Part B blocks in this version.
+          This template type has no Part B subsections yet.
         </p>
       )}
+
 
       <AlertDialog open={takeoverOpen} onOpenChange={setTakeoverOpen}>
         <AlertDialogContent>
