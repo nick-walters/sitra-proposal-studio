@@ -64,7 +64,7 @@ interface LinkedActivitiesTableProps {
   controller?: ReturnType<typeof useLinkedActivities>;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(5.7rem,0.57fr)_minmax(12.5rem,1.4fr)]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(5.7rem,0.57fr)_minmax(12.5rem,1.4fr)_2.25rem]';
 
 const NONE = '__none__';
 
@@ -362,6 +362,7 @@ export default function LinkedActivitiesTable({
           <span>Funding instrument</span>
           <span>Duration</span>
           <span>Participant responsible for establishing the link</span>
+          <span />
         </div>
       )}
 
