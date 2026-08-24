@@ -3,7 +3,7 @@ import { saveVersionedRow, saveCaseDraftSubsection } from '@/lib/versionedSave';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 
-import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -628,47 +628,22 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </DialogContent>
         </Dialog>
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
-        <DraftFormattingToolbar
-          onOpenGuidelines={() => setGuidelinesOpen(true)}
-          hasFocusedField={!!activeEditor}
-          capabilities={getEditorCapabilities(activeEditor)}
-          save={{
-            saving: updateMutation.isPending,
-            lastSaved,
-            saveError,
-            onSaveNow: () => {},
-          }}
-          isReadOnly={readOnly}
-          undo={{
-            canUndo: !readOnly,
-            canRedo: !readOnly,
-            onUndo: handleUndo,
-            onRedo: handleRedo,
-          }}
-          onCommand={execCommand}
-          table={{
-            open: tablePopoverOpen,
-            onOpenChange: setTablePopoverOpen,
-            hoveredCell,
-            onHoverCell: setHoveredCell,
-            onInsert: insertTable,
-          }}
-          paragraphSpacingContainer={() =>
-            (getEditor()?.view.dom as HTMLElement | undefined) ?? null
-          }
-          fontColor={{
+        <EditorToolbars
+          proposalId={proposalId}
+          save={{ saving: updateMutation.isPending, lastSaved, onSaveNow: () => {} }}
+          fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
+          formatting={{
             proposalId,
-            canManageCustom: isCoordinator,
-            getEditableElement: () =>
-              (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
-            getEditor: () => getEditor() ?? null,
-          }}
-
-          onSaveSelection={saveSelection}
-          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
-          onOpenCitationDialog={() => setIsCitationOpen(true)}
-          crossRefMenuItems={
-            <>
+            canManageCustomColors: isCoordinator,
+            isReadOnly: readOnly,
+            onOpenFigureDialog: () => setIsFigureDialogOpen(true),
+            onOpenCitationDialog: () => setIsCitationOpen(true),
+            crossRefDropdown: (
+              <CrossRefMenu
+                disabled={readOnly}
+                onSaveSelection={saveSelection}
+                items={
+                  <>
               <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
                 <span>Figure number</span>
@@ -727,10 +702,13 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                 </span>
                 <span>Participant</span>
               </DropdownMenuItem>
-            </>
-          }
-          trailing={
-            <InsertTDMSReferenceDropdowns
+                  </>
+                }
+              />
+            ),
+          }}
+        />
+        <InsertTDMSReferenceDropdowns
               proposalId={proposalId}
               disabled={readOnly}
               onInsertTask={insertTaskRefAtCursor}
@@ -743,8 +721,6 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
               onOpenDeliverableChange={setIsDeliverableRefOpen}
               openMilestone={isMilestoneRefOpen}
               onOpenMilestoneChange={setIsMilestoneRefOpen}
-            />
-          }
         />
 
 

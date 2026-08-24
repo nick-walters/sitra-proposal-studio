@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
-import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
@@ -707,41 +707,22 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             height gives it no room to travel, so the sticky classes must live
             on this wrapper (as on pilot drafts, which have no wrapper at all). */}
         <div data-wp-draft-toolbar="1" className="relative z-40">
-        <DraftFormattingToolbar
-          onOpenGuidelines={() => setGuidelinesDialogOpen(true)}
-          hasFocusedField={!!activeEditor}
-          capabilities={getEditorCapabilities(activeEditor)}
-          save={{ saving, lastSaved, saveError, onSaveNow: () => {} }}
-          isReadOnly={readOnly}
-          undo={{
-            canUndo,
-            canRedo,
-            onUndo: handleUndo,
-            onRedo: handleRedo,
-            undoLabel,
-            redoLabel,
-          }}
-          onCommand={execCommand}
-          table={{
-            open: tablePopoverOpen,
-            onOpenChange: setTablePopoverOpen,
-            hoveredCell,
-            onHoverCell: setHoveredCell,
-            onInsert: insertTable,
-          }}
-          paragraphSpacingContainer={() =>
-            (getEditor()?.view.dom as HTMLElement | undefined) ?? null
-          }
-          fontColor={{
+        <EditorToolbars
+          proposalId={proposalId}
+          save={{ saving, lastSaved, onSaveNow: () => {} }}
+          fieldBar={{ onOpenGuidelines: () => setGuidelinesDialogOpen(true) }}
+          formatting={{
             proposalId,
-            canManageCustom: isCoordinator,
-            getEditableElement: () => (getEditor()?.view.dom as HTMLElement | undefined) ?? null,
-            getEditor: () => getEditor() ?? null,
-          }}
-          onSaveSelection={saveSelection}
-          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
-          onOpenCitationDialog={() => setIsCitationOpen(true)}
-          crossRefMenuItems={
+            canManageCustomColors: isCoordinator,
+            isReadOnly: readOnly,
+            onOpenFigureDialog: () => setIsFigureDialogOpen(true),
+            onOpenCitationDialog: () => setIsCitationOpen(true),
+            crossRefDropdown: (
+              <CrossRefMenu
+                disabled={readOnly}
+                onSaveSelection={saveSelection}
+                items={
+                  <>
             <>
               <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
                 <span className="w-16 flex justify-start shrink-0"><ImageLucide className="w-3.5 h-3.5 text-foreground" /></span>
@@ -802,8 +783,12 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 <span>Participant</span>
               </DropdownMenuItem>
             </>
-          }
-          trailing={
+                  </>
+                }
+              />
+            ),
+          }}
+        />
             <InsertTDMSReferenceDropdowns
               proposalId={proposalId}
               disabled={readOnly}
@@ -818,8 +803,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
               openMilestone={isMilestoneRefOpen}
               onOpenMilestoneChange={setIsMilestoneRefOpen}
             />
-          }
-        />
         </div>
 
 

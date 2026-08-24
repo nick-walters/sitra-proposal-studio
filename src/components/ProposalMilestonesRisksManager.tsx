@@ -45,7 +45,7 @@ import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
-import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
+import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
@@ -642,28 +642,19 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       {/* Shared focus-dependent toolbars, as on every other editing surface. */}
       {canEdit && (
         <div className="relative z-40">
-          <DraftFormattingToolbar
-            hasFocusedField={!!activeEditor}
-            capabilities={getEditorCapabilities(activeEditor)}
-            save={{
-              saving: activeSaves > 0,
-              lastSaved,
-              saveError,
-              onSaveNow: saveNow,
+          <EditorToolbars
+            proposalId={proposalId}
+            save={{ saving: activeSaves > 0, lastSaved, onSaveNow: saveNow }}
+            formatting={{
+              proposalId,
+              crossRefDropdown: (
+                <ParticipantCrossRefDropdown
+                  proposalId={proposalId}
+                  acronymSegments={acronymSegments}
+                  editor={activeEditor}
+                />
+              ),
             }}
-            onCommand={execCommand}
-            trailing={
-              getEditorCapabilities(activeEditor).crossReferences ? (
-                <>
-                  <Separator orientation="vertical" className="h-5 mx-1.5" />
-                  <ParticipantCrossRefDropdown
-                    proposalId={proposalId}
-                    acronymSegments={acronymSegments}
-                    editor={activeEditor}
-                  />
-                </>
-              ) : null
-            }
           />
         </div>
       )}

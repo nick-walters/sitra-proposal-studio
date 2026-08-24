@@ -817,6 +817,11 @@ export function FormattingToolbar({
 
   const isInTable = editor.isActive('table');
   const isB31TableActive = Boolean(b31TableFocus);
+  // Which controls this field offers is decided by the FOCUSED FIELD's own
+  // capabilities — never by the surface it happens to sit on. Surfaces may
+  // still withhold a control they have no dialog for (by omitting its
+  // handler), but they may not add one the field cannot use.
+  const caps = getEditorCapabilities(editor);
   const showTableOptions = isInTable || isB31TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
 
@@ -840,7 +845,7 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Subheading dropdown */}
-        {(() => {
+        {caps.headings && (() => {
           const cleanNum = subheadingPrefix ?? (sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1');
           return (
             <SubheadingDropdown
@@ -919,22 +924,28 @@ export function FormattingToolbar({
         )}
 
         {/* Text colour */}
-        {showColor && <TextColorPicker editor={editor} proposalId={proposalId} canManageCustom={canManageCustomColors} />}
+        {showColor && caps.colour && <TextColorPicker editor={editor} proposalId={proposalId} canManageCustom={canManageCustomColors} />}
 
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
+        {caps.lists && (
+          <>
+            <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-        {/* Bullet Numbered */}
-        <ToolbarButton 
-          icon={<List className="w-4 h-4" />} 
-          label="Bullet list"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive('bulletList')}
-        />
-        <OrderedListDropdown
-          editor={editor}
-          active={editor.isActive('orderedList')}
-        />
+            {/* Bullet Numbered */}
+            <ToolbarButton
+              icon={<List className="w-4 h-4" />}
+              label="Bullet list"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              isActive={editor.isActive('bulletList')}
+            />
+            <OrderedListDropdown
+              editor={editor}
+              active={editor.isActive('orderedList')}
+            />
+          </>
+        )}
 
+        {caps.alignment && (
+          <>
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Left Centre Right Justify */}
@@ -955,14 +966,19 @@ export function FormattingToolbar({
             if (s) s.enabled = was;
           }}
         />
+          </>
+        )}
 
+        {showParagraphSpacing && caps.paragraphSpacing && (
+          <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
+        )}
 
-        {showParagraphSpacing && <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />}
-
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
+        {(caps.tables || caps.figures || caps.citations || caps.crossReferences) && (
+          <Separator orientation="vertical" className="h-5 mx-1.5" />
+        )}
 
         {/* Table */}
-        {!showTableOptions && !hideTableInsert && tableInsertMode === 'fixed3x3' && (
+        {caps.tables && !showTableOptions && !hideTableInsert && tableInsertMode === 'fixed3x3' && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -978,14 +994,14 @@ export function FormattingToolbar({
             <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
           </Tooltip>
         )}
-        {!showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
+        {caps.tables && !showTableOptions && !hideTableInsert && tableInsertMode === 'popover' && (
           <TableGridPicker
             open={tablePopoverOpen}
             onOpenChange={setTablePopoverOpen}
             onInsert={insertTable}
           />
         )}
-        {showTableOptions && showTableEditing && (
+        {caps.tables && showTableOptions && showTableEditing && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1094,7 +1110,7 @@ export function FormattingToolbar({
         )}
 
         {/* Figure */}
-        {figureInsertMode === 'dialog' && isPartB && onOpenFigureDialog && (
+        {figureInsertMode === 'dialog' && caps.figures && onOpenFigureDialog && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1113,7 +1129,7 @@ export function FormattingToolbar({
             </TooltipContent>
           </Tooltip>
         )}
-        {figureInsertMode === 'urlPrompt' && (
+        {figureInsertMode === 'urlPrompt' && caps.figures && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1138,7 +1154,7 @@ export function FormattingToolbar({
 
         {/* Citations — hidden where the focused field's own schema forbids
             them (title-only fields declare `citations: false`). */}
-        {onOpenCitationDialog && getEditorCapabilities(editor).citations && (
+        {onOpenCitationDialog && caps.citations && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -1159,7 +1175,7 @@ export function FormattingToolbar({
         )}
 
         {/* Cross-ref dropdown */}
-        {crossRefDropdown}
+        {caps.crossReferences && crossRefDropdown}
 
         {/* Image controls - show when image is selected */}
         {showImageControls && isImageSelected && (

@@ -55,7 +55,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { EditorChrome, EditorTopBar, EditorFieldBar } from "@/components/EditorChrome";
+import { EditorToolbars } from "@/components/editor/EditorToolbars";
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
 import { CitationDialog } from '@/components/CitationDialog';
@@ -124,18 +124,20 @@ interface BoardProps {
 }
 
 /* ------------------------------------------------------------------ */
-/* Page-wide formatting bar, bound to the last-focused editor          */
+/* Citation dialog for the board, bound to the last-focused editor      */
 /* ------------------------------------------------------------------ */
 
-function CardsToolbar({
+function CardsCitationDialogHost({
   proposalId,
-  canEdit,
-  isCoordinator,
   proposalAcronym,
   acronymSegments: acronymSegmentsProp,
-}: Omit<BoardProps, 'sectionId'>) {
+  citationOpen,
+  setCitationOpen,
+}: Omit<BoardProps, 'sectionId'> & {
+  citationOpen: boolean;
+  setCitationOpen: (open: boolean) => void;
+}) {
   const { activeEditor } = useMethodologyEditorFocus();
-  const [citationOpen, setCitationOpen] = useState(false);
   const {
     references: proposalReferences,
     isLoading: referencesLoading,
@@ -191,32 +193,7 @@ function CardsToolbar({
   if (!activeEditor) return null;
 
   return (
-    <div
-      onMouseDown={(e) => {
-        const target = e.target as HTMLElement | null;
-        if (target?.closest('input, textarea, [contenteditable="true"]')) return;
-        e.preventDefault();
-      }}
-    >
-      <FormattingToolbar
-        editor={activeEditor}
-        proposalId={proposalId}
-        canManageCustomColors={isCoordinator}
-        isPartB
-        isReadOnly={!canEdit}
-        onOpenCitationDialog={canEdit ? () => setCitationOpen(true) : undefined}
-        crossRefDropdown={
-          <>
-            <PartBCrossRefControls
-              editor={activeEditor}
-              proposalId={proposalId}
-              disabled={!canEdit}
-              showKeyboardButton={false}
-              acronymSegments={acronymSegments}
-            />
-          </>
-        }
-      />
+    <>
       <CitationDialog
         isOpen={citationOpen}
         onClose={() => setCitationOpen(false)}
@@ -227,7 +204,7 @@ function CardsToolbar({
         onUpdateReference={updateReference}
         citationDisplayOrder={refData?.citationNumbers}
       />
-    </div>
+    </>
   );
 }
 
@@ -1345,7 +1322,7 @@ function BoardInner({
   const [typstOpen, setTypstOpen] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [moduleBinCardId, setModuleBinCardId] = useState<string | null>(null);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [citationOpen, setCitationOpen] = useState(false);
   const [focusedBox, setFocusedBox] = useState<{ fieldId: string; textBox: CardTextBox } | null>(
     null,
   );
@@ -1736,18 +1713,13 @@ function BoardInner({
           </p>
         </div>
 
-        <EditorChrome
+        <EditorToolbars
           proposalId={proposalId}
-          topBar={
-            <EditorTopBar
-              saving={saving}
-              lastSaved={lastSaved}
-              savedMode={savedMode}
-              isDirty={isDirty}
-              onSaveNow={handleSaveNow}
-              onPreview={isAdminOrOwner ? () => setTypstOpen(true) : undefined}
-              previewLabel="Part B1.2"
-              collapseAll={{
+          save={{ saving, lastSaved, savedMode, isDirty, onSaveNow: handleSaveNow }}
+          topBar={{
+              onPreview: isAdminOrOwner ? () => setTypstOpen(true) : undefined,
+              previewLabel: 'Part B1.2',
+              collapseAll: {
                 allCollapsed: allBlocksCollapsed,
                 disabled: setAllCollapsed.isPending || visibleCardIds.length === 0,
                 onToggle: () =>
@@ -1755,31 +1727,30 @@ function BoardInner({
                     ids: visibleCardIds,
                     collapsed: !allBlocksCollapsed,
                   }),
-              }}
-              onAddBlock={canEdit ? () => setAddBlockOpen(true) : undefined}
-              addBlockDisabled={createCard.isPending || createFigureCard.isPending}
-              onRestoreBlock={
-                canEdit && deletedBlockCount > 0 ? () => setBinOpen(true) : undefined
-              }
-              restoreBlockCount={deletedBlockCount}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
-            />
-          }
-          fieldBar={
-            <EditorFieldBar
-              hasFocusedField={!!focusedBox}
-              onOpenVersionHistory={() => setHistoryOpen(true)}
-            />
-          }
-          formattingBar={
-            <CardsToolbar
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              proposalAcronym={proposalAcronym}
-              acronymSegments={acronymSegments}
-            />
-          }
+              },
+              onAddBlock: canEdit ? () => setAddBlockOpen(true) : undefined,
+              addBlockDisabled: createCard.isPending || createFigureCard.isPending,
+              onRestoreBlock:
+                canEdit && deletedBlockCount > 0 ? () => setBinOpen(true) : undefined,
+              restoreBlockCount: deletedBlockCount,
+          }}
+          fieldBar={{ onOpenVersionHistory: () => setHistoryOpen(true) }}
+          formatting={{
+            proposalId,
+            canManageCustomColors: isCoordinator,
+            isPartB: true,
+            isReadOnly: !canEdit,
+            onOpenCitationDialog: canEdit ? () => setCitationOpen(true) : undefined,
+            crossRefDropdown: (editor) => (
+              <PartBCrossRefControls
+                editor={editor}
+                proposalId={proposalId}
+                disabled={!canEdit}
+                showKeyboardButton={false}
+                acronymSegments={acronymSegments}
+              />
+            ),
+          }}
         >
           <div className="space-y-3 pt-2">
             {headCards.filter(visibleCard).map((c) => (
@@ -1809,7 +1780,17 @@ function BoardInner({
               <CardBlock key={c.id} {...cardProps(c, false)} />
             ))}
           </div>
-        </EditorChrome>
+        </EditorToolbars>
+
+        <CardsCitationDialogHost
+          proposalId={proposalId}
+          canEdit={canEdit}
+          isCoordinator={isCoordinator}
+          proposalAcronym={proposalAcronym}
+          acronymSegments={acronymSegments}
+          citationOpen={citationOpen}
+          setCitationOpen={setCitationOpen}
+        />
 
         <AddBlockDialog
           open={addBlockOpen}
@@ -1817,8 +1798,6 @@ function BoardInner({
           onCreate={handleCreateBlock}
           isPending={createCard.isPending || createFigureCard.isPending}
         />
-
-        <KeyboardShortcutsDialog isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
         {warning && <LockTimeoutWarning secondsLeft={warning.secondsLeft} />}
 

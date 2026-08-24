@@ -17,7 +17,13 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { isBoundingBoxAttrs } from "./ResizableImage";
-import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
+import { EditorToolbars } from "@/components/editor/EditorToolbars";
+import { FeatureButton } from "@/components/EditorChrome";
+import { Columns2, Scissors, Target } from "lucide-react";
+import {
+  MethodologyEditorFocusProvider,
+  useRegisterEditorFocus,
+} from "@/components/MethodologyEditorFocusContext";
 import { ProposalBanner } from "./ProposalBanner";
 import { B11ParticipantsTable } from "./B11ParticipantsTable";
 import { AiStatementMirror } from "./AiStatementMirror";
@@ -113,7 +119,15 @@ interface DocumentEditorProps {
   openPanel?: 'comments' | 'changes' | null;
 }
 
-export function DocumentEditor({ 
+export function DocumentEditor(props: DocumentEditorProps) {
+  return (
+    <MethodologyEditorFocusProvider>
+      <DocumentEditorInner {...props} />
+    </MethodologyEditorFocusProvider>
+  );
+}
+
+function DocumentEditorInner({ 
   section, 
   proposalId, 
   proposalAcronym, 
@@ -400,6 +414,8 @@ export function DocumentEditor({
 
 
   // Use the editor hook for external toolbar control with citation tooltips
+  // Join the shared three-tier toolbars: the same focus bookkeeping every
+  // other surface uses, so this editor drives the field and formatting tiers.
   const editor = useRichTextEditor({
     content,
     isReady: !loading,
@@ -428,6 +444,7 @@ export function DocumentEditor({
     },
     canEditCaptions: canEditCaptionsInEditor,
   });
+  useRegisterEditorFocus(editor);
 
   // Stage 2 — auto-insert/remove one casesTable per case type with >=1 case (B1.2 only).
   useB12CasesTableReconciler({
@@ -1222,34 +1239,88 @@ export function DocumentEditor({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-      {/* Fixed toolbar container */}
-      <div className="sticky top-0 z-10 bg-background">
-        {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
-        <div className="px-2 py-1 border-b border-border bg-card">
-          <div className="flex items-center justify-between gap-2">
-            <AdvancedToolbar
-              onOpenGuidelines={() => setIsGuidelinesOpen(true)}
-              saveIndicator={!isEffectivelyReadOnly ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} /> : undefined}
-              onOpenSearch={() => setIsSearchOpen(true)}
-              isSplitViewOpen={isSplitViewOpen}
-              onToggleSplitView={() => setIsSplitViewOpen(prev => !prev)}
-              onOpenComparison={() => setIsComparisonOpen(true)}
-              onOpenWritingAssistant={() => setIsWritingAssistantOpen(true)}
-              isWritingAssistantDisabled={!editor || isEffectivelyReadOnly}
-              onOpenSnippets={() => setIsSnippetsOpen(true)}
-              showSnippets={canUseSnippets}
-              isSnippetsDisabled={isEffectivelyReadOnly}
-              onOpenVersionHistory={() => setIsVersionHistoryOpen(true)}
-              isCollaborationPanelOpen={isCollaborationPanelOpen}
-              onToggleCollaborationPanel={() => setIsCollaborationPanelOpen(prev => !prev)}
-              onOpenImpactPathway={() => setIsImpactPathwayOpen(true)}
-              showImpactPathway={isImpactSection}
-              isImpactPathwayDisabled={isEffectivelyReadOnly}
+      <EditorToolbars
+        proposalId={proposalId}
+        save={{
+          saving,
+          lastSaved,
+          isDirty: hasUnsavedChanges,
+          onSaveNow: saveNow,
+        }}
+        topBar={{
+          onFindReplace: () => setIsSearchOpen(true),
+          onOpenComments: () => setIsCollaborationPanelOpen((prev) => !prev),
+          trailing: (
+            <>
+              <FeatureButton
+                icon={<Columns2 className="h-3.5 w-3.5" />}
+                primary={isSplitViewOpen ? 'Close split' : 'Split'}
+                secondary="view"
+                tooltip="Split view"
+                onClick={() => setIsSplitViewOpen((prev) => !prev)}
+              />
+              <FeatureButton
+                icon={<GitCompare className="h-3.5 w-3.5" />}
+                primary="Compare"
+                secondary="versions"
+                tooltip="Compare versions"
+                onClick={() => setIsComparisonOpen(true)}
+              />
+              {canUseSnippets && (
+                <FeatureButton
+                  icon={<Scissors className="h-3.5 w-3.5" />}
+                  primary="Snippets"
+                  tooltip="Snippet library"
+                  disabled={isEffectivelyReadOnly}
+                  onClick={() => setIsSnippetsOpen(true)}
+                />
+              )}
+              {isImpactSection && (
+                <FeatureButton
+                  icon={<Target className="h-3.5 w-3.5" />}
+                  primary="Impact"
+                  secondary="pathway"
+                  tooltip="Impact pathway canvas"
+                  disabled={isEffectivelyReadOnly}
+                  onClick={() => setIsImpactPathwayOpen(true)}
+                />
+              )}
+            </>
+          ),
+        }}
+        fieldBar={{
+          onOpenGuidelines: () => setIsGuidelinesOpen(true),
+          onOpenVersionHistory: () => setIsVersionHistoryOpen(true),
+          onOpenAiTools:
+            !editor || isEffectivelyReadOnly ? undefined : () => setIsWritingAssistantOpen(true),
+        }}
+        formatting={{
+          proposalId,
+          canManageCustomColors: roleTier === 'coordinator',
+          sectionNumber: section?.number,
+          onOpenFigureDialog: () => setIsFigureDialogOpen(true),
+          onOpenFormulaDialog: () => setIsFormulaOpen(true),
+          onOpenCitationDialog: () => setIsCitationOpen(true),
+          isPartB: Boolean(section && !section.isPartA),
+          isReadOnly: isEffectivelyReadOnly,
+          hideTableInsert: isB31Section,
+          b31TableFocus,
+          onB31AutoResize: b31TableFocus ? handleB31AutoResize : undefined,
+          crossRefDropdown: section && !section.isPartA ? (
+            <PartBCrossRefControls
+              ref={crossRefControlsRef}
+              editor={editor}
+              proposalId={proposalId || ''}
+              sectionNumber={section?.number || ''}
+              disabled={isEffectivelyReadOnly}
+              acronymSegments={acronymSegments}
+              onOpenShortcuts={() => setIsShortcutsOpen(true)}
             />
-            
-          </div>
-        </div>
+          ) : undefined,
+        }}
+      />
 
+      <div className="bg-background">
         {/* Assignment info banner - show when section is assigned */}
 
         {/* Assignment info banner - show when section is assigned */}
@@ -1331,37 +1402,6 @@ export function DocumentEditor({
           </Alert>
         )}
 
-        {/* Formatting Toolbar - immediately below Features toolbar */}
-        <FormattingToolbar 
-          proposalId={proposalId}
-          canManageCustomColors={roleTier === 'coordinator'}
-          editor={editor} 
-          sectionNumber={section?.number}
-          content={content}
-          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
-          onOpenFormulaDialog={() => setIsFormulaOpen(true)}
-          onOpenCitationDialog={() => setIsCitationOpen(true)}
-          onOpenCrossRefDialog={() => crossRefControlsRef.current?.openCrossRefDialog()}
-          onOpenWPRefDialog={() => crossRefControlsRef.current?.openWPRefDialog()}
-          onOpenParticipantRefDialog={() => crossRefControlsRef.current?.openParticipantRefDialog()}
-          isPartB={section && !section.isPartA}
-          isReadOnly={isEffectivelyReadOnly}
-          hideTableInsert={isB31Section}
-          tableOffset={0}
-          b31TableFocus={b31TableFocus}
-          onB31AutoResize={b31TableFocus ? handleB31AutoResize : undefined}
-          crossRefDropdown={section && !section.isPartA ? (
-            <PartBCrossRefControls
-              ref={crossRefControlsRef}
-              editor={editor}
-              proposalId={proposalId || ''}
-              sectionNumber={section?.number || ''}
-              disabled={isEffectivelyReadOnly}
-              acronymSegments={acronymSegments}
-              onOpenShortcuts={() => setIsShortcutsOpen(true)}
-            />
-          ) : undefined}
-        />
       </div>
 
       {isB31Section && b31BannerDismissed === false && (
