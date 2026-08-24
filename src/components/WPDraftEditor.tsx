@@ -4,6 +4,15 @@ import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
+import { saveVersionedRow } from '@/lib/versionedSave';
+import { jumpToElementId } from '@/lib/jumpToElement';
+import {
+  PageSearchProvider,
+  usePageSearch,
+  usePageSearchSource,
+} from '@/lib/findReplace/PageSearchProvider';
+import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types';
+import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
 import {
@@ -151,7 +160,9 @@ function parseGuidelineContent(content: string): React.ReactNode {
 export function WPDraftEditor(props: WPDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
-      <WPDraftEditorInner {...props} />
+      <PageSearchProvider>
+        <WPDraftEditorInner {...props} />
+      </PageSearchProvider>
     </MethodologyEditorFocusProvider>
   );
 }
@@ -785,6 +796,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving, lastSaved, onSaveNow: () => {} }}
+          topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
           fieldBar={{ onOpenGuidelines: () => setGuidelinesDialogOpen(true) }}
           formatting={{
             proposalId,
