@@ -18,32 +18,14 @@ import {
 } from './htmlToTypst';
 import { TYPST_PREAMBLE } from './typstPreamble';
 
-import { extractHexTextColorsFromHtml } from '@/lib/extractHexTextColors';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 /**
- * Block titles and module headers are stored as single-line HTML since they
- * became rich-text fields. Typst renders them as bold text, so the markup is
- * flattened here (inline bold/italic inside a title is not carried through).
+ * Plain text of a title, used only for placeholder MESSAGES (never for the
+ * rendered heading, which keeps its per-run marks — see `htmlToTypstInline`).
  */
 function titleText(value: string | null | undefined): string {
   return htmlToPlainText(value ?? '').trim();
-}
-
-/**
- * Font colour is the one mark a title field keeps — the output fixes
- * everything else (block titles bold + underlined, module headers bold +
- * italic). Take the first colour used in the field, if any.
- */
-function titleColour(value: string | null | undefined): string | null {
-  const colours = extractHexTextColorsFromHtml(value ?? '');
-  const first = [...colours][0];
-  return first ? first.toLowerCase() : null;
-}
-
-function titleFill(value: string | null | undefined): string {
-  const c = titleColour(value);
-  return c ? `fill: rgb("${c}"), ` : '';
 }
 
 
