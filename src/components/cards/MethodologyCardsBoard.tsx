@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, FileType2, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
+import { GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -486,12 +486,12 @@ function FieldRow({
         ) : (
           <>
             {field.headingEnabled ? (
-              <div className="ml-[15px] flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 {headerLock.lockedByOther ? (
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-3 py-1 text-sm font-bold ring-1 ring-destructive/40"
+                    className="h-8 flex-1 select-text truncate rounded-md border border-destructive bg-background px-4 py-1 text-sm font-bold ring-1 ring-destructive/40"
                     aria-readonly="true"
                   >
                     {headingView}
@@ -520,7 +520,7 @@ function FieldRow({
                       }
                       headerLock.onBlur();
                     }}
-                    className={`h-8 flex-1 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
+                    className={`h-8 flex-1 px-4 font-bold ${lockBorderClass(headerLock.isMine, false)}`}
                   />
                 )}
                 {headerLock.lockedByOther && headerLock.holder && (
@@ -583,7 +583,7 @@ function FieldRow({
       </div>
 
       {!isPlaceholder && (
-        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-6' : ''}`}>
+        <div className={collapsed ? 'hidden' : `flex items-start gap-2 ${canEdit ? 'ml-[26px]' : ''}`}>
           <div
             className={`min-w-0 flex-1 rounded-md ${
               contentLock.lockedByOther
@@ -808,6 +808,10 @@ function CardBlock({
   // Authored, but backed by its own relational table rather than card fields:
   // the block renders the same editor as the old methodologies page.
   const isLinkedActivitiesCard = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
+  // Only authored text cards grow new modules; source-fed, figure and
+  // linked-activities blocks have a fixed structure.
+  const canAddModule =
+    canEdit && !isPlaceholderCard && !isLinkedActivitiesCard && card.kind !== 'figure';
 
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -824,11 +828,13 @@ function CardBlock({
   return (
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
-        <CardHeader className="flex flex-row items-center gap-1.5 space-y-0 py-3">
+        <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 py-3">
+          {/* Grip sits in the header padding, out of flow, so the block title
+              starts at the same left edge as the module boxes below it. */}
           {draggable && canEdit && (
             <button
               type="button"
-              className="shrink-0 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
+              className="absolute left-1 top-1/2 shrink-0 -translate-y-1/2 cursor-grab touch-none rounded p-0.5 active:cursor-grabbing hover:bg-muted"
               aria-label="Reorder block"
               {...sortable.attributes}
               {...sortable.listeners}
@@ -893,13 +899,31 @@ function CardBlock({
 
 
             {canEdit && card.isHideable && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={card.isVisible ? 'Hide block' : 'Show block'}
+              // Two-state toggle (mock-evaluation model switch style):
+              // green knob on the left = visible, red knob on the right = hidden.
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!card.isVisible}
+                aria-label={card.isVisible ? 'Block visible — click to hide' : 'Block hidden — click to show'}
+                title={card.isVisible ? 'Visible' : 'Hidden'}
                 onClick={() => onToggleVisible(card)}
+                className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
               >
-                {card.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                <span
+                  className="absolute left-0 top-1/2 h-3.5 w-3.5 rounded-full shadow transition-transform"
+                  style={{
+                    backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
+                    transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
+                  }}
+                />
+              </button>
+            )}
+
+            {canAddModule && (
+              <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add module
               </Button>
             )}
 
@@ -907,11 +931,11 @@ function CardBlock({
               <Button
                 variant="outline"
                 size="sm"
-                aria-label={`Restore a module (${binCount})`}
+                aria-label={`Restore module (${binCount})`}
                 onClick={() => onOpenBin(card)}
               >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore a module ({binCount})
+                Restore module ({binCount})
               </Button>
             )}
 
@@ -1009,12 +1033,6 @@ function CardBlock({
                 </SortableContext>
               </DndContext>
 
-              {canEdit && (
-                <Button variant="outline" size="sm" onClick={() => onAddField(card)}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add module
-                </Button>
-              )}
             </>
           )}
         </CardContent>
@@ -1487,22 +1505,13 @@ function BoardInner({
               <Button
                 variant="outline"
                 size="sm"
-                aria-label={`Restore a block (${deletedBlockCount})`}
+                aria-label={`Restore block (${deletedBlockCount})`}
                 onClick={() => setBinOpen(true)}
               >
                 <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore a block ({deletedBlockCount})
+                Restore block ({deletedBlockCount})
               </Button>
             )}
-            {isAdminOrOwner && (
-              <Button variant="outline" size="sm" onClick={() => setTypstOpen(true)}>
-                <FileType2 className="mr-1 h-3.5 w-3.5" />
-                Typst preview (beta)
-              </Button>
-            )}
-
-
-
           </div>
         </div>
 
@@ -1518,6 +1527,7 @@ function BoardInner({
               onSaveNow={handleSaveNow}
               onOpenShortcuts={() => setShortcutsOpen(true)}
               onOpenVersionHistory={() => setHistoryOpen(true)}
+              onPreview={isAdminOrOwner ? () => setTypstOpen(true) : undefined}
             />
           }
           formattingBar={

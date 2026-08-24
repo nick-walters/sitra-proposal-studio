@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { GripVertical, Plus } from 'lucide-react';
+import { GripVertical, Plus, Recycle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ interface LinkedActivitiesTableProps {
   isCoordinator: boolean;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(7rem,1.3fr)_minmax(11rem,1.3fr)_minmax(7rem,0.7fr)_minmax(11rem,1.4fr)_1.5rem]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(7rem,0.7fr)_minmax(11rem,1.4fr)_1.5rem]';
 
 const NONE = '__none__';
 
@@ -288,9 +288,10 @@ export default function LinkedActivitiesTable({
   canEdit,
   isCoordinator,
 }: LinkedActivitiesTableProps) {
-  const { activities, addActivity, deleteActivity, updateField, reorder } =
+  const { activities, deletedActivities, addActivity, deleteActivity, restoreActivity, updateField, reorder } =
     useLinkedActivities(proposalId);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [binOpen, setBinOpen] = useState(false);
 
   const { data: participants = [] } = useQuery({
     queryKey: ['participants-for-case', proposalId],
@@ -370,16 +371,69 @@ export default function LinkedActivitiesTable({
       </DndContext>
 
       {canEdit && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1"
-          onClick={() => addActivity().catch(() => toast.error('Could not add the activity'))}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add linked research &amp; innovation activity
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => addActivity().catch(() => toast.error('Could not add the activity'))}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add activity
+          </Button>
+          {deletedActivities.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={`Restore activity (${deletedActivities.length})`}
+              onClick={() => setBinOpen(true)}
+            >
+              <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+              Restore activity ({deletedActivities.length})
+            </Button>
+          )}
+        </div>
       )}
+
+      <Dialog open={binOpen} onOpenChange={setBinOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Restore activity</DialogTitle>
+            <DialogDescription>
+              Deleted linked activities are kept here. Restoring brings the row back with all of
+              its content.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[320px]">
+            <div className="space-y-1 p-1">
+              {deletedActivities.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm">
+                    {a.acronym || <span className="italic text-muted-foreground">No acronym</span>}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      restoreActivity(a.id)
+                        .then(() => {
+                          if (deletedActivities.length === 1) setBinOpen(false);
+                        })
+                        .catch(() => toast.error('Could not restore the activity'))
+                    }
+                  >
+                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                    Restore
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -111,6 +111,8 @@ export interface EditorFeatureBarProps {
   pendingChangeCount?: number;
   commentCount?: number;
   previewLabel?: string;
+  /** Handler for the Preview button; without one the button stays inert. */
+  onPreview?: () => void;
   onOpenShortcuts?: () => void;
   /** Opens version history for the text box that currently has the cursor. */
   onOpenVersionHistory?: () => void;
@@ -128,6 +130,7 @@ export function EditorFeatureBar({
   pendingChangeCount,
   commentCount,
   previewLabel = 'Part B1.2',
+  onPreview,
   onOpenShortcuts,
   onOpenVersionHistory,
 }: EditorFeatureBarProps) {
@@ -219,6 +222,7 @@ export function EditorFeatureBar({
         primary="Preview"
         secondary={previewLabel}
         secondarySmall
+        onClick={onPreview}
       />
     </div>
   );

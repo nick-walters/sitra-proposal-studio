@@ -2848,6 +2848,7 @@ export type Database = {
         Row: {
           acronym: string
           created_at: string
+          deleted_at: string | null
           duration_end: number | null
           duration_start: number | null
           id: string
@@ -2862,6 +2863,7 @@ export type Database = {
         Insert: {
           acronym?: string
           created_at?: string
+          deleted_at?: string | null
           duration_end?: number | null
           duration_start?: number | null
           id?: string
@@ -2876,6 +2878,7 @@ export type Database = {
         Update: {
           acronym?: string
           created_at?: string
+          deleted_at?: string | null
           duration_end?: number | null
           duration_start?: number | null
           id?: string

@@ -7,7 +7,7 @@
  * Nothing outside this file may hard-code the instrument list.
  */
 
-export type FundingInstrumentCode = 'HE' | 'DEU' | 'RCF' | 'NCM' | 'EU4H' | 'OTHER';
+export type FundingInstrumentCode = 'HE' | 'DEU' | 'RCF' | 'NCM' | 'EU4H' | 'CERV' | 'OTHER';
 
 export interface FundingInstrumentDef {
   code: FundingInstrumentCode;
@@ -21,6 +21,7 @@ export const FUNDING_INSTRUMENTS: ReadonlyArray<FundingInstrumentDef> = [
   { code: 'RCF', abbreviation: 'RCF', fullName: 'Research Council of Finland' },
   { code: 'NCM', abbreviation: 'NCM', fullName: 'Nordic Council of Ministers' },
   { code: 'EU4H', abbreviation: 'EU4H', fullName: 'EU4Health' },
+  { code: 'CERV', abbreviation: 'CERV', fullName: 'Citizens, Equality, Rights & Values' },
   { code: 'OTHER', abbreviation: '', fullName: '' },
 ];
 

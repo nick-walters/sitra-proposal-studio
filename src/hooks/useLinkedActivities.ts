@@ -14,6 +14,7 @@ export interface LinkedActivity {
   linkDescriptionHtml: string | null;
   responsibleParticipantId: string | null;
   orderIndex: number;
+  deletedAt: string | null;
 }
 
 export interface LinkedActivityPatch {
@@ -37,6 +38,7 @@ type Row = {
   link_description_html: string | null;
   responsible_participant_id: string | null;
   order_index: number;
+  deleted_at: string | null;
 };
 
 const TABLE = 'methodology_linked_activities';
@@ -70,12 +72,17 @@ function mapRow(r: Row): LinkedActivity {
     linkDescriptionHtml: r.link_description_html,
     responsibleParticipantId: r.responsible_participant_id,
     orderIndex: r.order_index,
+    deletedAt: r.deleted_at,
   };
 }
+
+const COLUMNS =
+  'id, proposal_id, acronym, instrument_code, instrument_custom, duration_start, duration_end, link_description_html, responsible_participant_id, order_index, deleted_at';
 
 export function useLinkedActivities(proposalId: string) {
   const queryClient = useQueryClient();
   const queryKey = ['methodology-linked-activities', proposalId];
+  const binKey = ['methodology-linked-activities-bin', proposalId];
 
   const { data: activities = [], isLoading } = useQuery({
     queryKey,
@@ -83,10 +90,9 @@ export function useLinkedActivities(proposalId: string) {
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from(TABLE)
-        .select(
-          'id, proposal_id, acronym, instrument_code, instrument_custom, duration_start, duration_end, link_description_html, responsible_participant_id, order_index',
-        )
+        .select(COLUMNS)
         .eq('proposal_id', proposalId)
+        .is('deleted_at', null)
         .order('order_index');
       if (error) throw error;
       return ((data as Row[]) || []).map(mapRow);
@@ -94,7 +100,27 @@ export function useLinkedActivities(proposalId: string) {
     enabled: !!proposalId,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey });
+  // Soft-deleted activities, shown in the "Restore activity" recycle bin.
+  const { data: deletedActivities = [] } = useQuery({
+    queryKey: binKey,
+    queryFn: async (): Promise<LinkedActivity[]> => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select(COLUMNS)
+        .eq('proposal_id', proposalId)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+      if (error) throw error;
+      return ((data as Row[]) || []).map(mapRow);
+    },
+    enabled: !!proposalId,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: binKey });
+  };
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -112,9 +138,21 @@ export function useLinkedActivities(proposalId: string) {
     onSuccess: invalidate,
   });
 
+  // Soft delete: the row moves to the recycle bin and can be restored in full.
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE).delete().eq('id', id);
+      const { error } = await supabase
+        .from(TABLE)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from(TABLE).update({ deleted_at: null }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -202,11 +240,13 @@ export function useLinkedActivities(proposalId: string) {
 
   return {
     activities,
+    deletedActivities,
     isLoading,
     saving,
     lastSaved,
     addActivity: () => addMutation.mutateAsync(),
     deleteActivity: (id: string) => deleteMutation.mutateAsync(id),
+    restoreActivity: (id: string) => restoreMutation.mutateAsync(id),
     updateField,
     reorder: (orderedIds: string[]) => reorderMutation.mutateAsync(orderedIds),
   };
