@@ -1737,54 +1737,74 @@ function BoardInner({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Collapse all blocks"
-              disabled={
-                setAllCollapsed.isPending ||
-                (visibleCardIds.length > 0 &&
-                  visibleCardIds.every((id) => collapsedIds.has(id)))
-              }
-              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: true })}
-            >
-              <ChevronsDownUp className="mr-1 h-3.5 w-3.5" />
-              Collapse all
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Expand all blocks"
-              disabled={
-                setAllCollapsed.isPending || visibleCardIds.every((id) => !collapsedIds.has(id))
-              }
-              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: false })}
-            >
-              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
-              Expand all
-            </Button>
+            {/* Single page-level toggle, styled like the block visibility
+                toggle and carrying the SAME chevron as the per-block collapse
+                controls: up = collapsed, down = expanded. */}
+            {(() => {
+              const allCollapsed =
+                visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    {allCollapsed ? 'All collapsed' : 'Expanded'}
+                  </span>
+                  <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={allCollapsed}
+                      disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
+                      onClick={() =>
+                        setAllCollapsed.mutate({
+                          ids: visibleCardIds,
+                          collapsed: !allCollapsed,
+                        })
+                      }
+                      className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors disabled:opacity-50"
+                    >
+                      <span
+                        className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-foreground text-background shadow transition-transform"
+                        style={{
+                          transform: `translateY(-50%) translateX(${allCollapsed ? 19 : 3}px)`,
+                        }}
+                      >
+                        {allCollapsed ? (
+                          <ChevronUp className="h-2.5 w-2.5" strokeWidth={3} />
+                        ) : (
+                          <ChevronDown className="h-2.5 w-2.5" strokeWidth={3} />
+                        )}
+                      </span>
+                    </button>
+                  </Tip>
+                </div>
+              );
+            })()}
             {canEdit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAddBlockOpen(true)}
-                disabled={createCard.isPending || createFigureCard.isPending}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add block
-              </Button>
+              <Tip label="Add block">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddBlockOpen(true)}
+                  disabled={createCard.isPending || createFigureCard.isPending}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add block
+                </Button>
+              </Tip>
             )}
             {canEdit && deletedBlockCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                aria-label={`Restore block (${deletedBlockCount})`}
-                onClick={() => setBinOpen(true)}
-              >
-                <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                Restore block ({deletedBlockCount})
-              </Button>
+              <Tip label={`Restore deleted block (${deletedBlockCount} in the recycle bin)`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBinOpen(true)}
+                >
+                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                  Restore block ({deletedBlockCount})
+                </Button>
+              </Tip>
             )}
+
           </div>
         </div>
 
