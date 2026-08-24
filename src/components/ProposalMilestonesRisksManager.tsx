@@ -991,13 +991,13 @@ function SortableRiskRow({
 
       {/* ── Line 2: mitigation & adaptation measures, aligned with the description above ── */}
       <div className="col-start-2">
-        <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
           disabled={!canEdit}
           minHeight="30px"
           proposalId={proposalId}
           staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+          placeholder="Mitigation &amp; adaptation measures"
           onChange={(html) => onUpdate({ mitigation: html })}
         />
       </div>
