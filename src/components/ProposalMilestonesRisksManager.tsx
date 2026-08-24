@@ -47,6 +47,7 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 import { EditorToolbars } from '@/components/editor/EditorToolbars';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
 import {
   PageSearchProvider,
@@ -305,6 +306,8 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
   // Offers back text refused by the version guard, as the cards board does.
   const { reportConflict, dialog: conflictDialog } = useVersionConflict();
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
+  const guidelineKey = useFocusedGuidelineKey();
 
   // Apply to every mutation to track saving/lastSaved/saveError.
   const saveHooks = useMemo(() => ({
@@ -734,6 +737,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             topBar={{
               onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
             }}
+            fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
             formatting={{
               proposalId,
               crossRefDropdown: (
@@ -749,8 +753,21 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       )}
 
 
+      {/* Guidelines dialog: same guidance as the inline blocks, reachable
+          from the shared Guidelines control. Scoped to the focused field. */}
+      <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {guidelineKey === 'risks' ? 'Guidelines: critical risks' : 'Guidelines: milestones'}
+            </DialogTitle>
+          </DialogHeader>
+          {guidelineKey === 'risks' ? <RisksGuidelinesInline /> : <MilestonesGuidelinesInline />}
+        </DialogContent>
+      </Dialog>
+
       {/* Milestones */}
-      <Card>
+      <Card data-guideline-key="milestones">
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-base">Milestones</CardTitle>
           <MilestonesGuidelinesInline />
@@ -918,7 +935,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       </Card>
 
       {/* Risks */}
-      <Card>
+      <Card data-guideline-key="risks">
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-base">Critical risks</CardTitle>
           <RisksGuidelinesInline />
