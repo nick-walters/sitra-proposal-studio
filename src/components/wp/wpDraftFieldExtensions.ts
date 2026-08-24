@@ -22,6 +22,7 @@ import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark'
 import {
   FieldCapabilities,
   TITLE_FIELD_CAPABILITIES,
+  HEADING_TITLE_FIELD_CAPABILITIES,
   WP_OBJECTIVES_CAPABILITIES,
   A2_DESCRIPTION_CAPABILITIES,
   A3_JUSTIFICATION_CAPABILITIES,
@@ -188,4 +189,18 @@ export const A3_JUSTIFICATION_FIELD_EXTENSIONS: Extensions = [
   Color,
   ...REFERENCE_NODES,
   FieldCapabilities.configure(A3_JUSTIFICATION_CAPABILITIES),
+];
+
+/**
+ * Part B block titles (H3) and module headers (H4).
+ *
+ * Identical schema to WP_TITLE_FIELD_EXTENSIONS, but declares
+ * `inlineEmphasis: false`: the export fixes their styling (bold + underline
+ * for block titles, bold + italic for module headers), so bold, italic and
+ * underline are not offered. Only undo, redo and font colour remain — colour
+ * being the one attribute the output carries through.
+ */
+export const HEADING_TITLE_FIELD_EXTENSIONS: Extensions = [
+  ...WP_TITLE_FIELD_EXTENSIONS.filter((e) => e.name !== 'fieldCapabilities'),
+  FieldCapabilities.configure(HEADING_TITLE_FIELD_CAPABILITIES),
 ];

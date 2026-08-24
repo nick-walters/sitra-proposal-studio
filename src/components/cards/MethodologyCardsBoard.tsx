@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LazyRichField } from '@/components/participant/LazyRichField';
-import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { HEADING_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import {
@@ -525,7 +525,7 @@ function FieldRow({
                   // Read-only surface: a plain element, so no caret can be
                   // placed, while the text stays selectable for copying.
                   <div
-                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline"
+                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline"
                     aria-readonly="true"
                     dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
                   />
@@ -538,8 +538,8 @@ function FieldRow({
                     placeholder="Header"
                     disabled={!canEdit}
                     minHeight="28px"
-                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
-                    staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
+                    staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
                     onFocus={() => {
                       headingFocused.current = true;
                       onFocusField(field.id, 'header');
@@ -984,8 +984,8 @@ function CardBlock({
                 proposalId={proposalId}
                 value={ensureRichHtml(titleDraft)}
                 minHeight="32px"
-                className={`[&_.ProseMirror]:font-bold [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
-                staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                className={`[&_.ProseMirror]:font-bold [&_.ProseMirror]:underline [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
+                staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
                 onChange={(html) => {
                   titleLock.onType();
                   setTitleDraft(html);

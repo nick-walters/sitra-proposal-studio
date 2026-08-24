@@ -225,7 +225,7 @@ export function ParticipantDetailForm({
           </Button>
         ) : undefined
       }
-      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} /> : undefined}
+      save={{ saving, lastSaved }}
     >
 
 

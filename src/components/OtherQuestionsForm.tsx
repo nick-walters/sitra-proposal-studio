@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { ensureRichHtml } from '@/lib/richTextUpgrade';
 import { Input } from '@/components/ui/input';
@@ -176,7 +177,15 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
     <PartAPageLayout
       title="Part A5: Other questions"
       proposalId={proposalId}
-      saveIndicator={canEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} /> : undefined}
+      save={{ saving, lastSaved, onSaveNow: () => saveContent(formData) }}
+      formatting={{
+        proposalId,
+        isPartB: false,
+        isReadOnly: !canEdit,
+        crossRefDropdown: (editor) => (
+          <ParticipantCrossRefDropdown proposalId={proposalId} editor={editor} />
+        ),
+      }}
     >
 
 

@@ -529,7 +529,7 @@ export function TopicInformationPage({
       proposalId={proposalId}
       padding="p-4"
       spacing="space-y-4"
-      saveIndicator={userCanEdit ? <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} /> : undefined}
+      save={{ saving, lastSaved, isDirty: !!hasUnsavedChanges, onSaveNow: () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); } }}
     >
 
 

@@ -625,7 +625,7 @@ export function ParticipantListView({
             sitraTips={sitraTips}
           />
         }
-        saveIndicator={<SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
+        save={{ saving: false, lastSaved }}
       >
 
 
