@@ -843,11 +843,16 @@ function CardBlock({
     return list.length === fields.length ? list : fields;
   }, [fields, localFieldOrder]);
 
+  // Hidden blocks dim their CONTENT only (see contentDimClass below); the
+  // header controls must stay fully legible so the toggle that brings the
+  // block back is never itself greyed out.
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.6 : card.isVisible ? 1 : 0.6,
+    opacity: sortable.isDragging ? 0.6 : 1,
   };
+  const contentDimClass = card.isVisible ? '' : 'opacity-60';
+
 
   const commitTitle = () => {
     setEditingTitle(false);
