@@ -1722,86 +1722,48 @@ function BoardInner({
         }}
       />
       <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold text-foreground">Methodologies (cards)</h1>
-            <p className="text-sm text-muted-foreground">
-              Parallel block-model copy of B1.2. The original Methodologies page is unaffected.
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {/* Single page-level icon button carrying the SAME chevron as the
-                per-block collapse controls: up = collapse all, down = expand
-                all. No toggle track. */}
-            {(() => {
-              const allCollapsed =
-                visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
-              return (
-                <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-pressed={allCollapsed}
-                    disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
-                    onClick={() =>
-                      setAllCollapsed.mutate({
-                        ids: visibleCardIds,
-                        collapsed: !allCollapsed,
-                      })
-                    }
-                  >
-                    {allCollapsed ? (
-                      <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
-                    ) : (
-                      <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
-                    )}
-                  </Button>
-                </Tip>
-              );
-            })()}
-            {canEdit && (
-              <Tip label="Add block">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAddBlockOpen(true)}
-                  disabled={createCard.isPending || createFigureCard.isPending}
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add block
-                </Button>
-              </Tip>
-            )}
-            {canEdit && deletedBlockCount > 0 && (
-              <Tip label={`Restore deleted block (${deletedBlockCount} in the recycle bin)`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setBinOpen(true)}
-                >
-                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                  Restore block ({deletedBlockCount})
-                </Button>
-              </Tip>
-            )}
-
-          </div>
+        {/* Page title and description scroll away normally: they sit ABOVE the
+            floating toolbars and the description spans the full page width. */}
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
+          <p className="w-full text-sm text-muted-foreground">
+            Content written here is mirrored into Part B1.2.
+          </p>
         </div>
 
         <EditorChrome
           proposalId={proposalId}
-          featureBar={
-            <EditorFeatureBar
-              hasFocusedField={!!focusedBox}
+          topBar={
+            <EditorTopBar
               saving={saving}
               lastSaved={lastSaved}
               savedMode={savedMode}
               isDirty={isDirty}
               onSaveNow={handleSaveNow}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
-              onOpenVersionHistory={() => setHistoryOpen(true)}
               onPreview={isAdminOrOwner ? () => setTypstOpen(true) : undefined}
+              previewLabel="Part B1.2"
+              collapseAll={{
+                allCollapsed: allBlocksCollapsed,
+                disabled: setAllCollapsed.isPending || visibleCardIds.length === 0,
+                onToggle: () =>
+                  setAllCollapsed.mutate({
+                    ids: visibleCardIds,
+                    collapsed: !allBlocksCollapsed,
+                  }),
+              }}
+              onAddBlock={canEdit ? () => setAddBlockOpen(true) : undefined}
+              addBlockDisabled={createCard.isPending || createFigureCard.isPending}
+              onRestoreBlock={
+                canEdit && deletedBlockCount > 0 ? () => setBinOpen(true) : undefined
+              }
+              restoreBlockCount={deletedBlockCount}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+            />
+          }
+          fieldBar={
+            <EditorFieldBar
+              hasFocusedField={!!focusedBox}
+              onOpenVersionHistory={() => setHistoryOpen(true)}
             />
           }
           formattingBar={
