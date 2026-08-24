@@ -6102,6 +6102,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          locked_at: string | null
+          locked_by: string | null
           major: number | null
           minor: number | null
           name: string | null
@@ -6116,6 +6118,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           major?: number | null
           minor?: number | null
           name?: string | null
@@ -6130,6 +6134,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           major?: number | null
           minor?: number | null
           name?: string | null
@@ -7014,6 +7020,10 @@ export type Database = {
       capture_scope_predicates: { Args: never; Returns: Json }
       card_block_guard: { Args: { p_card_id: string }; Returns: string }
       card_html_is_blank: { Args: { p_html: string }; Returns: boolean }
+      claim_template_draft: {
+        Args: { p_takeover?: boolean; p_template_type_id: string }
+        Returns: Json
+      }
       create_card_field: {
         Args: {
           p_card_id: string
