@@ -577,10 +577,9 @@ export function TopicInformationPage({
                   </Button>
                 )}
               </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-3">
+          }
+          contentClassName="space-y-3"
+        >
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
               {isEditing && editedProposal ? (
@@ -773,8 +772,7 @@ export function TopicInformationPage({
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </PartACard>
 
         {/* Budget Overview Card */}
         <PartACard
