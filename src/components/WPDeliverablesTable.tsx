@@ -348,17 +348,20 @@ export function WPDeliverablesTable({
         <CardContent className="px-3 pb-3 pt-0">
           <div className="space-y-1">
             {/* Column labels for the second line — same fixed grid as every row,
-                so the meta fields line up across all deliverables. */}
+                indented to align with the deliverable title above. */}
             {sorted.length > 0 && (
-              <div className={cn(DELIVERABLE_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
-                <div>Partner</div>
-                <div>Type</div>
-                <div>Dissemination level</div>
-                <div>Due month</div>
-                <div>Assign to task</div>
+              <div className="grid grid-cols-[52px_1fr] gap-x-2 px-1 pb-1 border-b">
                 <div />
-                <div />
-                <div />
+                <div className={cn(DELIVERABLE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Partner</div>
+                  <div>Type</div>
+                  <div>Dissemination level</div>
+                  <div>Due month</div>
+                  <div>Assign to task</div>
+                  <div />
+                  <div />
+                  <div />
+                </div>
               </div>
             )}
             {sorted.length === 0 && (
@@ -441,30 +444,28 @@ function DeliverableRow({
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
 
   return (
-    <div className="border-b py-1.5 space-y-1">
+    <div className="grid grid-cols-[52px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
       {/* ── Line 1: number chip + full-width title ── */}
-      <div className="flex items-start gap-2 px-1">
-        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21, flex: '0 0 52px', marginTop: 3 }}>
-          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
-            <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
-          </svg>
-          <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
-            {number}
-          </span>
+      <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21, marginTop: 3 }}>
+        <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
+          <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
+        </svg>
+        <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+          {number}
         </span>
-        <div className="flex-1 min-w-0">
-          <DeliverableTitleCell
-            value={deliverable.title || ''}
-            disabled={readOnly}
-            onCommit={(v) => onUpdate(deliverable.id, { title: v })}
-            proposalId={proposalId}
-            shouldStayMounted={shouldStayMounted}
-          />
-        </div>
+      </span>
+      <div className="min-w-0">
+        <DeliverableTitleCell
+          value={deliverable.title || ''}
+          disabled={readOnly}
+          onCommit={(v) => onUpdate(deliverable.id, { title: v })}
+          proposalId={proposalId}
+          shouldStayMounted={shouldStayMounted}
+        />
       </div>
 
-      {/* ── Line 2: metadata fields in fixed columns ── */}
-      <div className={cn(DELIVERABLE_META_GRID, 'px-1')}>
+      {/* ── Line 2: metadata fields in fixed columns, aligned with the title above ── */}
+      <div className={cn(DELIVERABLE_META_GRID, 'col-start-2')}>
         {/* Partner */}
         <div>
           <Select

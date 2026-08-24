@@ -660,13 +660,17 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
 
           <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row. */}
+            {/* Column labels for the second line — same fixed grid as every row,
+                indented to align with the milestone name above. */}
             {orderedMs.length > 0 && (
-              <div className={cn(MILESTONE_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
-                <div>WP(s)</div>
-                <div>Due month</div>
+              <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
                 <div />
-                <div />
+                <div className={cn(MILESTONE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>WP(s)</div>
+                  <div>Due month</div>
+                  <div />
+                  <div />
+                </div>
               </div>
             )}
             {orderedMs.length === 0 && (
@@ -678,26 +682,24 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 .filter((w): w is WPRow => !!w)
                 .sort((a, b) => a.number - b.number);
               return (
-                <div key={m.id} className="border-b py-1.5 space-y-1">
+                <div key={m.id} className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
                   {/* ── Line 1: MS chip + full-width milestone name ── */}
-                  <div className="flex items-start gap-2 px-1">
-                    <span className="flex-none whitespace-nowrap pt-0.5">
-                      <MilestoneBadge number={m.number} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <DebouncedRichField
-                        value={m.title || ''}
-                        disabled={!canEdit}
-                        minHeight="30px"
-                        proposalId={proposalId}
-                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                      />
-                    </div>
+                  <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
+                    <MilestoneBadge number={m.number} />
+                  </span>
+                  <div className="min-w-0">
+                    <DebouncedRichField
+                      value={m.title || ''}
+                      disabled={!canEdit}
+                      minHeight="30px"
+                      proposalId={proposalId}
+                      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                    />
                   </div>
 
                   {/* ── Line 2: shorter metadata fields in fixed columns ── */}
-                  <div className={cn(MILESTONE_META_GRID, 'px-1')}>
+                  <div className={cn(MILESTONE_META_GRID, 'col-start-2')}>
                     <div>
                       <MilestoneWpDialog
                         wps={wps}
@@ -753,8 +755,8 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                     </div>
                   </div>
 
-                  {/* ── Line 3: means of verification, full width ── */}
-                  <div className="px-1">
+                  {/* ── Line 3: means of verification, full width, aligned with the name above ── */}
+                  <div className="col-start-2">
                     <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
                     <DebouncedRichField
                       value={m.means_of_verification || ''}
@@ -801,14 +803,18 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row. */}
+            {/* Column labels for the second line — same fixed grid as every row,
+                indented to align with the risk description above. */}
             {risks.length > 0 && (
-              <div className={cn(RISK_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
-                <div className="text-center">i.</div>
-                <div className="text-center">ii.</div>
-                <div>WP(s)</div>
-                <div />
-                <div />
+              <div className="grid grid-cols-[26px_40px_1fr] gap-x-2 px-1 pb-1 border-b">
+                <div /><div />
+                <div className={cn(RISK_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div className="text-center">i.</div>
+                  <div className="text-center">ii.</div>
+                  <div>WP(s)</div>
+                  <div />
+                  <div />
+                </div>
               </div>
             )}
             <DndContext
@@ -885,47 +891,45 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group border-b py-1.5 space-y-1">
+    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_40px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
       {/* ── Line 1: grip + risk number + full-width description ── */}
-      <div className="flex items-start gap-2 px-1">
-        <span className="flex-none w-[26px] flex items-center justify-center pt-1">
-          {canEdit && (
-            <button
-              type="button"
-              className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
-              {...attributes}
-              {...listeners}
-              aria-label="Drag to reorder"
-            >
-              <GripVertical className="h-4 w-4 text-[#2563EB]" />
-            </button>
-          )}
-        </span>
-        <span
-          className="flex-none whitespace-nowrap pt-0.5"
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
-            fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
-            borderRadius: '9999px', marginTop: 4,
-          }}
-        >
-          R{risk.number}
-        </span>
-        <div className="flex-1 min-w-0">
-          <DebouncedRichField
-            value={risk.title || ''}
-            disabled={!canEdit}
-            minHeight="30px"
-            proposalId={proposalId}
-            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-            onChange={(html) => onUpdate({ title: html })}
-          />
-        </div>
+      <span className="flex-none w-[26px] flex items-center justify-center pt-1">
+        {canEdit && (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4 text-[#2563EB]" />
+          </button>
+        )}
+      </span>
+      <span
+        className="flex-none whitespace-nowrap pt-0.5 w-[40px]"
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
+          fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
+          borderRadius: '9999px', marginTop: 4,
+        }}
+      >
+        R{risk.number}
+      </span>
+      <div className="min-w-0">
+        <DebouncedRichField
+          value={risk.title || ''}
+          disabled={!canEdit}
+          minHeight="30px"
+          proposalId={proposalId}
+          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ title: html })}
+        />
       </div>
 
       {/* ── Line 2: likelihood / severity / WP(s) in fixed columns ── */}
-      <div className={cn(RISK_META_GRID, 'px-1')}>
+      <div className={cn(RISK_META_GRID, 'col-start-3')}>
         <div className="flex justify-center">
           <RiskLevelSelect
             value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
@@ -960,8 +964,8 @@ function SortableRiskRow({
         </div>
       </div>
 
-      {/* ── Line 3: mitigation & adaptation measures, full width ── */}
-      <div className="px-1">
+      {/* ── Line 3: mitigation & adaptation measures, full width, aligned with the description above ── */}
+      <div className="col-start-3">
         <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
