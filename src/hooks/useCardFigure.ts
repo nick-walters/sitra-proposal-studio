@@ -79,7 +79,11 @@ export function useCardFigure(cardId: string) {
       });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      // Collapsed blocks show the caption as their one-line summary.
+      queryClient.invalidateQueries({ queryKey: ['card-figure-summaries'] });
+    },
     onError: (e: Error) => toast.error(e.message || 'Could not save the figure block'),
   });
 

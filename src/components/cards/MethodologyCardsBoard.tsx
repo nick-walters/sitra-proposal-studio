@@ -15,7 +15,19 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff, GripVertical, Plus, Recycle, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Plus,
+  Recycle,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -94,6 +106,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useCardCollapse } from '@/hooks/useCardCollapse';
+import { useCardFigureSummaries } from '@/hooks/useCardFigureSummaries';
 import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
@@ -680,6 +694,13 @@ interface CardBlockProps {
   /** Caption letters for case-study placeholder modules, keyed by field id. */
   caseLetterByFieldId: Record<string, number>;
   collapsed: boolean;
+  /** Per-user view preference: content hidden, header + summary stay. */
+  userCollapsed: boolean;
+  onToggleCollapse: () => void;
+  /** For the references block's collapsed summary. */
+  referenceCount: number;
+  /** Caption or figure title, for a figure block's collapsed summary. */
+  figureSummary?: string;
   binCount: number;
   onOpenBin: (card: ProposalCard) => void;
   onRename: (card: ProposalCard, title: string | null) => void;
@@ -711,6 +732,10 @@ function CardBlock({
   caseTypeLabels,
   caseLetterByFieldId,
   collapsed,
+  userCollapsed,
+  onToggleCollapse,
+  referenceCount,
+  figureSummary,
   binCount,
   onOpenBin,
   onRename,
@@ -840,6 +865,26 @@ function CardBlock({
   const canAddModule =
     canEdit && !isPlaceholderCard && !isLinkedActivitiesCard && card.kind !== 'figure';
 
+  // Dragging also collapses (kept from before); the user's own collapse
+  // preference is independent of it and persists across page loads.
+  const contentHidden = collapsed || userCollapsed;
+
+  /** One-line "what's inside" shown in the header while collapsed. */
+  const collapsedSummary = (() => {
+    if (card.kind === 'references')
+      return `${referenceCount} reference${referenceCount === 1 ? '' : 's'}`;
+    if (card.kind === 'figure') return figureSummary ?? 'Figure';
+    if (isLinkedActivitiesCard) {
+      const n = linkedActivities.activities.length;
+      return `${n} linked ${n === 1 ? 'activity' : 'activities'}`;
+    }
+    // Source-fed tables are captioned by the block title itself, which stays
+    // visible in the header — the summary just names the kind.
+    if (card.isSourceFed) return 'Source-fed table';
+    const n = fields.length;
+    return `${n} module${n === 1 ? '' : 's'}`;
+  })();
+
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -912,9 +957,28 @@ function CardBlock({
                 )}
               </div>
             )}
+            {userCollapsed && (
+              <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
+            )}
           </div>
 
           <div className="ml-auto flex items-center gap-1">
+            {/* Per-user collapse — a view preference, so offered to viewers as
+                well as editors. It never touches document state. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
+              title={userCollapsed ? 'Expand block' : 'Collapse block'}
+              onClick={onToggleCollapse}
+              className="h-7 w-7"
+            >
+              {userCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
 
@@ -1030,7 +1094,9 @@ function CardBlock({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3 px-5">
+        {/* Hidden, not unmounted: editors keep their state and no unmount-time
+            flush can fire. Collapse changes nothing the document records. */}
+        <CardContent className={contentHidden ? 'hidden' : 'space-y-3 px-5'}>
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
@@ -1088,7 +1154,7 @@ function CardBlock({
                         onLostText={onLostText}
                         onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
-                        collapsed={collapsed}
+                        collapsed={contentHidden}
                       />
                     ))}
                   </div>
@@ -1168,6 +1234,15 @@ function BoardInner({
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
+
+  // Per-user collapse preferences — view state only, never document state.
+  const allCardIds = useMemo(() => cards.map((c) => c.id), [cards]);
+  const { collapsedIds, setCollapsed, setAllCollapsed } = useCardCollapse(allCardIds);
+  const figureCardIds = useMemo(
+    () => cards.filter((c) => c.kind === 'figure').map((c) => c.id),
+    [cards],
+  );
+  const { data: figureSummaries = {} } = useCardFigureSummaries(figureCardIds);
 
   /**
    * Section-level rule, read off the template rather than a hardcoded section
@@ -1450,9 +1525,19 @@ function BoardInner({
 
   // A references block appears only when the section cites something. It stays
   // undeletable and unhideable; it simply renders nothing when empty.
-  const { hasAny: sectionCitesAnything } = useSectionCitedReferences(proposalId, sectionId);
+  const { hasAny: sectionCitesAnything, entries: sectionCitedEntries } =
+    useSectionCitedReferences(proposalId, sectionId);
+  const referenceCount = sectionCitedEntries.length;
   const visibleCard = (c: ProposalCard) =>
     (c.kind !== 'references' || sectionCitesAnything) && (c.isVisible || isCoordinator);
+
+  /** Blocks this user can see — the target set for Collapse all / Expand all. */
+  const visibleCardIds = useMemo(
+    () => [...headCards, ...orderedFree, ...tailCards].filter(visibleCard).map((c) => c.id),
+    // visibleCard derives from sectionCitesAnything and isCoordinator.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [headCards, orderedFree, tailCards, sectionCitesAnything, isCoordinator],
+  );
 
   /** Deleted modules per live block, for the per-block bin icon. */
   const deletedModulesByCard = useMemo(() => {
@@ -1540,6 +1625,11 @@ function BoardInner({
     draggable,
     caseTypeLabels,
     collapsed: isDragging,
+    userCollapsed: collapsedIds.has(card.id),
+    onToggleCollapse: () =>
+      setCollapsed.mutate({ cardId: card.id, collapsed: !collapsedIds.has(card.id) }),
+    referenceCount,
+    figureSummary: figureSummaries[card.id],
     binCount: deletedModulesByCard[card.id] ?? 0,
     onOpenBin: (c: ProposalCard) => setModuleBinCardId(c.id),
     onRename: async (c: ProposalCard, title: string | null) => {
@@ -1616,6 +1706,32 @@ function BoardInner({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Collapse all blocks"
+              disabled={
+                setAllCollapsed.isPending ||
+                (visibleCardIds.length > 0 &&
+                  visibleCardIds.every((id) => collapsedIds.has(id)))
+              }
+              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: true })}
+            >
+              <ChevronsDownUp className="mr-1 h-3.5 w-3.5" />
+              Collapse all
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Expand all blocks"
+              disabled={
+                setAllCollapsed.isPending || visibleCardIds.every((id) => !collapsedIds.has(id))
+              }
+              onClick={() => setAllCollapsed.mutate({ ids: visibleCardIds, collapsed: false })}
+            >
+              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
+              Expand all
+            </Button>
             {canEdit && (
               <Button
                 variant="outline"
