@@ -458,7 +458,7 @@ function SubsectionPanel({
         versionId={versionId}
         sectionNumber={sectionNumber}
         sectionSourceId={sectionSourceId}
-        templateTypeId={blocks[0]?.template_type_id ?? null}
+        templateTypeId={templateTypeId}
         nextOrder={blocks.length}
         onChanged={onChanged}
       />
