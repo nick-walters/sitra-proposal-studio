@@ -48,9 +48,19 @@ function toGuideline(row: GuidelineRow, order: number): CardGuideline {
   };
 }
 
-export function useCardGuidelines(templateKey: string | null, document = 'part_b') {
+/**
+ * Guidance for one block, resolved against the proposal's OWN template
+ * version. Passing no version id yields nothing rather than silently falling
+ * back to the newest template content.
+ */
+export function useCardGuidelines(
+  templateKey: string | null,
+  document = 'part_b',
+  templateVersionId?: string | null,
+) {
   return useQuery({
-    queryKey: ['card-guidelines', templateKey, document],
+    queryKey: ['card-guidelines', templateKey, document, templateVersionId],
+    enabled: !!templateVersionId,
     queryFn: async (): Promise<CardGuideline[]> => {
       const out: CardGuideline[] = [];
       const seen = new Set<string>();
@@ -59,7 +69,8 @@ export function useCardGuidelines(templateKey: string | null, document = 'part_b
         const { data: templates } = await supabase
           .from('card_templates')
           .select('id')
-          .eq('key', templateKey);
+          .eq('key', templateKey)
+          .eq('template_version_id', templateVersionId!);
         const ids = (templates ?? []).map((t) => t.id);
         if (ids.length > 0) {
           const { data } = await supabase
@@ -91,14 +102,16 @@ export function useCardGuidelines(templateKey: string | null, document = 'part_b
  * Document-level guidance (formatting requirements, general definitions),
  * shown on document-wide surfaces rather than inside a block's dialog.
  */
-export function useDocumentGuidelines(document = 'part_b') {
+export function useDocumentGuidelines(document = 'part_b', templateVersionId?: string | null) {
   return useQuery({
-    queryKey: ['document-guidelines', document],
+    queryKey: ['document-guidelines', document, templateVersionId],
+    enabled: !!templateVersionId,
     queryFn: async (): Promise<CardGuideline[]> => {
       const { data } = await supabase
         .from('card_guideline_documents')
         .select('order_index, card_guidelines(*)')
         .eq('document', document)
+        .eq('template_version_id', templateVersionId!)
         .order('order_index');
       const out: CardGuideline[] = [];
       for (const link of data ?? []) {
@@ -119,12 +132,15 @@ export function useDocumentGuidelines(document = 'part_b') {
  * `card_guideline_sections`, not per block: the Commission scores the
  * subsection, not the individual text box. The board passes the proposal's
  * section id; the link is stored against the TEMPLATE section it was copied
- * from, so that is resolved first.
+ * from, so that is resolved first, then narrowed to the proposal's version.
  */
-export function useSectionCriteria(proposalSectionId: string | null | undefined) {
+export function useSectionCriteria(
+  proposalSectionId: string | null | undefined,
+  templateVersionId?: string | null,
+) {
   return useQuery({
-    queryKey: ['section-criteria', proposalSectionId],
-    enabled: !!proposalSectionId,
+    queryKey: ['section-criteria', proposalSectionId, templateVersionId],
+    enabled: !!proposalSectionId && !!templateVersionId,
     queryFn: async (): Promise<CardGuideline[]> => {
       const { data: section } = await supabase
         .from('proposal_template_sections')
@@ -137,7 +153,8 @@ export function useSectionCriteria(proposalSectionId: string | null | undefined)
       const { data } = await supabase
         .from('card_guideline_sections')
         .select('card_guidelines(*)')
-        .eq('section_source_id', sourceId);
+        .eq('section_source_id', sourceId)
+        .eq('template_version_id', templateVersionId!);
 
       const out: CardGuideline[] = [];
       for (const link of data ?? []) {
@@ -150,3 +167,4 @@ export function useSectionCriteria(proposalSectionId: string | null | undefined)
     staleTime: 5 * 60 * 1000,
   });
 }
+

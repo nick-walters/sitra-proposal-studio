@@ -21,6 +21,7 @@ import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog"
 import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
 import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
+import { PartBTemplatesTab } from "@/components/admin/PartBTemplatesTab";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline } from "@/types/templates";
 
 export function TemplateAdmin() {
@@ -90,6 +91,10 @@ export function TemplateAdmin() {
               <BookOpen className="w-4 h-4" />
               Sections & Guidelines
             </TabsTrigger>
+            <TabsTrigger value="partb" className="gap-2">
+              <ClipboardCheck className="w-4 h-4" />
+              Part B templates
+            </TabsTrigger>
             <TabsTrigger value="modifiers" className="gap-2">
               <Settings2 className="w-4 h-4" />
               Modifiers
@@ -130,6 +135,11 @@ export function TemplateAdmin() {
               selectedTemplateTypeId={selectedTemplateType}
               onSelectTemplateType={setSelectedTemplateType}
             />
+          </TabsContent>
+
+          {/* Part B templates Tab */}
+          <TabsContent value="partb">
+            <PartBTemplatesTab templateTypes={templateTypes} />
           </TabsContent>
 
           {/* Modifiers Tab */}
@@ -1040,34 +1050,16 @@ function SectionsPanel({
               </Accordion>
             </div>
 
-            {/* Part B */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Badge variant="outline">Part B</Badge>
-                Technical Annex
-              </h3>
-              <Accordion type="multiple" value={expandedPartB} onValueChange={setExpandedPartB} className="space-y-2">
-                {partBSections.map((section) => (
-                  <SectionAccordionItem
-                    key={section.id}
-                    section={section}
-                    allSections={sections}
-                    expandedSections={expandedPartB}
-                    onExpandChange={setExpandedPartB}
-                    onEdit={() => handleOpenSectionDialog(section)}
-                    onDelete={() => handleDeleteSection(section.id)}
-                    onEditSection={handleOpenSectionDialog}
-                    onDeleteSection={handleDeleteSection}
-                    onCreateGuideline={createGuideline}
-                    onUpdateGuideline={updateGuideline}
-                    onDeleteGuideline={deleteGuideline}
-                    onCreateFormField={createFormField}
-                    onUpdateFormField={updateFormField}
-                    onDeleteFormField={deleteFormField}
-                  />
-                ))}
-              </Accordion>
-            </div>
+            {/* Part B lives in its own versioned tab, so each piece of
+                guidance has exactly one home. */}
+            {partBSections.length > 0 && (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                <Badge variant="outline" className="mr-2">Part B</Badge>
+                Part B blocks, guidelines & criteria are managed in the <strong>Part B templates</strong> tab,
+                where they are versioned.
+              </div>
+            )}
+
           </div>
         )}
       </CardContent>

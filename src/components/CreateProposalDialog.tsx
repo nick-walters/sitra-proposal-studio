@@ -38,6 +38,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { FileText, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink, CalendarIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTemplateVersions, formatVersionLabel } from "@/hooks/useProposalTemplateVersion";
+
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -53,6 +55,8 @@ interface CreateProposalDialogProps {
     topicUrl?: string;
     deadline?: Date;
     templateTypeId?: string;
+    templateVersionId?: string;
+
     usesFstp?: boolean;
     isTwoStageSecondStage?: boolean;
   }) => void;
@@ -95,6 +99,8 @@ export function CreateProposalDialog({
   const [topicUrl, setTopicUrl] = useState<string>('');
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [templateTypeId, setTemplateTypeId] = useState<string>('');
+  const [templateVersionId, setTemplateVersionId] = useState<string>('');
+
   const [usesFstp, setUsesFstp] = useState<boolean>(false);
   const [isTwoStageSecondStage, setIsTwoStageSecondStage] = useState<boolean>(false);
 
@@ -129,6 +135,23 @@ export function CreateProposalDialog({
     }
   }, [filteredTemplateTypes, templateTypeId]);
 
+  /* Template versions for the chosen type, newest first. The proposal is
+     pinned to whichever is chosen and is never altered by later template
+     edits, so the default is the latest published version. */
+  const { data: templateVersions = [] } = useTemplateVersions(templateTypeId || null);
+
+  useEffect(() => {
+    if (templateVersions.length === 0) {
+      setTemplateVersionId('');
+      return;
+    }
+    if (!templateVersions.find((v) => v.id === templateVersionId)) {
+      setTemplateVersionId(templateVersions[0].id);
+    }
+  }, [templateVersions, templateVersionId]);
+
+
+
   const handleWorkProgrammeChange = (value: string) => {
     setWorkProgramme(value);
     setDestination(''); // Reset destination when work programme changes
@@ -151,6 +174,8 @@ export function CreateProposalDialog({
       topicUrl: topicUrl || undefined,
       deadline: deadline || undefined,
       templateTypeId: templateTypeId || undefined,
+      templateVersionId: templateVersionId || undefined,
+
       usesFstp,
       isTwoStageSecondStage: submissionStage === 'full' ? isTwoStageSecondStage : false,
     });
@@ -165,6 +190,8 @@ export function CreateProposalDialog({
     setTopicUrl('');
     setDeadline(undefined);
     setTemplateTypeId('');
+    setTemplateVersionId('');
+
     setUsesFstp(false);
     setIsTwoStageSecondStage(false);
     onOpenChange(false);
@@ -318,6 +345,32 @@ export function CreateProposalDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {templateVersions.length > 0 && (
+                  <div className="grid gap-2 pt-2">
+                    <Label className="text-sm">Template version</Label>
+                    <Select value={templateVersionId} onValueChange={setTemplateVersionId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select version" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateVersions.map((v, i) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{formatVersionLabel(v)}</span>
+                              {i === 0 && (
+                                <Badge variant="secondary" className="text-xs">Latest</Badge>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      The proposal is pinned to this version & is not affected by later template changes.
+                    </p>
+                  </div>
+                )}
+
                 {templateTypeId && (
                   <p className="text-xs text-green-600">
                     ✓ Template sections will be loaded automatically

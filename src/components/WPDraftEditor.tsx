@@ -41,7 +41,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock } from 'lucide-react';
+import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock, BookOpen } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,10 @@ import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
+import { useCardGuidelines } from '@/hooks/useCardGuidelines';
+import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
+import DOMPurify from 'dompurify';
+
 
 interface WPDraftEditorProps {
   wpId: string;
@@ -135,6 +139,19 @@ const GUIDELINE_SCOPES: Record<string, { ec: string[]; sitra: string[] }> = {
   'wp.tasks': { ec: ['ec-tasks'], sitra: ['sitra-1', 'sitra-2', 'sitra-3'] },
   'wp.deliverables': { ec: ['ec-deliverables'], sitra: ['sitra-1', 'sitra-3'] },
 };
+
+/* WP drafts are not block-based, so they have no card of their own to hang
+   guidance off. The Commission guidance for Table 3.1.b (work package
+   descriptions) and Table 3.1.c (deliverables) is authored once against those
+   B3.1 blocks and reached from here by block key, so the author sees it where
+   the writing actually happens. Resolved against the proposal's template
+   version like every other guideline lookup. */
+const BLOCK_GUIDELINE_KEYS: Record<string, string> = {
+  'wp.methodology': 'b31.table_b',
+  'wp.tasks': 'b31.table_b',
+  'wp.deliverables': 'b31.table_c',
+};
+
 
 const GUIDELINE_TITLES: Record<string, string> = {
   'wp.objectives': 'Guidelines: WP objective',
@@ -300,6 +317,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   const visibleSitraTips = guidelineScope
     ? SITRA_TIPS.filter((t) => guidelineScope.sitra.includes(t.id))
     : SITRA_TIPS;
+
+  /* The B3.1 block guidance that belongs on this field, taken from the
+     proposal's own template version. */
+  const { data: wpTemplateVersionId } = useProposalTemplateVersion(proposalId);
+  const { data: blockGuidelines = [] } = useCardGuidelines(
+    BLOCK_GUIDELINE_KEYS[focusedGuidelineKey ?? ''] ?? null,
+    'part_b',
+    wpTemplateVersionId,
+  );
+
   
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
@@ -1074,6 +1101,32 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
+                {/* Commission guidance authored against the matching B3.1
+                    block, shown here where the author writes it. */}
+                {blockGuidelines.length > 0 && (
+                  <div className="rounded-lg border-2 border-blue-500 bg-blue-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 flex-shrink-0 text-blue-500" />
+                      <span className="text-sm font-bold text-blue-600">
+                        Official guidelines from the European Commission
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      {blockGuidelines.map((g) => (
+                        <div key={g.id}>
+                          {g.title && (
+                            <h4 className="mb-2 font-semibold text-blue-600">{g.title}</h4>
+                          )}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(g.content) }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Official EC Guidelines */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
@@ -1084,6 +1137,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                     </div>
                   ))}
                 </div>
+
 
                 {/* Sitra's Tips Box - matching Part B style */}
                 <div

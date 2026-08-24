@@ -76,6 +76,8 @@ import { CardRecycleBinDialog } from '@/components/cards/CardRecycleBinDialog';
 import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 import { GuidelinesDialog } from '@/components/GuidelinesDialog';
 import { useCardGuidelines, useSectionCriteria } from '@/hooks/useCardGuidelines';
+import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
+
 import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -1568,13 +1570,19 @@ function BoardInner({
      owns its own relational rows — resolve no focused card, so the key falls
      back to the `data-guideline-key` the block writes onto its content. */
   const focusedGuidelineKey = useFocusedGuidelineKey();
+  /* Guidance is resolved against the version this proposal was created from,
+     never the latest template content. */
+  const { data: proposalTemplateVersionId } = useProposalTemplateVersion(proposalId);
   const { data: focusedGuidelines = [] } = useCardGuidelines(
     focusedCard?.templateKey ?? focusedGuidelineKey ?? null,
+    'part_b',
+    proposalTemplateVersionId,
   );
 
   /* Criteria are a category of their own: they belong to the SECTION, not to a
      block, so they hang off the page-wide tier and never follow the focus. */
-  const { data: sectionCriteria = [] } = useSectionCriteria(sectionId);
+  const { data: sectionCriteria = [] } = useSectionCriteria(sectionId, proposalTemplateVersionId);
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 

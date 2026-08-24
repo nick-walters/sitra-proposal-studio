@@ -320,6 +320,7 @@ export function Dashboard() {
     topicUrl?: string;
     deadline?: Date;
     templateTypeId?: string;
+    templateVersionId?: string;
     usesFstp?: boolean;
     isTwoStageSecondStage?: boolean;
   }) => {
@@ -342,6 +343,7 @@ export function Dashboard() {
           p_topic_url: data.topicUrl || null,
           p_deadline: data.deadline?.toISOString() || null,
           p_template_type_id: data.templateTypeId || null,
+          p_template_version_id: data.templateVersionId || null,
           p_uses_fstp: data.usesFstp || false,
         });
 
