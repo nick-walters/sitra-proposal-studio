@@ -649,9 +649,6 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
 
   return (
-    {/* Plain container, NOT a Radix ScrollArea: its viewport wraps children in a
-        display:table div, which breaks `position: sticky` for the toolbars.
-        The page column (`flex-1 overflow-y-auto`) is the scroller. */}
     <div className="h-full">
       <div className="space-y-3 p-4">
         {/* Lock warning banner */}
