@@ -987,6 +987,30 @@ function SectionsPanel({
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Collapse / expand all */}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedPartA(getAllSectionIds(partASections));
+                  setExpandedPartB(getAllSectionIds(partBSections));
+                }}
+              >
+                Expand all
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setExpandedPartA([]);
+                  setExpandedPartB([]);
+                }}
+              >
+                Collapse all
+              </Button>
+            </div>
+
             {/* Part A */}
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
