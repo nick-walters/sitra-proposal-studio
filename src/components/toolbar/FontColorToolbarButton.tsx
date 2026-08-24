@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WPColorPicker } from '@/components/WPColorPicker';
+import type { Editor } from '@tiptap/react';
 
 /**
  * Font-colour picker for contentEditable toolbars (WP drafts, case drafts,
@@ -22,6 +23,13 @@ interface FontColorToolbarButtonProps {
   getEditableElement?: () => HTMLElement | null;
   /** Optional live HTML sources to include in colour in-use checks before autosave persists. */
   getLiveHtmlSources?: () => Array<string | null | undefined>;
+  /**
+   * Resolve the TipTap editor that owns the selection. When provided, colour
+   * is applied through the ProseMirror document (setColor / unsetColor)
+   * instead of document.execCommand — execCommand only mutates the DOM, which
+   * ProseMirror owns and re-renders, so the mark never reaches the saved HTML.
+   */
+  getEditor?: () => Editor | null;
   /** Notified when the picker popover opens/closes (for parent focus retention). */
   onOpenChange?: (open: boolean) => void;
 }
@@ -63,6 +71,7 @@ export function FontColorToolbarButton({
   disabled,
   getEditableElement,
   getLiveHtmlSources,
+  getEditor,
   onOpenChange,
 }: FontColorToolbarButtonProps) {
 
@@ -73,9 +82,14 @@ export function FontColorToolbarButton({
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-      setCurrentColor(currentColorFromSelection());
     }
-  }, []);
+    const editor = getEditor?.();
+    if (editor) {
+      setCurrentColor((editor.getAttributes('textStyle')?.color as string) || '');
+      return;
+    }
+    setCurrentColor(currentColorFromSelection());
+  }, [getEditor]);
 
   const restoreSelection = useCallback((): Range | null => {
     const range = savedRangeRef.current;
@@ -97,6 +111,12 @@ export function FontColorToolbarButton({
   }, [getEditableElement]);
 
   const applyColor = useCallback((hex: string) => {
+    const editor = getEditor?.();
+    if (editor) {
+      editor.chain().focus().setColor(hex).run();
+      setCurrentColor(hex);
+      return;
+    }
     const range = restoreSelection();
     const editable = resolveEditable(range);
     if (editable && document.activeElement !== editable) {
@@ -110,9 +130,15 @@ export function FontColorToolbarButton({
     try { document.execCommand('styleWithCSS', false, 'true' as unknown as string); } catch { /* noop */ }
     document.execCommand('foreColor', false, hex);
     editable?.dispatchEvent(new Event('input', { bubbles: true }));
-  }, [restoreSelection, resolveEditable]);
+  }, [restoreSelection, resolveEditable, getEditor]);
 
   const removeColor = useCallback(() => {
+    const editor = getEditor?.();
+    if (editor) {
+      editor.chain().focus().unsetColor().run();
+      setCurrentColor('');
+      return;
+    }
     const range = restoreSelection();
     if (!range) return;
     const editable = resolveEditable(range);
@@ -140,7 +166,7 @@ export function FontColorToolbarButton({
       }
     });
     editable?.dispatchEvent(new Event('input', { bubbles: true }));
-  }, [restoreSelection, resolveEditable]);
+  }, [restoreSelection, resolveEditable, getEditor]);
 
   const trigger = (
     <Button
@@ -182,6 +208,8 @@ export function FontColorToolbarButton({
 
       onOpenChange={onOpenChange}
       getLiveHtmlSources={getLiveHtmlSources ?? (() => {
+        const editor = getEditor?.();
+        if (editor) return [editor.getHTML()];
         const editable = resolveEditable(savedRangeRef.current);
         return editable ? [editable.innerHTML] : [];
       })}
