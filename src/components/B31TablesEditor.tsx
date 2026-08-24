@@ -44,8 +44,11 @@ function ReadOnlyHtmlCell({
     return <span className="text-muted-foreground italic">—</span>;
   }
   return (
+    // Mirror cells are always LEFT aligned: the source fields store justified
+    // paragraphs (inline `text-align: justify`), which reads badly in a narrow
+    // table column, so the override is baked in here rather than per table.
     <div
-      className={`font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight [&_p]:my-0 ${className ?? ''}`}
+      className={`font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight !text-left [&_p]:my-0 [&_p]:!text-left [&_li]:!text-left [&_div]:!text-left ${className ?? ''}`}
       dangerouslySetInnerHTML={{ __html: renderRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)), refData) }}
     />
   );
