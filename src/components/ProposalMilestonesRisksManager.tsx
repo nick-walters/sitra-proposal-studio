@@ -648,111 +648,117 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
 
 
-          <div className="overflow-x-auto">
-            <table className="platform-table text-sm">
-              <thead>
-                <tr>
-                  <th className="w-14">No.</th>
-                  <th style={{ width: '80px' }}>Milestone name</th>
-                  <th style={{ width: '125px', minWidth: '125px', maxWidth: '125px' }}>WP(s)</th>
-                  <th style={{ width: '83px' }}>Due month</th>
-                  <th>Means of verification</th>
-                  <th style={{ width: '28px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderedMs.length === 0 && (
-                  <tr><td colSpan={6} className="py-4 text-center text-muted-foreground italic">No milestones yet.</td></tr>
-                )}
-                {orderedMs.map((m) => {
-                  const selectedWps = m.wp_ids
-                    .map(id => wpsById.get(id))
-                    .filter((w): w is WPRow => !!w)
-                    .sort((a, b) => a.number - b.number);
-                  return (
-                    <tr key={m.id} className="border-b align-top">
-                      <td className="py-1.5 px-1 whitespace-nowrap">
-                        <MilestoneBadge number={m.number} />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <DebouncedRichField
-                          value={m.title || ''}
-                          disabled={!canEdit}
-                          minHeight="30px"
-                          proposalId={proposalId}
-                          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <MilestoneWpDialog
-                          wps={wps}
-                          selectedWpIds={m.wp_ids}
-                          primaryWpId={m.primary_wp_id}
-                          disabled={!canEdit}
-                          onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
-                          renderTrigger={(open) => (
-                            <button
-                              type="button"
-                              onClick={open}
-                              disabled={!canEdit}
-                              className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {selectedWps.length === 0 ? (
-                                <span className="text-muted-foreground italic">Select WP(s)…</span>
-                              ) : (
-                                <span className="flex flex-wrap gap-0.5 items-center">
-                                  {isAllWPsSelected(selectedWps.length, wps.length)
-                                    ? <AllWPsBubble />
-                                    : selectedWps.map(wp => (
-                                        <WPBubble
-                                          key={wp.id}
-                                          wpNumber={wp.number}
-                                          wpColor={wp.color}
-                                          showStar={wp.id === m.primary_wp_id}
-                                        />
-                                      ))}
-                                </span>
-                              )}
-                            </button>
-                          )}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <SingleMonthPicker
-                          value={m.due_month}
-                          projectDuration={projectDuration}
-                          readOnly={!canEdit}
-                          label=""
-                          onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1">
-                        <DebouncedRichField
-                          value={m.means_of_verification || ''}
-                          disabled={!canEdit}
-                          minHeight="30px"
-                          proposalId={proposalId}
-                          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
-                        />
-                      </td>
+          <div className="space-y-1">
+            {/* Column labels for the second line — same fixed grid as every row. */}
+            {orderedMs.length > 0 && (
+              <div className={cn(MILESTONE_META_GRID, 'px-1 pb-1 text-xs font-medium text-muted-foreground border-b')}>
+                <div>WP(s)</div>
+                <div>Due month</div>
+                <div />
+                <div />
+              </div>
+            )}
+            {orderedMs.length === 0 && (
+              <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
+            )}
+            {orderedMs.map((m) => {
+              const selectedWps = m.wp_ids
+                .map(id => wpsById.get(id))
+                .filter((w): w is WPRow => !!w)
+                .sort((a, b) => a.number - b.number);
+              return (
+                <div key={m.id} className="border-b py-1.5 space-y-1">
+                  {/* ── Line 1: MS chip + full-width milestone name ── */}
+                  <div className="flex items-start gap-2 px-1">
+                    <span className="flex-none whitespace-nowrap pt-0.5">
+                      <MilestoneBadge number={m.number} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <DebouncedRichField
+                        value={m.title || ''}
+                        disabled={!canEdit}
+                        minHeight="30px"
+                        proposalId={proposalId}
+                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                      />
+                    </div>
+                  </div>
 
-                      <td className="py-1.5 px-0 text-center">
-                        <Button
-                          size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-                          disabled={!canEdit}
-                          onClick={() => deleteMilestone.mutate(m.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  {/* ── Line 2: shorter metadata fields in fixed columns ── */}
+                  <div className={cn(MILESTONE_META_GRID, 'px-1')}>
+                    <div>
+                      <MilestoneWpDialog
+                        wps={wps}
+                        selectedWpIds={m.wp_ids}
+                        primaryWpId={m.primary_wp_id}
+                        disabled={!canEdit}
+                        onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
+                        renderTrigger={(open) => (
+                          <button
+                            type="button"
+                            onClick={open}
+                            disabled={!canEdit}
+                            className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {selectedWps.length === 0 ? (
+                              <span className="text-muted-foreground italic">Select WP(s)…</span>
+                            ) : (
+                              <span className="flex flex-wrap gap-0.5 items-center">
+                                {isAllWPsSelected(selectedWps.length, wps.length)
+                                  ? <AllWPsBubble />
+                                  : selectedWps.map(wp => (
+                                      <WPBubble
+                                        key={wp.id}
+                                        wpNumber={wp.number}
+                                        wpColor={wp.color}
+                                        showStar={wp.id === m.primary_wp_id}
+                                      />
+                                    ))}
+                              </span>
+                            )}
+                          </button>
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <SingleMonthPicker
+                        value={m.due_month}
+                        projectDuration={projectDuration}
+                        readOnly={!canEdit}
+                        label=""
+                        onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
+                      />
+                    </div>
+                    <div />
+                    <div className="flex justify-center">
+                      <Button
+                        size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+                        disabled={!canEdit}
+                        onClick={() => deleteMilestone.mutate(m.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* ── Line 3: means of verification, full width ── */}
+                  <div className="px-1">
+                    <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
+                    <DebouncedRichField
+                      value={m.means_of_verification || ''}
+                      disabled={!canEdit}
+                      minHeight="30px"
+                      proposalId={proposalId}
+                      staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
           {canEdit && (
             <div className="flex items-center justify-end gap-2 pt-3">
               <Tooltip>
