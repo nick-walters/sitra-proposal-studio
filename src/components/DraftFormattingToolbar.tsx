@@ -106,7 +106,17 @@ export interface DraftFormattingToolbarProps {
    * hidden (not disabled). Omit for the full control set.
    */
   capabilities?: Partial<FieldCapabilityFlags>;
+
+  /**
+   * Whether a rich text field currently has focus. When false the toolbar
+   * shows only its focus-independent controls (the save state): the
+   * formatting row and the Guidelines button are hidden, exactly as the
+   * methodologies board behaves. Defaults to true for callers that have not
+   * been wired to a focus context yet.
+   */
+  hasFocusedField?: boolean;
 }
+
 
 
 /**
