@@ -350,7 +350,6 @@ export default function LinkedActivitiesTable({
           <span>Funding instrument</span>
           <span>Duration</span>
           <span>Participant responsible for establishing the link</span>
-          <span />
         </div>
       )}
 
