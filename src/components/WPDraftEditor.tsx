@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 
 interface WPDraftEditorProps {
   wpId: string;
@@ -122,6 +123,25 @@ const EC_GUIDELINES = [
     content: 'Describe any critical risks relating to project implementation that the stated project objectives may not be achieved. Detail:\n• A description of the risk\n• The work package(s) involved\n• Proposed risk-mitigation measures',
   },
 ];
+
+// Which guidance belongs to which field, keyed by the `data-guideline-key`
+// marker on the field's container. Unknown/absent key = show everything.
+const GUIDELINE_SCOPES: Record<string, { ec: string[]; sitra: string[] }> = {
+  'wp.objectives': { ec: ['ec-objectives'], sitra: ['sitra-1', 'sitra-methodology-4'] },
+  'wp.methodology': {
+    ec: ['ec-methodology'],
+    sitra: ['sitra-methodology-1', 'sitra-methodology-2', 'sitra-methodology-3', 'sitra-methodology-4'],
+  },
+  'wp.tasks': { ec: ['ec-tasks'], sitra: ['sitra-1', 'sitra-2', 'sitra-3'] },
+  'wp.deliverables': { ec: ['ec-deliverables'], sitra: ['sitra-1', 'sitra-3'] },
+};
+
+const GUIDELINE_TITLES: Record<string, string> = {
+  'wp.objectives': 'Guidelines: WP objective',
+  'wp.methodology': 'Guidelines: methodology',
+  'wp.tasks': 'Guidelines: tasks',
+  'wp.deliverables': 'Guidelines: deliverables',
+};
 
 // Parse content to handle bullet points
 function parseGuidelineContent(content: string): React.ReactNode {
@@ -270,6 +290,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
+  // Guidelines are keyed to the focused field (see `data-guideline-key`
+  // markers on the WP table / deliverables), falling back to the whole WP.
+  const focusedGuidelineKey = useFocusedGuidelineKey();
+  const guidelineScope = GUIDELINE_SCOPES[focusedGuidelineKey ?? ''] ?? null;
+  const visibleEcGuidelines = guidelineScope
+    ? EC_GUIDELINES.filter((g) => guidelineScope.ec.includes(g.id))
+    : EC_GUIDELINES;
+  const visibleSitraTips = guidelineScope
+    ? SITRA_TIPS.filter((t) => guidelineScope.sitra.includes(t.id))
+    : SITRA_TIPS;
   
   // Dialog states for editor features
   const [isCitationOpen, setIsCitationOpen] = useState(false);
@@ -1040,14 +1070,14 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for WP{wpDraft.number}: {wpDraft.title || wpDraft.short_name || 'Work package'}</DialogTitle>
+              <DialogTitle>{guidelineScope ? GUIDELINE_TITLES[focusedGuidelineKey ?? ''] : `Guidelines for WP${wpDraft.number}: ${wpDraft.title || wpDraft.short_name || 'Work package'}`}</DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
                 {/* Official EC Guidelines */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
-                  {EC_GUIDELINES.map((guideline) => (
+                  {visibleEcGuidelines.map((guideline) => (
                     <div key={guideline.id} className="space-y-1">
                       <h5 className="font-medium text-sm text-muted-foreground">{guideline.title}</h5>
                       {parseGuidelineContent(guideline.content)}
@@ -1073,7 +1103,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                   </div>
                   
                   <div className="space-y-4">
-                    {SITRA_TIPS.map((tip, index) => (
+                    {visibleSitraTips.map((tip, index) => (
                       <div key={tip.id}>
                         {tip.title && (
                           <h4 className="font-semibold mb-2 text-gray-900">
@@ -1081,7 +1111,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                           </h4>
                         )}
                         {parseGuidelineContent(tip.content)}
-                        {index < SITRA_TIPS.length - 1 && (
+                        {index < visibleSitraTips.length - 1 && (
                           <div className="mt-4 border-t border-current/10" />
                         )}
                       </div>
