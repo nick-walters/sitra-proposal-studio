@@ -627,13 +627,13 @@ function GuidelineEditor({
         onChange={(e) => setTitle(e.target.value)}
         className="h-8"
       />
-      <Textarea
+      <AdminRichTextField
         value={content}
+        onChange={setContent}
         disabled={!editable}
-        onChange={(e) => setContent(e.target.value)}
-        rows={8}
-        className="font-mono text-xs"
+        minHeight="9rem"
       />
+
       {editable && (
         <div className="flex items-center gap-2">
           <Button size="sm" disabled={!dirty} onClick={() => onSave({ title, content })}>Save</Button>
