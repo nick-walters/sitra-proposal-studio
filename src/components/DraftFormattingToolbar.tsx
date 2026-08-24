@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +32,8 @@ export interface DraftToolbarFontColorProps {
   getEditableElement?: () => HTMLElement | null;
   /** Optional live HTML sources to include in colour in-use checks before autosave persists. */
   getLiveHtmlSources?: () => Array<string | null | undefined>;
+  /** Resolve the focused TipTap editor so colour is applied to the document. */
+  getEditor?: () => Editor | null;
 }
 
 export interface DraftToolbarSaveProps {
@@ -279,6 +282,7 @@ export function DraftFormattingToolbar({
               disabled={disabled}
               getEditableElement={fontColor.getEditableElement}
               getLiveHtmlSources={fontColor.getLiveHtmlSources}
+              getEditor={fontColor.getEditor}
             />
           )}
 
