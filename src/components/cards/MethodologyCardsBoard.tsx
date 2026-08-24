@@ -1790,8 +1790,10 @@ function BoardInner({
           groupId: card.id,
           groupLabel: cardLabel,
           hidden,
-          format: 'text',
-          value: card.title,
+          // Stored as HTML since the title became a rich-text field; legacy
+          // plain strings are upgraded on read.
+          format: 'html',
+          value: ensureRichHtml(card.title),
           readOnly,
           reveal: revealCard(card.id),
           save: readOnly
@@ -1828,8 +1830,8 @@ function BoardInner({
             groupId: card.id,
             groupLabel: cardLabel,
             hidden,
-            format: 'text',
-            value: field.heading,
+            format: 'html',
+            value: ensureRichHtml(field.heading),
             readOnly,
             reveal: revealField,
             save: readOnly ? undefined : saveText(field.id, 'header', card.id),
