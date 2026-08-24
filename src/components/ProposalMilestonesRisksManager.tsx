@@ -997,7 +997,7 @@ function SortableRiskRow({
           minHeight="30px"
           proposalId={proposalId}
           staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-          placeholder="Mitigation &amp; adaptation measures"
+          placeholder="Mitigation & adaptation measures"
           onChange={(html) => onUpdate({ mitigation: html })}
         />
       </div>
