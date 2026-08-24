@@ -119,11 +119,14 @@ export function EditorToolbars({
   formatting,
   children,
 }: EditorToolbarsProps) {
-  const { activeEditor, scalarField } = useMethodologyEditorFocus();
+  const { activeEditor } = useMethodologyEditorFocus();
   const hasFocusedEditor = !!activeEditor && !activeEditor.isDestroyed;
-  // Scalar controls open the FEATURES tier only: they have no marks to
-  // format, but their block's guidelines and version history stay reachable.
-  const hasFocusedField = hasFocusedEditor || !!scalarField;
+  // Scalar controls (selects, date pickers, participant assignment) show NO
+  // tiers beyond the page-wide one: their content is chosen, not written, so
+  // neither formatting nor the field tier applies. Guidelines and version
+  // history stay reachable from any rich text field in the same block.
+  const hasFocusedField = hasFocusedEditor;
+
 
   // Keyboard shortcuts apply to every editing surface, so the control and its
   // dialog belong to the shared toolbar rather than to each page.
