@@ -343,7 +343,7 @@ export function DraftFormattingToolbar({
           {onOpenFigureDialog && caps.figures && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenFigureDialog} onMouseDown={onSaveSelection}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} aria-label="Insert figure" onClick={onOpenFigureDialog} onMouseDown={onSaveSelection}>
                   <ImageIcon className="h-4 w-4" />
                   <span className="text-xs">Figure</span>
                 </Button>
@@ -356,7 +356,7 @@ export function DraftFormattingToolbar({
           {onOpenCitationDialog && caps.citations && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onClick={onOpenCitationDialog} onMouseDown={onSaveSelection}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} aria-label="Manage citations" onClick={onOpenCitationDialog} onMouseDown={onSaveSelection}>
                   <FileText className="h-4 w-4" />
                   <span className="text-xs">Citations</span>
                 </Button>
@@ -371,7 +371,7 @@ export function DraftFormattingToolbar({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} onMouseDown={onSaveSelection}>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" disabled={disabled} aria-label="Insert cross-reference" onMouseDown={onSaveSelection}>
                       <Link2 className="w-4 h-4" />
                       <span className="text-xs">Cross-ref</span>
                     </Button>
