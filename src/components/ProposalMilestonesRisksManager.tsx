@@ -120,11 +120,13 @@ const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 // every control, including on rows that do not render one.
 /* Line 1 of a milestone row: name, then its metadata in fixed columns. */
 const MILESTONE_LINE1_GRID =
-  'grid grid-cols-[1fr_17rem_7rem_1.75rem] items-start gap-x-2';
+  // The name keeps the lion's share at every width: it is the only greedy
+  // track, and the metadata columns shrink towards their minimums first.
+  'grid grid-cols-[minmax(8rem,2fr)_minmax(6rem,17rem)_minmax(4.5rem,7rem)_1.75rem] items-start gap-x-2';
 /* Line 1 of a risk row: description (same 1fr share as the milestone name),
    narrow i./ii. columns, and a WP column widened with the space freed. */
 const RISK_LINE1_GRID =
-  'grid grid-cols-[1fr_3rem_3rem_17.5rem_1.75rem] items-start gap-x-2';
+  'grid grid-cols-[minmax(8rem,2fr)_3rem_3rem_minmax(6rem,17.5rem)_1.75rem] items-start gap-x-2';
 
 
 
@@ -721,7 +723,10 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
 
       {/* Shared focus-dependent toolbars, as on every other editing surface. */}
       {canEdit && (
-        <div className="relative z-40">
+        {/* `display: contents` so the toolbar's own `sticky top-0` measures
+            against the page column, not against a wrapper that hugs its
+            height (which is what stopped it floating). */}
+        <div className="contents">
           <EditorToolbars
             proposalId={proposalId}
             save={{ saving: activeSaves > 0, lastSaved, onSaveNow: saveNow }}
