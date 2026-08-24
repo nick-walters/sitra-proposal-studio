@@ -64,7 +64,7 @@ interface LinkedActivitiesTableProps {
   controller?: ReturnType<typeof useLinkedActivities>;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(13.5rem,1.65fr)_minmax(5.7rem,0.57fr)_minmax(9rem,1.05fr)_2.25rem]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(17rem,2.75fr)_minmax(5.7rem,0.57fr)_minmax(9rem,0.85fr)_2.25rem]';
 
 const NONE = '__none__';
 
@@ -144,7 +144,7 @@ function SortableActivityRow({
                 })
               }
             >
-              <SelectTrigger className="h-8 min-w-0 flex-1 text-xs" aria-label="Funding instrument">
+              <SelectTrigger className="h-8 min-w-0 flex-1 justify-between text-left text-xs [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left" aria-label="Funding instrument">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>

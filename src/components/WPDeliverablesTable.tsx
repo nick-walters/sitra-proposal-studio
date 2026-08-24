@@ -97,7 +97,7 @@ const DISSEMINATION_LEVELS = [
 // in the same horizontal position on every row — the same fixed-column approach
 // used for the block control rows on the cards board.
 const DELIVERABLE_META_GRID =
-  'grid grid-cols-[7rem_6rem_9rem_9rem_10rem_1fr_2.25rem_2.25rem] items-start gap-x-2';
+  'grid grid-cols-[7rem_6rem_9rem_6.5rem_7.5rem_1fr_4.5rem_2.25rem] items-start gap-x-2 pl-2';
 
 
 // ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),
@@ -596,8 +596,9 @@ function DeliverableRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
+                    <Button variant="ghost" size="sm" className="h-7 px-1.5 gap-1 text-xs" aria-label="Move deliverable to another WP">
                       <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                      Move
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>

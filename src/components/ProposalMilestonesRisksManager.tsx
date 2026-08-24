@@ -31,7 +31,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
-import { SaveIndicator } from '@/components/SaveIndicator';
 import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
@@ -45,7 +44,7 @@ import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
-import { TextFormattingGroup } from '@/components/toolbar';
+import { DraftFormattingToolbar } from '@/components/DraftFormattingToolbar';
 import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
@@ -109,10 +108,12 @@ const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 // Fixed column tracks shared by each row's metadata line and the label header
 // row above the list, so fields align across rows. A column is reserved for
 // every control, including on rows that do not render one.
-const MILESTONE_META_GRID =
-  'grid grid-cols-[13rem_8rem_1fr_2.25rem] items-start gap-x-2';
-const RISK_META_GRID =
-  'grid grid-cols-[5rem_5rem_13rem_1fr_2.25rem] items-start gap-x-2';
+/* Line 1 of a milestone row: name, then its metadata in fixed columns. */
+const MILESTONE_LINE1_GRID =
+  'grid grid-cols-[1fr_13rem_8rem_2.25rem] items-start gap-x-2';
+/* Line 1 of a risk row: description, then its metadata in fixed columns. */
+const RISK_LINE1_GRID =
+  'grid grid-cols-[1fr_5rem_5rem_13rem_2.25rem] items-start gap-x-2';
 
 
 
@@ -240,6 +241,29 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
   const runOnActiveEditor = (fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
     if (!activeEditor || activeEditor.isDestroyed) return;
     fn(activeEditor.chain().focus());
+  };
+
+  /**
+   * Maps the shared toolbar's execCommand-style vocabulary onto the focused
+   * TipTap editor, so this page uses the same toolbar as every other surface.
+   */
+  const execCommand = (command: string, value?: string) => {
+    runOnActiveEditor((chain) => {
+      const c = chain as any;
+      switch (command) {
+        case 'bold': c.toggleBold().run(); break;
+        case 'italic': c.toggleItalic().run(); break;
+        case 'underline': c.toggleUnderline().run(); break;
+        case 'insertUnorderedList': c.toggleBulletList?.().run(); break;
+        case 'insertOrderedList': c.toggleOrderedList?.().run(); break;
+        case 'justifyLeft': c.setTextAlign?.('left')?.run(); break;
+        case 'justifyCenter': c.setTextAlign?.('center')?.run(); break;
+        case 'justifyRight': c.setTextAlign?.('right')?.run(); break;
+        case 'justifyFull': c.setTextAlign?.('justify')?.run(); break;
+        case 'insertHTML': c.insertContent(value ?? '').run(); break;
+        default: break;
+      }
+    });
   };
   const qc = useQueryClient();
 
@@ -611,16 +635,36 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     <div className="p-6 space-y-6 compact-ref-badges">
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
-        {canEdit && (
-          <SaveIndicator
-            saving={activeSaves > 0}
-            lastSaved={lastSaved}
-            hasUnsavedChanges={pendingTextareas > 0}
-            saveError={saveError}
-            onSaveNow={saveNow}
-          />
-        )}
       </div>
+
+      {/* Shared focus-dependent toolbars, as on every other editing surface. */}
+      {canEdit && (
+        <div className="sticky top-0 z-20">
+          <DraftFormattingToolbar
+            hasFocusedField={!!activeEditor}
+            capabilities={getEditorCapabilities(activeEditor)}
+            save={{
+              saving: activeSaves > 0,
+              lastSaved,
+              saveError,
+              onSaveNow: saveNow,
+            }}
+            onCommand={execCommand}
+            trailing={
+              getEditorCapabilities(activeEditor).crossReferences ? (
+                <>
+                  <Separator orientation="vertical" className="h-5 mx-1.5" />
+                  <ParticipantCrossRefDropdown
+                    proposalId={proposalId}
+                    acronymSegments={acronymSegments}
+                    editor={activeEditor}
+                  />
+                </>
+              ) : null
+            }
+          />
+        </div>
+      )}
 
 
       {/* Milestones */}
@@ -630,31 +674,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
           <MilestonesGuidelinesInline />
         </CardHeader>
         <CardContent>
-          {canEdit && (
-            <div
-              className="mb-3 p-1.5 border rounded-md bg-card flex items-center gap-0.5 flex-wrap shadow-sm"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) e.preventDefault();
-              }}
-            >
-              <span className="text-xs text-muted-foreground px-1.5">Means of verification:</span>
-              <TextFormattingGroup
-                onBold={() => runOnActiveEditor((c) => c.toggleBold().run())}
-                onItalic={() => runOnActiveEditor((c) => c.toggleItalic().run())}
-                onUnderline={() => runOnActiveEditor((c) => c.toggleUnderline().run())}
-              />
-              {getEditorCapabilities(activeEditor).crossReferences && (
-                <>
-                  <Separator orientation="vertical" className="h-5 mx-1.5" />
-                  <ParticipantCrossRefDropdown
-                    proposalId={proposalId}
-                    acronymSegments={acronymSegments}
-                    editor={activeEditor}
-                  />
-                </>
-              )}
-            </div>
-          )}
+
 
 
 
@@ -665,10 +685,10 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {orderedMs.length > 0 && (
               <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
                 <div />
-                <div className={cn(MILESTONE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+                <div className={cn(MILESTONE_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Milestone name</div>
                   <div>WP(s)</div>
                   <div>Due month</div>
-                  <div />
                   <div />
                 </div>
               </div>
@@ -683,23 +703,22 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                 .sort((a, b) => a.number - b.number);
               return (
                 <div key={m.id} className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-                  {/* ── Line 1: MS chip + full-width milestone name ── */}
+                  {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
                   <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
                     <MilestoneBadge number={m.number} />
                   </span>
-                  <div className="min-w-0">
-                    <DebouncedRichField
-                      value={m.title || ''}
-                      disabled={!canEdit}
-                      minHeight="30px"
-                      proposalId={proposalId}
-                      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                    />
-                  </div>
 
-                  {/* ── Line 2: shorter metadata fields in fixed columns ── */}
-                  <div className={cn(MILESTONE_META_GRID, 'col-start-2')}>
+                  <div className={MILESTONE_LINE1_GRID}>
+                    <div className="min-w-0">
+                      <DebouncedRichField
+                        value={m.title || ''}
+                        disabled={!canEdit}
+                        minHeight="30px"
+                        proposalId={proposalId}
+                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                      />
+                    </div>
                     <div>
                       <MilestoneWpDialog
                         wps={wps}
@@ -743,7 +762,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                         onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
                       />
                     </div>
-                    <div />
                     <div className="flex justify-center">
                       <Button
                         size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
@@ -755,7 +773,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                     </div>
                   </div>
 
-                  {/* ── Line 3: means of verification, full width, aligned with the name above ── */}
+                  {/* ── Line 2: means of verification, aligned with the name above ── */}
                   <div className="col-start-2">
                     <div className="text-xs font-medium text-muted-foreground pb-0.5">Means of verification</div>
                     <DebouncedRichField
@@ -806,13 +824,13 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
             {/* Column labels for the second line — same fixed grid as every row,
                 indented to align with the risk description above. */}
             {risks.length > 0 && (
-              <div className="grid grid-cols-[26px_40px_1fr] gap-x-2 px-1 pb-1 border-b">
-                <div /><div />
-                <div className={cn(RISK_META_GRID, 'text-xs font-medium text-muted-foreground')}>
+              <div className="grid grid-cols-[26px_1fr] gap-x-2 px-1 pb-1 border-b">
+                <div />
+                <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                  <div>Risk description</div>
                   <div className="text-center">i.</div>
                   <div className="text-center">ii.</div>
                   <div>WP(s)</div>
-                  <div />
                   <div />
                 </div>
               </div>
@@ -891,8 +909,8 @@ function SortableRiskRow({
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_40px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: grip + risk number + full-width description ── */}
+    <div ref={setNodeRef} style={style} className="group grid grid-cols-[26px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
+      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ── */}
       <span className="flex-none w-[26px] flex items-center justify-center pt-1">
         {canEdit && (
           <button
@@ -906,30 +924,17 @@ function SortableRiskRow({
           </button>
         )}
       </span>
-      <span
-        className="flex-none whitespace-nowrap pt-0.5 w-[40px]"
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
-          fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
-          borderRadius: '9999px', marginTop: 4,
-        }}
-      >
-        R{risk.number}
-      </span>
-      <div className="min-w-0">
-        <DebouncedRichField
-          value={risk.title || ''}
-          disabled={!canEdit}
-          minHeight="30px"
-          proposalId={proposalId}
-          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-          onChange={(html) => onUpdate({ title: html })}
-        />
-      </div>
-
-      {/* ── Line 2: likelihood / severity / WP(s) in fixed columns ── */}
-      <div className={cn(RISK_META_GRID, 'col-start-3')}>
+      <div className={RISK_LINE1_GRID}>
+        <div className="min-w-0">
+          <DebouncedRichField
+            value={risk.title || ''}
+            disabled={!canEdit}
+            minHeight="30px"
+            proposalId={proposalId}
+            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+            onChange={(html) => onUpdate({ title: html })}
+          />
+        </div>
         <div className="flex justify-center">
           <RiskLevelSelect
             value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
@@ -952,7 +957,6 @@ function SortableRiskRow({
             onChange={onSetWps}
           />
         </div>
-        <div />
         <div className="flex justify-center">
           <Button
             size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
@@ -964,8 +968,8 @@ function SortableRiskRow({
         </div>
       </div>
 
-      {/* ── Line 3: mitigation & adaptation measures, full width, aligned with the description above ── */}
-      <div className="col-start-3">
+      {/* ── Line 2: mitigation & adaptation measures, aligned with the description above ── */}
+      <div className="col-start-2">
         <div className="text-xs font-medium text-muted-foreground pb-0.5">Mitigation &amp; adaptation measures</div>
         <DebouncedRichField
           value={risk.mitigation || ''}
@@ -1011,16 +1015,6 @@ function RiskLevelSelect({
   );
 }
 // ── Inline guidelines rendered under each card title ──
-function LMHBadgesInline() {
-  return (
-    <span className="inline-flex items-center gap-1 align-middle mx-1">
-      <RiskBadge level="L" />
-      <RiskBadge level="M" />
-      <RiskBadge level="H" />
-    </span>
-  );
-}
-
 function MilestonesGuidelinesInline() {
   return (
     <div className="text-xs text-muted-foreground space-y-1.5 pt-1">
@@ -1061,13 +1055,18 @@ function RisksGuidelinesInline() {
         a high adverse impact on the ability of the project to achieve its objectives.
       </p>
       <p>
-        <span className="font-medium text-foreground">i. Level of likelihood to occur</span><LMHBadgesInline />: the
+        <span className="font-medium text-foreground">i. Level of likelihood to occur</span>: the
         estimated probability that the risk will materialise, even after taking account of the mitigating measures put
         in place.
       </p>
       <p>
-        <span className="font-medium text-foreground">ii. Level of severity</span><LMHBadgesInline />: the relative
+        <span className="font-medium text-foreground">ii. Level of severity</span>: the relative
         seriousness of the risk and the significance of its effect.
+      </p>
+      <p className="flex flex-wrap items-center gap-1">
+        <RiskBadge level="L" /><span>= low likelihood or severity;</span>
+        <RiskBadge level="M" /><span>= medium;</span>
+        <RiskBadge level="H" /><span>= high.</span>
       </p>
     </div>
   );
