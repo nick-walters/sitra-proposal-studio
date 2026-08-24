@@ -64,7 +64,7 @@ interface LinkedActivitiesTableProps {
   controller?: ReturnType<typeof useLinkedActivities>;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(5.7rem,0.57fr)_minmax(12.5rem,1.4fr)]';
+const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(11rem,1.3fr)_minmax(5.7rem,0.57fr)_minmax(12.5rem,1.4fr)_2.25rem]';
 
 const NONE = '__none__';
 
@@ -217,18 +217,20 @@ function SortableActivityRow({
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
+        </div>
+
+        {/* Fixed delete column: inside the block, identical position on every
+            row whatever the participant chip's width. */}
+        <div className="flex w-9 shrink-0 items-center justify-center">
           {canEdit && (
-            // Pushed to the right edge of its column so every row's delete
-            // icon lines up vertically, whatever the participant chip's width.
-            <span className="ml-auto shrink-0">
-              <DeleteConfirmDialog
-                itemLabel="this linked activity"
-                tooltip="Delete this linked activity"
-                onConfirm={() => onDelete(activity.id)}
-              />
-            </span>
+            <DeleteConfirmDialog
+              itemLabel="this linked activity"
+              tooltip="Delete this linked activity"
+              onConfirm={() => onDelete(activity.id)}
+            />
           )}
         </div>
+
 
       </div>
 
@@ -360,6 +362,7 @@ export default function LinkedActivitiesTable({
           <span>Funding instrument</span>
           <span>Duration</span>
           <span>Participant responsible for establishing the link</span>
+          <span />
         </div>
       )}
 

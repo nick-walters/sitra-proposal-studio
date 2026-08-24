@@ -581,7 +581,10 @@ function FieldRow({
                     id={`include-header-${field.id}`}
                     checked={field.headingEnabled}
                     onCheckedChange={(v) => onToggleHeading(field, v)}
-                    className="scale-75"
+                    // Explicit tones: the shared default read almost white
+                    // against the card surface once the header row was
+                    // restyled.
+                    className="scale-75 border border-border data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground/40"
                   />
                 </Tip>
                 <Label
@@ -1000,139 +1003,110 @@ function CardBlock({
             )}
           </div>
 
-          {/* Controls stay at full opacity when the block is hidden — only the
-              block's content dims, so the toggle that restores it is never
-              itself greyed out. */}
-          <div className="ml-auto flex items-center gap-1 opacity-100">
+          {/* Fixed control columns: visibility | add | restore | delete.
+              Every block reserves all four, so a block that lacks a control
+              leaves its column empty instead of pulling the rest out of line.
+              Controls stay at full opacity when the block is hidden — only the
+              block's content dims. */}
+          <div className="ml-auto grid shrink-0 grid-cols-[40px_88px_88px_40px] items-center justify-items-center gap-1 opacity-100">
 
-            {/* The title is cleared by editing it inline; no icon that could be
-                mistaken for the delete control. */}
-
-            {canEdit && card.isHideable && (
-              // Icon outside the toggle: large enough to read, swaps with the
-              // green/red state (eye = visible, struck-through eye = hidden).
-              <div className="flex items-center gap-1.5">
-                {card.isVisible ? (
-                  <Eye className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
-                ) : (
-                  <EyeOff className="h-4 w-4 text-destructive" strokeWidth={2.5} />
-                )}
-                <Tip
-                  label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}
+            {/* Column 1 — visibility */}
+            {canEdit && card.isHideable ? (
+              <Tip label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-pressed={!card.isVisible}
+                  onClick={() => onToggleVisible(card)}
                 >
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!card.isVisible}
-                    onClick={() => onToggleVisible(card)}
-                    className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors"
-                  >
-                    <span
-                      className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full shadow transition-transform"
-                      style={{
-                        backgroundColor: card.isVisible ? '#16a34a' : '#dc2626',
-                        transform: `translateY(-50%) translateX(${card.isVisible ? 3 : 19}px)`,
-                      }}
-                    />
-                  </button>
-                </Tip>
-              </div>
+                  {card.isVisible ? (
+                    <Eye className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-destructive" strokeWidth={2.5} />
+                  )}
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
             )}
 
-            {isLinkedActivitiesCard && canEdit && (
-              <>
-                <Tip label="Add activity">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      linkedActivities
-                        .addActivity()
-                        .catch(() => toast.error('Could not add the activity'))
-                    }
-                  >
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Add
-                  </Button>
-                </Tip>
-                {linkedActivities.deletedActivities.length > 0 && (
-                  <Tip
-                    label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActivityBinOpen(true)}
-                    >
-                      <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                      Restore
-                    </Button>
-                  </Tip>
-                )}
-              </>
-            )}
-
-            {canAddModule && (
-              <Tip label="Add module to this block">
+            {/* Column 2 — add */}
+            {isLinkedActivitiesCard && canEdit ? (
+              <Tip label="Add activity">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onAddField(card)}
+                  onClick={() =>
+                    linkedActivities
+                      .addActivity()
+                      .catch(() => toast.error('Could not add the activity'))
+                  }
                 >
                   <Plus className="mr-1 h-3.5 w-3.5" />
                   Add
                 </Button>
               </Tip>
+            ) : canAddModule ? (
+              <Tip label="Add module to this block">
+                <Button variant="ghost" size="sm" onClick={() => onAddField(card)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
             )}
 
-            {canEdit && binCount > 0 && (
-              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onOpenBin(card)}
-                >
+            {/* Column 3 — restore */}
+            {isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
+              <Tip
+                label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
+              >
+                <Button variant="ghost" size="sm" onClick={() => setActivityBinOpen(true)}>
                   <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                   Restore
                 </Button>
               </Tip>
+            ) : !isLinkedActivitiesCard && canEdit && binCount > 0 ? (
+              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
+                <Button variant="ghost" size="sm" onClick={() => onOpenBin(card)}>
+                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                  Restore
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
             )}
 
-            {canEdit &&
-              (card.isDeletable ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Tip label="Delete block">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </Tip>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Delete “{card.title || 'this block'}”?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        The block and its modules move to the recycle bin and can be restored.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeleteCard(card)}>Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                // Undeletable blocks (linked activities, references) reserve the
-                // delete button's footprint so every block's controls line up in
-                // the same columns.
-                <span aria-hidden="true" className="h-10 w-10 shrink-0" />
-              ))}
+            {/* Column 4 — delete */}
+            {canEdit && card.isDeletable ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Tip label="Delete block">
+                    <Button variant="ghost" size="icon" className="text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </Tip>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Delete “{card.title || 'this block'}”?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      The block and its modules move to the recycle bin and can be restored.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDeleteCard(card)}>Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <span aria-hidden="true" />
+            )}
 
           </div>
         </CardHeader>
@@ -1749,46 +1723,34 @@ function BoardInner({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {/* Single page-level toggle, styled like the block visibility
-                toggle and carrying the SAME chevron as the per-block collapse
-                controls: up = collapsed, down = expanded. */}
+            {/* Single page-level icon button carrying the SAME chevron as the
+                per-block collapse controls: up = collapse all, down = expand
+                all. No toggle track. */}
             {(() => {
               const allCollapsed =
                 visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
               return (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">
-                    {allCollapsed ? 'All collapsed' : 'Expanded'}
-                  </span>
-                  <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={allCollapsed}
-                      disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
-                      onClick={() =>
-                        setAllCollapsed.mutate({
-                          ids: visibleCardIds,
-                          collapsed: !allCollapsed,
-                        })
-                      }
-                      className="relative h-5 w-9 shrink-0 rounded-full border border-input bg-background transition-colors disabled:opacity-50"
-                    >
-                      <span
-                        className="absolute left-0 top-1/2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-foreground text-background shadow transition-transform"
-                        style={{
-                          transform: `translateY(-50%) translateX(${allCollapsed ? 19 : 3}px)`,
-                        }}
-                      >
-                        {allCollapsed ? (
-                          <ChevronUp className="h-2.5 w-2.5" strokeWidth={3} />
-                        ) : (
-                          <ChevronDown className="h-2.5 w-2.5" strokeWidth={3} />
-                        )}
-                      </span>
-                    </button>
-                  </Tip>
-                </div>
+                <Tip label={allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-pressed={allCollapsed}
+                    disabled={setAllCollapsed.isPending || visibleCardIds.length === 0}
+                    onClick={() =>
+                      setAllCollapsed.mutate({
+                        ids: visibleCardIds,
+                        collapsed: !allCollapsed,
+                      })
+                    }
+                  >
+                    {allCollapsed ? (
+                      <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                  </Button>
+                </Tip>
               );
             })()}
             {canEdit && (
