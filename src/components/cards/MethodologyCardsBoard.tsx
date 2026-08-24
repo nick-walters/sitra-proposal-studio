@@ -865,6 +865,26 @@ function CardBlock({
   const canAddModule =
     canEdit && !isPlaceholderCard && !isLinkedActivitiesCard && card.kind !== 'figure';
 
+  // Dragging also collapses (kept from before); the user's own collapse
+  // preference is independent of it and persists across page loads.
+  const contentHidden = collapsed || userCollapsed;
+
+  /** One-line "what's inside" shown in the header while collapsed. */
+  const collapsedSummary = (() => {
+    if (card.kind === 'references')
+      return `${referenceCount} reference${referenceCount === 1 ? '' : 's'}`;
+    if (card.kind === 'figure') return figureSummary ?? 'Figure';
+    if (isLinkedActivitiesCard) {
+      const n = linkedActivities.activities.length;
+      return `${n} linked ${n === 1 ? 'activity' : 'activities'}`;
+    }
+    // Source-fed tables are captioned by the block title itself, which stays
+    // visible in the header — the summary just names the kind.
+    if (card.isSourceFed) return 'Source-fed table';
+    const n = fields.length;
+    return `${n} module${n === 1 ? '' : 's'}`;
+  })();
+
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -937,9 +957,28 @@ function CardBlock({
                 )}
               </div>
             )}
+            {userCollapsed && (
+              <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
+            )}
           </div>
 
           <div className="ml-auto flex items-center gap-1">
+            {/* Per-user collapse — a view preference, so offered to viewers as
+                well as editors. It never touches document state. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={userCollapsed ? 'Expand block' : 'Collapse block'}
+              title={userCollapsed ? 'Expand block' : 'Collapse block'}
+              onClick={onToggleCollapse}
+              className="h-7 w-7"
+            >
+              {userCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
             {/* The title is cleared by editing it inline; no icon that could be
                 mistaken for the delete control. */}
 
@@ -1055,7 +1094,9 @@ function CardBlock({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3 px-5">
+        {/* Hidden, not unmounted: editors keep their state and no unmount-time
+            flush can fire. Collapse changes nothing the document records. */}
+        <CardContent className={contentHidden ? 'hidden' : 'space-y-3 px-5'}>
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isLinkedActivitiesCard ? (
