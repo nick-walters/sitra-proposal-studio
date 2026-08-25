@@ -176,9 +176,6 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let chip-pad = 3.5pt
 #let chip-height = 11pt
 #let chip-label-shift = 1.6pt
-// The measured vertical drop of a chip label's baseline below the body
-// baseline (pill/polygon chips). Shapeless chips reproduce it directly.
-#let chip-baseline-drop = 0.36pt
 
 /// Chip text is shifted down inside a fixed 11pt box. Measured on the compiled
 /// PDF at 1200 ppi (Nimbus Roman, 11pt body): a 10pt bold label leaves 2.52pt
