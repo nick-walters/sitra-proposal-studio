@@ -45,7 +45,7 @@ import {
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { emitCasesTable, type CasesTypstData } from './casesData';
-import { countCaptionSlots, captionKind } from '@/lib/cards/captionSlots';
+import { countCaptionSlots, captionKind, captionLetter } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
   fetchSectionCitationSources,
