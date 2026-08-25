@@ -122,6 +122,23 @@ export function B32SectionContent({ proposalId }: Props) {
   const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [badgeDims, setBadgeDims] = useState<Array<{ w: number; h: number }>>([]);
 
+  // The block the matrix sits in is the only authority on how wide the table
+  // may be. We measure it and fit the columns inside it, so no persisted or
+  // computed width can push the table past its container.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerPx, setContainerPx] = useState<number | null>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w > 0) setContainerPx((prev) => (prev !== null && Math.abs(prev - w) < 1 ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
@@ -129,6 +146,7 @@ export function B32SectionContent({ proposalId }: Props) {
     tableKey: 'b32-expertise-matrix',
     canResize,
     minWidth: ROTATED_COL_MIN_PX,
+    maxTotalWidth: containerPx ?? undefined,
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
 
@@ -201,7 +219,10 @@ export function B32SectionContent({ proposalId }: Props) {
   // AUTO width logic (only used when no manual widths persisted):
   //  - Every check column capped at ONE_CM_PX (1cm), min ROTATED_COL_MIN_PX.
   //  - If no expertise label needs wrapping, table shrinks to its content.
-  const ASSUMED_CONTAINER_PX = 680;
+  // Measured block width when available; the old hard-coded 680 was the reason
+  // the auto width could exceed the block it sits in.
+  const ASSUMED_CONTAINER_PX = containerPx ?? 680;
+
   const numChecks = orderedCols.length;
   const PX_PER_EXPERTISE_CHAR = 6.5;
   const expertiseContentNeedsPx = (label: string) =>
@@ -220,18 +241,43 @@ export function B32SectionContent({ proposalId }: Props) {
   );
 
   // Per-column width resolution: manual wins (no 1cm clamp), else auto default.
-  const colWidthFor = (i: number): number => {
+  const baseWidthFor = (i: number): number => {
     if (hasManualWidths) return colWidths[i];
     return i === 0 ? expertiseColPx : autoCheckColWidthPx;
   };
 
-  const autoContentWidthPx = expertiseColPx + numChecks * autoCheckColWidthPx;
-  const manualContentWidthPx = hasManualWidths ? colWidths.reduce((s, w) => s + w, 0) : 0;
-  const tableWidthStyle: React.CSSProperties = hasManualWidths
-    ? { width: `${manualContentWidthPx}px` }
-    : anyExpertiseWraps
-      ? { width: '100%' }
-      : { width: `${autoContentWidthPx}px` };
+  // Fit the columns inside the block: shrink the expertise column first (down
+  // to a readable floor), then scale the check columns proportionally, never
+  // below their rotated-badge minimum.
+  const EXPERTISE_MIN_PX = 80;
+  const baseWidths = Array.from({ length: 1 + numChecks }, (_, i) => baseWidthFor(i));
+  const fittedWidths = (() => {
+    const widths = [...baseWidths];
+    const total = widths.reduce((s, w) => s + w, 0);
+    const cap = containerPx ?? Infinity;
+    if (!Number.isFinite(cap) || total <= cap) return widths;
+    let overflow = total - cap;
+    const expShrink = Math.min(overflow, Math.max(0, widths[0] - EXPERTISE_MIN_PX));
+    widths[0] -= expShrink;
+    overflow -= expShrink;
+    if (overflow > 0 && numChecks > 0) {
+      const checksTotal = widths.slice(1).reduce((s, w) => s + w, 0);
+      const factor = checksTotal > 0 ? Math.max(0, (checksTotal - overflow) / checksTotal) : 1;
+      for (let i = 1; i < widths.length; i += 1) {
+        widths[i] = Math.max(ROTATED_COL_MIN_PX, Math.floor(widths[i] * factor));
+      }
+    }
+    return widths;
+  })();
+
+  const colWidthFor = (i: number): number => fittedWidths[i] ?? baseWidthFor(i);
+
+  const fittedTotalPx = fittedWidths.reduce((s, w) => s + w, 0);
+  const useFullWidth = !hasManualWidths && anyExpertiseWraps && (containerPx === null || fittedTotalPx >= containerPx);
+  const tableWidthStyle: React.CSSProperties = useFullWidth
+    ? { width: '100%', maxWidth: '100%' }
+    : { width: `${fittedTotalPx}px`, maxWidth: '100%' };
+
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -267,7 +313,10 @@ export function B32SectionContent({ proposalId }: Props) {
   };
 
   return (
-    <div className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]">
+    <div
+      ref={containerRef}
+      className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px] w-full max-w-full"
+    >
       <EditableCaption
         proposalId={proposalId}
         tableKey="b32-expertise-matrix"
@@ -364,7 +413,9 @@ export function B32SectionContent({ proposalId }: Props) {
                         </span>
                       )}
                   </div>
-                  {canResize && colIdx < lastColIdx && (
+                  {/* The final column gets a handle too: the hook treats the
+                      last border as a table-width drag, capped at the block. */}
+                  {canResize && (
                     <ColumnResizer onMouseDown={handleColResizeStart(colIdx)} />
                   )}
                 </th>
