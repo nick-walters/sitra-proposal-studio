@@ -77,6 +77,12 @@ function titleText(value: string | null | undefined): string {
 
 
 
+import {
+  B32_CONDITIONAL_KEYS,
+  deriveB32Signals,
+  resolveB32Condition,
+} from '@/lib/cards/b32Conditions';
+
 const BAND_ORDER: Record<string, number> = { head: 0, free: 1, tail: 2 };
 
 export interface SectionBlockTree {
@@ -98,12 +104,40 @@ export async function fetchSectionBlockTree(
     .order('order_index');
   if (cardError) throw cardError;
 
-  const cards = (cardRows || [])
+  let cards = (cardRows || [])
     .map(mapCard)
     .sort(
       (a, b) =>
         (BAND_ORDER[a.anchor] ?? 1) - (BAND_ORDER[b.anchor] ?? 1) || a.orderIndex - b.orderIndex,
     );
+
+  // B3.2's two conditional blocks: excluded when the consortium does not have
+  // what they describe, and their heading names only the halves present. Both
+  // are derived from A2 at render time — nothing is stored (b32Conditions.ts).
+  if (cards.some((c) => B32_CONDITIONAL_KEYS.includes(c.templateKey as never))) {
+    const [propR, partR] = await Promise.all([
+      supabase
+        .from('proposals')
+        .select(
+          'mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification',
+        )
+        .eq('id', proposalId)
+        .maybeSingle(),
+      supabase
+        .from('participants')
+        .select('organisation_category, organisation_type, country')
+        .eq('proposal_id', proposalId),
+    ]);
+    const signals = deriveB32Signals(propR.data, partR.data || []);
+    cards = cards
+      .map((c) => {
+        const r = resolveB32Condition(c.templateKey, signals);
+        if (!r.conditional) return c;
+        if (!r.met) return null;
+        return r.title ? { ...c, title: r.title } : c;
+      })
+      .filter(Boolean) as ProposalCard[];
+  }
 
   const fieldsByCard: Record<string, CardField[]> = {};
   if (cards.length) {
