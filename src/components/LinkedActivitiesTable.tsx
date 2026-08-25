@@ -74,7 +74,23 @@ interface LinkedActivitiesTableProps {
   captionLabel?: string;
 }
 
-const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(17rem,2.75fr)_minmax(5.7rem,0.57fr)_minmax(9rem,0.85fr)_2.25rem]';
+/** Document table spec: TNR 11pt, tight cells, no vertical rules. */
+const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+const cellStyles =
+  "px-[6pt] py-[2pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const firstCellStyles = `${cellStyles} !pl-0`;
+
+/**
+ * Controls embedded in cells read as document text until hovered or focused:
+ * transparent border and background, revealing the affordance on interaction.
+ */
+const SUBTLE_CONTROL =
+  "[&_button]:border-transparent [&_button]:bg-transparent [&_button]:shadow-none [&_input]:border-transparent [&_input]:bg-transparent [&_input]:shadow-none hover:[&_button]:border-input hover:[&_input]:border-input focus-within:[&_button]:border-input focus-within:[&_input]:border-input";
+
+/** The 18 cm text column, in CSS pixels — the hard cap for every table. */
+const BLOCK_WIDTH = 768;
+
+const DEFAULT_COL_PCT = ['3%', '30%', '42%', '9%', '12%', '4%'];
 
 const NONE = '__none__';
 
@@ -112,8 +128,12 @@ function SortableActivityRow({
   const isOther = activity.instrumentCode === 'OTHER';
 
   return (
-    <div ref={setNodeRef} style={style} className="space-y-2 rounded-md border border-border p-3">
-      <div className={GRID}>
+    /* One <tbody> per activity: the sortable unit keeps the scalar row and the
+       full-width description row travelling together while staying valid HTML. */
+    <tbody ref={setNodeRef} style={style} className="border-y border-gray-200">
+      <tr>
+        <td className={firstCellStyles}>
+
         {canEdit ? (
           <Tip label="Drag to reorder this activity">
             <button
