@@ -56,9 +56,25 @@ export interface TypstCompileResult {
   compileMs: number;
 }
 
+/** A binary file (a rasterised figure) made visible to the compiler. */
+export interface TypstAsset {
+  /** Virtual path referenced from the source, e.g. "/figures/gantt.png". */
+  path: string;
+  bytes: Uint8Array;
+}
+
 /** Compiles Typst source to PDF bytes. Throws with the compiler diagnostic. */
-export async function compileTypstToPdf(source: string): Promise<TypstCompileResult> {
+export async function compileTypstToPdf(
+  source: string,
+  assets: TypstAsset[] = [],
+): Promise<TypstCompileResult> {
   const typst = await getSnippet();
+  // Shadow files are global to the compiler instance; clear anything a
+  // previous compile left behind so a deleted figure cannot linger.
+  await typst.resetShadow();
+  for (const asset of assets) {
+    await typst.mapShadow(asset.path, asset.bytes);
+  }
   const started = performance.now();
   const pdf: Uint8Array = await typst.pdf({ mainContent: source });
   return { pdf, compileMs: Math.round(performance.now() - started) };
