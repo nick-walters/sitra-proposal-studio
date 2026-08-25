@@ -19,19 +19,24 @@ import nimbusItalic from '@/assets/typst/NimbusRoman-Italic.otf.asset.json';
 import nimbusBoldItalic from '@/assets/typst/NimbusRoman-BoldItalic.otf.asset.json';
 // Display face for the banner, the H1/H2 headings and figure text. The
 // compiler has no system-font access, so the same TTF the platform relies on
-// (`local('Arial Black')` in index.css) is bundled and registered explicitly;
-// it reports family "Arial Black" / PostScript "Arial-Black" and its OS/2
-// fsType is 0, so embedding it in the produced PDF is permitted.
+// (`local('Arial Black')` in index.css) is represented in Typst by the bundled
+// Archivo Black fallback. It is registered explicitly and is embeddable.
 import arialBlackUrl from '@/assets/fonts/arial_black.ttf?url';
 
 const FONT_URLS = [
+  arialBlackUrl,
   nimbusRegular.url,
   nimbusBold.url,
   nimbusItalic.url,
   nimbusBoldItalic.url,
-  arialBlackUrl,
 ];
 
+export interface TypstFontDiagnostics {
+  arialBlackByteLength: number;
+  loadedFonts: string[];
+}
+
+let fontDiagnostics: TypstFontDiagnostics | null = null;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let snippetPromise: Promise<any> | null = null;
@@ -48,10 +53,27 @@ async function getSnippet(): Promise<any> {
       getModule: () => fetch(compilerWasm.url).then((r) => r.arrayBuffer()),
       beforeBuild: [],
     });
+    // Resolve the assets ourselves and hand the compiler the raw bytes. Passing
+    // Vite's URL strings through typst.ts made the requests succeed, but the
+    // Arial face was silently absent from the resolver and Typst substituted
+    // Nimbus Roman. Raw buffers take the unambiguous add_raw_font path.
+    const fontBuffers = await Promise.all(
+      FONT_URLS.map(async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Unable to load Typst font (${response.status})`);
+        return new Uint8Array(await response.arrayBuffer());
+      }),
+    );
     typst.use(
       TypstSnippet.disableDefaultFontAssets(),
-      TypstSnippet.preloadFonts(FONT_URLS),
+      TypstSnippet.preloadFonts(fontBuffers),
     );
+    const compiler = await typst.getCompiler();
+    const loaded = compiler?.compiler?.get_loaded_fonts?.();
+    fontDiagnostics = {
+      arialBlackByteLength: fontBuffers[0]?.byteLength ?? 0,
+      loadedFonts: Array.isArray(loaded) ? loaded.map(String) : [],
+    };
     return typst;
   })();
   return snippetPromise;
@@ -61,6 +83,12 @@ async function getSnippet(): Promise<any> {
 export async function preloadTypst(): Promise<void> {
   const typst = await getSnippet();
   await typst.getCompiler();
+}
+
+/** Runtime evidence from the same buffers and resolver used for compilation. */
+export async function getTypstFontDiagnostics(): Promise<TypstFontDiagnostics> {
+  await getSnippet();
+  return fontDiagnostics ?? { arialBlackByteLength: 0, loadedFonts: [] };
 }
 
 export interface TypstCompileResult {
