@@ -1614,6 +1614,8 @@ StarterKit.configure({
       // Acronym reference for colored acronym insertion
       AcronymReference,
       CaptionLabel,
+      CaptionAutoNumber.configure({ getConfig: () => captionNumberingRef.current ?? null }),
+
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
