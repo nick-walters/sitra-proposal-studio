@@ -908,9 +908,11 @@ function CardBlock({
   }, [card.title]);
 
   const displayedTitle =
-    (titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
-    card.title ??
-    null;
+    conditionTitle ??
+    ((titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
+      card.title ??
+      null);
+
 
 
   useEffect(() => {
