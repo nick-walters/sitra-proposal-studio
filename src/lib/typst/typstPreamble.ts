@@ -264,14 +264,21 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-inset = (x: 5pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.
+/// \`sticky: true\` binds it to the block that FOLLOWS it, so a caption can
+/// never be orphaned at the foot of a page: it moves to the next page with
+/// its table. The table itself stays breakable, so a long table still splits
+/// across pages — the caption simply travels with its first page.
 #let he-caption(label, caption) = block(
   width: he-table-width,
   above: 6pt,
   below: 1pt,
+  sticky: true,
   text(size: 11pt, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
 
-/// Caption below a figure, same typography.
+/// Caption below a figure, same typography. Nothing is sticky here: the
+/// binding is on the FIGURE above it (see \`he-image\`), which is what has to
+/// drag the caption along.
 #let he-figure-caption(label, caption) = block(
   width: he-table-width,
   above: 3pt,
