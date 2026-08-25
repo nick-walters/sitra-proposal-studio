@@ -10,7 +10,11 @@ import type { Node as PMNode } from '@tiptap/pm/model';
  * / Expected outcomes / Expected impacts.
  *
  * A logical row therefore spans both parts, so every add and delete is applied
- * to both tables at the same body-row index. Column widths are NOT touched
+ * to both tables at the same body-row index. The pairing is not a convention
+ * these helpers observe: the `PairedTables` extension rejects ANY transaction
+ * that changes one part's row count on its own, so no drifted state exists.
+ * (A single six-column table node cannot be used, because the two parts must
+ * keep independent column widths, and one table has one set of columns.) Column widths are NOT touched
  * here — the two parts keep resizing independently.
  */
 
