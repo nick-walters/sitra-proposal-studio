@@ -131,6 +131,24 @@ function footerSource(meta: TypstDocMeta): string {
 }`;
 }
 
+/**
+ * The running header: the topic identifier, centred, on every page except the
+ * first — page one carries the full-bleed banner, and a header above it would
+ * print inside the black area.
+ */
+function headerSource(meta: TypstDocMeta): string {
+  const text = (meta.runningHeader || '').trim();
+  if (!text) return 'none';
+  return `context {
+  if counter(page).at(here()).first() > 1 {
+    set align(center)
+    set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
+    t(${typstString(text)})
+  }
+}`;
+}
+
+
 /** The whole preamble, parameterised by the document's footer/banner text. */
 export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   return `#set text(
