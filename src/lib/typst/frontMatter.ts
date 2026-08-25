@@ -247,7 +247,7 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
   const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');
-  out.push(`he-table((${cols}), (${header.join(', ')}), (${rows.join(', ')}))`);
+  out.push(`he-table((${cols},), (${header.join(', ')},), (${rows.join(', ')},))`);
   return out;
 }
 

@@ -74,7 +74,7 @@ function caption(data: B31TypstData, key: string, label: string, fallback: strin
 function table(cols: string, header: string[], rows: string[][], aligns?: string[]): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
-  const alignSrc = aligns ? `, aligns: (${aligns.join(', ')})` : '';
+  const alignSrc = aligns ? `, aligns: (${aligns.join(', ')},)` : '';
   return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc})`;
 }
 
@@ -337,7 +337,7 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
 
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
-    `he-grid(${cols}, (${cells.join(', ')}))`,
+    `he-grid(${cols}, (${cells.join(', ')},))`,
   ];
 }
 
@@ -434,7 +434,7 @@ export function emitSubcontracting(
   ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')}), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
   ];
 }
 
@@ -455,7 +455,7 @@ export function emitMergedJustification(
   ]);
   return [
     caption(data, tableKey, label, defaultCaption),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')}), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
   ];
 }
 
