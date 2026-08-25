@@ -1266,17 +1266,16 @@ const SECTION_CAPTION_NUMBER = '1.2';
 function BoardInner({
   proposalId,
   sectionId,
+  sectionNumber,
   canEdit,
   isCoordinator,
   proposalAcronym,
   acronymSegments,
 }: BoardProps) {
-  console.log('[DEBUG] BoardInner sectionId:', sectionId);
   const { cards, headCards, freeCards, tailCards, isLoading } = useSectionCards(
     proposalId,
     sectionId,
   );
-  console.log('[DEBUG] BoardInner cards:', cards.length, headCards.length, freeCards.length, tailCards.length);
   const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
