@@ -1,0 +1,1 @@
+DELETE FROM public.table_column_widths WHERE table_key = 'wp-list';
