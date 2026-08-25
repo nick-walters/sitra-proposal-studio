@@ -199,26 +199,16 @@ export interface ModifierConditions {
   action_type?: 'RIA' | 'IA' | 'CSA';
   work_programme?: string;
   submission_stage?: 'stage_1' | 'full';
+  uses_fstp?: boolean;
 }
 
 export interface ModifierEffects {
+  /** Additive across applicable modifiers. */
   page_limit_delta?: number;
-  add_section_ids?: string[];
-  funding_rate_override?: number;
-}
-
-export interface WorkProgrammeExtension {
-  id: string;
-  work_programme_code: string;
-  name: string;
-  description?: string;
-  extra_section_ids: string[];
-  extra_part_a_fields: PartAFieldDefinition[];
-  funding_overrides: Record<string, number>; // e.g., { "IA_company": 0.60 }
-  page_limit_delta: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  /** e.g. { "IA_company": 0.60 } */
+  funding_overrides?: Record<string, number>;
+  /** Template booleans, e.g. { includes_participant_table: false } */
+  flags?: Record<string, boolean>;
 }
 
 export interface PartAFieldDefinition {
@@ -255,7 +245,6 @@ export interface ProposalTemplate {
   proposal_id: string;
   source_template_type_id?: string;
   applied_modifier_ids: string[];
-  applied_extension_ids: string[];
   includes_branding: boolean;
   includes_participant_table: boolean;
   base_page_limit: number;
