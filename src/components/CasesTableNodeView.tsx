@@ -334,9 +334,17 @@ export interface CasesTableLiveViewProps {
   caseTypeId: string | null;
   /** 0-based index for caption lettering (a, b, c, …). */
   letterIndex: number;
+  /** Section number without the "B" prefix; defaults to B1.2's sequence. */
+  sectionNumber?: string;
 }
 
-export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: CasesTableLiveViewProps) {
+export function CasesTableLiveView({
+  proposalId,
+  caseTypeId,
+  letterIndex,
+  sectionNumber,
+}: CasesTableLiveViewProps) {
+  const captionSection = (sectionNumber || SECTION_NUMBER_BASE).replace(/^[A-Za-z]+/, '');
   const { data } = useQuery({
     queryKey: ['b12-cases-live', proposalId, caseTypeId],
     enabled: !!proposalId,
@@ -402,7 +410,7 @@ export function CasesTableLiveView({ proposalId, caseTypeId, letterIndex }: Case
           fontSize: TABLE_FONT_SIZE,
         }}
       >
-        <strong><em>Table {SECTION_NUMBER_BASE}.{letter}.</em></strong>{' '}
+        <strong><em>Table {captionSection}.{letter}.</em></strong>{' '}
         <em>{captionBody}</em>
       </p>
     );

@@ -110,6 +110,8 @@ import { MilestonesEditor, RisksEditor } from '@/components/ProposalMilestonesRi
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
 import { CasesTableLiveView } from '@/components/CasesTableNodeView';
+import { captionLetter, countCaptionSlots } from '@/lib/cards/captionSlots';
+import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
@@ -1989,6 +1991,8 @@ function BoardInner({
         : {};
     })(),
     captionLabel: captionLabels[card.id],
+    captionNumberingByFieldId,
+    captionSectionNumber: captionNumber,
     figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
     caseLetterByFieldId,
