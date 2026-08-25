@@ -35,9 +35,37 @@ import {
   emitSubcontracting,
   emitWpDescriptions,
   emitWpList,
+  emitReferences,
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import {
+  citationHtml,
+  fetchSectionCitationSources,
+  sectionCitedReferences,
+} from '@/lib/sectionCitations';
+
+export interface SectionTypstReference {
+  displayNumber: number | null;
+  html: string;
+}
+
+/**
+ * The section's cited references, resolved and numbered exactly as the
+ * on-screen list and the browser-print export do (shared
+ * `sectionCitedReferences`), as plain data the converter can emit.
+ */
+export async function fetchSectionTypstReferences(
+  proposalId: string,
+  sectionId: string,
+  citationNumbers: Map<number, number> | undefined,
+): Promise<SectionTypstReference[]> {
+  const sources = await fetchSectionCitationSources(proposalId);
+  return sectionCitedReferences(sources, { sectionId }, citationNumbers).map((entry) => ({
+    displayNumber: entry.displayNumber,
+    html: citationHtml(entry.reference),
+  }));
+}
 
 /**
  * Plain text of a title, used only for placeholder MESSAGES (never for the
@@ -115,6 +143,12 @@ export interface BuildTypstOptions {
   sourceData?: B31TypstData | null;
   /** Which charts were successfully rasterised from the board. */
   figuresAvailable?: { pert: boolean; gantt: boolean };
+  /**
+   * The section's cited references, already numbered — see
+   * `fetchSectionTypstReferences`. Omitted or empty means the tail
+   * References block is left out of the document entirely.
+   */
+  references?: SectionTypstReference[];
 }
 
 /** Emitters for every source-fed / relational block key we can render. */
@@ -123,8 +157,11 @@ function emitSourceFed(
   ctx: ConvertContext,
   data: B31TypstData,
   figures: { pert: boolean; gantt: boolean },
+  references: SectionTypstReference[],
 ): string[] | null {
   switch (sourceKey) {
+    case 'b31.references':
+      return emitReferences(references, ctx);
     case 'b31.table_a':
       return emitWpList(data);
     case 'b31.table_b':
@@ -167,6 +204,7 @@ export function buildSectionTypstDocument(
   const out: string[] = [];
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
+  const references = options.references ?? [];
 
   const banner = options.meta ? bannerCall(options.meta) : '';
   if (banner) out.push(banner);
@@ -198,10 +236,14 @@ export function buildSectionTypstDocument(
 
     if (isGenerated) {
       const emitted = sourceData
-        ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures)
+        ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures, references)
         : null;
       if (emitted && emitted.length) {
         out.push(...emitted);
+      } else if (emitted && card.sourceKey === 'b31.references') {
+        // Nothing cited: the block exists in the board so the author can see
+        // it, but it is left out of the document entirely.
+        continue;
       } else if (emitted) {
         // Recognised block with nothing in it yet — say so rather than
         // silently dropping the block from the document.
@@ -227,8 +269,7 @@ export function buildSectionTypstDocument(
       continue;
     }
     if (card.kind === 'references') {
-      ctx.unsupported.add('references block');
-      out.push(placeholder('[references block — not rendered in this step]'));
+      out.push(...emitReferences(references, ctx));
       continue;
     }
 
