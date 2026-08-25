@@ -559,7 +559,7 @@ function FieldRow({
           value={ensureRichHtml(headingDraft)}
           placeholder="Header"
           disabled={!canEdit}
-          minHeight={isDocumentSurface ? '0px' : '28px'}
+          minHeight={isDocumentSurface ? '16px' : '28px'}
           documentSurface={isDocumentSurface}
           placeholderHideOnFocus={isDocumentSurface}
           className={
