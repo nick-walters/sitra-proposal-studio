@@ -2,6 +2,9 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureOverviewCanvas } from '@/lib/overviewCanvas';
 import { ProposalType, BudgetType, SubmissionStage } from '@/types/proposal';
+import {
+  applicableModifiers, mergeModifierEffects, normaliseModifierRow,
+} from '@/lib/templateModifiers';
 
 interface CreateProposalTemplateParams {
   proposalId: string;
@@ -42,62 +45,43 @@ export function useProposalTemplateCreation() {
         return { success: false, error: templateError };
       }
 
-      // 2. Fetch applicable modifiers
-      const { data: modifiers } = await supabase
+      // 2. Resolve the modifiers that apply to this proposal (one mechanism:
+      //    work programme extensions are modifiers too). Structural effects
+      //    are applied here, at seeding time.
+      const { data: modifierRows } = await supabase
         .from('template_modifiers')
         .select('*')
         .eq('is_active', true);
 
-      // Filter modifiers that apply to this context
-      const applicableModifierIds: string[] = [];
-      let pageLimitDelta = 0;
+      const applied = applicableModifiers(
+        (modifierRows ?? []).map(normaliseModifierRow),
+        {
+          actionType,
+          budgetType,
+          workProgramme: workProgramme ?? null,
+          submissionStage,
+        },
+      );
+      const merged = mergeModifierEffects(applied);
 
-      for (const mod of modifiers || []) {
-        const cond = mod.conditions as Record<string, string>;
-        let matches = true;
-
-        if (cond.budget_type && cond.budget_type !== budgetType) matches = false;
-        if (cond.action_type && cond.action_type !== actionType) matches = false;
-        if (cond.work_programme && cond.work_programme !== workProgramme) matches = false;
-        if (cond.submission_stage && cond.submission_stage !== submissionStage) matches = false;
-
-        if (matches) {
-          applicableModifierIds.push(mod.id);
-          const effects = mod.effects as Record<string, number>;
-          if (effects.page_limit_delta) {
-            pageLimitDelta += effects.page_limit_delta;
-          }
-        }
-      }
-
-      // 3. Fetch applicable extension
-      const { data: extension } = await supabase
-        .from('work_programme_extensions')
-        .select('*')
-        .eq('work_programme_code', workProgramme || '')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      const appliedExtensionIds = extension ? [extension.id] : [];
-      if (extension?.page_limit_delta) {
-        pageLimitDelta += extension.page_limit_delta;
-      }
-
-      // 4. Create the proposal template
-      const effectivePageLimit = (sourceTemplate.base_page_limit || 45) + pageLimitDelta;
+      // 3. Create the proposal template
+      const effectivePageLimit = (sourceTemplate.base_page_limit || 45) + merged.pageLimitDelta;
 
       const { data: proposalTemplate, error: createError } = await supabase
         .from('proposal_templates')
         .insert({
           proposal_id: proposalId,
           source_template_type_id: sourceTemplateTypeId,
-          applied_modifier_ids: applicableModifierIds,
-          applied_extension_ids: appliedExtensionIds,
-          includes_branding: sourceTemplate.includes_branding ?? true,
-          includes_participant_table: sourceTemplate.includes_participant_table ?? true,
+          applied_modifier_ids: applied.map((m) => m.id),
+          includes_branding:
+            merged.flags.includes_branding ?? sourceTemplate.includes_branding ?? true,
+          includes_participant_table:
+            merged.flags.includes_participant_table ??
+            sourceTemplate.includes_participant_table ?? true,
           base_page_limit: effectivePageLimit,
           is_customized: false,
         })
+
         .select()
         .single();
 

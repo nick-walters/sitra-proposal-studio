@@ -325,6 +325,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     BLOCK_GUIDELINE_KEYS[focusedGuidelineKey ?? ''] ?? null,
     'part_b',
     wpTemplateVersionId,
+    proposalId,
   );
 
   

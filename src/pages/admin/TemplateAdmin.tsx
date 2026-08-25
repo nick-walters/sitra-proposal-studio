@@ -15,12 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
 import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
 import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
-import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
 import { TemplateTypeWorkspace } from "@/components/admin/TemplateTypeWorkspace";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,10 +96,6 @@ export function TemplateAdmin() {
               <Settings2 className="w-4 h-4" />
               Modifiers
             </TabsTrigger>
-            <TabsTrigger value="extensions" className="gap-2">
-              <Globe className="w-4 h-4" />
-              WP Extensions
-            </TabsTrigger>
           </TabsList>
 
           {/* Funding programmes Tab */}
@@ -138,11 +133,6 @@ export function TemplateAdmin() {
           {/* Modifiers Tab */}
           <TabsContent value="modifiers">
             <TemplateModifiersAdmin />
-          </TabsContent>
-
-          {/* Work programme Extensions Tab */}
-          <TabsContent value="extensions">
-            <WorkProgrammeExtensionsAdmin />
           </TabsContent>
         </Tabs>
       </div>

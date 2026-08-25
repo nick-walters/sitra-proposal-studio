@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { GuidelineType } from '@/components/GuidelinesDialog';
+import { fetchProposalModifierContext } from '@/hooks/useTemplateModifiers';
+import { applySubstitutions, passesModifierGate } from '@/lib/templateModifiers';
 
 /**
  * Commission guidelines for one block on the cards board.
@@ -30,9 +32,14 @@ type GuidelineRow = {
   content: string;
   is_active: boolean;
   order_index: number;
+  condition_modifier_codes?: string[] | null;
 };
 
-function toGuideline(row: GuidelineRow, order: number): CardGuideline {
+function toGuideline(
+  row: GuidelineRow,
+  order: number,
+  subs: Record<string, string> = {},
+): CardGuideline {
   const type: GuidelineType =
     row.guideline_type === 'criteria'
       ? 'criteria'
@@ -43,7 +50,7 @@ function toGuideline(row: GuidelineRow, order: number): CardGuideline {
     id: row.id,
     type,
     title: row.title || '',
-    content: row.content,
+    content: applySubstitutions(row.content, subs),
     order_index: order,
   };
 }
@@ -57,13 +64,17 @@ export function useCardGuidelines(
   templateKey: string | null,
   document = 'part_b',
   templateVersionId?: string | null,
+  proposalId?: string | null,
 ) {
   return useQuery({
-    queryKey: ['card-guidelines', templateKey, document, templateVersionId],
+    queryKey: ['card-guidelines', templateKey, document, templateVersionId, proposalId],
     enabled: !!templateVersionId,
     queryFn: async (): Promise<CardGuideline[]> => {
       const out: CardGuideline[] = [];
       const seen = new Set<string>();
+      /* Modifiers are not versioned: they select and substitute against the
+         version this proposal is pinned to. */
+      const { codes, substitutions } = await fetchProposalModifierContext(proposalId);
 
       if (templateKey) {
         const { data: templates } = await supabase
@@ -81,8 +92,9 @@ export function useCardGuidelines(
           for (const link of data ?? []) {
             const row = (link as any).card_guidelines as GuidelineRow | null;
             if (!row?.is_active || seen.has(row.id)) continue;
+            if (!passesModifierGate(row.condition_modifier_codes, codes)) continue;
             seen.add(row.id);
-            out.push(toGuideline(row, (link as any).order_index ?? row.order_index));
+            out.push(toGuideline(row, (link as any).order_index ?? row.order_index, substitutions));
           }
         }
       }
@@ -137,9 +149,10 @@ export function useDocumentGuidelines(document = 'part_b', templateVersionId?: s
 export function useSectionCriteria(
   proposalSectionId: string | null | undefined,
   templateVersionId?: string | null,
+  proposalId?: string | null,
 ) {
   return useQuery({
-    queryKey: ['section-criteria', proposalSectionId, templateVersionId],
+    queryKey: ['section-criteria', proposalSectionId, templateVersionId, proposalId],
     enabled: !!proposalSectionId && !!templateVersionId,
     queryFn: async (): Promise<CardGuideline[]> => {
       const { data: section } = await supabase
@@ -149,6 +162,7 @@ export function useSectionCriteria(
         .maybeSingle();
       const sourceId = section?.source_section_id;
       if (!sourceId) return [];
+      const { codes, substitutions } = await fetchProposalModifierContext(proposalId);
 
       const { data } = await supabase
         .from('card_guideline_sections')
@@ -160,7 +174,8 @@ export function useSectionCriteria(
       for (const link of data ?? []) {
         const row = (link as any).card_guidelines as GuidelineRow | null;
         if (!row?.is_active || row.guideline_type !== 'criteria') continue;
-        out.push(toGuideline(row, row.order_index));
+        if (!passesModifierGate(row.condition_modifier_codes, codes)) continue;
+        out.push(toGuideline(row, row.order_index, substitutions));
       }
       return out.sort((a, b) => a.order_index - b.order_index);
     },

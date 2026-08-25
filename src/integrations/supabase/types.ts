@@ -889,6 +889,7 @@ export type Database = {
           condition_budget_type:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes: string[] | null
           condition_uses_fstp: boolean | null
           content: string
           created_at: string
@@ -904,6 +905,7 @@ export type Database = {
           condition_budget_type?:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes?: string[] | null
           condition_uses_fstp?: boolean | null
           content: string
           created_at?: string
@@ -919,6 +921,7 @@ export type Database = {
           condition_budget_type?:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes?: string[] | null
           condition_uses_fstp?: boolean | null
           content?: string
           created_at?: string
@@ -996,6 +999,7 @@ export type Database = {
           condition_budget_type:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes: string[] | null
           condition_uses_fstp: boolean | null
           created_at: string
           default_fields: Json | null
@@ -1025,6 +1029,7 @@ export type Database = {
           condition_budget_type?:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes?: string[] | null
           condition_uses_fstp?: boolean | null
           created_at?: string
           default_fields?: Json | null
@@ -1054,6 +1059,7 @@ export type Database = {
           condition_budget_type?:
             | Database["public"]["Enums"]["budget_type"]
             | null
+          condition_modifier_codes?: string[] | null
           condition_uses_fstp?: boolean | null
           created_at?: string
           default_fields?: Json | null
@@ -5002,7 +5008,6 @@ export type Database = {
       }
       proposal_templates: {
         Row: {
-          applied_extension_ids: string[] | null
           applied_modifier_ids: string[] | null
           base_page_limit: number | null
           created_at: string
@@ -5015,7 +5020,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          applied_extension_ids?: string[] | null
           applied_modifier_ids?: string[] | null
           base_page_limit?: number | null
           created_at?: string
@@ -5028,7 +5032,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          applied_extension_ids?: string[] | null
           applied_modifier_ids?: string[] | null
           base_page_limit?: number | null
           created_at?: string
@@ -5975,7 +5978,9 @@ export type Database = {
           is_active: boolean | null
           is_admin_editable: boolean | null
           name: string
+          non_template_effects: Json
           priority: number | null
+          text_substitutions: Json
           updated_at: string
         }
         Insert: {
@@ -5988,7 +5993,9 @@ export type Database = {
           is_active?: boolean | null
           is_admin_editable?: boolean | null
           name: string
+          non_template_effects?: Json
           priority?: number | null
+          text_substitutions?: Json
           updated_at?: string
         }
         Update: {
@@ -6001,7 +6008,9 @@ export type Database = {
           is_active?: boolean | null
           is_admin_editable?: boolean | null
           name?: string
+          non_template_effects?: Json
           priority?: number | null
+          text_substitutions?: Json
           updated_at?: string
         }
         Relationships: []
@@ -6390,48 +6399,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      work_programme_extensions: {
-        Row: {
-          created_at: string
-          description: string | null
-          extra_part_a_fields: Json | null
-          extra_section_ids: string[] | null
-          funding_overrides: Json | null
-          id: string
-          is_active: boolean | null
-          name: string
-          page_limit_delta: number | null
-          updated_at: string
-          work_programme_code: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          extra_part_a_fields?: Json | null
-          extra_section_ids?: string[] | null
-          funding_overrides?: Json | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          page_limit_delta?: number | null
-          updated_at?: string
-          work_programme_code: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          extra_part_a_fields?: Json | null
-          extra_section_ids?: string[] | null
-          funding_overrides?: Json | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          page_limit_delta?: number | null
-          updated_at?: string
-          work_programme_code?: string
-        }
-        Relationships: []
       }
       wp_color_palette: {
         Row: {
