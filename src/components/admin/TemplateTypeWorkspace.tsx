@@ -891,13 +891,21 @@ function CriteriaDialogAdmin({
                 guideline={e.guideline}
                 editable={editable}
                 onSave={async (patch) => {
-                  await supabase.from('card_guidelines').update(patch as any).eq('id', e.guideline.id);
-                  toast.success('Criterion saved');
+                  const ok = await persistGuideline(e.guideline.id, patch);
+                  if (!ok) return false;
+                  toast.success('Criterion saved into the draft');
                   invalidate();
+                  return true;
                 }}
                 onDelete={async () => {
-                  await supabase.from('card_guideline_sections').delete().eq('id', e.linkId);
-                  await supabase.from('card_guidelines').delete().eq('id', e.guideline.id);
+                  const { error: linkErr } = await supabase
+                    .from('card_guideline_sections').delete().eq('id', e.linkId);
+                  const { error: rowErr } = await supabase
+                    .from('card_guidelines').delete().eq('id', e.guideline.id);
+                  if (linkErr || rowErr) {
+                    toast.error(`Not deleted — ${(linkErr ?? rowErr)!.message}`);
+                    return;
+                  }
                   invalidate();
                 }}
               />
