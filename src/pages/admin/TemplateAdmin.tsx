@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, FileText, Layers, BookOpen, FormInput, Info, Lightbulb, ClipboardCheck, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
 import { SectionCriteriaEditor } from "@/components/admin/SectionCriteriaEditor";
