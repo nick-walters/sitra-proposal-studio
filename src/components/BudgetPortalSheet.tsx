@@ -32,7 +32,6 @@ import { A3EffortMatrix } from './A3EffortMatrix';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ParticipantBubble } from '@/components/B31Pill';
-import { B31OptionalJustificationsCard } from '@/components/B31OptionalJustificationsCard';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 interface BudgetPortalSheetProps {
@@ -1008,7 +1007,6 @@ export function BudgetPortalSheet({
               </CardContent>
             </Card>
 
-            {isAdmin && <B31OptionalJustificationsCard proposalId={proposalId} canEdit={isAdmin} />}
           </TabsContent>
 
 

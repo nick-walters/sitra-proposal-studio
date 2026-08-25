@@ -13,7 +13,7 @@ interface MethodologiesCardsPanelProps {
 }
 
 /**
- * B1.2 — the block board. Opened from the "B1.2 Methodology" entry in the
+ * The block board (B1.2, B3.1, …). Opened from the "B1.2 Methodology" entry in the
  * left panel. The legacy MethodologiesPage stays in the codebase as the
  * rollback path but is reachable from nothing.
  */
@@ -47,7 +47,7 @@ export default function MethodologiesCardsPanel({
   if (!sectionId) {
     return (
       <p className="p-6 text-sm text-muted-foreground">
-        This proposal has no B1.2 section, so there are no blocks to show.
+        This proposal has no {sectionNumber} section, so there are no blocks to show.
       </p>
     );
   }

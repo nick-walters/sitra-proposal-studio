@@ -977,14 +977,15 @@ export function ProposalEditor() {
       }
     }
 
-    // 3. B1.2 opens the block board (the legacy editor stays as rollback only).
+    // 3. B1.2 and B3.1 open the block board (the legacy editors stay as
+    //    rollback paths, reachable from nothing).
     const sectionNumber = (activeSection as Section).number?.replace(/^B/, '') || '';
-    if (!activeSection.isPartA && sectionNumber === '1.2') {
+    if (!activeSection.isPartA && (sectionNumber === '1.2' || sectionNumber === '3.1')) {
       return (
         <div className="flex-1 overflow-y-auto">
           <MethodologiesCardsPanel
             proposalId={id || ''}
-            sectionNumber={(activeSection as Section).number || 'B1.2'}
+            sectionNumber={(activeSection as Section).number || `B${sectionNumber}`}
             canEdit={canEdit}
             isCoordinator={canEdit && isCoordinator}
             proposalAcronym={proposal?.acronym}
@@ -993,6 +994,7 @@ export function ProposalEditor() {
         </div>
       );
     }
+
 
     // 4. Default fallback: Part A → Part A DocumentEditor; otherwise Part B DocumentEditor
     if (activeSection.isPartA) return renderPartADefault();

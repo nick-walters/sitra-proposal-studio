@@ -1593,6 +1593,37 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     internally_invoiced: !!propFlags?.b31_show_internally_invoiced_justification,
   };
 
+  // Block visibility from the B3.1 block board. The board is the preview the
+  // writer sees, so a hidden block must not appear in the DOCX. When a
+  // proposal has no B3.1 blocks yet (pre-cutover), every block counts as
+  // visible and the b31_show_* booleans alone decide, exactly as before.
+  const { data: b31Cards } = await supabase
+    .from("proposal_cards")
+    .select("id, template_key, is_visible")
+    .eq("proposal_id", proposal.id)
+    .is("deleted_at", null)
+    .like("template_key", "b31.%");
+  const cardVisible = new Map<string, boolean>();
+  for (const c of b31Cards ?? []) cardVisible.set(c.template_key, !!c.is_visible);
+  const blockVisible = (key: string) => cardVisible.get(key) !== false;
+
+  // Authored text now lives on the b31.intro block. Once the board exists it
+  // supersedes the legacy `section_content` bodies, which stay untouched as the
+  // rollback path.
+  const introCard = (b31Cards ?? []).find((c: any) => c.template_key === "b31.intro");
+  let introHtml = intro;
+  let bodyHtml = body;
+  if (introCard) {
+    const { data: introFields } = await supabase
+      .from("card_fields")
+      .select("content_html, order_index")
+      .eq("card_id", introCard.id)
+      .is("deleted_at", null)
+      .order("order_index", { ascending: true });
+    introHtml = (introFields ?? []).map((f: any) => f.content_html ?? "").join("\n");
+    bodyHtml = "";
+  }
+
   const { data: wps } = await supabase
     .from("wp_drafts")
     .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
@@ -1742,13 +1773,13 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
 
-  if (intro && intro.trim()) {
-    children.push(H(HeadingLevel.HEADING_2, "Intro text"));
-    children.push(...htmlToDocxChildren(intro));
+  if (introHtml && introHtml.trim() && blockVisible("b31.intro")) {
+    children.push(H(HeadingLevel.HEADING_2, "Overall structure of the work plan"));
+    children.push(...htmlToDocxChildren(introHtml));
   }
-  if (body && body.trim()) {
+  if (bodyHtml && bodyHtml.trim()) {
     children.push(H(HeadingLevel.HEADING_2, "Section body"));
-    children.push(...htmlToDocxChildren(body));
+    children.push(...htmlToDocxChildren(bodyHtml));
   }
 
   // Effort per (wp, participant); WP totals from wp_draft_effort.
@@ -1761,7 +1792,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.a — List of work packages ───
-  if ((wps ?? []).length) {
+  if ((wps ?? []).length && blockVisible("b31.table_a")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.a — List of work packages"));
     children.push(simpleTable(
       ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
@@ -1784,6 +1815,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.b — Per-WP description tables ───
+  if (blockVisible("b31.table_b")) {
   children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
     const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
@@ -1809,6 +1841,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     }));
     children.push(P(""));
   }
+  }
 
   // ─── Table 3.1.c — Deliverables (WP-scoped D{wp}.{n} labels) ───
   const visibleDeliverables = (deliverables ?? []).filter((d: any) => {
@@ -1827,7 +1860,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (da !== db) return da - db;
     return (a.order_index ?? a.number ?? 0) - (b.order_index ?? b.number ?? 0);
   });
-  if (visibleDeliverables.length) {
+  if (visibleDeliverables.length && blockVisible("b31.table_c")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
       ["No.", "Deliverable title", "WP", "Lead", "Type", "Diss.", "Due"],
@@ -1857,7 +1890,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (wa !== wb) return wa - wb;
     return (a.number ?? 0) - (b.number ?? 0);
   });
-  if (sortedMilestones.length) {
+  if (sortedMilestones.length && blockVisible("b31.table_d")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
       ["No.", "Milestone", "WP(s)", "Due", "Means of verification"],
@@ -1879,7 +1912,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.e — Critical risks ───
-  if ((risks ?? []).length) {
+  if ((risks ?? []).length && blockVisible("b31.table_e")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
       ["Risk", "Likelihood", "Severity", "WP(s)", "Mitigation & adaptation measures"],
@@ -1901,7 +1934,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.f — Effort matrix (Participants × WPs) ───
-  if ((wps ?? []).length && (participants ?? []).length) {
+  if ((wps ?? []).length && (participants ?? []).length && blockVisible("b31.table_f")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.f — Summary of staff effort"));
     const wpCols = (wps ?? []);
     const headers = ["Participant", ...wpCols.map((w: any) => `WP${w.number}`), "Total PMs"];
@@ -1960,13 +1993,13 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   };
 
   // ─── Table 3.1.g — Subcontracting (auto-included when items exist) ───
-  if ((subItems ?? []).length) {
+  if ((subItems ?? []).length && blockVisible("b31.table_g")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
     children.push(renderJustItemsTable(subItems));
   }
 
   // ─── Table 3.1.h — Purchase costs (equipment / travel / other goods per toggles + 15% rule) ───
-  if (equipItems.length || includeTravel || includeOtherGoods) {
+  if ((equipItems.length || includeTravel || includeOtherGoods) && blockVisible("b31.table_h")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
     if (equipItems.length) {
       children.push(H(HeadingLevel.HEADING_3, "Equipment"));
