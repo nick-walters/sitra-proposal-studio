@@ -104,6 +104,7 @@ import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { ReferencesBlock } from './ReferencesBlock';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
+import { MilestonesEditor, RisksEditor } from '@/components/ProposalMilestonesRisksManager';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
 import { CasesTableLiveView } from '@/components/CasesTableNodeView';
@@ -912,10 +913,15 @@ function CardBlock({
   // Authored, but backed by its own relational table rather than card fields:
   // the block renders the same editor as the old methodologies page.
   const isLinkedActivitiesCard = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
+  // Same arrangement for B3.1's milestones and risks: authored in place,
+  // stored in proposal_milestones / proposal_risks.
+  const isMilestonesCard = card.sourceKey === 'b31.table_d' && !card.isSourceFed;
+  const isRisksCard = card.sourceKey === 'b31.table_e' && !card.isSourceFed;
+  const isRelationalCard = isLinkedActivitiesCard || isMilestonesCard || isRisksCard;
   // Only authored text cards grow new modules; source-fed, figure and
   // linked-activities blocks have a fixed structure.
   const canAddModule =
-    canEdit && !isPlaceholderCard && !isLinkedActivitiesCard && card.kind !== 'figure';
+    canEdit && !isPlaceholderCard && !isRelationalCard && card.kind !== 'figure';
 
   // Dragging also collapses (kept from before); the user's own collapse
   // preference is independent of it and persists across page loads.
@@ -932,6 +938,8 @@ function CardBlock({
     }
     // Source-fed tables are captioned by the block title itself, which stays
     // visible in the header — the summary just names the kind.
+    if (isMilestonesCard) return 'Milestones';
+    if (isRisksCard) return 'Critical risks';
     if (card.isSourceFed) return 'Source-fed table';
     const n = fields.length;
     return `${n} module${n === 1 ? '' : 's'}`;
@@ -1162,6 +1170,10 @@ function CardBlock({
         >
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
+          ) : isMilestonesCard ? (
+            <MilestonesEditor proposalId={proposalId} canEdit={canEdit} />
+          ) : isRisksCard ? (
+            <RisksEditor proposalId={proposalId} canEdit={canEdit} />
           ) : isLinkedActivitiesCard ? (
             <LinkedActivitiesTable
               proposalId={proposalId}

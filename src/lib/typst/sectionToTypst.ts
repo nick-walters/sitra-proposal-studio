@@ -99,8 +99,13 @@ export function buildSectionTypstDocument(
     );
   }
 
+  // Milestones and risks are authored in place (their rows live in
+  // proposal_milestones / proposal_risks), so they are not card-field blocks
+  // even though they are not source-fed either.
+  const RELATIONAL_KEYS = new Set(['b31.table_d', 'b31.table_e', 'b12.linked_activities']);
+
   for (const card of tree.cards) {
-    if (card.isSourceFed) {
+    if (card.isSourceFed || (card.sourceKey && RELATIONAL_KEYS.has(card.sourceKey))) {
       // Honest placeholder naming the block, per the step scope.
       out.push(
         placeholder(
