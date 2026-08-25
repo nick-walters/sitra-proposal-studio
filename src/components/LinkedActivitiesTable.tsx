@@ -380,6 +380,16 @@ export default function LinkedActivitiesTable({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  const canResize = canEdit;
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
+    proposalId,
+    tableKey: 'b12-linked-activities',
+    canResize,
+    maxTotalWidth: BLOCK_WIDTH,
+  });
+  const sized = colWidths.length === DEFAULT_COL_PCT.length;
+
+
   const ordered = (() => {
     if (!localOrder) return activities;
     const byId = new Map(activities.map((a) => [a.id, a]));
