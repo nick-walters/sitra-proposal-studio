@@ -31,6 +31,13 @@ interface MethodologyRichEditorProps {
    * document position and stay uneditable.
    */
   captionNumbering?: CaptionNumbering | null;
+  /**
+   * Page-like presentation: no form-field chrome, plain white surface and the
+   * proposal's own typography, so the editable text reads as the document
+   * rather than as a form. Focus is shown with a left rule instead of a
+   * border. Trialled on B1.2's "Underlying concepts" block only.
+   */
+  documentSurface?: boolean;
 }
 
 
@@ -50,6 +57,7 @@ export function MethodologyRichEditor({
   onEditorReady,
   placeholder,
   captionNumbering,
+  documentSurface = false,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -138,9 +146,15 @@ export function MethodologyRichEditor({
 
   return (
     <div
-      className={`relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
-        canEdit ? 'cursor-text' : 'cursor-default select-text'
-      } ${isActive && canEdit ? activeRingClass : 'border-border'}`}
+      className={
+        documentSurface
+          ? `doc-surface-field relative overflow-visible px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+              canEdit ? 'cursor-text' : 'cursor-default select-text'
+            } ${isActive && canEdit ? 'is-active' : ''}`
+          : `relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+              canEdit ? 'cursor-text' : 'cursor-default select-text'
+            } ${isActive && canEdit ? activeRingClass : 'border-border'}`
+      }
       style={{ minHeight }}
       onMouseDown={(e) => {
         if (!canEdit) return;
@@ -175,7 +189,9 @@ export function MethodologyRichEditor({
       {placeholder && isEmpty && (
         <span
           aria-hidden
-          className="pointer-events-none absolute left-2.5 top-1.5 select-none text-sm italic text-muted-foreground"
+          className={`pointer-events-none absolute left-2.5 top-1.5 select-none italic text-muted-foreground ${
+            documentSurface ? 'font-document text-[11pt]' : 'text-sm'
+          }`}
         >
           {placeholder}
         </span>
