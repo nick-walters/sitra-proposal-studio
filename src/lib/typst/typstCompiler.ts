@@ -24,11 +24,11 @@ import nimbusBoldItalic from '@/assets/typst/NimbusRoman-BoldItalic.otf.asset.js
 import arialBlackUrl from '@/assets/fonts/arial_black.ttf?url';
 
 const FONT_URLS = [
+  arialBlackUrl,
   nimbusRegular.url,
   nimbusBold.url,
   nimbusItalic.url,
   nimbusBoldItalic.url,
-  arialBlackUrl,
 ];
 
 export interface TypstFontDiagnostics {
@@ -71,7 +71,7 @@ async function getSnippet(): Promise<any> {
     const compiler = await typst.getCompiler();
     const loaded = compiler?.compiler?.get_loaded_fonts?.();
     fontDiagnostics = {
-      arialBlackByteLength: fontBuffers[fontBuffers.length - 1]?.byteLength ?? 0,
+      arialBlackByteLength: fontBuffers[0]?.byteLength ?? 0,
       loadedFonts: Array.isArray(loaded) ? loaded.map(String) : [],
     };
     return typst;
