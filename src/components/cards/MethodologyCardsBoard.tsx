@@ -616,7 +616,7 @@ function FieldRow({
         // and the symmetric negative margin lets it grow evenly past the
         // column instead of being squeezed to ~16 cm of text.
         isDocumentSurface
-          ? 'w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)]'
+          ? 'box-content w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)]'
           : 'space-y-2 p-3'
       } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
     >
