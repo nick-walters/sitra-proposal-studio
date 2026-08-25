@@ -506,6 +506,23 @@ function FieldRow({
   if (lockedView !== null) mirroredHtml.current = lockedView;
   const contentViewHtml = lockedView ?? mirroredHtml.current;
 
+  // B2.1 impact summary: the six-column table is stored as two stacked
+  // three-column tables in this one text box, so rows are added and removed in
+  // both parts together, outside the editor, and the editor is remounted on
+  // the rewritten HTML.
+  const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
+  const [rowNonce, setRowNonce] = useState(0);
+  const applyRowChange = (next: string) => {
+    mirroredHtml.current = next;
+    contentRef.current = next;
+    touchedRef.current = true;
+    contentLock.push(next);
+    onContentChange(field, next);
+    setRowNonce((n) => n + 1);
+  };
+
+
+
 
   return (
     <div
