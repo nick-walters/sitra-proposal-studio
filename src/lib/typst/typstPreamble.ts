@@ -60,13 +60,12 @@ function footerSource(meta: TypstDocMeta): string {
   // Plain string concatenation, NOT the `t()` helper: the footer closure is
   // built by `#set page(...)` before the helpers are defined, so anything it
   // references must already be in scope.
+  // One line: in a Typst code block a newline ends the expression, so the
+  // concatenation has to stay on a single line.
   return `context {
   set align(center)
   set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-  ${typstString(prefix ? `${prefix} | Page ` : 'Page ')}
-    + str(counter(page).at(here()).first())
-    + " of "
-    + str(counter(page).final().first())
+  ${typstString(prefix ? `${prefix} | Page ` : 'Page ')} + str(counter(page).at(here()).first()) + " of " + str(counter(page).final().first())
 }`;
 }
 
