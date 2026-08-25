@@ -756,10 +756,12 @@ function FieldRow({
                 // The page itself: white, 1.5 cm side margins running to the
                 // module's edge, and 3 pt of air above and below the text —
                 // the same spacing a body paragraph carries, no more.
-                ? 'doc-surface-page flex items-start gap-2 bg-white px-[1.5cm] py-[3pt]'
+                ? 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
                 : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''}`
           }
         >
+          {isDocumentSurface && headerField}
+          <div className={isDocumentSurface ? 'flex items-start gap-2' : 'contents'}>
           <div
             className={`min-w-0 flex-1 rounded-md ${
               contentLock.lockedByOther
@@ -789,7 +791,6 @@ function FieldRow({
               contentLock.onBlur();
             }}
           >
-            {isDocumentSurface && headerField}
             {isImpactSummary && canEdit && !contentLock.lockedByOther && (
               <ImpactSummaryRowControls editor={contentEditor.current} tick={rowTick} />
             )}
@@ -830,6 +831,7 @@ function FieldRow({
           {contentLock.lockedByOther && contentLock.holder && (
             <LockHolderBadge holder={contentLock.holder} />
           )}
+          </div>
         </div>
       )}
 
