@@ -220,8 +220,12 @@ function wpChipList(numbers: number[], colours: string[], allCount: number): str
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  return numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  // A narrow WP column wraps the chips over several lines; the default 0pt
+  // leading would let their outsets touch, so this paragraph opens the pitch.
+  return `par(leading: 4pt, spacing: 0pt, ${chips})`;
 }
+
 
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
