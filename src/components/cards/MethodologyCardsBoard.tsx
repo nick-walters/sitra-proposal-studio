@@ -712,10 +712,14 @@ function FieldRow({
               contentLock.onBlur();
             }}
           >
+            {isImpactSummary && canEdit && !contentLock.lockedByOther && (
+              <ImpactSummaryRowControls html={contentViewHtml} onChange={applyRowChange} />
+            )}
             <MethodologyRichEditor
-              key={`${field.id}-${reloadNonce}`}
+              key={`${field.id}-${reloadNonce}-${rowNonce}`}
               proposalId={proposalId}
               value={contentViewHtml}
+
               onChange={(html) => {
                 // A non-holder never contributes content: the editor is
                 // non-editable, and any programmatic normalisation it emits
