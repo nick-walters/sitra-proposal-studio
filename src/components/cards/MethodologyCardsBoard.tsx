@@ -1408,6 +1408,8 @@ function CardBlock({
                         onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
                         collapsed={contentHidden}
+                        cardTemplateKey={card.templateKey}
+
                       />
                     ))}
                   </div>
