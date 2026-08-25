@@ -19,6 +19,17 @@ export interface ConvertContext {
   data?: RefSnapshot;
   /** Names of things encountered but not converted, for the report. */
   unsupported: Set<string>;
+  /**
+   * Per-page footnote state for citations. `numbers` and `html` come from the
+   * proposal-wide numbering module (never recomputed here); `emitted` records
+   * which references already carry a footnote in THIS document, so only the
+   * first citation of a reference prints one.
+   */
+  citations?: {
+    numbers: Map<number, number>;
+    html: Map<number, string>;
+    emitted: Set<number>;
+  };
   /** Position-derived caption sequence for authored content outside B3.1. */
   captionNumbering?: {
     sectionNumber: string;
@@ -55,6 +66,29 @@ const MARK_WRAPPERS: Record<string, (inner: string) => string> = {
   code: (x) => `raw(${x})`,
 };
 
+/**
+ * A citation becomes a Typst FOOTNOTE the first time its reference appears in
+ * the document, and a bare superscript number every time after that. The
+ * number is always the proposal-wide display number derived by the numbering
+ * module, so the footnote marker and the on-screen superscript agree.
+ */
+function convertCitation(el: Element, ctx: ConvertContext): string {
+  const refKey = Number((el.getAttribute('data-citation') || '').trim());
+  const state = ctx.citations;
+  if (!state || !Number.isFinite(refKey)) {
+    ctx.unsupported.add('citation');
+    return '';
+  }
+  const display = state.numbers.get(refKey);
+  if (display == null) return '';
+  if (state.emitted.has(refKey)) {
+    return `he-cite-again(${typstString(String(display))})`;
+  }
+  state.emitted.add(refKey);
+  const body = htmlToTypstInline(state.html.get(refKey) || '', ctx);
+  return `he-cite-note(${typstString(String(display))}, ${body})`;
+}
+
 function inlineColour(el: Element): string | null {
   const colour = (el as HTMLElement).style?.color?.trim();
   if (!colour || colour === 'inherit') return null;
@@ -89,8 +123,7 @@ function convertInline(node: Node, ctx: ConvertContext): string {
     return `not-converted(${typstString('[image — not rendered in this step]')})`;
   }
   if (el.hasAttribute('data-citation')) {
-    ctx.unsupported.add('citation');
-    return '';
+    return convertCitation(el, ctx);
   }
   if (tag === 'a') {
     const href = el.getAttribute('href') || '';
