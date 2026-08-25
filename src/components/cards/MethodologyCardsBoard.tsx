@@ -356,6 +356,9 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /** Single block trialling the page-like editable surface (see index.css). */
 const DOCUMENT_SURFACE_TRIAL_KEY = 'b12.concepts';
 
+/** Blocks whose modules are fixed by the template and cannot be deleted. */
+const UNDELETABLE_MODULE_CARD_KEYS = new Set(['b11.maturity']);
+
 interface FieldRowProps {
   field: CardField;
   proposalId: string;
@@ -830,6 +833,7 @@ interface CardBlockProps {
   onContentChange: (field: CardField, html: string) => void;
   onDeleteField: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onToggleFieldVisible: (field: CardField, visible: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
   onFlushContent: (field: CardField, html: string) => Promise<void>;
@@ -873,6 +877,7 @@ function CardBlock({
   onContentChange,
   onDeleteField,
   onToggleHeading,
+  onToggleFieldVisible,
   onFocusField,
   onLostText,
   onFlushContent,
@@ -2043,6 +2048,8 @@ function BoardInner({
       if (card.isSourceFed || card.kind === 'references') continue;
 
       for (const f of fieldsByCard[card.id] ?? []) {
+        // A hidden MODULE consumes no letter, exactly as a hidden block does.
+        if (!f.isVisible) continue;
         if (f.fieldRole === 'case_placeholder') {
           caseLetters[f.id] = tableIdx;
           tableIdx += 1;
