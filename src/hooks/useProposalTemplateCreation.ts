@@ -2,6 +2,9 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureOverviewCanvas } from '@/lib/overviewCanvas';
 import { ProposalType, BudgetType, SubmissionStage } from '@/types/proposal';
+import {
+  applicableModifiers, mergeModifierEffects, normaliseModifierRow,
+} from '@/lib/templateModifiers';
 
 interface CreateProposalTemplateParams {
   proposalId: string;
