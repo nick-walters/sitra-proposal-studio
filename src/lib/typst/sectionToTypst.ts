@@ -384,6 +384,47 @@ export function buildSectionTypstDocument(
 }
 
 /**
+ * Derives the numbered H1/H2 pair for a section. Nothing here is stored: the
+ * number is the template's `section_number` minus its "B" prefix, so renaming
+ * or reordering the template reorders the printed headings too.
+ */
+async function fetchSectionHeadings(
+  sec: Record<string, unknown>,
+  sectionNumber: string,
+  sectionTitle: string,
+): Promise<TypstDocMeta['headings']> {
+  const strip = (n: string) => n.replace(/^B/i, '').replace(/\.$/, '');
+  const h2 = sectionNumber && sectionTitle ? `${strip(sectionNumber)}. ${sectionTitle}` : sectionTitle;
+  const parentId = typeof sec.parent_section_id === 'string' ? sec.parent_section_id : '';
+  if (!parentId) return { h2: h2 || undefined };
+
+  const [{ data: parent }, { data: siblings }] = await Promise.all([
+    supabase
+      .from('proposal_template_sections')
+      .select('section_number, title')
+      .eq('id', parentId)
+      .maybeSingle(),
+    supabase
+      .from('proposal_template_sections')
+      .select('id, order_index')
+      .eq('parent_section_id', parentId)
+      .order('order_index', { ascending: true }),
+  ]);
+
+  // Only the first child of the part prints the part heading.
+  const first = (siblings || [])[0] as { id?: string } | undefined;
+  const isFirstChild = !first || first.id === sec.id || !sec.id;
+  if (!parent || !isFirstChild) return { h2: h2 || undefined };
+  const pNum = strip(String((parent as { section_number?: string }).section_number || '').trim());
+  const pTitle = String((parent as { title?: string }).title || '').trim();
+  return {
+    h1: pNum && pTitle ? `${pNum}. ${pTitle}` : pTitle || undefined,
+    h2: h2 || undefined,
+  };
+}
+
+/**
+
  * Proposal-level text for the banner and footer.
  *
  * THE BANNER IS PAGE ONE OF THE DOCUMENT, NOT PAGE ONE OF EVERY SECTION.
