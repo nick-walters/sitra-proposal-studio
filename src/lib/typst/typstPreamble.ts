@@ -425,11 +425,18 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Only the FIRST section of the document emits this.
 #let doc-banner(topic, acronym, title, logo) = context {
   let mark = if logo != "" {
-    block(width: auto, {
+    // "and partners" is set to the SAME WIDTH as the logo above it: the label
+    // is measured at a base size and scaled by the ratio of the two widths.
+    let img = image(logo, height: 0.8cm, fit: "contain")
+    let lw = measure(img).width
+    let base = text(font: "${TYPST_DISPLAY}", size: 10pt, weight: "regular", t("and partners"))
+    let tw = measure(base).width
+    let size = if tw > 0pt { 10pt * (lw / tw) } else { 10pt }
+    block(width: lw, {
       set align(center)
-      image(logo, height: 0.8cm, fit: "contain")
+      img
       v(2pt, weak: false)
-      text(font: "${TYPST_DISPLAY}", size: 10pt, weight: "regular", fill: white, t("and partners"))
+      text(font: "${TYPST_DISPLAY}", size: size, weight: "regular", fill: white, t("and partners"))
     })
   } else { none }
   let lines = {

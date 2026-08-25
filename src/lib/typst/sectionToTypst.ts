@@ -24,7 +24,7 @@ import {
 } from './htmlToTypst';
 import { bannerCall, buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
 import {
-  emitFrontMatter,
+  emitParticipantList,
   SITRA_LOGO_ASSET_PATH,
   type TypstFrontMatter,
 } from './frontMatter';
@@ -311,7 +311,17 @@ export function buildSectionTypstDocument(
     ? bannerCall(options.meta, frontMatter ? SITRA_LOGO_ASSET_PATH : '')
     : '';
   if (banner) out.push(banner);
-  if (banner && frontMatter) out.push(...emitFrontMatter(frontMatter, ctx));
+  // The participant list is a BLOCK on the B1.1 board (`b11.participants`), so
+  // the export prints it only when that block is present and visible, with the
+  // column widths the author set on it. It keeps its page-one position above
+  // the numbered headings; the card loop skips it.
+  const participantCard = tree.cards.find((c) => c.sourceKey === 'b11.participants');
+  if (banner && frontMatter) {
+    if (participantCard) out.push(...emitParticipantList(frontMatter));
+    if (frontMatter.aiStatementHtml && frontMatter.aiStatementHtml.trim()) {
+      out.push(...htmlToTypstBlocks(frontMatter.aiStatementHtml, ctx));
+    }
+  }
 
   // Numbered headings, derived from the template's section numbers. The H1 is
   // only emitted by the first section of its part, so a per-section document
@@ -331,6 +341,7 @@ export function buildSectionTypstDocument(
   const RELATIONAL_KEYS = new Set(['b31.table_d', 'b31.table_e', 'b12.linked_activities']);
 
   for (const card of tree.cards) {
+    if (card.sourceKey === 'b11.participants') continue; // emitted with page one
     const isGenerated =
       card.isSourceFed || (card.sourceKey && RELATIONAL_KEYS.has(card.sourceKey));
 
@@ -524,8 +535,12 @@ export async function fetchTypstDocMeta(
     headings,
     // The browser-print export prints "<topic id>: <topic title>" across the
     // top of every page but the first; the Typst header is the same string.
+    // …and the action type in parentheses after it: `proposals.type`, the
+    // RIA / IA / CSA value chosen when the proposal was created (locked
+    // afterwards by `lock_proposal_action_type`).
     runningHeader: row.topic_id || row.topic_title
-      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}`
+      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}` +
+        `${row.type ? ` (${row.type})` : ''}`
       : '',
     banner: isFirstSection
       ? {

@@ -29,6 +29,10 @@ import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import type { TypstAsset } from './typstCompiler';
 import { typstString, htmlToTypstBlocks, type ConvertContext } from './htmlToTypst';
+import {
+  B11_PARTICIPANTS_TABLE_KEY,
+  B11_PARTICIPANT_COLUMN_SHARES,
+} from '@/components/B11ParticipantListTable';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -54,6 +58,12 @@ interface FrontMatterParticipant {
 
 export interface TypstFrontMatter {
   participants: FrontMatterParticipant[];
+  /**
+   * Column widths, in px, as the author left them on the B1.1 participant
+   * list block (`table_column_widths`, table_key `b11-participants`). Empty
+   * when the author never resized: the default shares are used instead.
+   */
+  columnWidths: number[];
   aiStatementHtml: string | null;
   /** Logo bitmaps (Sitra + organisations) to map as compiler shadow files. */
   assets: TypstAsset[];
@@ -76,7 +86,8 @@ function extensionFor(bytes: Uint8Array): string | null {
   return null;
 }
 
-const HSL_COORD_BLUE = '#3b82f6';
+/** The coordinator badge is BLACK, exactly as the platform draws it. */
+const COORD_BADGE = '#000000';
 
 function safeHex(value: string | null | undefined, fallback = '#000000'): string {
   const raw = (value || '').trim();
@@ -89,7 +100,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     { path: SITRA_LOGO_ASSET_PATH, bytes: decodeBase64(SITRA_LOGO_BASE64) },
   ];
 
-  const [{ data: partRows }, { data: wpRows }, { data: caseRows }, { data: aiRow }] =
+  const [{ data: partRows }, { data: wpRows }, { data: caseRows }, { data: aiRow }, { data: widthRow }] =
     await Promise.all([
       supabase
         .from('participants')
@@ -112,6 +123,12 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
         .from('part_a1')
         .select('ai_statement_enabled, ai_statement_text')
         .eq('proposal_id', proposalId)
+        .maybeSingle(),
+      supabase
+        .from('table_column_widths')
+        .select('column_widths')
+        .eq('proposal_id', proposalId)
+        .eq('table_key', B11_PARTICIPANTS_TABLE_KEY)
         .maybeSingle(),
     ]);
 
@@ -145,7 +162,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     const english = (row.english_name || '').trim();
     const roles: RoleBubble[] = [];
     if (row.participant_number === 1) {
-      roles.push({ label: 'Coord', color: HSL_COORD_BLUE, filled: true });
+      roles.push({ label: 'Coord', color: COORD_BADGE, filled: true });
     }
     roles.push(...(rolesByParticipant.get(row.id) || []));
 
@@ -181,45 +198,62 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
   const aiStatementHtml =
     ai && ai.ai_statement_enabled !== false ? resolveAiStatementHtml(ai.ai_statement_text) : null;
 
-  return { participants, aiStatementHtml, assets };
+  const rawWidths = (widthRow as { column_widths?: unknown } | null)?.column_widths;
+  const columnWidths =
+    Array.isArray(rawWidths) && rawWidths.length === B11_PARTICIPANT_COLUMN_SHARES.length
+      ? (rawWidths as unknown[]).map((n) => (typeof n === 'number' && n > 0 ? n : 0))
+      : [];
+
+  return {
+    participants,
+    columnWidths: columnWidths.every((n) => n > 0) ? columnWidths : [],
+    aiStatementHtml,
+    assets,
+  };
 }
 
 function bubble(b: RoleBubble): string {
   return `chip-pill(${typstString(b.label)}, rgb(${typstString(b.color)}), filled: ${b.filled})`;
 }
 
+/**
+ * The participant list, as the B1.1 source-fed block renders it. Column widths
+ * are the ones stored for that block (`table_column_widths`), converted to
+ * Typst `fr` shares so the printed proportions match the editor exactly.
+ */
+export function emitParticipantList(fm: TypstFrontMatter): string[] {
+  if (!fm.participants.length) return [];
+  const out: string[] = [];
+  out.push('he-h2-plain(' + typstString('List of Participants') + ')');
+  const header = [
+    't("Short name")',
+    't("Participant legal name | ") + emph(t("English name, if different"))',
+    't("Logo")',
+    't("Lead roles")',
+    't("Country")',
+  ];
+  const rows = fm.participants.map((p) => {
+    const short = p.shortName
+      ? `chip-pill(${typstString(`${p.number}. ${p.shortName}`)}, black, filled: true)`
+      : 't("—")';
+    const name = p.englishName
+      ? `t(${typstString(p.legalName)}) + linebreak() + text(fill: rgb("#666666"), emph(t(${typstString(p.englishName)})))`
+      : `t(${typstString(p.legalName)})`;
+    const logo = p.logoPath
+      ? `align(center, image(${typstString(p.logoPath)}, height: 8mm, fit: "contain"))`
+      : 't("—")';
+    const roles = p.roles.length ? p.roles.map(bubble).join(' + t(" ") + ') : 't("—")';
+    return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.country || '—')}))`;
+  });
+  const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
+  const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');
+  out.push(`he-table((${cols}), (${header.join(', ')}), (${rows.join(', ')}))`);
+  return out;
+}
+
 /** Emits the list of participants and the AI statement, in that order. */
 export function emitFrontMatter(fm: TypstFrontMatter, ctx: ConvertContext): string[] {
-  const out: string[] = [];
-
-  if (fm.participants.length) {
-    out.push('he-h2-plain(' + typstString('List of Participants') + ')');
-    const header = [
-      't("Short name")',
-      't("Participant legal name | ") + emph(t("English name, if different"))',
-      't("Logo")',
-      't("Lead roles")',
-      't("Country")',
-    ];
-    const rows = fm.participants.map((p) => {
-      const short = p.shortName
-        ? `chip-pill(${typstString(`${p.number}. ${p.shortName}`)}, black, filled: true)`
-        : 't("—")';
-      const name = p.englishName
-        ? `t(${typstString(p.legalName)}) + linebreak() + text(fill: rgb("#666666"), emph(t(${typstString(p.englishName)})))`
-        : `t(${typstString(p.legalName)})`;
-      const logo = p.logoPath
-        ? `align(center, image(${typstString(p.logoPath)}, height: 8mm, fit: "contain"))`
-        : 't("—")';
-      const roles = p.roles.length
-        ? p.roles.map(bubble).join(' + t(" ") + ')
-        : 't("—")';
-      return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.country || '—')}))`;
-    });
-    out.push(
-      `he-table((15fr, 40fr, 8fr, 20fr, 17fr), (${header.join(', ')}), (${rows.join(', ')}))`,
-    );
-  }
+  const out: string[] = [...emitParticipantList(fm)];
 
   if (fm.aiStatementHtml && fm.aiStatementHtml.trim()) {
     out.push(...htmlToTypstBlocks(fm.aiStatementHtml, ctx));

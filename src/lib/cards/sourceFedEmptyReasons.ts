@@ -12,6 +12,8 @@
  * here.
  */
 export const SOURCE_FED_EMPTY_REASONS: Record<string, string> = {
+  'b11.participants':
+    'This table will not appear in the proposal because no participants have been added to the consortium.',
   'b31.table_a':
     'This table will not appear in the proposal because no work packages have been created.',
   'b31.table_b':
