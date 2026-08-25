@@ -234,13 +234,17 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   ]);
   return [
     caption(data, 'milestones', 'Table 3.1.d.', 'List of milestones'),
+    // Baseline shares were 2 / 1 / 2 (milestone / WPs / verification). The
+    // milestone title and the WP column each give up 30 %, and all of the
+    // freed width goes to the means of verification.
     table(
-      '(auto, 1fr, auto, auto, 1fr)',
+      '(auto, 1.4fr, 0.7fr, auto, 2.9fr)',
       [lit('No.'), lit('Milestone'), lit('WP(s)'), lit('Due'), lit('Means of verification')],
       rows,
     ),
   ];
 }
+
 
 /* ─────────────────────── Table 3.1.e — critical risks ───────────────────── */
 
