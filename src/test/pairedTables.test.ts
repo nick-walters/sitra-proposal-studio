@@ -122,8 +122,10 @@ describe('paired tables invariant', () => {
     editor.destroy();
   });
 
-  it('repairs already-drifted content by padding, never deleting', () => {
+  it('repairs already-drifted content by padding, never deleting', async () => {
     const editor = createEditor(DRIFTED);
+    // TipTap emits `create` on the next tick, which is when the repair runs.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(rowCounts(editor)).toEqual([3, 3]);
     const html = editor.getHTML();
     for (const text of ['a3', 'b3', 'c3', 'd1', 'e1', 'f1']) expect(html).toContain(text);
