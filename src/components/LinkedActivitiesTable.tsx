@@ -273,6 +273,20 @@ function SortableActivityRow({
           </div>
         </td>
 
+        {/* How the project will be linked — a normal cell on the same row. */}
+        <td className={`${cellStyles} !align-top break-words`}>
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={activity.linkDescriptionHtml ?? ''}
+            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            minHeight="1.5rem"
+            placeholder="How the project will be linked"
+          />
+        </td>
+
+
         {/* Fixed delete column: identical position on every row whatever the
             participant chip's width. */}
         <td className={`${cellStyles} text-center`}>
