@@ -413,7 +413,7 @@ export function buildSectionTypstDocument(
         // ordinary 3pt paragraph spacing, so items from two different modules
         // sit exactly as far apart as two paragraphs in one module.
         out.push(
-          `block(above: 3pt, below: 3pt, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
+          `block(above: 3pt, below: 3pt, sticky: true, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
