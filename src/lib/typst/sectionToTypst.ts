@@ -408,6 +408,32 @@ export function buildSectionTypstDocument(
     }
 
     for (const field of tree.fieldsByCard[card.id] || []) {
+      // The B1.2 pilots table is NOT stored as HTML at all: on the block board
+      // it is a field with `field_role = 'case_placeholder'` and an empty
+      // `content_html`, rendered live by `CasesTableLiveView` from
+      // `case_drafts`. Walking its HTML therefore yields nothing, so the rows
+      // are emitted here from the fetched case data instead.
+      if (field.fieldRole === 'case_placeholder') {
+        const numbering = ctx.captionNumbering;
+        const label = numbering
+          ? `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
+              numbering.tableIndex++,
+            )}.`
+          : null;
+        if (options.casesData) {
+          out.push(
+            ...emitCasesTable(
+              options.casesData as CasesTypstData,
+              field.placeholderCaseTypeId,
+              label,
+              ctx,
+            ),
+          );
+        } else {
+          ctx.unsupported.add('cases table');
+        }
+        continue;
+      }
       if (field.headingEnabled && field.heading) {
         // A module boundary is NOT a structural break: the heading gets the
         // ordinary 3pt paragraph spacing, so items from two different modules
@@ -417,6 +443,7 @@ export function buildSectionTypstDocument(
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
+
       // Atom-backed case tables have no caption paragraph for the HTML walker
       // to encounter, but still occupy a position-derived table slot.
       if (ctx.captionNumbering) {
