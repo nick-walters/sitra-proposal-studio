@@ -69,6 +69,9 @@ import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useReferenceData } from '@/lib/referenceData';
 import { scheduleCitationInstanceReconcile } from '@/lib/reconcileCitationInstances';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
+import { ImpactSummaryRowControls } from '@/components/cards/ImpactSummaryRowControls';
+import { IMPACT_SUMMARY_KEY } from '@/lib/cards/impactSummaryRows';
+
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
