@@ -32,6 +32,12 @@ const FONT_URLS = [
   arialBlackUrl,
 ];
 
+export interface TypstFontDiagnostics {
+  arialBlackByteLength: number;
+  loadedFonts: string[];
+}
+
+let fontDiagnostics: TypstFontDiagnostics | null = null;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let snippetPromise: Promise<any> | null = null;
@@ -48,10 +54,27 @@ async function getSnippet(): Promise<any> {
       getModule: () => fetch(compilerWasm.url).then((r) => r.arrayBuffer()),
       beforeBuild: [],
     });
+    // Resolve the assets ourselves and hand the compiler the raw bytes. Passing
+    // Vite's URL strings through typst.ts made the requests succeed, but the
+    // Arial face was silently absent from the resolver and Typst substituted
+    // Nimbus Roman. Raw buffers take the unambiguous add_raw_font path.
+    const fontBuffers = await Promise.all(
+      FONT_URLS.map(async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Unable to load Typst font (${response.status})`);
+        return new Uint8Array(await response.arrayBuffer());
+      }),
+    );
     typst.use(
       TypstSnippet.disableDefaultFontAssets(),
-      TypstSnippet.preloadFonts(FONT_URLS),
+      TypstSnippet.preloadFonts(fontBuffers),
     );
+    const compiler = await typst.getCompiler();
+    const loaded = compiler?.compiler?.get_loaded_fonts?.();
+    fontDiagnostics = {
+      arialBlackByteLength: fontBuffers[fontBuffers.length - 1]?.byteLength ?? 0,
+      loadedFonts: Array.isArray(loaded) ? loaded.map(String) : [],
+    };
     return typst;
   })();
   return snippetPromise;
@@ -61,6 +84,12 @@ async function getSnippet(): Promise<any> {
 export async function preloadTypst(): Promise<void> {
   const typst = await getSnippet();
   await typst.getCompiler();
+}
+
+/** Runtime evidence from the same buffers and resolver used for compilation. */
+export async function getTypstFontDiagnostics(): Promise<TypstFontDiagnostics> {
+  await getSnippet();
+  return fontDiagnostics ?? { arialBlackByteLength: 0, loadedFonts: [] };
 }
 
 export interface TypstCompileResult {
