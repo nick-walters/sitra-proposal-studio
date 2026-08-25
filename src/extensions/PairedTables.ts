@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import type { Transaction } from '@tiptap/pm/state';
+import type { EditorState, Transaction } from '@tiptap/pm/state';
 import type { Node as PMNode, Schema } from '@tiptap/pm/model';
 
 /**
@@ -104,6 +104,32 @@ function isHistory(tr: Transaction): boolean {
   return Boolean(tr.getMeta('history$'));
 }
 
+/**
+ * Pads the shorter part with empty rows so the two parts hold the same number
+ * of rows. Nothing is ever deleted, so no text can be lost by the repair.
+ */
+function buildRepairTransaction(state: EditorState): Transaction | null {
+  const tables = topLevelTables(state.doc);
+  if (tables.length !== 2) return null;
+  const counts = tables.map((t) => bodyRowCount(t.node));
+  const target = Math.max(...counts);
+  if (counts.every((c) => c === target)) return null;
+
+  const tr = state.tr;
+  // Later parts first so earlier inserts cannot shift their positions.
+  for (let i = tables.length - 1; i >= 0; i -= 1) {
+    const missing = target - counts[i];
+    for (let n = 0; n < missing; n += 1) {
+      const row = buildEmptyRow(state.schema, tables[i].node);
+      if (!row) return null;
+      tr.insert(tables[i].pos + tables[i].node.nodeSize - 1, row);
+    }
+  }
+  tr.setMeta(PAIRED_TABLES_ROW_OP, true);
+  tr.setMeta('addToHistory', false);
+  return tr;
+}
+
 export interface PairedTablesOptions {
   /** Only the split table's own text box turns the invariant on. */
   isEnabled: () => boolean;
@@ -114,6 +140,12 @@ export const PairedTables = Extension.create<PairedTablesOptions>({
 
   addOptions() {
     return { isEnabled: () => false };
+  },
+
+  onCreate() {
+    if (!this.options.isEnabled()) return;
+    const tr = buildRepairTransaction(this.editor.state);
+    if (tr) this.editor.view.dispatch(tr);
   },
 
   addProseMirrorPlugins() {
@@ -145,25 +177,7 @@ export const PairedTables = Extension.create<PairedTablesOptions>({
 
         appendTransaction(_trs, _old, state) {
           if (!isEnabled()) return null;
-          const tables = topLevelTables(state.doc);
-          if (tables.length !== 2) return null;
-          const counts = tables.map((t) => bodyRowCount(t.node));
-          const target = Math.max(...counts);
-          if (counts.every((c) => c === target)) return null;
-
-          const tr = state.tr;
-          // Later parts first so earlier inserts cannot shift their positions.
-          for (let i = tables.length - 1; i >= 0; i -= 1) {
-            const missing = target - counts[i];
-            for (let n = 0; n < missing; n += 1) {
-              const row = buildEmptyRow(state.schema, tables[i].node);
-              if (!row) return null;
-              tr.insert(tables[i].pos + tables[i].node.nodeSize - 1, row);
-            }
-          }
-          tr.setMeta(PAIRED_TABLES_ROW_OP, true);
-          tr.setMeta('addToHistory', false);
-          return tr;
+          return buildRepairTransaction(state);
         },
       }),
     ];
