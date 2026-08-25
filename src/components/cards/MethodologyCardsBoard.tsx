@@ -787,6 +787,7 @@ function CardBlock({
   captionLabel,
   figuresFullWidth,
 }: CardBlockProps) {
+  const queryClient = useQueryClient();
   const sortable = useSortable({ id: card.id, disabled: !draggable });
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraftState] = useState(card.title ?? '');
@@ -802,6 +803,8 @@ function CardBlock({
   // Linked-activities block: the controller lives here so its Add/Restore
   // buttons can sit in the block header with the other blocks' controls.
   const isLinkedActivities = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
+  const isMilestonesCard = card.sourceKey === 'b31.table_d' && !card.isSourceFed;
+  const isRisksCard = card.sourceKey === 'b31.table_e' && !card.isSourceFed;
   const linkedActivities = useLinkedActivities(isLinkedActivities ? proposalId : '');
   const [activityBinOpen, setActivityBinOpen] = useState(false);
   const relationalBinTable = isMilestonesCard
@@ -957,8 +960,6 @@ function CardBlock({
   const isLinkedActivitiesCard = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
   // Same arrangement for B3.1's milestones and risks: authored in place,
   // stored in proposal_milestones / proposal_risks.
-  const isMilestonesCard = card.sourceKey === 'b31.table_d' && !card.isSourceFed;
-  const isRisksCard = card.sourceKey === 'b31.table_e' && !card.isSourceFed;
   const isRelationalCard = isLinkedActivitiesCard || isMilestonesCard || isRisksCard;
   // The two B3.1 charts: no add / restore / delete, so those header columns
   // carry the chart's own Edit and Download controls instead.
