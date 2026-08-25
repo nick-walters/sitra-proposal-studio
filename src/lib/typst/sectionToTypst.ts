@@ -268,15 +268,26 @@ export function buildSectionTypstDocument(
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
   const references = options.references ?? [];
+  const frontMatter = options.frontMatter ?? null;
 
-  const banner = options.meta ? bannerCall(options.meta) : '';
+  // Page one: banner (with the Sitra mark, when its bitmap was supplied),
+  // then the mirrored list of participants and the AI usage statement.
+  const banner = options.meta
+    ? bannerCall(options.meta, frontMatter ? SITRA_LOGO_ASSET_PATH : '')
+    : '';
   if (banner) out.push(banner);
+  if (banner && frontMatter) out.push(...emitFrontMatter(frontMatter, ctx));
 
-  if (options.sectionLabel) {
-    out.push(
-      `block(below: 12pt, text(size: 14pt, weight: "bold", t(${typstString(options.sectionLabel)})))`,
-    );
+  // Numbered headings, derived from the template's section numbers. The H1 is
+  // only emitted by the first section of its part, so a per-section document
+  // never repeats "1. Excellence".
+  const headings = options.meta?.headings;
+  if (headings?.h1) out.push(`he-h1-plain(${typstString(headings.h1)})`);
+  if (headings?.h2) out.push(`he-h2-plain(${typstString(headings.h2)})`);
+  if (!headings?.h1 && !headings?.h2 && options.sectionLabel) {
+    out.push(`he-h2-plain(${typstString(options.sectionLabel)})`);
   }
+
 
   // Milestones, risks and linked activities are authored in place (their rows
   // live in proposal_milestones / proposal_risks /
