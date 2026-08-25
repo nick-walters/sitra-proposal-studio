@@ -218,6 +218,9 @@ export interface BuildTypstOptions {
    * References block is left out of the document entirely.
    */
   references?: SectionTypstReference[];
+  /** Page-one furniture (participant list, AI statement); B1.1 only. */
+  frontMatter?: TypstFrontMatter | null;
+
 }
 
 /** Emitters for every source-fed / relational block key we can render. */
