@@ -1798,13 +1798,50 @@ body.table-col-resizing * {
  * authored text reads like the rendered document beside it. Focus is shown
  * with a left rule instead of a border, since there is no border left.
  * ------------------------------------------------------------------ */
+.doc-surface-page {
+  /* One text column: 18 cm of content, 1.5 cm of margin each side (set on
+     the element), so the module measures exactly 21 cm. */
+  width: 100%;
+}
+
+.doc-surface-page > * {
+  max-width: 18cm;
+}
+
 .doc-surface-field {
   background: #ffffff;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  /* The focus rule lives IN the left margin: the negative margin pulls the
+     rule and its gutter off the text column, so body text starts flush at
+     the 1.5 cm margin whether or not the field is focused. */
   border-left: 2px solid transparent;
-  padding-left: 10px;
+  margin-left: -8px;
+  padding-left: 6px;
+  padding-right: 0;
+}
+
+/* The module's H3 header as a field ON the page: same white surface and the
+   same growth behaviour as the body, distinguished only by its weight. */
+.doc-surface-heading .ProseMirror,
+.doc-surface-heading.document-content,
+.doc-surface-heading .document-content {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  line-height: 1;
+  font-weight: 700;
+  font-style: italic;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.doc-surface-heading .ProseMirror p,
+.doc-surface-heading .document-content p {
+  margin: 0 0 3pt;
+  line-height: 1;
+  text-align: left;
 }
 
 .doc-surface-field.is-active {
