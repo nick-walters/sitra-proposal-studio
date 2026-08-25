@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
@@ -114,7 +115,7 @@ export interface B12LinkedActivitiesSlotContentProps {
    * nothing (the slot simply collapses); the board block passes the note that
    * explains why the table will not appear in the proposal.
    */
-  emptyFallback?: React.ReactNode;
+  emptyFallback?: ReactNode;
 }
 
 export function B12LinkedActivitiesSlotContent({
