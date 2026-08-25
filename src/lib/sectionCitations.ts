@@ -51,7 +51,7 @@ export async function fetchSectionCitationSources(
       .is('deleted_at', null),
     supabase
       .from('card_fields')
-      .select('card_id, content_html')
+      .select('card_id, content_html, is_visible')
       .eq('proposal_id', proposalId)
       .is('deleted_at', null),
     supabase.from('section_content').select('section_id, content').eq('proposal_id', proposalId),
@@ -66,7 +66,11 @@ export async function fetchSectionCitationSources(
   const cardById = new Map(cards.map((c) => [c.id, c]));
 
   const byCardSection = new Map<string, { visible: Set<number>; hidden: Set<number> }>();
-  for (const row of (fieldRes.data || []) as Array<{ card_id: string; content_html: string | null }>) {
+  for (const row of (fieldRes.data || []) as Array<{
+    card_id: string;
+    content_html: string | null;
+    is_visible: boolean | null;
+  }>) {
     const card = cardById.get(row.card_id);
     if (!card?.section_id) continue;
     let bucket = byCardSection.get(card.section_id);
@@ -74,7 +78,10 @@ export async function fetchSectionCitationSources(
       bucket = { visible: new Set(), hidden: new Set() };
       byCardSection.set(card.section_id, bucket);
     }
-    const target = card.is_visible === false ? bucket.hidden : bucket.visible;
+    // A hidden MODULE counts exactly as a hidden block does: its citations
+    // consume no number.
+    const hidden = card.is_visible === false || row.is_visible === false;
+    const target = hidden ? bucket.hidden : bucket.visible;
     for (const key of extractCitationRefKeys(row.content_html)) target.add(key);
   }
 
