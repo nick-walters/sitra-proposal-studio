@@ -41,7 +41,6 @@ import {
   emitSubcontracting,
   emitWpDescriptions,
   emitWpList,
-  emitReferences,
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -53,6 +52,7 @@ import {
 } from '@/lib/sectionCitations';
 
 export interface SectionTypstReference {
+  refKey: number;
   displayNumber: number | null;
   html: string;
 }
@@ -69,6 +69,7 @@ export async function fetchSectionTypstReferences(
 ): Promise<SectionTypstReference[]> {
   const sources = await fetchSectionCitationSources(proposalId);
   return sectionCitedReferences(sources, { sectionId }, citationNumbers).map((entry) => ({
+    refKey: entry.refKey,
     displayNumber: entry.displayNumber,
     html: citationHtml(entry.reference),
   }));
@@ -230,11 +231,16 @@ function emitSourceFed(
   ctx: ConvertContext,
   data: B31TypstData,
   figures: { pert: boolean; gantt: boolean },
-  references: SectionTypstReference[],
 ): string[] | null {
   switch (sourceKey) {
+    case 'b11.references':
+    case 'b12.references':
+    case 'b21.references':
+    case 'b22.references':
     case 'b31.references':
-      return emitReferences(references, ctx);
+    case 'b32.references':
+      // Footnotes carry the references; no list is emitted.
+      return [];
     case 'b31.table_a':
       return emitWpList(data);
     case 'b31.table_b':
@@ -275,9 +281,19 @@ export function buildSectionTypstDocument(
 ): BuiltTypstDocument {
   const sectionNumber = (options.meta?.headings?.h2 || options.sectionLabel || '')
     .match(/(?:B)?(\d+(?:\.\d+)+)/i)?.[1] ?? '';
+  const refEntries = options.references ?? [];
   const ctx: ConvertContext = {
     data: options.data,
     unsupported: new Set<string>(),
+    citations: {
+      numbers: new Map(
+        refEntries
+          .filter((r) => r.displayNumber != null)
+          .map((r) => [r.refKey, r.displayNumber as number]),
+      ),
+      html: new Map(refEntries.map((r) => [r.refKey, r.html])),
+      emitted: new Set<number>(),
+    },
     captionNumbering:
       sectionNumber && sectionNumber !== '3.1'
         ? { sectionNumber, tableIndex: 0, figureIndex: 0 }
@@ -286,7 +302,6 @@ export function buildSectionTypstDocument(
   const out: string[] = [];
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
-  const references = options.references ?? [];
   const frontMatter = options.frontMatter ?? null;
 
   // Page one: banner (with the Sitra mark, when its bitmap was supplied),
@@ -329,7 +344,7 @@ export function buildSectionTypstDocument(
 
     if (isGenerated) {
       const emitted = sourceData
-        ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures, references)
+        ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures)
         : null;
       if (emitted && emitted.length) {
         out.push(...emitted);
@@ -364,10 +379,9 @@ export function buildSectionTypstDocument(
       out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
       continue;
     }
-    if (card.kind === 'references') {
-      out.push(...emitReferences(references, ctx));
-      continue;
-    }
+    // References are per-page footnotes now: there is no reference LIST in the
+    // exported document, so a references block emits nothing at all.
+    if (card.kind === 'references') continue;
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
