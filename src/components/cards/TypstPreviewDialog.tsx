@@ -72,34 +72,13 @@ export function TypstPreviewDialog({
       urlRef.current = URL.createObjectURL(blob);
       setPdfUrl(urlRef.current);
       const previewContainer = previewRef.current;
-      console.info('[Typst preview diagnostic] before canvas render', {
-        renderFunctionWillBeCalled: Boolean(previewContainer),
-        cachedCompileLikely: compileMs < 250,
-        pdfBytes: pdf.byteLength,
-        containerPresent: Boolean(previewContainer),
-        containerClientWidth: previewContainer?.clientWidth ?? null,
-        containerClientHeight: previewContainer?.clientHeight ?? null,
-        canvasCount: previewContainer?.querySelectorAll('canvas').length ?? 0,
-      });
+      if (!previewContainer) throw new Error('Preview canvas container unavailable');
       // Render with PDF.js rather than an iframe: the built-in PDF viewer is a
       // plugin whose blob-URL-in-iframe support varies by browser (absent
       // entirely in headless Chromium and Safari), which showed a blank frame
       // for a perfectly valid document.
       const { renderPdfToContainer } = await import('@/lib/typst/pdfCanvasPreview');
-      const pages = previewContainer
-        ? await renderPdfToContainer(pdf, previewContainer)
-        : null;
-      console.info('[Typst preview diagnostic] after canvas render', {
-        pages,
-        canvasCount: previewContainer?.querySelectorAll('canvas').length ?? 0,
-        canvases: previewContainer
-          ? Array.from(previewContainer.querySelectorAll('canvas')).map((canvas) => ({
-              bitmap: `${canvas.width}x${canvas.height}`,
-              computed: `${getComputedStyle(canvas).width} x ${getComputedStyle(canvas).height}`,
-            }))
-          : [],
-        containerClientHeight: previewContainer?.clientHeight ?? null,
-      });
+      const pages = await renderPdfToContainer(pdf, previewContainer);
       setPageCount(pages);
       setStats({
         compileMs,
@@ -150,9 +129,12 @@ export function TypstPreviewDialog({
           </div>
         )}
 
-        {status === 'done' && pdfUrl && (
-          <div className="space-y-3">
-            <div ref={previewRef} className="max-h-[65vh] overflow-y-auto" />
+        <div
+          className={status === 'done' && pdfUrl ? 'space-y-3' : 'invisible absolute inset-x-6'}
+          aria-hidden={status !== 'done'}
+        >
+            <div ref={previewRef} className="min-h-1 max-h-[65vh] overflow-y-auto" />
+          {status === 'done' && pdfUrl && (
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">
                 {stats?.blockCount} blocks &middot; {stats?.sourceChars.toLocaleString()} characters of
@@ -166,8 +148,8 @@ export function TypstPreviewDialog({
                 <a href={pdfUrl} download="typst-preview.pdf">Download PDF</a>
               </Button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
