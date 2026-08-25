@@ -376,33 +376,62 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   image(path, width: 100%),
 )
 
+// ── headings ───────────────────────────────────────────────────────────────
+/// Part heading ("1. Excellence") and section heading ("1.2. Methodology").
+/// Arial Black at 13pt / 12pt with 9-6 and 6-6 point spacing, matching the
+/// browser-print export. The face is already black, so no synthetic bold is
+/// requested on top of it.
+#let he-h1(body) = block(above: 9pt, below: 6pt, text(
+  font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", body,
+))
+#let he-h2(body) = block(above: 6pt, below: 6pt, text(
+  font: "${TYPST_DISPLAY}", size: 12pt, weight: "regular", body,
+))
+#let he-h1-plain(s) = he-h1(t(s))
+#let he-h2-plain(s) = he-h2(t(s))
+
 // ── page-one banner ────────────────────────────────────────────────────────
-/// Full-bleed black banner flush to the top edge of page one. Placed into the
-/// page margin, then the flow is advanced by the measured height so the body
-/// starts underneath it. Only the FIRST section of the document emits this.
-#let doc-banner(topic, acronym, title) = context {
+/// Full-bleed black banner flush to the top edge of page one — no page margin
+/// above or beside it, its own 15mm / 12pt padding inside. Composed exactly as
+/// \`ProposalBanner.tsx\` and the browser-print export compose it: the Sitra
+/// logo with "and partners" beneath it in the top-right corner, then the topic
+/// line (8pt serif), the acronym (18pt) and the title (13pt) in Arial Black.
+/// Only the FIRST section of the document emits this.
+#let doc-banner(topic, acronym, title, logo) = context {
+  let mark = if logo != "" {
+    block(width: auto, {
+      set align(center)
+      image(logo, height: 0.8cm, fit: "contain")
+      v(2pt, weak: false)
+      text(font: "${TYPST_DISPLAY}", size: 10pt, weight: "regular", fill: white, t("and partners"))
+    })
+  } else { none }
+  let lines = {
+    set text(fill: white)
+    set par(justify: false, leading: 2pt)
+    if topic.len() > 0 {
+      block(below: 6pt, text(font: "${TYPST_SERIF}", size: 8pt, t-lines(topic)))
+    }
+    if acronym.len() > 0 {
+      block(below: 2pt, text(font: "${TYPST_DISPLAY}", size: 18pt, weight: "regular", t-lines(acronym)))
+    }
+    if title.len() > 0 {
+      block(below: 0pt, text(font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", t-lines(title)))
+    }
+  }
   let body = block(
     width: 210mm,
     fill: black,
     inset: (x: 15mm, top: 15mm, bottom: 12pt),
-    {
-      set text(fill: white)
-      set par(justify: false, leading: 2pt)
-      if topic.len() > 0 {
-        block(below: 6pt, text(size: 8pt, t-lines(topic)))
-      }
-      if acronym.len() > 0 {
-        block(below: 2pt, text(size: 18pt, weight: "bold", t-lines(acronym)))
-      }
-      if title.len() > 0 {
-        block(below: 0pt, text(size: 13pt, weight: "bold", t-lines(title)))
-      }
+    if mark == none { lines } else {
+      grid(columns: (1fr, auto), column-gutter: 0.5cm, align: (left + bottom, right + top), lines, mark)
     },
   )
   let h = measure(body).height
   place(top + left, dx: -15mm, dy: -15mm, body)
   v(h - 15mm + 12pt, weak: false)
 }
+
 
 /// Honest placeholder for anything this converter does not yet render.
 #let not-converted(what) = block(
