@@ -56,6 +56,8 @@ interface ParticipantSummary {
   participant_number: number | null;
 }
 
+interface LinkedActivitiesTablePropsMarker {}
+
 interface LinkedActivitiesTableProps {
   proposalId: string;
   canEdit: boolean;
@@ -66,6 +68,11 @@ interface LinkedActivitiesTableProps {
    * then hides its own control row and restore dialog.
    */
   controller?: ReturnType<typeof useLinkedActivities>;
+  /**
+   * Derived, non-editable caption label ("Table 1.2.a.") supplied by the
+   * board from this block's position. Only the caption text is editable.
+   */
+  captionLabel?: string;
 }
 
 const GRID = 'grid items-center gap-2 grid-cols-[1.25rem_minmax(10.5rem,1.95fr)_minmax(17rem,2.75fr)_minmax(5.7rem,0.57fr)_minmax(9rem,0.85fr)_2.25rem]';
@@ -319,6 +326,7 @@ export default function LinkedActivitiesTable({
   canEdit,
   isCoordinator,
   controller,
+  captionLabel,
 }: LinkedActivitiesTableProps) {
   const internal = useLinkedActivities(controller ? '' : proposalId);
   const { activities, deletedActivities, addActivity, deleteActivity, restoreActivity, updateField, reorder } =
@@ -366,6 +374,15 @@ export default function LinkedActivitiesTable({
 
   return (
     <div className="space-y-3">
+      {captionLabel && (
+        <EditableCaption
+          proposalId={proposalId}
+          tableKey="b12.linked_activities"
+          label={captionLabel}
+          defaultCaption="Linked research & innovation activities"
+          canEdit={canEdit}
+        />
+      )}
       {ordered.length === 0 ? (
         <p className="text-sm italic text-muted-foreground">
           No linked activities yet
