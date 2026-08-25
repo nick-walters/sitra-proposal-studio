@@ -210,7 +210,7 @@ export function MethodologyRichEditor({
           aria-hidden
           className={`pointer-events-none absolute select-none text-muted-foreground ${
             documentSurface
-              ? 'left-0 top-0 font-document text-[11pt]'
+              ? 'left-0 top-0 font-document text-[11pt] italic'
               : 'left-2.5 top-1.5 text-sm italic'
           }`}
         >
