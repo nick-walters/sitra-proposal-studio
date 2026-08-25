@@ -81,12 +81,14 @@ export function TypstPreviewDialog({
       // Gantt — CSS-drawn nested divs — is still captured from the live board
       // with the same snapshot utility as the PNG download.
       const { fetchTypstFrontMatter } = await import('@/lib/typst/frontMatter');
-      const [tree, meta, sourceData, captured, references] = await Promise.all([
+      const { fetchCasesTypstData } = await import('@/lib/typst/casesData');
+      const [tree, meta, sourceData, captured, references, casesData] = await Promise.all([
         fetchSectionBlockTree(proposalId, sectionId),
         fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
         fetchB31TypstData(proposalId),
         captureFigureAssets(['gantt']),
         fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
+        fetchCasesTypstData(proposalId),
       ]);
       // Page-one furniture is only fetched for the section that carries the
       // banner (B1.1); every other section starts on plain margins.
@@ -98,6 +100,7 @@ export function TypstPreviewDialog({
         sourceData,
         references,
         frontMatter,
+        casesData,
         figuresAvailable: {
           pert: captured.assets.some((a) => a.path.includes('pert')),
           gantt: captured.assets.some((a) => a.path.includes('gantt')),

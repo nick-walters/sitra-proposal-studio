@@ -134,15 +134,16 @@ function footerSource(meta: TypstDocMeta): string {
 }
 
 /**
- * The running header: the topic identifier, centred, on every page except the
- * first — page one carries the full-bleed banner, and a header above it would
- * print inside the black area.
+ * The running header: the topic identifier, centred, on every page. Page one
+ * is skipped ONLY when the full-bleed banner is there (B1.1) — a header above
+ * it would print inside the black area. Every other section shows it on page
+ * one too.
  */
 function headerSource(meta: TypstDocMeta): string {
   const text = (meta.runningHeader || '').trim();
   if (!text) return 'none';
   return `context {
-  if counter(page).at(here()).first() > 1 {
+  if ${meta.banner ? 'counter(page).at(here()).first() > 1' : 'true'} {
     set align(center)
     set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
     t(${typstString(text)})
@@ -171,13 +172,17 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let t-lines(items) = items.map(t).join(linebreak())
 
 // ── chip vocabulary ────────────────────────────────────────────────────────
-#let chip-size = 9pt
+#let chip-size = 10pt
 #let chip-pad = 3.5pt
 #let chip-height = 11pt
-#let chip-label-shift = -0.65pt
+#let chip-label-shift = 1.6pt
 
-/// Chip text is shifted down inside a fixed 11pt box. Nimbus Roman 9pt has a
-/// 6.16pt cap-to-descender extent; the 0.55pt correction optically centres it.
+/// Chip text is shifted down inside a fixed 11pt box. Measured on the compiled
+/// PDF at 1200 ppi (Nimbus Roman, 11pt body): a 10pt bold label leaves 2.52pt
+/// of pill above and 2.52pt below its ink — optically centred — and its
+/// baseline sits 0.36pt under the body baseline. The box height still equals
+/// the 11pt line pitch, so leading is unchanged (measured pitch 10.98pt with
+/// and without a chip on the line).
 #let chip-label(s, colour) = text(
   font: "${TYPST_SERIF}",
   size: chip-size,
@@ -193,7 +198,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Horizontal padding is INSET (it must push neighbouring text away); the
 /// fixed box height equals the body line pitch, so it cannot inflate leading.
 #let chip-pill(label, colour, filled: false) = box(
-  baseline: 1.75pt,
+  baseline: 2.4pt,
   height: chip-height,
   inset: (x: chip-pad, y: 0pt),
   radius: 999pt,
@@ -222,7 +227,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   } else {
     ((0pt, 0pt), (w - nose, 0pt), (w, h / 2), (w - nose, h), (0pt, h))
   }
-  box(baseline: 1.75pt, width: w, height: chip-height, {
+  box(baseline: 2.4pt, width: w, height: chip-height, {
     place(top + left, polygon(
       fill: if filled { colour } else { white },
       stroke: 1pt + colour,
@@ -264,13 +269,18 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /// The Horizon Europe table: no vertical rules, a 1.5pt black rule under the
 /// header, hairline row separators, no rule under the final row.
-#let he-table(cols, header, rows, aligns: none) = block(
+/// The first-flush option drops the left padding of the FIRST column so its
+/// text lines up with the body margin (the linked-activities table, which
+/// otherwise reads as indented against the surrounding paragraphs).
+#let he-table(cols, header, rows, aligns: none, first-flush: false) = block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
   table(
     columns: cols,
-    inset: he-inset,
+    inset: if first-flush {
+      (x, y) => (left: if x == 0 { 0pt } else { 5pt }, right: 5pt, top: 2.5pt, bottom: 2.5pt)
+    } else { he-inset },
     align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
     stroke: (x, y) => (
       left: none,
@@ -471,12 +481,35 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// marker, the entry and the on-screen superscript all agree. A later citation
 /// of the same reference reuses the number with no second entry.
 #let he-cite-note(num, body) = footnote(numbering: _ => num, body)
+
+/// Same, but guaranteed to fit on ONE line: the entry is measured against the
+/// footnote's usable width and, while it overflows, whole words are removed
+/// from the END OF THE TITLE (an ellipsis is appended). Everything after the
+/// title — journal, year, DOI — is never touched.
+#let he-cite-fit-width = 210mm - 30mm
+#let he-cite-note-fit(num, body, pre, title, post) = footnote(numbering: _ => num, context {
+  let avail = he-cite-fit-width - measure(text(size: 8pt, num)).width - 8pt
+  if measure(text(size: 8pt, box(body))).width <= avail {
+    body
+  } else {
+    let words = title.split(" ")
+    let n = words.len()
+    let out = none
+    while n > 0 and out == none {
+      let cut = words.slice(0, n).join(" ")
+      let cand = pre + cut + (if n < words.len() { "…" } else { "" }) + post
+      if measure(text(size: 8pt, cand)).width <= avail { out = cand }
+      n -= 1
+    }
+    text(size: 8pt, if out == none { pre + "…" + post } else { out })
+  }
+})
 #let he-cite-again(num) = super(text(size: 7pt, num))
 
 #set footnote.entry(indent: 0pt, gap: 4pt, clearance: 6pt)
 #show footnote.entry: it => {
-  set text(size: 8pt)
-  set par(justify: false, leading: 0.85em, spacing: 3pt)
+  set text(size: 8pt, top-edge: ${TYPST_TOP_EDGE}, bottom-edge: ${TYPST_BOTTOM_EDGE})
+  set par(justify: false, leading: -0.15em, spacing: 3pt)
   it
 }
 
