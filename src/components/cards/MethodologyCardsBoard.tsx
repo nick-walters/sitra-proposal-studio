@@ -1803,14 +1803,15 @@ function BoardInner({
     visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
 
   /**
-   * The Pert and Gantt charts are rasterised from the live board, so a
-   * collapsed chart block is `display: none` and captures as nothing. Opening
-   * the preview expands both blocks first (and leaves them expanded), so the
-   * user never has to know that the capture reads the DOM.
+   * The Gantt is still rasterised from the live board, so a collapsed Gantt
+   * block is `display: none` and captures as nothing. Opening the preview
+   * expands it first (and leaves it expanded), so the user never has to know
+   * that the capture reads the DOM. The Pert needs no expansion: it is drawn
+   * natively in Typst from its own layout data.
    */
   const openTypstPreview = async () => {
     const chartCardIds = cards
-      .filter((c) => c.sourceKey === 'b31.pert' || c.sourceKey === 'b31.gantt')
+      .filter((c) => c.sourceKey === 'b31.gantt')
       .map((c) => c.id)
       .filter((id) => collapsedIds.has(id));
     if (chartCardIds.length) {
