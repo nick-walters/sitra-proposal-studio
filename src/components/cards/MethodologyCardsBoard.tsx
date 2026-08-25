@@ -1894,46 +1894,75 @@ function BoardInner({
     void jumpToElementId(domId);
   }, []);
 
-  // Figure blocks are labelled per section in document order (a, b, c…). The
-  // figure sequence is independent of the table sequence: B3.1 runs figures
-  // a–b (Pert, Gantt) while its tables run a–h on their own letters.
+  // Tables and figures are numbered by POSITION, in one pass over the whole
+  // section: figures run their own sequence (a, b, c…) and tables another, and
+  // both are handed down as derived, uneditable labels. B3.1 keeps its own
+  // fixed sequence (its tables are compulsory and already correct), so the
+  // walk there only labels figure blocks.
   const captionNumber = (sectionNumber ?? '').replace(/^B/i, '') || DEFAULT_CAPTION_NUMBER;
-  const captionLabels = useMemo(() => {
-    const ordered = [...headCards, ...freeCards, ...tailCards];
-    const labels: Record<string, string> = {};
-    let figureIndex = 0;
+  const isB31 = captionNumber === '3.1';
+
+  const numbering = useMemo(() => {
+    const ordered = [...headCards, ...orderedFree, ...tailCards];
+    const cardLabels: Record<string, string> = {};
+    const caseLetters: Record<string, number> = {};
+    const fieldNumbering: Record<string, CaptionNumbering> = {};
+    let tableIdx = 0;
+    let figureIdx = 0;
+
     for (const card of ordered) {
-      // Tables are captioned inside the text block that contains them, by the
-      // editor's own caption sequence — only figures get a block-level label.
-      if (card.kind === 'figure') {
-        labels[card.id] = `Figure ${captionNumber}.${String.fromCharCode(97 + figureIndex)}.`;
-        figureIndex += 1;
-      }
-    }
-    return labels;
-  }, [headCards, freeCards, tailCards, captionNumber]);
-
-
-  /**
-   * Case-study placeholder tables are lettered per section in document order
-   * (a, b, c…), like figure block labels. Hidden blocks do not burn a letter.
-   */
-  const caseLetterByFieldId = useMemo(() => {
-    const map: Record<string, number> = {};
-    let idx = 0;
-    for (const card of [...headCards, ...orderedFree, ...tailCards]) {
       if (!visibleCard(card)) continue;
+
+      if (card.kind === 'figure') {
+        cardLabels[card.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+        figureIdx += 1;
+        continue;
+      }
+
+      // Relational tables authored in place carry a block-level caption.
+      if (card.sourceKey === 'b12.linked_activities' && !card.isSourceFed) {
+        cardLabels[card.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
+        tableIdx += 1;
+        continue;
+      }
+
+      if (card.isSourceFed || card.kind === 'references') continue;
+
       for (const f of fieldsByCard[card.id] ?? []) {
         if (f.fieldRole === 'case_placeholder') {
-          map[f.id] = idx;
-          idx += 1;
+          caseLetters[f.id] = tableIdx;
+          tableIdx += 1;
+          continue;
         }
+        fieldNumbering[f.id] = {
+          sectionNumber: captionNumber,
+          tableOffset: tableIdx,
+          figureOffset: figureIdx,
+        };
+        const slots = countCaptionSlots(f.contentHtml);
+        tableIdx += slots.tables;
+        figureIdx += slots.figures;
       }
     }
-    return map;
+
+    return { cardLabels, caseLetters, fieldNumbering };
     // visibleCard derives from sectionCitesAnything and isCoordinator.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headCards, orderedFree, tailCards, fieldsByCard, sectionCitesAnything, isCoordinator]);
+  }, [
+    headCards,
+    orderedFree,
+    tailCards,
+    fieldsByCard,
+    captionNumber,
+    sectionCitesAnything,
+    isCoordinator,
+  ]);
+
+  const captionLabels = numbering.cardLabels;
+  const caseLetterByFieldId = numbering.caseLetters;
+  /** B3.1 numbers its own captions; every other section derives them here. */
+  const captionNumberingByFieldId = isB31 ? undefined : numbering.fieldNumbering;
+
 
   const handleCreateBlock = (choice: NewBlockChoice) => {
     const onSuccess = (newCardId: string) => {
