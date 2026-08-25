@@ -555,7 +555,11 @@ export function CasesTableNodeView(props: NodeViewProps) {
   // in the same global sequence the renumberCaptionsInEditor walker uses for
   // manually-inserted tables, so 1.2.a, 1.2.b, 1.2.c… are assigned
   // consistently no matter how the tables are interleaved.
-  let nodeLetterIndex = 0;
+  // The board hands the editor the index its first table takes; inside a
+  // single editor the atom's own position adds to that offset.
+  const cfg = (props.editor?.storage as { captionAutoNumber?: { config?: { sectionNumber: string; tableOffset: number } | null } } | undefined)
+    ?.captionAutoNumber?.config ?? null;
+  let nodeLetterIndex = cfg?.tableOffset ?? 0;
   try {
     const doc = props.editor?.state?.doc;
     const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
@@ -575,7 +579,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
           }
         }
       });
-      nodeLetterIndex = count;
+      nodeLetterIndex = (cfg?.tableOffset ?? 0) + count;
     }
   } catch {
     // best-effort — fall back to 0
@@ -597,6 +601,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
           proposalId={proposalId}
           caseTypeId={caseTypeId}
           letterIndex={nodeLetterIndex}
+          sectionNumber={cfg?.sectionNumber}
         />
       </RefDataProvider>
     </NodeViewWrapper>
