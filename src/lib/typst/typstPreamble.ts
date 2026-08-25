@@ -457,6 +457,20 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 }
 
 
+/// Citations render as per-page footnotes. The number is the proposal-wide
+/// display number, forced onto Typst's own marker via \`numbering\`, so the
+/// marker, the entry and the on-screen superscript all agree. A later citation
+/// of the same reference reuses the number with no second entry.
+#let he-cite-note(num, body) = footnote(numbering: _ => num, body)
+#let he-cite-again(num) = super(text(size: 7pt, num))
+
+#set footnote.entry(indent: 0pt, gap: 4pt, clearance: 6pt)
+#show footnote.entry: it => {
+  set text(size: 8pt)
+  set par(justify: false, leading: 0.85em, spacing: 3pt)
+  it
+}
+
 /// Honest placeholder for anything this converter does not yet render.
 #let not-converted(what) = block(
   width: 100%,
