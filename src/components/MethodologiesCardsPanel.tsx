@@ -44,6 +44,8 @@ export default function MethodologiesCardsPanel({
     return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;
   }
 
+  console.log('[DEBUG] MethodologiesCardsPanel sectionNumber:', sectionNumber, 'sectionId:', sectionId);
+
   if (!sectionId) {
     return (
       <p className="p-6 text-sm text-muted-foreground">
