@@ -333,25 +333,9 @@ function SortableActivityRow({
             </DialogContent>
           </Dialog>
         </td>
-      </tr>
-
-      {/* Second line: the link description spans the full table width. */}
-      <tr>
-        <td className={`${firstCellStyles} !pt-0`} colSpan={6}>
-          <MethodologyRichEditor
-            proposalId={proposalId}
-            value={activity.linkDescriptionHtml ?? ''}
-            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-            minHeight="2.5rem"
-            placeholder="How the project will be linked"
-          />
-        </td>
-      </tr>
-    </tbody>
-
+    </tr>
   );
+
 }
 
 export default function LinkedActivitiesTable({
