@@ -48,3 +48,19 @@ describe('Typst authored content typography', () => {
     expect(result).toContain('block(above: 3pt, below: 3pt');
   });
 });
+describe('Typst authored table array emission', () => {
+  it('emits one-element cell and column tuples as arrays', () => {
+    const result = htmlToTypstBlocks(
+      '<table><tbody><tr><th><p>Only header</p></th></tr></tbody></table>',
+      context(),
+    ).join('\n');
+    // Without the trailing comma Typst reads `(x)` as content and the spread
+    // inside he-authored-table fails with "cannot spread content".
+    expect(result).toContain('(1fr,)');
+    expect(result).toMatch(/table\.header\([\s\S]*\),\)/);
+  });
+
+  it('drops tables that have no cells', () => {
+    expect(htmlToTypstBlocks('<table></table>', context()).join('')).toBe('');
+  });
+});

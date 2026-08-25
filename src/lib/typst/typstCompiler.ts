@@ -21,10 +21,10 @@ import nimbusBoldItalic from '@/assets/typst/NimbusRoman-BoldItalic.otf.asset.js
 // compiler has no system-font access, so the same TTF the platform relies on
 // (`local('Arial Black')` in index.css) is represented in Typst by the bundled
 // Archivo Black fallback. It is registered explicitly and is embeddable.
-import arialBlackUrl from '@/assets/fonts/arial_black.ttf?url';
+import archivoBlackUrl from '@/assets/fonts/archivo_black.ttf?url';
 
 const FONT_URLS = [
-  arialBlackUrl,
+  archivoBlackUrl,
   nimbusRegular.url,
   nimbusBold.url,
   nimbusItalic.url,
@@ -32,7 +32,7 @@ const FONT_URLS = [
 ];
 
 export interface TypstFontDiagnostics {
-  arialBlackByteLength: number;
+  displayFontByteLength: number;
   loadedFonts: string[];
 }
 
@@ -71,7 +71,7 @@ async function getSnippet(): Promise<any> {
     const compiler = await typst.getCompiler();
     const loaded = compiler?.compiler?.get_loaded_fonts?.();
     fontDiagnostics = {
-      arialBlackByteLength: fontBuffers[0]?.byteLength ?? 0,
+      displayFontByteLength: fontBuffers[0]?.byteLength ?? 0,
       loadedFonts: Array.isArray(loaded) ? loaded.map(String) : [],
     };
     return typst;
@@ -88,7 +88,7 @@ export async function preloadTypst(): Promise<void> {
 /** Runtime evidence from the same buffers and resolver used for compilation. */
 export async function getTypstFontDiagnostics(): Promise<TypstFontDiagnostics> {
   await getSnippet();
-  return fontDiagnostics ?? { arialBlackByteLength: 0, loadedFonts: [] };
+  return fontDiagnostics ?? { displayFontByteLength: 0, loadedFonts: [] };
 }
 
 export interface TypstCompileResult {
