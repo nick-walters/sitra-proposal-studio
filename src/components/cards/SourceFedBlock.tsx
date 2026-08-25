@@ -53,6 +53,7 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: string }) {
   const { toggles } = useB31JustificationToggles(proposalId);
+  const presence = useB31CostPresence(proposalId);
   const {
     wpData,
     participants,
@@ -60,6 +61,8 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     ganttFigure,
     subcontractingByParticipant,
     equipmentByParticipant,
+    travelByParticipant,
+    otherGoodsByParticipant,
     loading,
   } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
 
@@ -77,6 +80,17 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
   });
 
   if (loading) return <Note>Loading the source data…</Note>;
+
+  // Purchase-cost sub-blocks follow the A3 flags, with the >15% equipment rule
+  // forcing equipment on exactly as the legacy mirror does.
+  const c2ForcedOn = presence.equipmentAboveThreshold;
+  const purchaseBlocks: MergedBlock[] = [];
+  if (toggles.travel && travelByParticipant.length > 0)
+    purchaseBlocks.push({ categoryLabel: 'Travel', participants: travelByParticipant });
+  if ((c2ForcedOn || toggles.equipment) && equipmentByParticipant.length > 0)
+    purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipmentByParticipant });
+  if (toggles.other_goods && otherGoodsByParticipant.length > 0)
+    purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoodsByParticipant });
 
   switch (sourceKey) {
     case 'b31.table_a':
@@ -104,14 +118,15 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
           items={subcontractingByParticipant}
           participants={participants}
           proposalId={proposalId}
+          tableLabel="Table 3.1.g."
         />
       ) : (
         <Note>No subcontracting costs have been budgeted yet.</Note>
       );
     case 'b31.table_h':
-      return equipmentByParticipant.length > 0 ? (
+      return purchaseBlocks.length > 0 ? (
         <B31MergedJustificationTable
-          blocks={[{ categoryLabel: 'Equipment', participants: equipmentByParticipant }]}
+          blocks={purchaseBlocks}
           participants={participants}
           proposalId={proposalId}
           tableKey="purchase-costs"
@@ -121,6 +136,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
       ) : (
         <Note>No purchase costs have been budgeted yet.</Note>
       );
+
     case 'b31.gantt':
       return ganttFigure ? (
         <div data-figure-type="gantt">
