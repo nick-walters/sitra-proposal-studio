@@ -1945,10 +1945,8 @@ function BoardInner({
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
-          <p className="w-full text-sm text-muted-foreground">
-            Content written here is mirrored into Part B1.2.
-          </p>
+          <h1 className="text-xl font-bold text-foreground">{sectionMeta.title}</h1>
+          <p className="w-full text-sm text-muted-foreground">{sectionMeta.description}</p>
         </div>
 
         <EditorToolbars
@@ -1956,7 +1954,7 @@ function BoardInner({
           save={{ saving, lastSaved, savedMode, isDirty, onSaveNow: handleSaveNow }}
           topBar={{
               onPreview: isAdminOrOwner ? () => setTypstOpen(true) : undefined,
-              previewLabel: 'Part B1.2',
+              previewLabel: sectionMeta.previewLabel,
               collapseAll: {
                 allCollapsed: allBlocksCollapsed,
                 disabled: setAllCollapsed.isPending || visibleCardIds.length === 0,
