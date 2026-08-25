@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { EditorContent, type Editor } from '@tiptap/react';
 import { useRichTextEditor } from './RichTextEditor';
 import { useMethodologyEditorFocus } from './MethodologyEditorFocusContext';
+import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 
 interface MethodologyRichEditorProps {
   proposalId: string;
@@ -24,6 +25,12 @@ interface MethodologyRichEditorProps {
    * reappears when the content is fully removed.
    */
   placeholder?: string;
+  /**
+   * Position of this text box in the section's table/figure caption
+   * sequences. Supplied by the board so caption numbers are derived from
+   * document position and stay uneditable.
+   */
+  captionNumbering?: CaptionNumbering | null;
 }
 
 
@@ -42,6 +49,7 @@ export function MethodologyRichEditor({
   activeRingClass = 'border-primary ring-1 ring-primary/40',
   onEditorReady,
   placeholder,
+  captionNumbering,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -52,6 +60,7 @@ export function MethodologyRichEditor({
     onChange,
     isReady: true,
     instanceKey,
+    captionNumbering,
   });
 
   // TipTap's `editable` is instance state, not a reactive prop: it MUST be
