@@ -296,18 +296,18 @@ function convertTable(el: Element, ctx: ConvertContext): string {
     ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')})`
     : `(${Array.from({ length: colCount }, () => '1fr').join(', ')})`;
 
-  const cells: string[] = [];
+  const emittedCells: string[] = [];
   rows.forEach((row, index) => {
-    const cells = Array.from(row.children).filter((c) =>
+    const rowCells = Array.from(row.children).filter((c) =>
       ['td', 'th'].includes(c.tagName.toLowerCase()),
     );
-    const isHeader = index === 0 && cells.length > 0 && cells.every((c) => c.tagName.toLowerCase() === 'th');
-    const converted = cells.map((c) => convertCell(c, ctx, isHeader || c.tagName.toLowerCase() === 'th'));
-    if (isHeader) cells.push(`table.header(${converted.join(', ')})`);
-    else cells.push(...converted);
+    const isHeader = index === 0 && rowCells.length > 0 && rowCells.every((c) => c.tagName.toLowerCase() === 'th');
+    const converted = rowCells.map((c) => convertCell(c, ctx, isHeader || c.tagName.toLowerCase() === 'th'));
+    if (isHeader) emittedCells.push(`table.header(${converted.join(', ')})`);
+    else emittedCells.push(...converted);
   });
 
-  return `he-authored-table(${columns}, (${cells.join(', ')}), ${rows.length})`;
+  return `he-authored-table(${columns}, (${emittedCells.join(', ')}), ${rows.length})`;
 }
 
 function convertBlock(el: Element, ctx: ConvertContext): string {
