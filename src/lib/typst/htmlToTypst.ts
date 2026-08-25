@@ -12,12 +12,19 @@
  */
 
 import type { RefSnapshot } from '@/lib/referenceData';
+import { captionLetter } from '@/lib/cards/captionSlots';
 import { chipKind, chipToTypst, reduceChip, toHex } from './typstChips';
 
 export interface ConvertContext {
   data?: RefSnapshot;
   /** Names of things encountered but not converted, for the report. */
   unsupported: Set<string>;
+  /** Position-derived caption sequence for authored content outside B3.1. */
+  captionNumbering?: {
+    sectionNumber: string;
+    tableIndex: number;
+    figureIndex: number;
+  };
 }
 
 export function typstString(s: string): string {
@@ -142,14 +149,26 @@ function convertParagraph(el: Element, ctx: ConvertContext): string {
 
 /** Table/figure captions are SIBLING paragraphs, not children of the table. */
 function convertCaption(el: Element, ctx: ConvertContext): string {
+  const classes = el.classList;
+  const isFigure = classes.contains('figure-caption') || classes.contains('document-figure-caption');
+  const kind = isFigure ? 'Figure' : 'Table';
+  const numbering = ctx.captionNumbering;
+  const index = numbering
+    ? isFigure
+      ? numbering.figureIndex++
+      : numbering.tableIndex++
+    : 0;
+  const derivedLabel = numbering
+    ? `${kind} ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(index)}.`
+    : '';
   const labelEl = el.querySelector('[data-caption-label]');
-  const label = (labelEl?.textContent || '').trim();
+  const storedLabel = (labelEl?.textContent || '').trim();
+  const label = derivedLabel || storedLabel;
   const clone = el.cloneNode(true) as Element;
   clone.querySelectorAll('[data-caption-label]').forEach((n) => n.remove());
   const rest = convertInlineChildren(clone, ctx);
-  const labelPart = label ? `strong(emph(${lit(label)}))` : '';
-  const body = join([labelPart, `emph(${rest})`]);
-  return `block(above: 4pt, below: 8pt, align(left, par(justify: false, ${body})))`;
+  const helper = isFigure ? 'he-figure-caption' : 'he-caption';
+  return `${helper}(${typstString(label)}, ${rest})`;
 }
 
 const HEADING_SIZES: Record<number, string> = { 1: '14pt', 2: '13pt', 3: '12pt', 4: '11pt' };
@@ -277,26 +296,30 @@ function convertTable(el: Element, ctx: ConvertContext): string {
     ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')})`
     : `(${Array.from({ length: colCount }, () => '1fr').join(', ')})`;
 
-  const headerRows: string[] = [];
-  const bodyCells: string[] = [];
+  const cells: string[] = [];
   rows.forEach((row, index) => {
     const cells = Array.from(row.children).filter((c) =>
       ['td', 'th'].includes(c.tagName.toLowerCase()),
     );
     const isHeader = index === 0 && cells.length > 0 && cells.every((c) => c.tagName.toLowerCase() === 'th');
-    const converted = cells.map((c) => convertCell(c, ctx, c.tagName.toLowerCase() === 'th'));
-    if (isHeader) headerRows.push(`table.header(${converted.join(', ')})`);
-    else bodyCells.push(...converted);
+    const converted = cells.map((c) => convertCell(c, ctx, isHeader || c.tagName.toLowerCase() === 'th'));
+    if (isHeader) cells.push(`table.header(${converted.join(', ')})`);
+    else cells.push(...converted);
   });
 
-  const parts = [`columns: ${columns}`, ...headerRows, ...bodyCells];
-  return `block(width: 18cm, above: 8pt, below: 8pt, table(${parts.join(', ')}))`;
+  return `he-authored-table(${columns}, (${cells.join(', ')}), ${rows.length})`;
 }
 
 function convertBlock(el: Element, ctx: ConvertContext): string {
   const tag = el.tagName.toLowerCase();
 
-  if (el.classList.contains('table-caption') || el.hasAttribute('data-caption-label')) {
+  if (
+    el.classList.contains('table-caption') ||
+    el.classList.contains('document-table-caption') ||
+    el.classList.contains('figure-caption') ||
+    el.classList.contains('document-figure-caption') ||
+    el.hasAttribute('data-caption-label')
+  ) {
     return convertCaption(el, ctx);
   }
 

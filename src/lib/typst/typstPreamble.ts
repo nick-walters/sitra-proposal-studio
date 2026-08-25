@@ -169,12 +169,13 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let t-lines(items) = items.map(t).join(linebreak())
 
 // ── chip vocabulary ────────────────────────────────────────────────────────
-#let chip-size = 10pt
+#let chip-size = 9pt
 #let chip-pad = 3.5pt
-#let chip-out = 1.6pt
+#let chip-height = 11pt
+#let chip-label-shift = 0.55pt
 
-/// Chip text. The explicit edges make the measured height cap-height →
-/// descender only, so a chip never grows the line it sits on.
+/// Chip text is shifted down inside a fixed 11pt box. Nimbus Roman 9pt has a
+/// 6.16pt cap-to-descender extent; the 0.55pt correction optically centres it.
 #let chip-label(s, colour) = text(
   font: "${TYPST_SERIF}",
   size: chip-size,
@@ -188,16 +189,15 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /// Rounded pill. Filled (WP, participant) or outlined (task, case).
 /// Horizontal padding is INSET (it must push neighbouring text away); the
-/// vertical padding is OUTSET, which paints outside the box without adding
-/// anything to the line height.
+/// fixed box height equals the body line pitch, so it cannot inflate leading.
 #let chip-pill(label, colour, filled: false) = box(
-  baseline: 0pt,
+  baseline: 2.75pt,
+  height: chip-height,
   inset: (x: chip-pad, y: 0pt),
-  outset: (y: chip-out),
   radius: 999pt,
   fill: if filled { colour } else { white },
   stroke: 1pt + colour,
-  chip-label(label, if filled { white } else { colour }),
+  align(horizon, move(dy: chip-label-shift, chip-label(label, if filled { white } else { colour }))),
 )
 
 /// Shared polygon chip: \`kind\` is "pentagon" (deliverable) or "chevron"
@@ -210,7 +210,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   let m = measure(body)
   let nose = 4pt
   let lead = if kind == "chevron" { nose } else { 0pt }
-  let h = m.height + 2 * chip-out
+  let h = chip-height
   let w = m.width + 2 * chip-pad + nose + lead
   let pts = if kind == "chevron" {
     (
@@ -220,13 +220,13 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   } else {
     ((0pt, 0pt), (w - nose, 0pt), (w, h / 2), (w - nose, h), (0pt, h))
   }
-  box(baseline: 0pt, width: w, height: m.height, {
-    place(top + left, dy: -chip-out, polygon(
+  box(baseline: 2.75pt, width: w, height: chip-height, {
+    place(top + left, polygon(
       fill: if filled { colour } else { white },
       stroke: 1pt + colour,
       ..pts,
     ))
-    place(top + left, dx: chip-pad + lead, body)
+    place(horizon + left, dx: chip-pad + lead, dy: chip-label-shift, body)
   })
 }
 
@@ -301,6 +301,30 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
       bottom: if y == 0 { 1.5pt + black }
         else if y == nrows - 1 { none }
         else { 0.5pt + rgb("#e5e7eb") },
+    ),
+    ..cells,
+  ),
+)
+
+/// Authored TipTap tables use the same Horizon Europe rules without changing
+/// the specialised B3.1 table geometry: 3pt horizontal / 0.75pt vertical
+/// padding, no vertical rules, a 1.5px-equivalent header rule, 1px-equivalent
+/// body separators and no rule below the final row.
+#let he-authored-table(cols, cells, nrows) = block(
+  width: he-table-width,
+  above: 3pt,
+  below: 3pt,
+  table(
+    columns: cols,
+    inset: (x: 3pt, y: 0.75pt),
+    align: left + horizon,
+    stroke: (x, y) => (
+      left: none,
+      right: none,
+      top: none,
+      bottom: if y == 0 { 1.125pt + black }
+        else if y == nrows - 1 { none }
+        else { 0.75pt + rgb("#e5e7eb") },
     ),
     ..cells,
   ),
