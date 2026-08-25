@@ -1017,6 +1017,7 @@ export type Database = {
           source_key: string | null
           template_type_id: string
           template_version_id: string | null
+          title_mode: string
           updated_at: string
         }
         Insert: {
@@ -1045,6 +1046,7 @@ export type Database = {
           source_key?: string | null
           template_type_id: string
           template_version_id?: string | null
+          title_mode?: string
           updated_at?: string
         }
         Update: {
@@ -1073,6 +1075,7 @@ export type Database = {
           source_key?: string | null
           template_type_id?: string
           template_version_id?: string | null
+          title_mode?: string
           updated_at?: string
         }
         Relationships: [
@@ -4176,6 +4179,7 @@ export type Database = {
           source_key: string | null
           template_key: string | null
           title: string | null
+          title_mode: string
           title_version: number
           updated_at: string
         }
@@ -4200,6 +4204,7 @@ export type Database = {
           source_key?: string | null
           template_key?: string | null
           title?: string | null
+          title_mode?: string
           title_version?: number
           updated_at?: string
         }
@@ -4224,6 +4229,7 @@ export type Database = {
           source_key?: string | null
           template_key?: string | null
           title?: string | null
+          title_mode?: string
           title_version?: number
           updated_at?: string
         }

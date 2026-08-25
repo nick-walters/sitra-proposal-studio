@@ -1970,8 +1970,9 @@ function BoardInner({
       />
       {/* 18 cm content column: the card's own px-5 padding (20 px each side)
           sits inside 720 px, leaving exactly 680 px ≈ 18 cm of content — the
-          same physical width the PDF and DOCX use. */}
-      <div className="mx-auto w-full max-w-[720px] space-y-4 p-6">
+          same physical width the PDF and DOCX use. The container adds p-6
+          (24 px each side) on top, hence 768 px. */}
+      <div className="mx-auto w-full max-w-[768px] space-y-4 p-6">
 
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}
