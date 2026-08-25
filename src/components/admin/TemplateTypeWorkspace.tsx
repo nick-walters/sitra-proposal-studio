@@ -40,6 +40,11 @@ import {
   type CardTemplateRow, type CardGuidelineRow,
 } from '@/hooks/useTemplateVersioning';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  useDirtyRegistry, useRegisterDirty, useExitGuard, UnsavedChangesDialog,
+  type DirtyRegistry,
+} from '@/components/admin/useUnsavedGuard';
+import { ArrowLeft } from 'lucide-react';
 
 const CATEGORY_LABEL: Record<string, string> = {
   commission: 'Official guidelines from the European Commission',
@@ -68,9 +73,17 @@ function versionLabel(v: { major: number | null; minor: number | null; name?: st
 export function TemplateTypeWorkspace({
   typeId,
   partASlot,
+  typeCode,
+  typeName,
+  typeDescription,
+  onBack,
 }: {
   typeId: string;
   partASlot?: React.ReactNode;
+  typeCode?: string;
+  typeName?: string;
+  typeDescription?: string | null;
+  onBack?: () => void;
 }) {
   const qc = useQueryClient();
   const [versionId, setVersionId] = useState<string>('');
@@ -172,6 +185,26 @@ export function TemplateTypeWorkspace({
 
   return (
     <div className="space-y-4">
+      {/* Which template type you are in — never ambiguous. */}
+      {(typeCode || typeName) && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 px-4 py-3">
+          {onBack && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" /> All template types
+            </Button>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              {typeCode && <Badge variant="secondary" className="font-bold">{typeCode}</Badge>}
+              <h2 className="text-lg font-semibold">{typeName}</h2>
+            </div>
+            {typeDescription && (
+              <p className="text-xs text-muted-foreground">{typeDescription}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
@@ -667,12 +700,13 @@ async function persistGuideline(id: string, patch: Partial<CardGuidelineRow>): P
 }
 
 function GuidelineEditor({
-  guideline, editable, onSave, onDelete,
+  guideline, editable, onSave, onDelete, registry,
 }: {
   guideline: CardGuidelineRow;
   editable: boolean;
   onSave: (patch: Partial<CardGuidelineRow>) => Promise<boolean> | void;
   onDelete: () => void;
+  registry?: DirtyRegistry;
 }) {
   const [title, setTitle] = useState(guideline.title ?? '');
   const [content, setContent] = useState(guideline.content ?? '');
@@ -698,15 +732,18 @@ function GuidelineEditor({
   const dirty =
     touched && (title !== baseline.current.title || content !== baseline.current.content);
 
-  const save = async () => {
+  const save = async (): Promise<boolean> => {
     setSaving(true);
     const ok = await onSave({ title, content });
     setSaving(false);
-    if (ok === false) return;
+    if (ok === false) return false;
     baseline.current = { title, content };
     setTouched(false);
     setSavedAt(Date.now());
+    return true;
   };
+
+  useRegisterDirty(registry, guideline.id, dirty && editable, save);
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -721,7 +758,6 @@ function GuidelineEditor({
         value={content}
         onChange={(v) => { setTouched(true); setContent(v); }}
         disabled={!editable}
-        minHeight="9rem"
       />
 
       {editable && (
