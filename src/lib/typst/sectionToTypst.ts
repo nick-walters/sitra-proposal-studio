@@ -406,18 +406,19 @@ export async function fetchTypstDocMeta(
     sectionId
       ? supabase
           .from('proposal_template_sections')
-          .select('section_number, title')
+          .select('section_number, title, parent_section_id, order_index, proposal_template_id')
           .eq('id', sectionId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   const row = (data || {}) as Record<string, string | null>;
-  const sec = ((section as { data: Record<string, string | null> | null }).data || {}) as Record<
+  const sec = ((section as { data: Record<string, unknown> | null }).data || {}) as Record<
     string,
-    string | null
+    unknown
   >;
-  const sectionNumber = (sec.section_number || '').trim();
-  const sectionTitle = (sec.title || '').trim();
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const sectionNumber = str(sec.section_number).trim();
+  const sectionTitle = str(sec.title).trim();
   const partLabel = sectionNumber
     ? `Part ${sectionNumber}.${sectionTitle ? ` ${sectionTitle}` : ''}`
     : 'Part B';
@@ -425,14 +426,28 @@ export async function fetchTypstDocMeta(
     `${row.topic_id || ''}${row.topic_id && row.topic_title ? ': ' : ''}${row.topic_title || ''}` +
     `${row.type ? ` (${row.type})` : ''}`;
   const isFirstSection = sectionNumber.toUpperCase() === 'B1.1';
+
+  // Headings are DERIVED, never stored: the number is the template section's
+  // own `section_number` with the "B" prefix dropped, and the H1 above it is
+  // the parent container section ("B1" → "1. Excellence"), emitted only by the
+  // parent's first child so a per-section document does not repeat it.
+  const headings = await fetchSectionHeadings(sec, sectionNumber, sectionTitle);
+
   return {
     acronym: row.acronym || '',
     acronymSegments,
     partLabel,
+    headings,
+    // The browser-print export prints "<topic id>: <topic title>" across the
+    // top of every page but the first; the Typst header is the same string.
+    runningHeader: row.topic_id || row.topic_title
+      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}`
+      : '',
     banner: isFirstSection
       ? {
           topicLine: row.banner_topic_line_override ?? computedTopic,
           acronym: row.acronym || '',
+
           title: row.banner_title_override ?? row.title ?? '',
         }
       : null,
