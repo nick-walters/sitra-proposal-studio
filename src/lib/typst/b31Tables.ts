@@ -111,7 +111,9 @@ export function emitWpList(data: B31TypstData): string[] {
 
   return [
     caption(data, 'wp-list', 'Table 3.1.a.', 'List of work packages'),
-    table('(1fr, auto, auto, auto)', [lit('Work package'), lit('WP leader'), lit('Person months'), lit('Duration')], rows),
+    // The work package column is sized to its pills so they stay on one line;
+    // the three metadata columns shrink to their content.
+    table('(auto, auto, auto, auto)', [lit('Work package'), lit('WP leader'), lit('Person months'), lit('Duration')], rows),
   ];
 }
 

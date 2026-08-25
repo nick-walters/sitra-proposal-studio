@@ -169,11 +169,32 @@ function placeholder(label: string): string {
 }
 
 /**
- * Source-fed blocks that are simply absent from the document when they have
- * nothing in them — an uncited references list, and the cost tables for a
- * category no participant has budgeted. A placeholder note would be noise.
+ * Source-fed blocks are absent from the document whenever their source is
+ * empty. There is nothing to author in them, so a placeholder note would be
+ * noise — the board carries the explanation instead (see
+ * `sourceFedEmptyReasons`). This covers every recognised source key: the B3.1
+ * tables and figures, the per-section reference lists, and B1.2's linked
+ * activities.
  */
-const SILENT_WHEN_EMPTY = new Set(['b31.references', 'b31.table_g', 'b31.table_h']);
+const SILENT_WHEN_EMPTY = new Set([
+  'b11.references',
+  'b12.references',
+  'b21.references',
+  'b22.references',
+  'b31.references',
+  'b32.references',
+  'b12.linked_activities',
+  'b31.table_a',
+  'b31.table_b',
+  'b31.table_c',
+  'b31.table_d',
+  'b31.table_e',
+  'b31.table_f',
+  'b31.table_g',
+  'b31.table_h',
+  'b31.gantt',
+  'b31.pert',
+]);
 
 
 export interface BuildTypstOptions {
