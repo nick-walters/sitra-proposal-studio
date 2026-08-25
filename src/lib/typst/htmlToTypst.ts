@@ -14,6 +14,7 @@
 import type { RefSnapshot } from '@/lib/referenceData';
 import { captionLetter } from '@/lib/cards/captionSlots';
 import { chipKind, chipToTypst, reduceChip, toHex } from './typstChips';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 export interface ConvertContext {
   data?: RefSnapshot;
@@ -28,8 +29,16 @@ export interface ConvertContext {
   citations?: {
     numbers: Map<number, number>;
     html: Map<number, string>;
+    /** Bare titles, used to shorten an overlong footnote to a single line. */
+    titles?: Map<number, string>;
     emitted: Set<number>;
   };
+  /**
+   * Emits a B1.2 cases ("pilots") table. The stored HTML holds only an empty
+   * atom `<div data-cases-table-node>`, so without this the table converts to
+   * nothing — the caller supplies the fetched data (see `casesData.ts`).
+   */
+  casesTable?: (caseTypeId: string | null, captionLabel: string | null, ctx: ConvertContext) => string[];
   /** Position-derived caption sequence for authored content outside B3.1. */
   captionNumbering?: {
     sectionNumber: string;
@@ -85,8 +94,23 @@ function convertCitation(el: Element, ctx: ConvertContext): string {
     return `he-cite-again(${typstString(String(display))})`;
   }
   state.emitted.add(refKey);
-  const body = htmlToTypstInline(state.html.get(refKey) || '', ctx);
-  return `he-cite-note(${typstString(String(display))}, ${body})`;
+  const raw = state.html.get(refKey) || '';
+  const body = htmlToTypstInline(raw, ctx);
+  const num = typstString(String(display));
+
+  // One-line fit: the title is the only part that may be shortened, so the
+  // emitter hands Typst the plain text on either side of it. Typst measures
+  // the entry against the footnote width and drops whole words from the end
+  // of the title until it fits (see `he-cite-note-fit`).
+  const title = (state.titles?.get(refKey) || '').trim();
+  const plain = htmlToPlainText(raw).replace(/\s+/g, ' ').trim();
+  const at = title ? plain.indexOf(title) : -1;
+  if (at >= 0) {
+    const pre = plain.slice(0, at);
+    const post = plain.slice(at + title.length);
+    return `he-cite-note-fit(${num}, ${body}, ${typstString(pre)}, ${typstString(title)}, ${typstString(post)})`;
+  }
+  return `he-cite-note(${num}, ${body})`;
 }
 
 function inlineColour(el: Element): string | null {
@@ -350,6 +374,22 @@ function convertTable(el: Element, ctx: ConvertContext): string {
 
 function convertBlock(el: Element, ctx: ConvertContext): string {
   const tag = el.tagName.toLowerCase();
+
+  // Cases table atom: empty in the stored HTML, rendered from case_drafts.
+  // It consumes a slot in the position-derived caption sequence exactly as
+  // the on-screen NodeView does.
+  if (el.hasAttribute('data-cases-table-node')) {
+    const numbering = ctx.captionNumbering;
+    const label = numbering
+      ? `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(numbering.tableIndex++)}.`
+      : null;
+    if (!ctx.casesTable) {
+      ctx.unsupported.add('cases table');
+      return '';
+    }
+    const parts = ctx.casesTable(el.getAttribute('data-case-type-id'), label, ctx);
+    return parts.length ? `{\n${parts.join('\n')}\n}` : '';
+  }
 
   if (
     el.classList.contains('table-caption') ||

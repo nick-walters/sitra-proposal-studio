@@ -1523,6 +1523,13 @@ export function useRichTextEditor({
   const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
   const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
   captionNumberingRef.current = captionNumbering ?? null;
+  // The numbering plugin recomputes on the editor view's own update cycle. A
+  // reorder on the BOARD changes only this prop — no transaction reaches the
+  // view — so the labels used to stay stale until the editor remounted. A
+  // no-op transaction (kept out of the history) makes the recompute live.
+  const captionNumberingKey = captionNumbering
+    ? `${captionNumbering.sectionNumber}|${captionNumbering.tableOffset}|${captionNumbering.figureOffset}`
+    : '';
   const pairedTablesRef = useRef(pairedTables);
   pairedTablesRef.current = pairedTables;
 
@@ -1987,6 +1994,15 @@ StarterKit.configure({
   //  - the new content is empty but the editor already has content (avoids
   //    transient parent re-renders wiping the document during section switch)
   // Normalisation only runs when we actually replace content.
+  // Live caption renumbering: nudge the view whenever the board hands down a
+  // new offset, so a block/module reorder renumbers immediately.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(
+      editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
+    );
+  }, [editor, captionNumberingKey]);
+
   useEffect(() => {
     if (!editor || editor.isDestroyed || !editor.schema) return;
     if (!isReady) return;

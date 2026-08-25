@@ -71,11 +71,18 @@ function caption(data: B31TypstData, key: string, label: string, fallback: strin
   return `he-caption(${typstString(label)}, ${lit(text)})`;
 }
 
-function table(cols: string, header: string[], rows: string[][], aligns?: string[]): string {
+function table(
+  cols: string,
+  header: string[],
+  rows: string[][],
+  aligns?: string[],
+  firstFlush = false,
+): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
   const alignSrc = aligns ? `, aligns: (${aligns.join(', ')},)` : '';
-  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc})`;
+  const flushSrc = firstFlush ? ', first-flush: true' : '';
+  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc})`;
 }
 
 const bold = (s: string) => `strong(${s})`;
@@ -500,6 +507,8 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
         lit('Participant responsible for establishing the link'),
       ],
       rows,
+      undefined,
+      true,
     ),
   ];
   if (legendEntries.length) {

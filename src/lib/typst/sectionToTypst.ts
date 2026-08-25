@@ -44,6 +44,7 @@ import {
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { emitCasesTable, type CasesTypstData } from './casesData';
 import { countCaptionSlots, captionKind } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
@@ -55,6 +56,8 @@ export interface SectionTypstReference {
   refKey: number;
   displayNumber: number | null;
   html: string;
+  /** Bare title, so the footnote can be shortened to one line if it overflows. */
+  title?: string;
 }
 
 /**
@@ -72,6 +75,7 @@ export async function fetchSectionTypstReferences(
     refKey: entry.refKey,
     displayNumber: entry.displayNumber,
     html: citationHtml(entry.reference),
+    title: (entry.reference.title || '').trim(),
   }));
 }
 
@@ -223,6 +227,8 @@ export interface BuildTypstOptions {
   references?: SectionTypstReference[];
   /** Page-one furniture (participant list, AI statement); B1.1 only. */
   frontMatter?: TypstFrontMatter | null;
+  /** B1.2 cases ("pilots") rows, for the `casesTable` atom nodes. */
+  casesData?: CasesTypstData | null;
 
 }
 
@@ -293,8 +299,13 @@ export function buildSectionTypstDocument(
           .map((r) => [r.refKey, r.displayNumber as number]),
       ),
       html: new Map(refEntries.map((r) => [r.refKey, r.html])),
+      titles: new Map(refEntries.map((r) => [r.refKey, r.title || ''])),
       emitted: new Set<number>(),
     },
+    casesTable: options.casesData
+      ? (typeId, label, inner) =>
+          emitCasesTable(options.casesData as CasesTypstData, typeId, label, inner)
+      : undefined,
     captionNumbering:
       sectionNumber && sectionNumber !== '3.1'
         ? { sectionNumber, tableIndex: 0, figureIndex: 0 }
