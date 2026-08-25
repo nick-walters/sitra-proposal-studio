@@ -23,6 +23,12 @@ import {
   type ConvertContext,
 } from './htmlToTypst';
 import { bannerCall, buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
+import {
+  emitFrontMatter,
+  SITRA_LOGO_ASSET_PATH,
+  type TypstFrontMatter,
+} from './frontMatter';
+
 import { fetchB31TypstData, type B31TypstData } from './b31Data';
 import {
   emitDeliverables,
@@ -212,6 +218,9 @@ export interface BuildTypstOptions {
    * References block is left out of the document entirely.
    */
   references?: SectionTypstReference[];
+  /** Page-one furniture (participant list, AI statement); B1.1 only. */
+  frontMatter?: TypstFrontMatter | null;
+
 }
 
 /** Emitters for every source-fed / relational block key we can render. */
@@ -268,15 +277,26 @@ export function buildSectionTypstDocument(
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
   const references = options.references ?? [];
+  const frontMatter = options.frontMatter ?? null;
 
-  const banner = options.meta ? bannerCall(options.meta) : '';
+  // Page one: banner (with the Sitra mark, when its bitmap was supplied),
+  // then the mirrored list of participants and the AI usage statement.
+  const banner = options.meta
+    ? bannerCall(options.meta, frontMatter ? SITRA_LOGO_ASSET_PATH : '')
+    : '';
   if (banner) out.push(banner);
+  if (banner && frontMatter) out.push(...emitFrontMatter(frontMatter, ctx));
 
-  if (options.sectionLabel) {
-    out.push(
-      `block(below: 12pt, text(size: 14pt, weight: "bold", t(${typstString(options.sectionLabel)})))`,
-    );
+  // Numbered headings, derived from the template's section numbers. The H1 is
+  // only emitted by the first section of its part, so a per-section document
+  // never repeats "1. Excellence".
+  const headings = options.meta?.headings;
+  if (headings?.h1) out.push(`he-h1-plain(${typstString(headings.h1)})`);
+  if (headings?.h2) out.push(`he-h2-plain(${typstString(headings.h2)})`);
+  if (!headings?.h1 && !headings?.h2 && options.sectionLabel) {
+    out.push(`he-h2-plain(${typstString(options.sectionLabel)})`);
   }
+
 
   // Milestones, risks and linked activities are authored in place (their rows
   // live in proposal_milestones / proposal_risks /
@@ -364,6 +384,47 @@ export function buildSectionTypstDocument(
 }
 
 /**
+ * Derives the numbered H1/H2 pair for a section. Nothing here is stored: the
+ * number is the template's `section_number` minus its "B" prefix, so renaming
+ * or reordering the template reorders the printed headings too.
+ */
+async function fetchSectionHeadings(
+  sec: Record<string, unknown>,
+  sectionNumber: string,
+  sectionTitle: string,
+): Promise<TypstDocMeta['headings']> {
+  const strip = (n: string) => n.replace(/^B/i, '').replace(/\.$/, '');
+  const h2 = sectionNumber && sectionTitle ? `${strip(sectionNumber)}. ${sectionTitle}` : sectionTitle;
+  const parentId = typeof sec.parent_section_id === 'string' ? sec.parent_section_id : '';
+  if (!parentId) return { h2: h2 || undefined };
+
+  const [{ data: parent }, { data: siblings }] = await Promise.all([
+    supabase
+      .from('proposal_template_sections')
+      .select('section_number, title')
+      .eq('id', parentId)
+      .maybeSingle(),
+    supabase
+      .from('proposal_template_sections')
+      .select('id, order_index')
+      .eq('parent_section_id', parentId)
+      .order('order_index', { ascending: true }),
+  ]);
+
+  // Only the first child of the part prints the part heading.
+  const first = (siblings || [])[0] as { id?: string } | undefined;
+  const isFirstChild = !first || first.id === sec.id || !sec.id;
+  if (!parent || !isFirstChild) return { h2: h2 || undefined };
+  const pNum = strip(String((parent as { section_number?: string }).section_number || '').trim());
+  const pTitle = String((parent as { title?: string }).title || '').trim();
+  return {
+    h1: pNum && pTitle ? `${pNum}. ${pTitle}` : pTitle || undefined,
+    h2: h2 || undefined,
+  };
+}
+
+/**
+
  * Proposal-level text for the banner and footer.
  *
  * THE BANNER IS PAGE ONE OF THE DOCUMENT, NOT PAGE ONE OF EVERY SECTION.
@@ -386,18 +447,19 @@ export async function fetchTypstDocMeta(
     sectionId
       ? supabase
           .from('proposal_template_sections')
-          .select('section_number, title')
+          .select('id, section_number, title, parent_section_id, order_index, proposal_template_id')
           .eq('id', sectionId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   const row = (data || {}) as Record<string, string | null>;
-  const sec = ((section as { data: Record<string, string | null> | null }).data || {}) as Record<
+  const sec = ((section as { data: Record<string, unknown> | null }).data || {}) as Record<
     string,
-    string | null
+    unknown
   >;
-  const sectionNumber = (sec.section_number || '').trim();
-  const sectionTitle = (sec.title || '').trim();
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const sectionNumber = str(sec.section_number).trim();
+  const sectionTitle = str(sec.title).trim();
   const partLabel = sectionNumber
     ? `Part ${sectionNumber}.${sectionTitle ? ` ${sectionTitle}` : ''}`
     : 'Part B';
@@ -405,14 +467,28 @@ export async function fetchTypstDocMeta(
     `${row.topic_id || ''}${row.topic_id && row.topic_title ? ': ' : ''}${row.topic_title || ''}` +
     `${row.type ? ` (${row.type})` : ''}`;
   const isFirstSection = sectionNumber.toUpperCase() === 'B1.1';
+
+  // Headings are DERIVED, never stored: the number is the template section's
+  // own `section_number` with the "B" prefix dropped, and the H1 above it is
+  // the parent container section ("B1" → "1. Excellence"), emitted only by the
+  // parent's first child so a per-section document does not repeat it.
+  const headings = await fetchSectionHeadings(sec, sectionNumber, sectionTitle);
+
   return {
     acronym: row.acronym || '',
     acronymSegments,
     partLabel,
+    headings,
+    // The browser-print export prints "<topic id>: <topic title>" across the
+    // top of every page but the first; the Typst header is the same string.
+    runningHeader: row.topic_id || row.topic_title
+      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}`
+      : '',
     banner: isFirstSection
       ? {
           topicLine: row.banner_topic_line_override ?? computedTopic,
           acronym: row.acronym || '',
+
           title: row.banner_title_override ?? row.title ?? '',
         }
       : null,

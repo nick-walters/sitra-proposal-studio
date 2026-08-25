@@ -24,6 +24,16 @@ import { typstString } from './htmlToTypst';
 /** Family name reported by the bundled Nimbus Roman OTFs. */
 export const TYPST_SERIF = 'Nimbus Roman';
 
+/**
+ * Display face for the banner, the H1/H2 headings and figure text — the same
+ * family the platform names in `index.css`. The TTF is bundled and registered
+ * with the compiler in `typstCompiler.ts`; without that registration Typst
+ * silently falls back to the only loaded family (the serif), which is what
+ * made every heading look like Times.
+ */
+export const TYPST_DISPLAY = 'Arial Black';
+
+
 /** Tables are capped at the Part B maximum printable width. */
 export const TABLE_MAX_WIDTH_CM = 18;
 
@@ -61,7 +71,17 @@ export interface TypstDocMeta {
   partLabel?: string;
   /** Page-one banner: topic line, acronym and full title. */
   banner?: { topicLine?: string; acronym?: string; title?: string } | null;
+  /**
+   * Running header text — the topic identifier, e.g.
+   * "HORIZON-CL4-2026-01-TWIN-TRANSITION-15: …". Printed centred at the top of
+   * every page EXCEPT page one, which carries the banner instead. Same text as
+   * the browser-print export's `@top-center`.
+   */
+  runningHeader?: string;
+  /** Section heading pair, numbered from the template (see `fetchTypstDocMeta`). */
+  headings?: { h1?: string; h2?: string } | null;
 }
+
 
 /** Splits on newlines so a stored manual break survives into the banner. */
 function lineArray(value: string): string {
@@ -110,6 +130,24 @@ function footerSource(meta: TypstDocMeta): string {
   ${terms.join(' + ')}
 }`;
 }
+
+/**
+ * The running header: the topic identifier, centred, on every page except the
+ * first — page one carries the full-bleed banner, and a header above it would
+ * print inside the black area.
+ */
+function headerSource(meta: TypstDocMeta): string {
+  const text = (meta.runningHeader || '').trim();
+  if (!text) return 'none';
+  return `context {
+  if counter(page).at(here()).first() > 1 {
+    set align(center)
+    set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
+    t(${typstString(text)})
+  }
+}`;
+}
+
 
 /** The whole preamble, parameterised by the document's footer/banner text. */
 export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
@@ -338,33 +376,62 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   image(path, width: 100%),
 )
 
+// ── headings ───────────────────────────────────────────────────────────────
+/// Part heading ("1. Excellence") and section heading ("1.2. Methodology").
+/// Arial Black at 13pt / 12pt with 9-6 and 6-6 point spacing, matching the
+/// browser-print export. The face is already black, so no synthetic bold is
+/// requested on top of it.
+#let he-h1(body) = block(above: 9pt, below: 6pt, text(
+  font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", body,
+))
+#let he-h2(body) = block(above: 6pt, below: 6pt, text(
+  font: "${TYPST_DISPLAY}", size: 12pt, weight: "regular", body,
+))
+#let he-h1-plain(s) = he-h1(t(s))
+#let he-h2-plain(s) = he-h2(t(s))
+
 // ── page-one banner ────────────────────────────────────────────────────────
-/// Full-bleed black banner flush to the top edge of page one. Placed into the
-/// page margin, then the flow is advanced by the measured height so the body
-/// starts underneath it. Only the FIRST section of the document emits this.
-#let doc-banner(topic, acronym, title) = context {
+/// Full-bleed black banner flush to the top edge of page one — no page margin
+/// above or beside it, its own 15mm / 12pt padding inside. Composed exactly as
+/// \`ProposalBanner.tsx\` and the browser-print export compose it: the Sitra
+/// logo with "and partners" beneath it in the top-right corner, then the topic
+/// line (8pt serif), the acronym (18pt) and the title (13pt) in Arial Black.
+/// Only the FIRST section of the document emits this.
+#let doc-banner(topic, acronym, title, logo) = context {
+  let mark = if logo != "" {
+    block(width: auto, {
+      set align(center)
+      image(logo, height: 0.8cm, fit: "contain")
+      v(2pt, weak: false)
+      text(font: "${TYPST_DISPLAY}", size: 10pt, weight: "regular", fill: white, t("and partners"))
+    })
+  } else { none }
+  let lines = {
+    set text(fill: white)
+    set par(justify: false, leading: 2pt)
+    if topic.len() > 0 {
+      block(below: 6pt, text(font: "${TYPST_SERIF}", size: 8pt, t-lines(topic)))
+    }
+    if acronym.len() > 0 {
+      block(below: 2pt, text(font: "${TYPST_DISPLAY}", size: 18pt, weight: "regular", t-lines(acronym)))
+    }
+    if title.len() > 0 {
+      block(below: 0pt, text(font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", t-lines(title)))
+    }
+  }
   let body = block(
     width: 210mm,
     fill: black,
     inset: (x: 15mm, top: 15mm, bottom: 12pt),
-    {
-      set text(fill: white)
-      set par(justify: false, leading: 2pt)
-      if topic.len() > 0 {
-        block(below: 6pt, text(size: 8pt, t-lines(topic)))
-      }
-      if acronym.len() > 0 {
-        block(below: 2pt, text(size: 18pt, weight: "bold", t-lines(acronym)))
-      }
-      if title.len() > 0 {
-        block(below: 0pt, text(size: 13pt, weight: "bold", t-lines(title)))
-      }
+    if mark == none { lines } else {
+      grid(columns: (1fr, auto), column-gutter: 0.5cm, align: (left + bottom, right + top), lines, mark)
     },
   )
   let h = measure(body).height
   place(top + left, dx: -15mm, dy: -15mm, body)
   v(h - 15mm + 12pt, weak: false)
 }
+
 
 /// Honest placeholder for anything this converter does not yet render.
 #let not-converted(what) = block(
@@ -376,26 +443,32 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   text(size: 9pt, style: "italic", fill: rgb("#52525b"), what),
 )
 
-// Page setup comes LAST: the footer closure below references \`t\` and
+// Page setup comes LAST: the header/footer closures below reference \`t\` and
 // \`chip-acronym\`, which must already be in scope.
 #set page(
   paper: "a4",
   margin: (x: 15mm, top: 15mm, bottom: 15mm),
+  header: ${headerSource(meta)},
   footer: ${footerSource(meta)},
 )
 `;
 }
 
-/** Banner call for page one; empty string when there is nothing to show. */
-export function bannerCall(meta: TypstDocMeta): string {
+/**
+ * Banner call for page one; empty string when there is nothing to show.
+ * `logoPath` is the compiler shadow path of the Sitra mark (see
+ * `frontMatter.ts`); pass an empty string to draw the banner without it.
+ */
+export function bannerCall(meta: TypstDocMeta, logoPath = ''): string {
   const b = meta.banner;
   if (!b) return '';
   const topic = (b.topicLine || '').trim();
   const acronym = (b.acronym || '').trim();
   const title = (b.title || '').trim();
   if (!topic && !acronym && !title) return '';
-  return `doc-banner(${lineArray(topic)}, ${lineArray(acronym)}, ${lineArray(title)})`;
+  return `doc-banner(${lineArray(topic)}, ${lineArray(acronym)}, ${lineArray(title)}, ${typstString(logoPath)})`;
 }
+
 
 /** Backwards-compatible default preamble (no banner, generic footer). */
 export const TYPST_PREAMBLE = buildTypstPreamble();
