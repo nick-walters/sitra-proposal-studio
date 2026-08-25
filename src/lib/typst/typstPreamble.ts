@@ -71,7 +71,17 @@ export interface TypstDocMeta {
   partLabel?: string;
   /** Page-one banner: topic line, acronym and full title. */
   banner?: { topicLine?: string; acronym?: string; title?: string } | null;
+  /**
+   * Running header text — the topic identifier, e.g.
+   * "HORIZON-CL4-2026-01-TWIN-TRANSITION-15: …". Printed centred at the top of
+   * every page EXCEPT page one, which carries the banner instead. Same text as
+   * the browser-print export's `@top-center`.
+   */
+  runningHeader?: string;
+  /** Section heading pair, numbered from the template (see `fetchTypstDocMeta`). */
+  headings?: { h1?: string; h2?: string } | null;
 }
+
 
 /** Splits on newlines so a stored manual break survives into the banner. */
 function lineArray(value: string): string {
