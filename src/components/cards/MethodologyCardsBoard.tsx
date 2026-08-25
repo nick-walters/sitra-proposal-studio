@@ -133,6 +133,8 @@ import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePa
 
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
+import { useB32Conditions } from '@/hooks/useB32Conditions';
+import { resolveB32Condition, b32UnmetReason } from '@/lib/cards/b32Conditions';
 
 interface BoardProps {
   proposalId: string;
@@ -753,6 +755,12 @@ interface CardBlockProps {
   captionLabel?: string;
   /** Section declares that figures and tables are always full width (B3.1). */
   figuresFullWidth: boolean;
+  /** B3.2 conditional blocks: heading computed from A2 at render. */
+  conditionTitle?: string | null;
+  /** B3.2 conditional blocks: condition not met, so the block is left out downstream. */
+  conditionUnmet?: boolean;
+  /** Explains why a conditional block is left out. */
+  conditionReason?: string;
 }
 
 function CardBlock({
@@ -786,6 +794,9 @@ function CardBlock({
   reloadNonce,
   captionLabel,
   figuresFullWidth,
+  conditionTitle,
+  conditionUnmet,
+  conditionReason,
 }: CardBlockProps) {
   const queryClient = useQueryClient();
   const sortable = useSortable({ id: card.id, disabled: !draggable });
@@ -908,9 +919,11 @@ function CardBlock({
   }, [card.title]);
 
   const displayedTitle =
-    (titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
-    card.title ??
-    null;
+    conditionTitle ??
+    ((titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
+      card.title ??
+      null);
+
 
 
   useEffect(() => {
@@ -1119,6 +1132,11 @@ function CardBlock({
 
             {userCollapsed && (
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
+            )}
+            {conditionUnmet && (
+              <p className="text-xs italic text-muted-foreground">
+                Not applicable — left out of the preview and the export. {conditionReason}
+              </p>
             )}
           </div>
 
@@ -1794,6 +1812,10 @@ function BoardInner({
   const { hasAny: sectionCitesAnything, entries: sectionCitedEntries } =
     useSectionCitedReferences(proposalId, sectionId);
   const referenceCount = sectionCitedEntries.length;
+  // B3.2's two conditional blocks stay reachable in the editor (their content
+  // must never disappear), but a block whose condition is not met is excluded
+  // from the mirror, the preview and the export — see b32Conditions.ts.
+  const b32Signals = useB32Conditions(proposalId, (sectionNumber ?? '').replace(/^B/i, '') === '3.2');
   const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
   /** Blocks this user can see — the target set for Collapse all / Expand all. */
@@ -1910,6 +1932,16 @@ function BoardInner({
 
   const cardProps = (card: ProposalCard, draggable: boolean) => ({
     card,
+    ...(() => {
+      const r = resolveB32Condition(card.templateKey, b32Signals);
+      return r.conditional
+        ? {
+            conditionTitle: r.title,
+            conditionUnmet: !r.met,
+            conditionReason: r.met ? undefined : b32UnmetReason(card.templateKey),
+          }
+        : {};
+    })(),
     captionLabel: captionLabels[card.id],
     figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
