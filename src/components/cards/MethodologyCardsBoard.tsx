@@ -568,7 +568,7 @@ function FieldRow({
           placeholderHideOnFocus={isDocumentSurface}
           className={
             isDocumentSurface
-              ? `doc-surface-heading min-w-0 flex-1 ${lockBorderClass(headerLock.isMine, false)}`
+              ? `doc-surface-heading doc-surface-heading-inline ${lockBorderClass(headerLock.isMine, false)}`
               : `flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`
           }
           staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
