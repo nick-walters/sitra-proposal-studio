@@ -535,8 +535,12 @@ export async function fetchTypstDocMeta(
     headings,
     // The browser-print export prints "<topic id>: <topic title>" across the
     // top of every page but the first; the Typst header is the same string.
+    // …and the action type in parentheses after it: `proposals.type`, the
+    // RIA / IA / CSA value chosen when the proposal was created (locked
+    // afterwards by `lock_proposal_action_type`).
     runningHeader: row.topic_id || row.topic_title
-      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}`
+      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}` +
+        `${row.type ? ` (${row.type})` : ''}`
       : '',
     banner: isFirstSection
       ? {
