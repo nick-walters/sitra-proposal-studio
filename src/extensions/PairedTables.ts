@@ -87,6 +87,18 @@ function buildEmptyRow(schema: Schema, table: PMNode): PMNode | null {
   return rowType.create(null, cells);
 }
 
+/**
+ * Whole-document replacement — loading the field, or mirroring a collaborator's
+ * streamed content — is not an edit of the current table and is let through;
+ * the repair pass then brings the incoming content into step.
+ */
+function isFullDocReplace(tr: Transaction, docSize: number): boolean {
+  return tr.steps.some((step) => {
+    const s = step as unknown as { from?: number; to?: number };
+    return s.from === 0 && s.to === docSize;
+  });
+}
+
 /** Undo/redo must be able to restore any earlier — consistent — state. */
 function isHistory(tr: Transaction): boolean {
   return Boolean(tr.getMeta('history$'));
@@ -115,8 +127,12 @@ export const PairedTables = Extension.create<PairedTablesOptions>({
           if (!isEnabled() || !tr.docChanged) return true;
           if (tr.getMeta(PAIRED_TABLES_ROW_OP) || isHistory(tr)) return true;
 
+          if (isFullDocReplace(tr, state.doc.content.size)) return true;
+
           const before = bodyRowCounts(state.doc);
           const after = bodyRowCounts(tr.doc);
+          // Neither part may be removed on its own either.
+          if (before.length === 2 && after.length !== 2) return false;
           // Not the paired shape (initial load, content replacement): the
           // repair pass below brings whatever arrives back into step.
           if (before.length !== 2 || after.length !== 2) return true;
