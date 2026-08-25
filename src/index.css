@@ -1861,6 +1861,17 @@ body.table-col-resizing * {
   text-align: left;
 }
 
+/* The header is an inline H4: its field is only as wide as the words in it,
+   never the whole text column. The minimum keeps an empty field — showing the
+   grey "Header" placeholder — comfortably clickable. */
+.doc-surface-heading-inline,
+.doc-surface-heading-inline .ProseMirror,
+.doc-surface-heading-inline .document-content {
+  width: max-content;
+  min-width: 8rem;
+  max-width: 100%;
+}
+
 .doc-surface-field.is-active {
   border-left-color: hsl(var(--primary));
 }

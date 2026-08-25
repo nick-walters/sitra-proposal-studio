@@ -536,7 +536,11 @@ function FieldRow({
   const headerField = field.headingEnabled ? (
     <div
       className={
-        isDocumentSurface ? 'flex min-w-0 items-start gap-2' : 'flex min-w-0 flex-1 items-center gap-2'
+        // On the page surface the header is an inline H4, so its field sizes
+        // to its own text rather than filling the column.
+        isDocumentSurface
+          ? 'inline-flex max-w-full items-start gap-2'
+          : 'flex min-w-0 flex-1 items-center gap-2'
       }
     >
       {headerLock.lockedByOther ? (
@@ -545,7 +549,7 @@ function FieldRow({
         <div
           className={
             isDocumentSurface
-              ? 'doc-surface-heading min-w-0 flex-1 select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
+              ? 'doc-surface-heading doc-surface-heading-inline select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
               : 'h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline'
           }
           aria-readonly="true"
@@ -564,7 +568,7 @@ function FieldRow({
           placeholderHideOnFocus={isDocumentSurface}
           className={
             isDocumentSurface
-              ? `doc-surface-heading min-w-0 flex-1 ${lockBorderClass(headerLock.isMine, false)}`
+              ? `doc-surface-heading doc-surface-heading-inline ${lockBorderClass(headerLock.isMine, false)}`
               : `flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`
           }
           staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
@@ -606,8 +610,14 @@ function FieldRow({
       style={style}
       className={`rounded-md border border-border transition-shadow ${
         // The page-styled module is exactly one text column wide: 18 cm of
-        // content between 1.5 cm margins that run to the module's own edge.
-        isDocumentSurface ? 'w-[21cm] max-w-full' : 'space-y-2 p-3'
+        // content between 1.5 cm margins that run to the module's own edge,
+        // so the module measures 21 cm. The board's own 768 px column is
+        // narrower than that, so the module is NOT clamped to it (`max-w-none`)
+        // and the symmetric negative margin lets it grow evenly past the
+        // column instead of being squeezed to ~16 cm of text.
+        isDocumentSurface
+          ? 'box-content w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)]'
+          : 'space-y-2 p-3'
       } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
     >
       <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
