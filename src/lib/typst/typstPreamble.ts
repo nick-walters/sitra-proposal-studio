@@ -57,13 +57,16 @@ function footerSource(meta: TypstDocMeta): string {
   const acronym = (meta.acronym || '').trim();
   const part = (meta.partLabel || 'Part B').trim();
   const prefix = [acronym, part].filter(Boolean).join(' | ');
+  // Plain string concatenation, NOT the `t()` helper: the footer closure is
+  // built by `#set page(...)` before the helpers are defined, so anything it
+  // references must already be in scope.
   return `context {
   set align(center)
   set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-  t(${typstString(prefix ? `${prefix} | Page ` : 'Page ')})
-    + t(str(counter(page).at(here()).first()))
-    + t(" of ")
-    + t(str(counter(page).final().first()))
+  ${typstString(prefix ? `${prefix} | Page ` : 'Page ')}
+    + str(counter(page).at(here()).first())
+    + " of "
+    + str(counter(page).final().first())
 }`;
 }
 
