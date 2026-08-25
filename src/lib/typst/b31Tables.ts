@@ -127,6 +127,9 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     const shortName = wp.short_name || '';
     const title = wp.title || '';
     const rows: string[][] = [];
+    // Grid rows that begin a task get the WP-coloured separator the board
+    // draws; the header row is row 0, so a row's grid index is its index + 1.
+    const seps: number[] = [];
 
     rows.push([
       participantChip(byId.get(wp.lead_participant_id || '')) + ` + t(" ") + ` + bold(lit(wpDuration(wp))),
@@ -155,6 +158,7 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         participantChip(byId.get(task.lead_participant_id || '')) +
         (partners.length ? ` + t(" ") + ` + partners.join(' + t(" ") + ') : '') +
         months;
+      seps.push(rows.length + 1);
       rows.push([head]);
       if (htmlToPlainText(task.description || '').trim()) {
         rows.push([rich(task.description, ctx)]);
@@ -166,10 +170,15 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
       wp.color,
       `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`,
     );
-    out.push(table('(1fr,)', [heading], rows));
+    const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
+    const sepsSrc = `(${seps.join(', ')}${seps.length === 1 ? ',' : ''})`;
+    out.push(
+      `he-wp-table(${heading}, ${rowsSrc}, rgb(${typstString(wp.color)}), ${sepsSrc})`,
+    );
   }
   return out;
 }
+
 
 /* ───────────────────── Table 3.1.c — deliverables ───────────────────────── */
 
