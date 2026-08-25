@@ -406,9 +406,6 @@ export function buildSectionTypstDocument(
       out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
       continue;
     }
-    // References are per-page footnotes now: there is no reference LIST in the
-    // exported document, so a references block emits nothing at all.
-    if (card.kind === 'references') continue;
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
