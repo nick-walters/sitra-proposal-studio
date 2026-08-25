@@ -1260,8 +1260,9 @@ function CardBlock({
 /* Board                                                               */
 /* ------------------------------------------------------------------ */
 
-/** The cards board is the B1.2 methodologies section. */
-const SECTION_CAPTION_NUMBER = '1.2';
+/** Fallback caption sequence when the board is mounted without a section number. */
+const DEFAULT_CAPTION_NUMBER = '1.2';
+
 
 function BoardInner({
   proposalId,
