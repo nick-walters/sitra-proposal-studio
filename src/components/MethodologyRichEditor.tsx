@@ -39,6 +39,12 @@ interface MethodologyRichEditorProps {
    */
   documentSurface?: boolean;
   /**
+   * Hide the placeholder while the caret is in the field (used by the header
+   * field on the page surface, where a hint under the caret would read as
+   * text the user had typed).
+   */
+  placeholderHideOnFocus?: boolean;
+  /**
    * B2.1 impact summary: the six-column table shown as two stacked parts is
    * one logical table — rows may only be added or removed across both parts.
    */
@@ -63,6 +69,7 @@ export function MethodologyRichEditor({
   placeholder,
   captionNumbering,
   documentSurface = false,
+  placeholderHideOnFocus = false,
   pairedTables = false,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
@@ -141,21 +148,26 @@ export function MethodologyRichEditor({
   const [isEmpty, setIsEmpty] = useState(true);
   useEffect(() => {
     if (!editor || !placeholder) return;
-    const sync = () => setIsEmpty(editor.isEmpty);
+    const sync = () =>
+      setIsEmpty(editor.isEmpty && !(placeholderHideOnFocus && editor.isFocused));
     sync();
     editor.on('update', sync);
     editor.on('transaction', sync);
+    editor.on('focus', sync);
+    editor.on('blur', sync);
     return () => {
       editor.off('update', sync);
       editor.off('transaction', sync);
+      editor.off('focus', sync);
+      editor.off('blur', sync);
     };
-  }, [editor, placeholder]);
+  }, [editor, placeholder, placeholderHideOnFocus]);
 
   return (
     <div
       className={
         documentSurface
-          ? `doc-surface-field relative overflow-visible px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+          ? `doc-surface-field relative overflow-visible transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
               canEdit ? 'cursor-text' : 'cursor-default select-text'
             } ${isActive && canEdit ? 'is-active' : ''}`
           : `relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
@@ -196,8 +208,10 @@ export function MethodologyRichEditor({
       {placeholder && isEmpty && (
         <span
           aria-hidden
-          className={`pointer-events-none absolute left-2.5 top-1.5 select-none italic text-muted-foreground ${
-            documentSurface ? 'font-document text-[11pt]' : 'text-sm'
+          className={`pointer-events-none absolute select-none text-muted-foreground ${
+            documentSurface
+              ? 'left-0 top-0 font-document text-[11pt]'
+              : 'left-2.5 top-1.5 text-sm italic'
           }`}
         >
           {placeholder}
