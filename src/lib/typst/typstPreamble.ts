@@ -247,9 +247,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// document has no sans face loaded, so naming one only triggers a fallback
 /// with different metrics.
 ///
-/// It is NOT wrapped in a `box`. The pill and polygon chips need one (they
-/// carry a shape and a fixed height), but a `box` around bare text is laid out
-/// against the document's `top-edge: cap-height` / `bottom-edge: descender`
+/// It is NOT wrapped in a box. The pill and polygon chips need one (they
+/// carry a shape and a fixed height), but a box around bare text is laid out
+/// against the document's top-edge: cap-height / bottom-edge: descender
 /// settings, so its own bottom edge — not the glyph baseline — lands on the
 /// line, lifting the label about 1.56pt. Measured at 1200 ppi: boxed, the ink
 /// sat 2.52pt above the body cap-height and stopped 1.44pt short of the
