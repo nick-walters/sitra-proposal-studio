@@ -25,6 +25,24 @@ export interface CaptionSlots {
   figures: number;
 }
 
+/** A caption written before the classes existed still starts with its label. */
+const LEGACY_LABEL = /^\s*(Figure|Table)\s+\d+(?:\.\d+)*\.[a-z]+\./i;
+
+/**
+ * Whether a paragraph is a table or figure caption. Detection matches the
+ * editor extension exactly (class first, then the legacy label text), so the
+ * board's walk and the auto-numbering plugin can never disagree about how
+ * many slots a text box burns.
+ */
+function captionKind(p: Element): 'table' | 'figure' | null {
+  const cls = p.className || '';
+  if (cls.includes('document-table-caption')) return 'table';
+  if (cls.includes('figure-caption')) return 'figure';
+  const m = LEGACY_LABEL.exec(p.textContent ?? '');
+  if (!m) return null;
+  return m[1].toLowerCase() === 'figure' ? 'figure' : 'table';
+}
+
 /**
  * How many table and figure caption slots a text box occupies. A cases-table
  * atom carries its caption inside its node view, so it burns a table slot
@@ -35,9 +53,12 @@ export function countCaptionSlots(html: string | null | undefined): CaptionSlots
   if (typeof document === 'undefined') return { tables: 0, figures: 0 };
   const holder = document.createElement('div');
   holder.innerHTML = html;
-  const tables =
-    holder.querySelectorAll('p.document-table-caption').length +
-    holder.querySelectorAll('div[data-cases-table-node]').length;
-  const figures = holder.querySelectorAll('p.figure-caption').length;
+  let tables = holder.querySelectorAll('div[data-cases-table-node]').length;
+  let figures = 0;
+  holder.querySelectorAll('p').forEach((p) => {
+    const kind = captionKind(p);
+    if (kind === 'table') tables += 1;
+    else if (kind === 'figure') figures += 1;
+  });
   return { tables, figures };
 }
