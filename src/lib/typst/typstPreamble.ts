@@ -31,7 +31,9 @@ export const TYPST_SERIF = 'Nimbus Roman';
  * silently falls back to the only loaded family (the serif), which is what
  * made every heading look like Times.
  */
-export const TYPST_DISPLAY = 'Arial Black';
+// Archivo Black is the bundled, metrically close fallback for Arial Black.
+// Unlike the former mislabeled asset, Typst can identify and embed this face.
+export const TYPST_DISPLAY = 'Archivo Black';
 
 
 /** Tables are capped at the Part B maximum printable width. */
