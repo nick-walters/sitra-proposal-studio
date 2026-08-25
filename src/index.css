@@ -1824,3 +1824,26 @@ body.table-col-resizing * {
   margin: 0 0 3pt;
   line-height: 1;
 }
+
+/* ------------------------------------------------------------------ *
+ * Source-fed blocks (B3.1 tables and figures, B3.2 mirrors)
+ *
+ * A source-fed table is part of the document, so it obeys the same 18 cm
+ * text column as everything else on the board: it never scrolls sideways
+ * and never spills past the block. Long cell content wraps instead.
+ * Table 3.1.b keeps its own fixed layout and is exempt (it sizes itself
+ * to the column already).
+ * ------------------------------------------------------------------ */
+.source-fed-constrained {
+  max-width: 18cm;
+}
+
+.source-fed-constrained table {
+  max-width: 100%;
+}
+
+.source-fed-constrained table:not([data-table-key='wp-descriptions']) td,
+.source-fed-constrained table:not([data-table-key='wp-descriptions']) th {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
