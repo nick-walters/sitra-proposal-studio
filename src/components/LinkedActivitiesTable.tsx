@@ -450,30 +450,35 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible for establishing the link', ''].map(
+                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible', 'How the project will be linked', ''].map(
                     (h, i) => (
-                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative font-bold`}>
+                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative align-bottom font-bold`}>
                         {h}
-                        {canResize && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+                        {canResize && i < DEFAULT_COL_PCT.length - 1 && (
+                          <ColumnResizer onMouseDown={handleColResizeStart(i)} />
+                        )}
                       </th>
                     ),
                   )}
                 </tr>
               </thead>
-              {ordered.map((activity) => (
-                <SortableActivityRow
-                  key={activity.id}
-                  activity={activity}
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                  participants={participants}
-                  onUpdate={updateField}
-                  onDelete={(id) =>
-                    deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
-                  }
-                />
-              ))}
+              <tbody>
+                {ordered.map((activity) => (
+                  <SortableActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    proposalId={proposalId}
+                    canEdit={canEdit}
+                    isCoordinator={isCoordinator}
+                    participants={participants}
+                    onUpdate={updateField}
+                    onDelete={(id) =>
+                      deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
+                    }
+                  />
+                ))}
+              </tbody>
+
             </table>
           </SortableContext>
         </DndContext>
