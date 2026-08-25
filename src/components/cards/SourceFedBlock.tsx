@@ -9,7 +9,9 @@ import { B31WPDescriptionTables } from '@/components/B31WPDescriptionTables';
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from '@/components/B31TablesEditor';
 import { B31EffortMatrix } from '@/components/B31EffortMatrix';
 import { B31SubcontractingTable } from '@/components/B31SubcontractingTable';
-import { B31MergedJustificationTable } from '@/components/B31MergedJustificationTable';
+import { B31MergedJustificationTable, type MergedBlock } from '@/components/B31MergedJustificationTable';
+import { useB31CostPresence } from '@/hooks/useB31CostPresence';
+
 import { GanttChartFigure } from '@/components/GanttChartFigure';
 import { PERTChartFigure } from '@/components/PERTChartFigure';
 import { B12LinkedActivitiesSlotContent } from '@/components/B12LinkedActivitiesSlotContent';
