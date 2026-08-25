@@ -353,6 +353,10 @@ export function buildSectionTypstDocument(
 
   for (const card of tree.cards) {
     if (card.sourceKey === 'b11.participants') continue; // emitted with page one
+    // References are per-page footnotes now: there is no reference LIST in the
+    // exported document, so a references block emits NOTHING AT ALL — not even
+    // its own "References" heading. Checked before the title is emitted.
+    if (card.kind === 'references') continue;
     const isGenerated =
       card.isSourceFed || (card.sourceKey && RELATIONAL_KEYS.has(card.sourceKey));
 
