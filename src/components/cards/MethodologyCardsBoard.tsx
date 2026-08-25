@@ -106,8 +106,9 @@ import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { ReferencesBlock } from './ReferencesBlock';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
-import { MilestonesEditor, RisksEditor } from '@/components/ProposalMilestonesRisksManager';
+import { MilestonesEditor, RisksEditor, MS_KEY, RISK_KEY } from '@/components/ProposalMilestonesRisksManager';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
+import { useNumberedRowBin } from '@/hooks/useNumberedRowBin';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
 import { CasesTableLiveView } from '@/components/CasesTableNodeView';
 import { RefDataProvider } from '@/lib/refDataContext';
@@ -920,6 +921,16 @@ function CardBlock({
   const isMilestonesCard = card.sourceKey === 'b31.table_d' && !card.isSourceFed;
   const isRisksCard = card.sourceKey === 'b31.table_e' && !card.isSourceFed;
   const isRelationalCard = isLinkedActivitiesCard || isMilestonesCard || isRisksCard;
+
+  // Milestones and risks are hard-deleted so the numbering triggers can
+  // resequence; their recycle bin lives in `proposal_row_bin` and its Restore
+  // button sits in the block header alongside the other blocks' controls.
+  const rowBin = useNumberedRowBin(
+    isMilestonesCard || isRisksCard ? proposalId : '',
+    isRisksCard ? 'proposal_risks' : 'proposal_milestones',
+  );
+  const [rowBinOpen, setRowBinOpen] = useState(false);
+  const cardQueryClient = useQueryClient();
   // The two B3.1 charts: no add / restore / delete, so those header columns
   // carry the chart's own Edit and Download controls instead.
   const isPertCard = card.sourceKey === 'b31.pert';
@@ -1165,7 +1176,16 @@ function CardBlock({
                   Restore
                 </Button>
               </Tip>
-            ) : !isLinkedActivitiesCard && canEdit && binCount > 0 ? (
+            ) : (isMilestonesCard || isRisksCard) && canEdit && rowBin.deletedRows.length > 0 ? (
+              <Tip
+                label={`Restore deleted ${isRisksCard ? 'risk' : 'milestone'} (${rowBin.deletedRows.length} in the recycle bin)`}
+              >
+                <Button variant="ghost" size="sm" onClick={() => setRowBinOpen(true)}>
+                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                  Restore
+                </Button>
+              </Tip>
+            ) : !isLinkedActivitiesCard && !isMilestonesCard && !isRisksCard && canEdit && binCount > 0 ? (
               <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
                 <Button variant="ghost" size="sm" onClick={() => onOpenBin(card)}>
                   <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
@@ -1288,6 +1308,53 @@ function CardBlock({
             </>
           )}
         </CardContent>
+
+        <Dialog open={rowBinOpen} onOpenChange={setRowBinOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Restore {isRisksCard ? 'risk' : 'milestone'}</DialogTitle>
+              <DialogDescription>
+                Deleted {isRisksCard ? 'risks' : 'milestones'} are kept here. Restoring brings the
+                row back with all of its content
+                {isRisksCard ? '.' : ', renumbered by its due month.'}
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[320px]">
+              <div className="space-y-1 p-1">
+                {rowBin.deletedRows.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {htmlToPlainText(r.label ?? '').trim() || (
+                        <span className="italic text-muted-foreground">Untitled</span>
+                      )}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        rowBin
+                          .restoreRow(r.id)
+                          .then(() => {
+                            cardQueryClient.invalidateQueries({
+                              queryKey: isRisksCard ? RISK_KEY(proposalId) : MS_KEY(proposalId),
+                            });
+                            if (rowBin.deletedRows.length === 1) setRowBinOpen(false);
+                          })
+                          .catch(() => toast.error('Could not restore the row'))
+                      }
+                    >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={activityBinOpen} onOpenChange={setActivityBinOpen}>
           <DialogContent className="max-w-md">

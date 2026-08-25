@@ -48,7 +48,9 @@ import {
 } from '@/components/MethodologyEditorFocusContext';
 import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
-import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
+import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { binAndDeleteNumberedRow } from '@/lib/numberedRowBin';
+import { numberedRowBinKey } from '@/hooks/useNumberedRowBin';
 import {
   PageSearchProvider,
   usePageSearch,
@@ -115,8 +117,8 @@ interface Risk {
   version?: number;
 }
 
-const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
-const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
+export const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
+export const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 
 // Fixed column tracks shared by each row's metadata line and the label header
 // row above the list, so fields align across rows. A column is reserved for
@@ -521,7 +523,7 @@ export function MilestonesEditor({
   const deleteMilestone = useMutation({
     mutationFn: async (id: string) => {
       const known = milestones.find(m => m.id === id);
-      const res = await deleteAndResequence('proposal_milestones', id, known?.version ?? null);
+      const res = await binAndDeleteNumberedRow('proposal_milestones', id, known?.version ?? null);
       if (!res.ok) {
         throw new Error(res.conflict
           ? 'This milestone changed elsewhere — it was not deleted.'
@@ -529,7 +531,11 @@ export function MilestonesEditor({
       }
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
+      qc.invalidateQueries({ queryKey: numberedRowBinKey(proposalId, 'proposal_milestones') });
+      notifyRefs();
+    },
   });
 
   const setMsWps = useMutation({
@@ -585,7 +591,7 @@ export function MilestonesEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_p]:!text-left [&_li]:!text-left [&_.ProseMirror]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the milestone name above. */}
@@ -825,7 +831,7 @@ export function RisksEditor({
   const deleteRisk = useMutation({
     mutationFn: async (id: string) => {
       const known = risks.find(r => r.id === id);
-      const res = await deleteAndResequence('proposal_risks', id, known?.version ?? null);
+      const res = await binAndDeleteNumberedRow('proposal_risks', id, known?.version ?? null);
       if (!res.ok) {
         throw new Error(res.conflict
           ? 'This risk changed elsewhere — it was not deleted.'
@@ -923,7 +929,7 @@ export function RisksEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_p]:!text-left [&_li]:!text-left [&_.ProseMirror]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the risk description above. */}
