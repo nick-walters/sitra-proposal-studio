@@ -21,6 +21,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tip } from '@/components/ui/control-tip';
 import { EditableCaption } from '@/components/EditableCaption';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
+
 
 import { Input } from '@/components/ui/input';
 import {
