@@ -45,6 +45,7 @@ import {
   type DirtyRegistry,
 } from '@/components/admin/useUnsavedGuard';
 import { ArrowLeft } from 'lucide-react';
+import { useAllModifiers } from '@/hooks/useTemplateModifiers';
 
 const CATEGORY_LABEL: Record<string, string> = {
   commission: 'Official guidelines from the European Commission',
@@ -549,6 +550,21 @@ function BlockRow({
   const [title, setTitle] = useState(block.default_title ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { data: guidelines = [] } = useBlockGuidelines(block.id);
+  /* Modifier-owned blocks live in the versioned template and are seeded only
+     when one of these modifiers applies to the proposal. */
+  const { data: allModifiers = [] } = useAllModifiers();
+  const modifierCodes: string[] = ((block as any).condition_modifier_codes ?? []) as string[];
+
+  const toggleModifier = async (code: string, on: boolean) => {
+    const next = on
+      ? Array.from(new Set([...modifierCodes, code]))
+      : modifierCodes.filter((c) => c !== code);
+    await supabase
+      .from('card_templates')
+      .update({ condition_modifier_codes: next.length ? next : null } as any)
+      .eq('id', block.id);
+    onChanged();
+  };
 
   const setFlag = async (field: string, value: boolean) => {
     await supabase.from('card_templates').update({ [field]: value } as any).eq('id', block.id);
@@ -598,6 +614,11 @@ function BlockRow({
           <span className="text-sm font-medium">{block.default_title || block.key}</span>
           <code className="text-xs text-muted-foreground">{block.key}</code>
           {block.kind && <Badge variant="outline" className="text-[11px] font-bold">{block.kind}</Badge>}
+          {modifierCodes.map((c) => (
+            <Badge key={c} variant="outline" className="text-[11px] font-bold text-amber-700 border-amber-500">
+              {c}
+            </Badge>
+          ))}
           {guidelines.length > 0 && (
             <Badge variant="secondary" className="text-[11px] font-bold">
               {guidelines.length} guideline{guidelines.length === 1 ? '' : 's'}
@@ -618,7 +639,7 @@ function BlockRow({
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 space-y-3">
+              <PopoverContent className="w-72 space-y-3">
                 {([
                   ['is_deletable', 'Deletable'],
                   ['is_hideable', 'Hideable'],
@@ -634,6 +655,20 @@ function BlockRow({
                     />
                   </div>
                 ))}
+                <div className="border-t pt-3 space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Belongs to modifier — seeded only when it applies. None ticked = always seeded.
+                  </Label>
+                  {allModifiers.map((m) => (
+                    <div key={m.code} className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">{m.name}</Label>
+                      <Switch
+                        checked={modifierCodes.includes(m.code)}
+                        onCheckedChange={(v) => toggleModifier(m.code, v)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </PopoverContent>
             </Popover>
             <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setTitle(block.default_title ?? ''); setRenaming(true); }}>
