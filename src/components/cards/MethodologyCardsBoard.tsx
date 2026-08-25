@@ -975,10 +975,13 @@ function CardBlock({
           </div>
 
 
-          {/* Figure blocks carry no title: the caption under the figure is the
-              only label, so a block title would duplicate it. */}
+          {/* Header visibility follows the block's `titleMode`:
+              'off'         → no header at all (B3.1 intro block),
+              'mirrored'    → header prints in the preview/export (B1.2),
+              'editor_only' → header shows here for navigation only and is
+                              never emitted to the preview, PDF or DOCX. */}
           <div className="min-w-0 flex-1">
-            {card.kind === 'figure' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
+            {card.titleMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
               // upgraded to HTML on read by `ensureRichHtml`.
@@ -1011,6 +1014,13 @@ function CardBlock({
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
+                {card.titleMode === 'editor_only' && (
+                  <Tip label="Editor-only header — not mirrored to the preview or export">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                      Editor only
+                    </span>
+                  </Tip>
+                )}
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
                 )}
@@ -1021,6 +1031,7 @@ function CardBlock({
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
             )}
           </div>
+
 
           {/* Fixed control columns: visibility | add | restore | delete.
               Every block reserves all four, so a block that lacks a control
