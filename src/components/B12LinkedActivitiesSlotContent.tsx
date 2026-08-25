@@ -109,15 +109,22 @@ function buildLegend(activities: ActivityRow[]): string {
 
 export interface B12LinkedActivitiesSlotContentProps {
   proposalId: string;
+  /**
+   * What to show when there are no linked activities. Inline mirrors pass
+   * nothing (the slot simply collapses); the board block passes the note that
+   * explains why the table will not appear in the proposal.
+   */
+  emptyFallback?: React.ReactNode;
 }
 
 export function B12LinkedActivitiesSlotContent({
   proposalId,
+  emptyFallback = null,
 }: B12LinkedActivitiesSlotContentProps) {
   const { data: activities = [] } = useLinkedActivitiesMirror(proposalId);
   const { data: participants = [] } = useMirrorParticipants(proposalId);
 
-  if (activities.length === 0) return null;
+  if (activities.length === 0) return <>{emptyFallback}</>;
 
   const legend = buildLegend(activities);
   const partById = new Map(participants.map((p) => [p.id, p]));
