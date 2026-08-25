@@ -229,6 +229,33 @@ export function TemplateTypeWorkspace({
         </div>
       )}
 
+      {/* Where the edits land. Saving into a draft looks like "nothing
+          happened" on the writers' side, because proposals keep reading the
+          version they were created from until this draft is published. */}
+      {editable && (
+        <div className="flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+          <Pencil className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            You are editing an <b>unpublished draft</b>. Guidelines and criteria you change here
+            are saved immediately into the draft, but proposals keep showing the published
+            version until you choose <b>Publish</b>.
+          </p>
+        </div>
+      )}
+
+      {!isDraft && hasDraft && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <History className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            You are looking at a published version, and an unpublished draft exists. Recent edits
+            live in that draft — switch to <b>Draft (unpublished)</b> in the version selector to
+            see them.
+          </p>
+        </div>
+      )}
+
+
+
       {partASlot}
 
       <div className="flex items-center gap-2 pt-2">
