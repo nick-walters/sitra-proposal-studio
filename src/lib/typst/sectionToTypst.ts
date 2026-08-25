@@ -120,7 +120,10 @@ export function buildSectionTypstDocument(
       continue;
     }
 
-    if (card.title) {
+    // Editor-only headers (B3.1) exist for navigation in the board and are
+    // never emitted to the preview or the export.
+    if (card.title && card.titleMode === 'mirrored') {
+
       // Colour is carried per RUN, so colouring one word colours one word.
       out.push(
         `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
