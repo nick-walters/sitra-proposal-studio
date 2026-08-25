@@ -325,9 +325,12 @@ function convertTable(el: Element, ctx: ConvertContext): string {
   const widths = columnWidths(el, colCount);
   // Fractions rather than absolute widths: the table is placed in an 18cm
   // block, so proportional columns are exactly the capped geometry.
+  // Trailing commas are load-bearing: `(x)` is a plain parenthesised value in
+  // Typst, and spreading it raises "cannot spread content". `(x,)` is a
+  // one-element array, and `()` an empty one.
   const columns = widths
-    ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')})`
-    : `(${Array.from({ length: colCount }, () => '1fr').join(', ')})`;
+    ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')},)`
+    : `(${Array.from({ length: colCount }, () => '1fr').join(', ')},)`;
 
   const emittedCells: string[] = [];
   rows.forEach((row, index) => {
@@ -339,8 +342,10 @@ function convertTable(el: Element, ctx: ConvertContext): string {
     if (isHeader) emittedCells.push(`table.header(${converted.join(', ')})`);
     else emittedCells.push(...converted);
   });
+  if (!emittedCells.length || !colCount) return '';
 
-  return `he-authored-table(${columns}, (${emittedCells.join(', ')}), ${rows.length})`;
+  return `he-authored-table(${columns}, (${emittedCells.join(', ')},), ${rows.length})`;
+
 }
 
 function convertBlock(el: Element, ctx: ConvertContext): string {
