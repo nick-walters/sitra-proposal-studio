@@ -130,12 +130,17 @@ export async function jumpToElementId(domId: string): Promise<void> {
   await raf();
   await raf();
 
-  // Editors and images mount late and shift the target: repeat until settled.
+  // Blocks mount their rich-text editors LAZILY, and the toolbar grows a tier
+  // when a field takes focus, so the target keeps moving for a second or two
+  // after it first appears. Correct until the delta has stayed settled twice
+  // in a row, re-measuring the sticky chrome on every pass.
   scrollPass(el, 'pass 1');
-  for (const delayMs of [250, 450, 700]) {
+  let settled = 0;
+  for (const delayMs of [120, 180, 250, 300, 350, 400, 450, 500]) {
     await wait(delayMs);
     const delta = scrollPass(el, `pass @${delayMs}ms`);
-    if (Math.abs(delta) <= 4) break;
+    settled = Math.abs(delta) <= 4 ? settled + 1 : 0;
+    if (settled >= 2) break;
   }
 
   flash(el);
