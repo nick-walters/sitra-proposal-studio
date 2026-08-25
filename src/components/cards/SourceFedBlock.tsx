@@ -18,6 +18,7 @@ import { B12LinkedActivitiesSlotContent } from '@/components/B12LinkedActivities
 import { B32MirrorSlotLiveView } from '@/components/B32MirrorSlotNodeView';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
 import { sourceFedEmptyReason } from '@/lib/cards/sourceFedEmptyReasons';
+import { B11ParticipantListTable } from '@/components/B11ParticipantListTable';
 
 /**
  * Read-only render of a source-fed block.
@@ -258,6 +259,11 @@ export function SourceFedBlock({ proposalId, sourceKey, kind }: SourceFedBlockPr
           produced.
         </Note>
       );
+    }
+    if (sourceKey === 'b11.participants') {
+      // Mirrored list of participants: the same rows (and the same column
+      // widths) the Typst export prints on page one.
+      return <B11ParticipantListTable proposalId={proposalId} />;
     }
     if (sourceKey === 'b12.linked_activities') {
       return (
