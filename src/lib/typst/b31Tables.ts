@@ -259,8 +259,11 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
   ]);
   return [
     caption(data, 'risks', 'Table 3.1.e.', 'Critical risks for implementation'),
+    // Baseline shares were 2 / 1 / 2 (risk / WPs / mitigation). The WP column
+    // gives up 50 % and the risk description 20 %; the mitigation column takes
+    // all of the freed width.
     table(
-      '(1fr, auto, auto, auto, 1fr)',
+      '(1.6fr, auto, auto, 0.5fr, 2.9fr)',
       [lit('Risk'), lit('i.'), lit('ii.'), lit('WP(s)'), lit('Mitigation & adaptation measures')],
       rows,
     ),
@@ -271,64 +274,130 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
 
 const pm = (n: number) => (n === 0 ? '' : Number.isInteger(n) ? String(n) : n.toFixed(2));
 
+/** A cell painted in the WP colour with white text, as the board draws it. */
+function wpCell(colour: string, body: string, strong = false): string {
+  const inner = strong ? `strong(${body})` : body;
+  return `table.cell(fill: rgb(${typstString(colour)}), text(fill: white, ${inner}))`;
+}
+
+/**
+ * On screen this is not a ruled table at all: it is a block of WP-coloured
+ * cells with white figures, a participant badge down the left and a plain
+ * bold Total column. `he-grid` reproduces that (no strokes, per-cell fills)
+ * instead of forcing it through the ruled `he-table` furniture.
+ */
 export function emitEffortMatrix(data: B31TypstData): string[] {
   if (!data.wps.length || !data.participants.length) return [];
-  const header = [
+  const cells: string[] = [
     lit(''),
-    ...data.wps.map((wp) => wpChip(wp.number, wp.color)),
-    lit('Total'),
+    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)))),
+    bold(lit('Total')),
   ];
-  const rows = data.participants.map((p) => {
+
+  for (const p of data.participants) {
     let rowTotal = 0;
-    const cells = data.wps.map((wp) => {
+    const rowCells = data.wps.map((wp) => {
       const value = wp.effort
         .filter((e) => e.participant_id === p.id)
         .reduce((s, e) => s + e.person_months, 0);
       rowTotal += value;
-      return lit(pm(value));
+      return wpCell(wp.color, lit(pm(value)));
     });
-    return [participantChip(p), ...cells, bold(lit(pm(rowTotal)))];
-  });
+    cells.push(participantChip(p), ...rowCells, bold(lit(pm(rowTotal))));
+  }
+
   const colTotals = data.wps.map((wp) => wp.effort.reduce((s, e) => s + e.person_months, 0));
-  rows.push([
+  cells.push(
     bold(lit('Total')),
-    ...colTotals.map((v) => bold(lit(pm(v)))),
+    ...data.wps.map((wp, i) => wpCell(wp.color, lit(pm(colTotals[i])), true)),
     bold(lit(pm(colTotals.reduce((s, v) => s + v, 0)))),
-  ]);
+  );
+
   const cols = `(auto, ${data.wps.map(() => '1fr').join(', ')}, auto)`;
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
-    table(cols, header, rows, ['left', ...data.wps.map(() => 'right'), 'right']),
+    `he-grid(${cols}, (${cells.join(', ')}))`,
   ];
 }
 
 /* ─────────────── Tables 3.1.g / h / i — cost justifications ─────────────── */
 
-function costRows(
-  entries: TypstCostEntry[],
-  participants: TypstParticipant[],
-  ctx: ConvertContext,
-  categoryLabel?: string,
-): { rows: string[][]; total: number } {
-  const byId = new Map(participants.map((p) => [p.id, p]));
-  const rows: string[][] = [];
-  let total = 0;
-  for (const entry of entries) {
-    entry.items.forEach((item, index) => {
-      rows.push([
-        index === 0 ? participantChip(byId.get(entry.participantId)) : lit(''),
-        lit(formatCurrency(item.amount)),
-        (categoryLabel ? `${bold(emphLit(categoryLabel + ': '))} + ` : '') +
-          rich(item.justification, ctx),
-      ]);
-    });
-    rows.push([lit(''), bold(lit(formatCurrency(entry.totalCost))), `emph(${lit('Subtotal')})`]);
-    total += entry.totalCost;
-  }
-  return { rows, total };
+const emphLit = (s: string) => `emph(${lit(s)})`;
+
+/** One category's costs for one participant. */
+interface ParticipantCosts {
+  participant: TypstParticipant | undefined;
+  participantNumber: number;
+  /** Category label (3.1.h) or undefined (3.1.g), with its line items. */
+  groups: Array<{ categoryLabel?: string; items: TypstCostEntry['items'] }>;
+  total: number;
 }
 
-const emphLit = (s: string) => `emph(${lit(s)})`;
+/**
+ * Groups every cost line by PARTICIPANT (across categories, for 3.1.h) and
+ * orders the participants by participant NUMBER — not by amount. The left-hand
+ * column is then a single `rowspan` cell carrying one badge, however many
+ * lines and categories that participant has.
+ */
+function groupCosts(
+  blocks: Array<{ categoryLabel?: string; participants: TypstCostEntry[] }>,
+  participants: TypstParticipant[],
+): ParticipantCosts[] {
+  const byId = new Map(participants.map((p) => [p.id, p]));
+  const map = new Map<string, ParticipantCosts>();
+  for (const block of blocks) {
+    for (const entry of block.participants) {
+      let bucket = map.get(entry.participantId);
+      if (!bucket) {
+        const participant = byId.get(entry.participantId);
+        bucket = {
+          participant,
+          participantNumber: participant?.participant_number ?? Number.MAX_SAFE_INTEGER,
+          groups: [],
+          total: 0,
+        };
+        map.set(entry.participantId, bucket);
+      }
+      bucket.groups.push({ categoryLabel: block.categoryLabel, items: entry.items });
+      bucket.total += entry.totalCost;
+    }
+  }
+  return [...map.values()].sort((a, b) => a.participantNumber - b.participantNumber);
+}
+
+/** Flattened cells for a grouped cost table, plus the grid row count. */
+function costCells(
+  grouped: ParticipantCosts[],
+  ctx: ConvertContext,
+  header: string[],
+): { cells: string[]; nrows: number; total: number } {
+  const cells: string[] = header.map((h) => `table.cell(text(weight: "bold", ${h}))`);
+  let nrows = 1;
+  let total = 0;
+
+  for (const bucket of grouped) {
+    const lines = bucket.groups.flatMap((g) =>
+      g.items.map((item) => ({ item, categoryLabel: g.categoryLabel })),
+    );
+    // Every line plus the participant's own subtotal row.
+    const span = lines.length + 1;
+    cells.push(`table.cell(rowspan: ${span}, ${participantChip(bucket.participant)})`);
+    for (const line of lines) {
+      cells.push(
+        lit(formatCurrency(line.item.amount)),
+        (line.categoryLabel ? `${bold(emphLit(line.categoryLabel + ': '))} + ` : '') +
+          rich(line.item.justification, ctx),
+      );
+    }
+    cells.push(bold(lit(formatCurrency(bucket.total))), `emph(${lit('Subtotal')})`);
+    nrows += span;
+    total += bucket.total;
+  }
+
+  cells.push(bold(lit('Total')), bold(lit(formatCurrency(total))), lit(''));
+  nrows += 1;
+  return { cells, nrows, total };
+}
 
 export function emitSubcontracting(
   data: B31TypstData,
@@ -336,16 +405,15 @@ export function emitSubcontracting(
   label: string,
 ): string[] {
   if (!data.subcontracting.length) return [];
-  const { rows, total } = costRows(data.subcontracting, data.participants, ctx);
-  rows.push([bold(lit('Total')), bold(lit(formatCurrency(total))), lit('')]);
+  const grouped = groupCosts([{ participants: data.subcontracting }], data.participants);
+  const { cells, nrows } = costCells(grouped, ctx, [
+    lit('Participant'),
+    lit('Cost (€)'),
+    lit('Justification'),
+  ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    table(
-      '(auto, auto, 1fr)',
-      [lit('Participant'), lit('Cost (€)'), lit('Justification')],
-      rows,
-      ['left', 'right', 'left'],
-    ),
+    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')}), ${nrows}, aligns: (left, right, left))`,
   ];
 }
 
@@ -358,24 +426,18 @@ export function emitMergedJustification(
   defaultCaption: string,
 ): string[] {
   if (!blocks.length) return [];
-  const rows: string[][] = [];
-  let total = 0;
-  for (const block of blocks) {
-    const built = costRows(block.participants, data.participants, ctx, block.categoryLabel);
-    rows.push(...built.rows);
-    total += built.total;
-  }
-  rows.push([bold(lit('Total')), bold(lit(formatCurrency(total))), lit('')]);
+  const grouped = groupCosts(blocks, data.participants);
+  const { cells, nrows } = costCells(grouped, ctx, [
+    lit('Participant'),
+    lit('Cost (€)'),
+    lit('Category & justification'),
+  ]);
   return [
     caption(data, tableKey, label, defaultCaption),
-    table(
-      '(auto, auto, 1fr)',
-      [lit('Participant'), lit('Cost (€)'), lit('Category & justification')],
-      rows,
-      ['left', 'right', 'left'],
-    ),
+    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')}), ${nrows}, aligns: (left, right, left))`,
   ];
 }
+
 
 /* ─────────────────────── B1.2 — linked activities ───────────────────────── */
 
