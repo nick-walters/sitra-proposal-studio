@@ -98,7 +98,6 @@ export function TypstPreviewDialog({
         },
       });
 
-      (window as unknown as Record<string, unknown>).__typstSource = built.source;
       const { pdf, compileMs } = await compileTypstToPdf(built.source, captured.assets);
       const blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
