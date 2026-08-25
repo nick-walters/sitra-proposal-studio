@@ -172,7 +172,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let chip-size = 9pt
 #let chip-pad = 3.5pt
 #let chip-height = 11pt
-#let chip-label-shift = 0.55pt
+#let chip-label-shift = -0.65pt
 
 /// Chip text is shifted down inside a fixed 11pt box. Nimbus Roman 9pt has a
 /// 6.16pt cap-to-descender extent; the 0.55pt correction optically centres it.
@@ -191,7 +191,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Horizontal padding is INSET (it must push neighbouring text away); the
 /// fixed box height equals the body line pitch, so it cannot inflate leading.
 #let chip-pill(label, colour, filled: false) = box(
-  baseline: 2.75pt,
+  baseline: 1.75pt,
   height: chip-height,
   inset: (x: chip-pad, y: 0pt),
   radius: 999pt,
@@ -220,7 +220,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   } else {
     ((0pt, 0pt), (w - nose, 0pt), (w, h / 2), (w - nose, h), (0pt, h))
   }
-  box(baseline: 2.75pt, width: w, height: chip-height, {
+  box(baseline: 1.75pt, width: w, height: chip-height, {
     place(top + left, polygon(
       fill: if filled { colour } else { white },
       stroke: 1pt + colour,
