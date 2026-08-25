@@ -77,12 +77,14 @@ function table(
   rows: string[][],
   aligns?: string[],
   firstFlush = false,
+  tight = false,
 ): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
   const alignSrc = aligns ? `, aligns: (${aligns.join(', ')},)` : '';
   const flushSrc = firstFlush ? ', first-flush: true' : '';
-  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc})`;
+  const tightSrc = tight ? ', tight: true' : '';
+  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc})`;
 }
 
 const bold = (s: string) => `strong(${s})`;
@@ -118,9 +120,19 @@ export function emitWpList(data: B31TypstData): string[] {
 
   return [
     caption(data, 'wp-list', 'Table 3.1.a.', 'List of work packages'),
-    // The work package column is sized to its pills so they stay on one line;
-    // the three metadata columns shrink to their content.
-    table('(auto, auto, auto, auto)', [lit('Work package'), lit('WP leader'), lit('Person months'), lit('Duration')], rows),
+    // The three metadata columns shrink to their content and the work-package
+    // column takes ALL the remaining width (`1fr`), so a WP pill keeps one
+    // line; with four `auto` columns the pill column was squeezed by the
+    // others and the titles wrapped. First column flush (no left inset) and
+    // tight padding, matching the board's own rendering of this table.
+    table(
+      '(1fr, auto, auto, auto)',
+      [lit('Work package'), lit('WP leader'), lit('Person months'), lit('Duration')],
+      rows,
+      undefined,
+      true,
+      true,
+    ),
   ];
 }
 

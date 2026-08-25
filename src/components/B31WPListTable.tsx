@@ -7,7 +7,7 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles =
-  "px-[6pt] py-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+  "px-[3pt] py-[0.75pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 /** First column sits flush with the table edge — no left indent. */
 const firstCellStyles = `${cellStyles} !pl-0`;
 

@@ -365,7 +365,7 @@ export function buildSectionTypstDocument(
     if (card.title && card.titleMode === 'mirrored') {
       // Colour is carried per RUN, so colouring one word colours one word.
       out.push(
-        `block(above: 14pt, below: 6pt, text(size: 12pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
+        `block(above: 3pt, below: 3pt, sticky: true, text(size: 12pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
       );
     }
 
