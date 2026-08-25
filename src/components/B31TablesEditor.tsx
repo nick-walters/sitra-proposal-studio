@@ -200,7 +200,6 @@ function MirrorTable({
     proposalId,
     tableKey,
     canResize: true,
-    maxTotalWidth: 768,
     minWidth: 24,
     minWidths,
     maxTotalWidth: MAX_TABLE_WIDTH_PX,
