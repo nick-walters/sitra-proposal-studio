@@ -443,26 +443,32 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   text(size: 9pt, style: "italic", fill: rgb("#52525b"), what),
 )
 
-// Page setup comes LAST: the footer closure below references \`t\` and
+// Page setup comes LAST: the header/footer closures below reference \`t\` and
 // \`chip-acronym\`, which must already be in scope.
 #set page(
   paper: "a4",
   margin: (x: 15mm, top: 15mm, bottom: 15mm),
+  header: ${headerSource(meta)},
   footer: ${footerSource(meta)},
 )
 `;
 }
 
-/** Banner call for page one; empty string when there is nothing to show. */
-export function bannerCall(meta: TypstDocMeta): string {
+/**
+ * Banner call for page one; empty string when there is nothing to show.
+ * `logoPath` is the compiler shadow path of the Sitra mark (see
+ * `frontMatter.ts`); pass an empty string to draw the banner without it.
+ */
+export function bannerCall(meta: TypstDocMeta, logoPath = ''): string {
   const b = meta.banner;
   if (!b) return '';
   const topic = (b.topicLine || '').trim();
   const acronym = (b.acronym || '').trim();
   const title = (b.title || '').trim();
   if (!topic && !acronym && !title) return '';
-  return `doc-banner(${lineArray(topic)}, ${lineArray(acronym)}, ${lineArray(title)})`;
+  return `doc-banner(${lineArray(topic)}, ${lineArray(acronym)}, ${lineArray(title)}, ${typstString(logoPath)})`;
 }
+
 
 /** Backwards-compatible default preamble (no banner, generic footer). */
 export const TYPST_PREAMBLE = buildTypstPreamble();
