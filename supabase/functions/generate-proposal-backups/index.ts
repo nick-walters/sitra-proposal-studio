@@ -1599,13 +1599,30 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   // visible and the b31_show_* booleans alone decide, exactly as before.
   const { data: b31Cards } = await supabase
     .from("proposal_cards")
-    .select("template_key, is_visible, section:section_id!inner(section_number)")
+    .select("id, template_key, is_visible")
     .eq("proposal_id", proposal.id)
     .is("deleted_at", null)
     .like("template_key", "b31.%");
   const cardVisible = new Map<string, boolean>();
   for (const c of b31Cards ?? []) cardVisible.set(c.template_key, !!c.is_visible);
   const blockVisible = (key: string) => cardVisible.get(key) !== false;
+
+  // Authored text now lives on the b31.intro block. Once the board exists it
+  // supersedes the legacy `section_content` bodies, which stay untouched as the
+  // rollback path.
+  const introCard = (b31Cards ?? []).find((c: any) => c.template_key === "b31.intro");
+  let introHtml = intro;
+  let bodyHtml = body;
+  if (introCard) {
+    const { data: introFields } = await supabase
+      .from("card_fields")
+      .select("content_html, order_index")
+      .eq("card_id", introCard.id)
+      .is("deleted_at", null)
+      .order("order_index", { ascending: true });
+    introHtml = (introFields ?? []).map((f: any) => f.content_html ?? "").join("\n");
+    bodyHtml = "";
+  }
 
   const { data: wps } = await supabase
     .from("wp_drafts")
@@ -1756,13 +1773,13 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
 
-  if (intro && intro.trim() && blockVisible("b31.intro")) {
-    children.push(H(HeadingLevel.HEADING_2, "Intro text"));
-    children.push(...htmlToDocxChildren(intro));
+  if (introHtml && introHtml.trim() && blockVisible("b31.intro")) {
+    children.push(H(HeadingLevel.HEADING_2, "Overall structure of the work plan"));
+    children.push(...htmlToDocxChildren(introHtml));
   }
-  if (body && body.trim()) {
+  if (bodyHtml && bodyHtml.trim()) {
     children.push(H(HeadingLevel.HEADING_2, "Section body"));
-    children.push(...htmlToDocxChildren(body));
+    children.push(...htmlToDocxChildren(bodyHtml));
   }
 
   // Effort per (wp, participant); WP totals from wp_draft_effort.
