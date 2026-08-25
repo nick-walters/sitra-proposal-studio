@@ -24,9 +24,11 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   ChevronUp,
+  Download,
   Eye,
   EyeOff,
   GripVertical,
+  Pencil,
   Plus,
   Recycle,
   RotateCcw,
@@ -918,6 +920,39 @@ function CardBlock({
   const isMilestonesCard = card.sourceKey === 'b31.table_d' && !card.isSourceFed;
   const isRisksCard = card.sourceKey === 'b31.table_e' && !card.isSourceFed;
   const isRelationalCard = isLinkedActivitiesCard || isMilestonesCard || isRisksCard;
+  // The two B3.1 charts: no add / restore / delete, so those header columns
+  // carry the chart's own Edit and Download controls instead.
+  const isPertCard = card.sourceKey === 'b31.pert';
+  const isGanttCard = card.sourceKey === 'b31.gantt';
+
+  // The chart itself is rendered by SourceFedBlock, which tags its wrapper
+  // with data-figure-type; the header control finds it and hands it to the
+  // shared figure export path.
+  const downloadFigurePng = async (kind: 'pert' | 'gantt') => {
+    // A collapsed block is display:none, which snapshots as a blank 0x0
+    // canvas — expand it first and let it lay out before capturing.
+    if (contentHidden) {
+      onToggleCollapse();
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+    const el = document.querySelector<HTMLElement>(`[data-figure-type="${kind}"]`);
+    if (!el || el.offsetHeight === 0) {
+      toast.error('The chart is not on the page yet');
+      return;
+    }
+    try {
+      const { exportAsPng } = await import('@/lib/figureExport');
+      await exportAsPng(el, kind === 'pert' ? 'PERT-chart' : 'Gantt-chart');
+      toast.success('PNG downloaded');
+    } catch {
+      toast.error('Could not download the figure');
+    }
+  };
+
+  const onEditPert = () => {
+    // The figures manager is a page of the proposal editor, opened by id.
+    window.dispatchEvent(new CustomEvent('open-proposal-section', { detail: { sectionId: 'figures' } }));
+  };
   // Only authored text cards grow new modules; source-fed, figure and
   // linked-activities blocks have a fixed structure.
   const canAddModule =
@@ -1032,13 +1067,6 @@ function CardBlock({
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
-                {headerMode === 'editor_only' && (
-                  <Tip label="Editor-only header — not mirrored to the preview or export">
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
-                      Editor only
-                    </span>
-                  </Tip>
-                )}
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
                 )}
@@ -1051,6 +1079,9 @@ function CardBlock({
           </div>
 
 
+          {/* The Pert and Gantt blocks carry no add / restore / delete, so
+              their own Edit and Download controls take those columns and
+              match the rest of the block chrome. */}
           {/* Fixed control columns: visibility | add | restore | delete.
               Every block reserves all four, so a block that lacks a control
               leaves its column empty instead of pulling the rest out of line.
@@ -1079,8 +1110,15 @@ function CardBlock({
               <span aria-hidden="true" />
             )}
 
-            {/* Column 2 — add */}
-            {isLinkedActivitiesCard && canEdit ? (
+            {/* Column 2 — add (or "Edit" on the Pert block) */}
+            {isPertCard ? (
+              <Tip label="Edit the Pert chart in the figures manager">
+                <Button variant="ghost" size="sm" onClick={onEditPert}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </Tip>
+            ) : isLinkedActivitiesCard && canEdit ? (
               <Tip label="Add activity">
                 <Button
                   variant="ghost"
@@ -1106,8 +1144,19 @@ function CardBlock({
               <span aria-hidden="true" />
             )}
 
-            {/* Column 3 — restore */}
-            {isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
+            {/* Column 3 — restore (or "Download" on the Pert and Gantt blocks) */}
+            {isPertCard || isGanttCard ? (
+              <Tip label={`Download the ${isPertCard ? 'Pert' : 'Gantt'} chart as a PNG`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => downloadFigurePng(isPertCard ? 'pert' : 'gantt')}
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" />
+                  Download
+                </Button>
+              </Tip>
+            ) : isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
               <Tip
                 label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
               >

@@ -288,6 +288,20 @@ export function ProposalEditor() {
     setSearchParams({}, { replace: true });
   }, [searchParams, allSections, sectionsLoading, findSectionById]);
 
+  // Blocks elsewhere in the editor can request a page by id — the Pert
+  // block's "Edit" opens the figures manager this way. "Figures" is not a
+  // navigation entry, so fall back to a synthetic section for it.
+  useEffect(() => {
+    const open = (e: Event) => {
+      const sectionId = (e as CustomEvent<{ sectionId?: string }>).detail?.sectionId;
+      if (!sectionId) return;
+      const found = findSectionById(allSections, sectionId);
+      setActiveSection(found ?? { id: sectionId, number: '', title: 'Figures' });
+    };
+    window.addEventListener('open-proposal-section', open);
+    return () => window.removeEventListener('open-proposal-section', open);
+  }, [allSections, findSectionById]);
+
   // Auto-select section on initial load: localStorage > A1
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
