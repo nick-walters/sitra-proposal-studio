@@ -42,6 +42,11 @@ export type SegmentMatch = LegacySegment & {
   reason: 'slot-key' | 'title-match' | 'preamble' | 'unmatched';
 };
 
+/** An empty heading carries nothing to migrate and is skipped. */
+export function isEmptySegment(seg: LegacySegment): boolean {
+  return seg.chars === 0 && seg.tables === 0 && seg.figures === 0;
+}
+
 const HEADING_RE = /<(h[1-4])\b([^>]*)>([\s\S]*?)<\/\1>/gi;
 
 export function htmlToText(html: string): string {
@@ -130,11 +135,25 @@ export function matchSegments(segments: LegacySegment[], blocks: LegacyBlock[]):
     const exact = byTitle.get(norm);
     if (exact) return { ...seg, targetKey: exact.key, newBlockTitle: null, reason: 'title-match' };
 
+    // Tolerate stray spacing inside words (legacy drop-cap spans split letters).
+    const squashed = norm.replace(/ /g, '');
+    const despaced = blocks.find((b) => normaliseTitle(b.title).replace(/ /g, '') === squashed);
+    if (despaced) return { ...seg, targetKey: despaced.key, newBlockTitle: null, reason: 'title-match' };
+
     const fuzzy = blocks.find((b) => {
       const t = normaliseTitle(b.title);
       return t.length > 3 && (t.startsWith(norm) || norm.startsWith(t));
     });
     if (fuzzy) return { ...seg, targetKey: fuzzy.key, newBlockTitle: null, reason: 'title-match' };
+
+    // Every significant word of the block title present in the heading
+    // ("Contributions towards expected outcomes of topic" → "Expected outcomes").
+    const words = new Set(norm.split(' '));
+    const subset = blocks.find((b) => {
+      const t = normaliseTitle(b.title).split(' ').filter((w) => w.length > 3);
+      return t.length > 0 && t.every((w) => words.has(w));
+    });
+    if (subset) return { ...seg, targetKey: subset.key, newBlockTitle: null, reason: 'title-match' };
 
     return { ...seg, targetKey: null, newBlockTitle: seg.heading, reason: 'unmatched' };
   });
