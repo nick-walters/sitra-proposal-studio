@@ -89,6 +89,7 @@ export function TemplateTypeWorkspace({
   }, [versionId, versions]);
   const activeVersion = versions.find((v) => v.id === activeVersionId) ?? null;
   const isDraft = activeVersion?.status === 'draft';
+  const hasDraft = versions.some((v) => v.status === 'draft');
   /* The draft is one coherent set of changes, so the lock covers the whole
      draft rather than any single field, and is cleared by publishing. */
   const lockedBy = isDraft ? activeVersion?.locked_by ?? null : null;
