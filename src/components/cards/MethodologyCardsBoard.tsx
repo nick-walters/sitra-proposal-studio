@@ -1276,6 +1276,20 @@ function BoardInner({
     proposalId,
     sectionId,
   );
+  const sectionMeta = useMemo(() => {
+    const normalized = (sectionNumber ?? '').replace(/^B/i, '');
+    const meta: Record<string, { title: string; description: string; previewLabel: string }> = {
+      '1.2': { title: 'Methodologies', description: 'Content written here is mirrored into Part B1.2.', previewLabel: 'Part B1.2' },
+      '3.1': { title: 'Work plan & resources', description: 'Content written here is mirrored into Part B3.1.', previewLabel: 'Part B3.1' },
+    };
+    return (
+      meta[normalized] ?? {
+        title: 'Methodologies',
+        description: `Content written here is mirrored into ${sectionNumber ?? 'Part B'}.`,
+        previewLabel: sectionNumber ?? 'Part B',
+      }
+    );
+  }, [sectionNumber]);
   const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
