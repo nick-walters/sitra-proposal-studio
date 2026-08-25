@@ -291,7 +291,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// The first-flush option drops the left padding of the FIRST column so its
 /// text lines up with the body margin (the linked-activities table, which
 /// otherwise reads as indented against the surrounding paragraphs).
-/// `tight` switches to the shared authored-table cell padding (3pt / 0.75pt),
+/// \`tight\` switches to the shared authored-table cell padding (3pt / 0.75pt),
 /// which is what the board's own tables use — 3.1.a is emitted tight so the
 /// editor and the preview allocate the same width to each column.
 #let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = block(
