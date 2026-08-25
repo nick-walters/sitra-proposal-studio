@@ -1601,13 +1601,13 @@ function BoardInner({
     reorderCards.mutate(next, { onError: () => setLocalOrder(null) });
   };
 
-  // A references block appears only when the section cites something. It stays
-  // undeletable and unhideable; it simply renders nothing when empty.
+  // The references block is part of the required sequence for every Part B section
+  // (B1.2, B3.1, …). It always appears so authors can hide it if needed, and it
+  // shows a note when the section currently cites nothing.
   const { hasAny: sectionCitesAnything, entries: sectionCitedEntries } =
     useSectionCitedReferences(proposalId, sectionId);
   const referenceCount = sectionCitedEntries.length;
-  const visibleCard = (c: ProposalCard) =>
-    (c.kind !== 'references' || sectionCitesAnything) && (c.isVisible || isCoordinator);
+  const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
   /** Blocks this user can see — the target set for Collapse all / Expand all. */
   const visibleCardIds = useMemo(
