@@ -131,10 +131,10 @@ function SortableActivityRow({
   const isOther = activity.instrumentCode === 'OTHER';
 
   return (
-    /* One <tbody> per activity: the sortable unit keeps the scalar row and the
-       full-width description row travelling together while staying valid HTML. */
-    <tbody ref={setNodeRef} style={style} className="border-y border-gray-200">
-      <tr>
+    /* One <tr> per activity: every column, description included, on a single
+       row so the sortable unit is a real table row. */
+    <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
+
         <td className={firstCellStyles}>
           {canEdit ? (
             <Tip label="Drag to reorder this activity">
