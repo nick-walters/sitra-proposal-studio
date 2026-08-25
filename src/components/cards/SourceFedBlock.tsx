@@ -285,7 +285,7 @@ export function SourceFedBlock({ proposalId, sourceKey, kind }: SourceFedBlockPr
       data-source-key={sourceKey ?? ''}
       contentEditable={false}
       suppressContentEditableWarning
-      className="source-fed-readonly w-full max-w-full select-text overflow-x-auto"
+      className="source-fed-readonly source-fed-constrained w-full max-w-full select-text overflow-x-hidden"
       aria-readonly="true"
     >
       {body}
