@@ -1923,6 +1923,13 @@ function BoardInner({
   // must never disappear), but a block whose condition is not met is excluded
   // from the mirror, the preview and the export — see b32Conditions.ts.
   const b32Signals = useB32Conditions(proposalId, (sectionNumber ?? '').replace(/^B/i, '') === '3.2');
+  // B3.1's two cost tables (3.1.g, 3.1.h) behave the same way: the block stays
+  // on the board with its explanation, but is marked not applicable and left
+  // out of the preview and the export until its source data appears.
+  const b31Unmet = useB31UnmetSourceBlocks(
+    proposalId,
+    (sectionNumber ?? '').replace(/^B/i, '') === '3.1',
+  );
   const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
   /** Blocks this user can see — the target set for Collapse all / Expand all. */
