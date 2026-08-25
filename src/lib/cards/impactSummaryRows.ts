@@ -1,3 +1,5 @@
+import type { Editor } from '@tiptap/core';
+import type { Node as PMNode } from '@tiptap/pm/model';
 /**
  * B2.1 impact summary table — linked row operations.
  *
@@ -120,8 +122,6 @@ export function impactSummaryDeleteRow(html: string, index: number): string {
 /* instead: existing cells are never re-created, and one add or delete  */
 /* is one undoable step covering BOTH parts of the table.               */
 
-import type { Editor } from '@tiptap/core';
-import type { Node as PMNode } from '@tiptap/pm/model';
 
 interface TableRef {
   node: PMNode;
