@@ -2002,7 +2002,11 @@ StarterKit.configure({
         },
       }),
     ],
-    content: isReady ? normalizePartBLoadedContent(content) : '<p></p>',
+    // Parse the pre-materialised HTML, not the raw database value. Migrated
+    // captions may have the canonical paragraph class but no captionLabel
+    // span; prepareNumberedContent inserts that marked label before TipTap's
+    // first paint, while CaptionAutoNumber owns subsequent renumbering.
+    content: isReady ? initialContentRef.current : '<p></p>',
     enableExtensionDispatchTransaction: true,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
