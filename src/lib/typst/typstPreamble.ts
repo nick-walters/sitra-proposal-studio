@@ -91,16 +91,23 @@ function footerSource(meta: TypstDocMeta): string {
   const acronym = (meta.acronym || '').trim();
   const part = (meta.partLabel || 'Part B').trim();
   const segments = segmentsSource(meta);
-  const acronymExpr =
-    segments === '()'
-      ? acronym
-        ? `t(${typstString(acronym)}) + t(" | ")`
-        : ''
-      : `chip-acronym(${segments}) + t(" | ")`;
+  // Every segment is one term of a single `+` chain: the whole footer has to
+  // stay on ONE line (a newline in a code block ends the expression), and the
+  // terms must be joined explicitly or the parser sees two statements.
+  const terms: string[] = [];
+  if (segments !== '()') terms.push(`chip-acronym(${segments})`, 't(" | ")');
+  else if (acronym) terms.push(`t(${typstString(acronym)})`, 't(" | ")');
+  if (part) terms.push(`t(${typstString(part)})`, 't(" | ")');
+  terms.push(
+    't("Page ")',
+    'str(counter(page).at(here()).first())',
+    't(" of ")',
+    'str(counter(page).final().first())',
+  );
   return `context {
   set align(center)
   set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-  ${acronymExpr}${part ? `t(${typstString(part)}) + t(" | ")` : ''}t("Page ") + str(counter(page).at(here()).first()) + t(" of ") + str(counter(page).final().first())
+  ${terms.join(' + ')}
 }`;
 }
 
