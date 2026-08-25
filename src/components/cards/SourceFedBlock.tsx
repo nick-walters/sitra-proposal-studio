@@ -1,4 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Download, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
@@ -49,6 +53,70 @@ const B31_KEYS = new Set([
 
 function Note({ children }: { children: React.ReactNode }) {
   return <p className="text-sm italic text-muted-foreground">{children}</p>;
+}
+
+/* -------------------------------------------------------- figure controls */
+
+/**
+ * Wraps a source-fed chart with its own controls. Downloads reuse the existing
+ * figure export path (`exportAsPng`, the same helper the figures manager uses)
+ * and produce a PNG of the rendered chart. "Edit PERT" navigates to the
+ * figures manager (`?section=figures`), where the chart is edited.
+ */
+function FigureControls({
+  kind,
+  filename,
+  editable,
+  children,
+}: {
+  kind: 'pert' | 'gantt';
+  filename: string;
+  editable?: boolean;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [, setSearchParams] = useSearchParams();
+
+  const download = async () => {
+    if (!ref.current) return;
+    try {
+      const { exportAsPng } = await import('@/lib/figureExport');
+      await exportAsPng(ref.current, filename);
+      toast.success('PNG downloaded');
+    } catch {
+      toast.error('Could not download the figure');
+    }
+  };
+
+  return (
+    <div data-figure-type={kind}>
+      <div className="mb-2 flex items-center justify-end gap-2">
+        {editable && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            onClick={() => setSearchParams({ section: 'figures' })}
+          >
+            <Pencil className="h-3 w-3" />
+            Edit PERT
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 text-xs"
+          onClick={download}
+        >
+          <Download className="h-3 w-3" />
+          Download {kind === 'pert' ? 'PERT' : 'Gantt'}
+        </Button>
+      </div>
+      <div ref={ref}>{children}</div>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ B3.1 */
@@ -143,7 +211,10 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
 
     case 'b31.gantt':
       return ganttFigure ? (
-        <div data-figure-type="gantt">
+        <FigureControls
+          kind="gantt"
+          filename={`Gantt-Chart-Figure-${ganttFigure.figure_number}`}
+        >
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <GanttChartFigure
             figureId={ganttFigure.id}
@@ -160,13 +231,17 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
             defaultCaption={ganttFigure.caption || ganttFigure.title || 'Gantt chart'}
             className="mt-1"
           />
-        </div>
+        </FigureControls>
       ) : (
         <Note>The Gantt chart appears here once it has been created on the figures page.</Note>
       );
     case 'b31.pert':
       return pertFigure ? (
-        <div data-figure-type="pert">
+        <FigureControls
+          kind="pert"
+          filename={`PERT-Chart-Figure-${pertFigure.figure_number}`}
+          editable
+        >
           <PERTChartFigure
             figureId={pertFigure.id}
             proposalId={proposalId}
@@ -182,7 +257,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
             defaultCaption={pertFigure.caption || pertFigure.title || 'Pert chart'}
             className="mt-1"
           />
-        </div>
+        </FigureControls>
       ) : (
         <Note>The Pert chart appears here once it has been created on the figures page.</Note>
       );
@@ -230,7 +305,7 @@ export function SourceFedBlock({ proposalId, sourceKey, kind }: SourceFedBlockPr
       data-source-key={sourceKey ?? ''}
       contentEditable={false}
       suppressContentEditableWarning
-      className="source-fed-readonly select-text"
+      className="source-fed-readonly w-full max-w-full select-text overflow-x-auto"
       aria-readonly="true"
     >
       {body}
