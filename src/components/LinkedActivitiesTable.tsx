@@ -419,40 +419,55 @@ export default function LinkedActivitiesTable({
           {canEdit ? ' — add the first related project below.' : '.'}
         </p>
       ) : (
-        <div
-          /* Rows sit inside a 1px border plus p-3, so their content starts
-             13px from the block edge — the labels must match exactly. */
-          className={`${GRID} px-[13px] text-xs font-medium text-muted-foreground`}
-        >
-          <span />
-          <span>Project acronym</span>
-          <span>Funding instrument</span>
-          <span>Duration</span>
-          <span>Participant responsible for establishing the link</span>
-          <span />
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={ordered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            <table
+              ref={tableRef}
+              data-table-key="b12-linked-activities"
+              className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tr]:border-0 [&_tbody]:border-x-0 [&_tbody]:border-t-0 [&_tbody]:border-b [&_tbody]:border-gray-200 [&_tbody:last-child]:border-b-0`}
+              style={{
+                tableLayout: 'fixed',
+                width: sized ? `${Math.min(colWidths.reduce((s, w) => s + w, 0), BLOCK_WIDTH)}px` : '100%',
+                maxWidth: `${BLOCK_WIDTH}px`,
+                borderCollapse: 'collapse',
+              }}
+            >
+              <colgroup>
+                {DEFAULT_COL_PCT.map((pct, i) => (
+                  <col key={i} style={{ width: sized ? `${colWidths[i]}px` : pct }} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr>
+                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible for establishing the link', ''].map(
+                    (h, i) => (
+                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative font-bold`}>
+                        {h}
+                        {canResize && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              {ordered.map((activity) => (
+                <SortableActivityRow
+                  key={activity.id}
+                  activity={activity}
+                  proposalId={proposalId}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  participants={participants}
+                  onUpdate={updateField}
+                  onDelete={(id) =>
+                    deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
+                  }
+                />
+              ))}
+            </table>
+          </SortableContext>
+        </DndContext>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={ordered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {ordered.map((activity) => (
-              <SortableActivityRow
-                key={activity.id}
-                activity={activity}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                participants={participants}
-                onUpdate={updateField}
-                onDelete={(id) =>
-                  deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
-                }
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
 
       {canEdit && !controller && (
         <div className="flex items-center gap-2">
