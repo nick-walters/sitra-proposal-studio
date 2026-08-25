@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tip } from '@/components/ui/control-tip';
+import { EditableCaption } from '@/components/EditableCaption';
 
 import { Input } from '@/components/ui/input';
 import {
@@ -55,8 +56,6 @@ interface ParticipantSummary {
   english_name: string | null;
   participant_number: number | null;
 }
-
-interface LinkedActivitiesTablePropsMarker {}
 
 interface LinkedActivitiesTableProps {
   proposalId: string;
