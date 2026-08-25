@@ -29,7 +29,7 @@ export function AdminRichTextField({
   value,
   onChange,
   disabled = false,
-  minHeight = '9rem',
+  minHeight = '3.25rem',
   className,
 }: AdminRichTextFieldProps) {
   const editor = useRichTextEditor({
@@ -104,7 +104,7 @@ export function AdminRichTextField({
 
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none px-3 py-2 text-sm [&_.ProseMirror]:outline-none"
+        className="prose prose-sm max-w-none overflow-visible px-3 py-2 text-sm [&_.ProseMirror]:min-h-[2lh] [&_.ProseMirror]:outline-none [&_.ProseMirror]:overflow-visible"
         style={{ minHeight }}
       />
     </div>

@@ -946,19 +946,46 @@ function SectionsPanel({
     staleTime: 5 * 60_000,
   });
 
-  useEffect(() => {
-    if (selectedTemplateTypeId || templateTypes.length === 0) return;
-    const best = [...templateTypes].sort(
-      (a, b) => (blockCounts?.[b.id] ?? 0) - (blockCounts?.[a.id] ?? 0),
-    )[0];
-    if (best) onSelectTemplateType(best.id);
-  }, [selectedTemplateTypeId, templateTypes, blockCounts, onSelectTemplateType]);
-
+  /* Landing state: pick a template type from a list of cards. A dropdown made
+     it too easy to edit the wrong type without noticing. */
   if (!selectedTemplateTypeId) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-sm text-muted-foreground">
-          Loading template types…
+        <CardHeader>
+          <CardTitle>Sections & Guidelines</CardTitle>
+          <CardDescription>
+            Choose the template type whose sections, guidelines and criteria you want to edit.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {templateTypes.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              No template types yet.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {templateTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => onSelectTemplateType(type.id)}
+                  className="rounded-lg border p-4 text-left transition-colors hover:border-primary hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="font-bold">{type.code}</Badge>
+                    <span className="font-semibold">{type.name}</span>
+                    {blockCounts?.[type.id] ? (
+                      <Badge variant="outline" className="ml-auto text-[11px] font-bold">
+                        {blockCounts[type.id]} blocks
+                      </Badge>
+                    ) : null}
+                  </div>
+                  {type.description && (
+                    <p className="mt-1.5 text-sm text-muted-foreground">{type.description}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -1023,23 +1050,6 @@ function SectionsPanel({
           <CardDescription>
             Everything below belongs to the selected template type.
           </CardDescription>
-          <div className="pt-2">
-            <Select
-              value={selectedTemplateTypeId}
-              onValueChange={(v) => onSelectTemplateType(v)}
-            >
-              <SelectTrigger className="w-[320px]">
-                <SelectValue placeholder="Select template type" />
-              </SelectTrigger>
-              <SelectContent>
-                {templateTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.code} — {type.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         <Button onClick={() => handleOpenSectionDialog()} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -1050,6 +1060,10 @@ function SectionsPanel({
         <TemplateTypeWorkspace
           key={selectedTemplateTypeId}
           typeId={selectedTemplateTypeId}
+          typeCode={selectedType?.code}
+          typeName={selectedType?.name}
+          typeDescription={selectedType?.description}
+          onBack={() => onSelectTemplateType(null)}
           partASlot={partABlock}
         />
       </CardContent>

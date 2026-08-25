@@ -40,6 +40,11 @@ import {
   type CardTemplateRow, type CardGuidelineRow,
 } from '@/hooks/useTemplateVersioning';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  useDirtyRegistry, useRegisterDirty, useExitGuard, UnsavedChangesDialog,
+  type DirtyRegistry,
+} from '@/components/admin/useUnsavedGuard';
+import { ArrowLeft } from 'lucide-react';
 
 const CATEGORY_LABEL: Record<string, string> = {
   commission: 'Official guidelines from the European Commission',
@@ -68,9 +73,17 @@ function versionLabel(v: { major: number | null; minor: number | null; name?: st
 export function TemplateTypeWorkspace({
   typeId,
   partASlot,
+  typeCode,
+  typeName,
+  typeDescription,
+  onBack,
 }: {
   typeId: string;
   partASlot?: React.ReactNode;
+  typeCode?: string;
+  typeName?: string;
+  typeDescription?: string | null;
+  onBack?: () => void;
 }) {
   const qc = useQueryClient();
   const [versionId, setVersionId] = useState<string>('');
@@ -172,6 +185,26 @@ export function TemplateTypeWorkspace({
 
   return (
     <div className="space-y-4">
+      {/* Which template type you are in — never ambiguous. */}
+      {(typeCode || typeName) && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 px-4 py-3">
+          {onBack && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" /> All template types
+            </Button>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              {typeCode && <Badge variant="secondary" className="font-bold">{typeCode}</Badge>}
+              <h2 className="text-lg font-semibold">{typeName}</h2>
+            </div>
+            {typeDescription && (
+              <p className="text-xs text-muted-foreground">{typeDescription}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-3 pt-6">
@@ -640,6 +673,43 @@ function BlockRow({
 /* ------------------------------------------------------------------ */
 
 /**
+ * Shared close handling for the guideline and criteria dialogs: every exit
+ * route (close button, outside click, Escape) funnels through `requestClose`,
+ * and browser reloads / Back presses are caught by the exit guard.
+ */
+function useCloseGuard(registry: DirtyRegistry, close: () => void) {
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const dirty = registry.dirtyCount > 0;
+
+  useExitGuard(dirty, () => setPromptOpen(true));
+
+  const requestClose = () => {
+    if (dirty) { setPromptOpen(true); return; }
+    close();
+  };
+
+  return {
+    requestClose,
+    dialogProps: {
+      open: promptOpen,
+      count: registry.dirtyCount,
+      saving,
+      onCancel: () => setPromptOpen(false),
+      onDiscard: () => { setPromptOpen(false); close(); },
+      onSave: async () => {
+        setSaving(true);
+        const ok = await registry.saveAll();
+        setSaving(false);
+        if (!ok) return;
+        setPromptOpen(false);
+        close();
+      },
+    },
+  };
+}
+
+/**
  * One write to `card_guidelines`, with the outcome surfaced.
  *
  * PostgREST answers an update that no row-level policy lets through with a
@@ -667,12 +737,13 @@ async function persistGuideline(id: string, patch: Partial<CardGuidelineRow>): P
 }
 
 function GuidelineEditor({
-  guideline, editable, onSave, onDelete,
+  guideline, editable, onSave, onDelete, registry,
 }: {
   guideline: CardGuidelineRow;
   editable: boolean;
   onSave: (patch: Partial<CardGuidelineRow>) => Promise<boolean> | void;
   onDelete: () => void;
+  registry?: DirtyRegistry;
 }) {
   const [title, setTitle] = useState(guideline.title ?? '');
   const [content, setContent] = useState(guideline.content ?? '');
@@ -698,15 +769,18 @@ function GuidelineEditor({
   const dirty =
     touched && (title !== baseline.current.title || content !== baseline.current.content);
 
-  const save = async () => {
+  const save = async (): Promise<boolean> => {
     setSaving(true);
     const ok = await onSave({ title, content });
     setSaving(false);
-    if (ok === false) return;
+    if (ok === false) return false;
     baseline.current = { title, content };
     setTouched(false);
     setSavedAt(Date.now());
+    return true;
   };
+
+  useRegisterDirty(registry, guideline.id, dirty && editable, save);
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -721,7 +795,6 @@ function GuidelineEditor({
         value={content}
         onChange={(v) => { setTouched(true); setContent(v); }}
         disabled={!editable}
-        minHeight="9rem"
       />
 
       {editable && (
@@ -756,6 +829,8 @@ function GuidelinesDialogAdmin({
 }) {
   const qc = useQueryClient();
   const { data: entries = [] } = useBlockGuidelines(block.id);
+  const registry = useDirtyRegistry();
+  const guard = useCloseGuard(registry, () => onOpenChange(false));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin-block-guidelines', block.id] });
@@ -806,7 +881,7 @@ function GuidelinesDialogAdmin({
   const byCategory = (type: string) => entries.filter((e) => e.guideline.guideline_type === type);
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={(o) => (o ? onOpenChange(true) : guard.requestClose())}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Guidelines — {block.default_title || block.key}</DialogTitle>
@@ -836,6 +911,7 @@ function GuidelinesDialogAdmin({
                     key={e.guideline.id}
                     guideline={e.guideline}
                     editable={editable}
+                    registry={registry}
                     onSave={(patch) => save(e.guideline.id, patch)}
                     onDelete={() => remove(e.linkId, e.guideline.id)}
                   />
@@ -848,6 +924,7 @@ function GuidelinesDialogAdmin({
 
           </div>
         </ScrollArea>
+        <UnsavedChangesDialog {...guard.dialogProps} />
       </DialogContent>
     </Dialog>
   );
@@ -868,6 +945,8 @@ function CriteriaDialogAdmin({
 }) {
   const qc = useQueryClient();
   const { data: entries = [] } = useSectionCriteriaAdmin(open ? versionId : null, sectionSourceId);
+  const registry = useDirtyRegistry();
+  const guard = useCloseGuard(registry, () => onOpenChange(false));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin-section-criteria', versionId, sectionSourceId] });
@@ -898,7 +977,7 @@ function CriteriaDialogAdmin({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.requestClose())}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Criteria — {sectionNumber}</DialogTitle>
@@ -918,6 +997,7 @@ function CriteriaDialogAdmin({
                 key={e.guideline.id}
                 guideline={e.guideline}
                 editable={editable}
+                registry={registry}
                 onSave={async (patch) => {
                   const ok = await persistGuideline(e.guideline.id, patch);
                   if (!ok) return false;
@@ -943,6 +1023,7 @@ function CriteriaDialogAdmin({
             )}
           </div>
         </ScrollArea>
+        <UnsavedChangesDialog {...guard.dialogProps} />
       </DialogContent>
     </Dialog>
   );
