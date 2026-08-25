@@ -1593,6 +1593,20 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     internally_invoiced: !!propFlags?.b31_show_internally_invoiced_justification,
   };
 
+  // Block visibility from the B3.1 block board. The board is the preview the
+  // writer sees, so a hidden block must not appear in the DOCX. When a
+  // proposal has no B3.1 blocks yet (pre-cutover), every block counts as
+  // visible and the b31_show_* booleans alone decide, exactly as before.
+  const { data: b31Cards } = await supabase
+    .from("proposal_cards")
+    .select("template_key, is_visible, section:section_id!inner(section_number)")
+    .eq("proposal_id", proposal.id)
+    .is("deleted_at", null)
+    .like("template_key", "b31.%");
+  const cardVisible = new Map<string, boolean>();
+  for (const c of b31Cards ?? []) cardVisible.set(c.template_key, !!c.is_visible);
+  const blockVisible = (key: string) => cardVisible.get(key) !== false;
+
   const { data: wps } = await supabase
     .from("wp_drafts")
     .select("id, number, short_name, title, color, lead_participant_id, manual_duration, b31_objectives, b31_description_before_tasks")
@@ -1761,7 +1775,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.a — List of work packages ───
-  if ((wps ?? []).length) {
+  if ((wps ?? []).length && blockVisible("b31.table_a")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.a — List of work packages"));
     children.push(simpleTable(
       ["WP #", "WP title", "Lead participant", "Person-months", "Start month", "End month"],
@@ -1960,13 +1974,13 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   };
 
   // ─── Table 3.1.g — Subcontracting (auto-included when items exist) ───
-  if ((subItems ?? []).length) {
+  if ((subItems ?? []).length && blockVisible("b31.table_g")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.g — Subcontracting"));
     children.push(renderJustItemsTable(subItems));
   }
 
   // ─── Table 3.1.h — Purchase costs (equipment / travel / other goods per toggles + 15% rule) ───
-  if (equipItems.length || includeTravel || includeOtherGoods) {
+  if ((equipItems.length || includeTravel || includeOtherGoods) && blockVisible("b31.table_h")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.h — Purchase costs (equipment, infrastructure or other assets)"));
     if (equipItems.length) {
       children.push(H(HeadingLevel.HEADING_3, "Equipment"));
