@@ -4,8 +4,8 @@ import { MethodologyCardsBoard } from '@/components/cards/MethodologyCardsBoard'
 
 interface MethodologiesCardsPanelProps {
   proposalId: string;
-  /** Template section id (template_sections.id) for B1.2 in this proposal's type. */
-  sourceSectionId: string;
+  /** Section number of B1.2 as it appears in the panel, e.g. "B1.2". */
+  sectionNumber: string;
   canEdit: boolean;
   isCoordinator: boolean;
   proposalAcronym?: string;
@@ -19,25 +19,26 @@ interface MethodologiesCardsPanelProps {
  */
 export default function MethodologiesCardsPanel({
   proposalId,
-  sourceSectionId,
+  sectionNumber,
   canEdit,
   isCoordinator,
   proposalAcronym,
   acronymSegments,
 }: MethodologiesCardsPanelProps) {
   const { data: sectionId, isLoading } = useQuery({
-    queryKey: ['methodologies-cards-section', proposalId, sourceSectionId],
-    enabled: !!proposalId && !!sourceSectionId,
+    queryKey: ['methodologies-cards-section', proposalId, sectionNumber],
+    enabled: !!proposalId,
     queryFn: async () => {
+      const bare = sectionNumber.replace(/^B/i, '');
       const { data } = await supabase
         .from('proposal_template_sections')
-        .select('id, proposal_templates!inner(proposal_id)')
+        .select('id, section_number, proposal_templates!inner(proposal_id)')
         .eq('proposal_templates.proposal_id', proposalId)
-        .eq('source_section_id', sourceSectionId)
-        .maybeSingle();
-      return data?.id ?? null;
+        .in('section_number', [`B${bare}`, bare]);
+      return data?.[0]?.id ?? null;
     },
   });
+
 
   if (isLoading) {
     return <p className="p-6 text-sm text-muted-foreground">Loading…</p>;

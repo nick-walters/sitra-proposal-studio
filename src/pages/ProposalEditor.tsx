@@ -984,7 +984,7 @@ export function ProposalEditor() {
         <div className="flex-1 overflow-y-auto">
           <MethodologiesCardsPanel
             proposalId={id || ''}
-            sourceSectionId={sectionId}
+            sectionNumber={(activeSection as Section).number || 'B1.2'}
             canEdit={canEdit}
             isCoordinator={canEdit && isCoordinator}
             proposalAcronym={proposal?.acronym}
