@@ -373,7 +373,10 @@ interface FieldRowProps {
   captionNumbering?: CaptionNumbering | null;
   /** Section number without the "B" prefix, for the cases-table caption. */
   captionSectionNumber?: string;
+  /** Template key of the owning block, e.g. 'b21.impact_summary'. */
+  cardTemplateKey?: string | null;
 }
+
 
 function FieldRow({
   field,
