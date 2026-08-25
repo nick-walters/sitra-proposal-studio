@@ -395,6 +395,8 @@ function FieldRow({
   caseLetterIndex,
   captionNumbering,
   captionSectionNumber,
+  cardTemplateKey,
+
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
