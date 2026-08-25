@@ -6,7 +6,7 @@ export function ColumnResizer({ onMouseDown }: { onMouseDown: (e: React.MouseEve
   return (
     <div
       onMouseDown={onMouseDown}
-      className="absolute right-0 top-0 bottom-0 w-[5px] cursor-col-resize z-10 hover:bg-white/30 active:bg-white/50"
+      className="absolute right-0 top-0 bottom-0 w-[5px] cursor-col-resize z-10 hover:bg-primary/40 active:bg-primary/60"
       style={{ touchAction: 'none' }}
     />
   );

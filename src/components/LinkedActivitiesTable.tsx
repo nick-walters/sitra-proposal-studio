@@ -93,7 +93,7 @@ const SUBTLE_CONTROL =
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['3%', '30%', '42%', '9%', '12%', '4%'];
+const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '14%', '42%', '4%'];
 
 const NONE = '__none__';
 
@@ -131,10 +131,10 @@ function SortableActivityRow({
   const isOther = activity.instrumentCode === 'OTHER';
 
   return (
-    /* One <tbody> per activity: the sortable unit keeps the scalar row and the
-       full-width description row travelling together while staying valid HTML. */
-    <tbody ref={setNodeRef} style={style} className="border-y border-gray-200">
-      <tr>
+    /* One <tr> per activity: every column, description included, on a single
+       row so the sortable unit is a real table row. */
+    <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
+
         <td className={firstCellStyles}>
           {canEdit ? (
             <Tip label="Drag to reorder this activity">
@@ -273,6 +273,20 @@ function SortableActivityRow({
           </div>
         </td>
 
+        {/* How the project will be linked — a normal cell on the same row. */}
+        <td className={`${cellStyles} !align-top break-words`}>
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={activity.linkDescriptionHtml ?? ''}
+            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            minHeight="1.5rem"
+            placeholder="How the project will be linked"
+          />
+        </td>
+
+
         {/* Fixed delete column: identical position on every row whatever the
             participant chip's width. */}
         <td className={`${cellStyles} text-center`}>
@@ -333,25 +347,9 @@ function SortableActivityRow({
             </DialogContent>
           </Dialog>
         </td>
-      </tr>
-
-      {/* Second line: the link description spans the full table width. */}
-      <tr>
-        <td className={`${firstCellStyles} !pt-0`} colSpan={6}>
-          <MethodologyRichEditor
-            proposalId={proposalId}
-            value={activity.linkDescriptionHtml ?? ''}
-            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-            minHeight="2.5rem"
-            placeholder="How the project will be linked"
-          />
-        </td>
-      </tr>
-    </tbody>
-
+    </tr>
   );
+
 }
 
 export default function LinkedActivitiesTable({
@@ -437,7 +435,7 @@ export default function LinkedActivitiesTable({
             <table
               ref={tableRef}
               data-table-key="b12-linked-activities"
-              className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tr]:border-0 [&_tbody]:border-x-0 [&_tbody]:border-t-0 [&_tbody]:border-b [&_tbody]:border-gray-200 [&_tbody:last-child]:border-b-0`}
+              className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 [&_tbody_tr:last-child]:border-b-0`}
               style={{
                 tableLayout: 'fixed',
                 width: sized ? `${Math.min(colWidths.reduce((s, w) => s + w, 0), BLOCK_WIDTH)}px` : '100%',
@@ -452,30 +450,35 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible for establishing the link', ''].map(
+                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible', 'How the project will be linked', ''].map(
                     (h, i) => (
-                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative font-bold`}>
+                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative align-bottom font-bold`}>
                         {h}
-                        {canResize && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
+                        {canResize && i < DEFAULT_COL_PCT.length - 1 && (
+                          <ColumnResizer onMouseDown={handleColResizeStart(i)} />
+                        )}
                       </th>
                     ),
                   )}
                 </tr>
               </thead>
-              {ordered.map((activity) => (
-                <SortableActivityRow
-                  key={activity.id}
-                  activity={activity}
-                  proposalId={proposalId}
-                  canEdit={canEdit}
-                  isCoordinator={isCoordinator}
-                  participants={participants}
-                  onUpdate={updateField}
-                  onDelete={(id) =>
-                    deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
-                  }
-                />
-              ))}
+              <tbody>
+                {ordered.map((activity) => (
+                  <SortableActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    proposalId={proposalId}
+                    canEdit={canEdit}
+                    isCoordinator={isCoordinator}
+                    participants={participants}
+                    onUpdate={updateField}
+                    onDelete={(id) =>
+                      deleteActivity(id).catch(() => toast.error('Could not delete the activity'))
+                    }
+                  />
+                ))}
+              </tbody>
+
             </table>
           </SortableContext>
         </DndContext>
