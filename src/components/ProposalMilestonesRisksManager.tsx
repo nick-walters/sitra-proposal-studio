@@ -117,8 +117,8 @@ interface Risk {
   version?: number;
 }
 
-const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
-const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
+export const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
+export const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
 
 // Fixed column tracks shared by each row's metadata line and the label header
 // row above the list, so fields align across rows. A column is reserved for

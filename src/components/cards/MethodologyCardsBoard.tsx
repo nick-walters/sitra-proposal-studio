@@ -106,7 +106,7 @@ import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { ReferencesBlock } from './ReferencesBlock';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
-import { MilestonesEditor, RisksEditor } from '@/components/ProposalMilestonesRisksManager';
+import { MilestonesEditor, RisksEditor, MS_KEY, RISK_KEY } from '@/components/ProposalMilestonesRisksManager';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useNumberedRowBin } from '@/hooks/useNumberedRowBin';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
@@ -930,6 +930,7 @@ function CardBlock({
     isRisksCard ? 'proposal_risks' : 'proposal_milestones',
   );
   const [rowBinOpen, setRowBinOpen] = useState(false);
+  const cardQueryClient = useQueryClient();
   // The two B3.1 charts: no add / restore / delete, so those header columns
   // carry the chart's own Edit and Download controls instead.
   const isPertCard = card.sourceKey === 'b31.pert';
@@ -1337,7 +1338,9 @@ function CardBlock({
                         rowBin
                           .restoreRow(r.id)
                           .then(() => {
-                            onRelationalRestored?.();
+                            cardQueryClient.invalidateQueries({
+                              queryKey: isRisksCard ? RISK_KEY(proposalId) : MS_KEY(proposalId),
+                            });
                             if (rowBin.deletedRows.length === 1) setRowBinOpen(false);
                           })
                           .catch(() => toast.error('Could not restore the row'))
