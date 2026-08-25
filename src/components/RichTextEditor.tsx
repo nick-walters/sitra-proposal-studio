@@ -1486,6 +1486,7 @@ export function useRichTextEditor({
   blockLocking,
   onBlockDeleteRequest,
   canEditCaptions = true,
+  captionNumbering,
 }: { 
   content: string; 
   onChange: (content: string) => void;
@@ -1505,8 +1506,17 @@ export function useRichTextEditor({
   };
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
   canEditCaptions?: boolean;
+  /**
+   * Position of this text box in its section's caption sequences. When given,
+   * table/figure caption labels are derived from position and kept
+   * non-editable; when omitted, caption labels are left exactly as stored.
+   */
+  captionNumbering?: CaptionNumbering | null;
 }) {
   const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
+  const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
+  captionNumberingRef.current = captionNumbering ?? null;
+
 
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(initialContentRef.current);
