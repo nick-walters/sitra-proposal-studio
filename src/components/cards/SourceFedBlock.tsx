@@ -152,6 +152,8 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
         />
       );
     case 'b31.table_c':
+      if (!wpData.some((wp) => (wp.deliverables || []).length > 0))
+        return <UnmetNote sourceKey={sourceKey} />;
       return <B31DeliverablesTable proposalId={proposalId} />;
     case 'b31.table_d':
       return <B31MilestonesTable proposalId={proposalId} />;
