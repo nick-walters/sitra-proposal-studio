@@ -24,7 +24,7 @@ export function handleWordPaste(e: React.ClipboardEvent<HTMLElement>): void {
   if (!html && !text) return;
   e.preventDefault();
   const payload = html
-    ? stripWordHtml(html, { stripBlockColour: true })
+    ? stripWordHtml(html, { stripBlockColour: true, pasteMode: true })
     : escapeHtml(text).replace(/\r?\n/g, '<br>');
   document.execCommand('insertHTML', false, payload);
 }

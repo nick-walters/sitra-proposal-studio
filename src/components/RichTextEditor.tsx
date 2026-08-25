@@ -1449,7 +1449,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(stripWordHtml(html, { stripBlockColour: true }));
+        return normalizePartBPastedAlignment(stripWordHtml(html, { stripBlockColour: true, pasteMode: true }));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);
@@ -1963,7 +1963,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBPastedAlignment(stripWordHtml(html, { stripBlockColour: true }));
+        return normalizePartBPastedAlignment(stripWordHtml(html, { stripBlockColour: true, pasteMode: true }));
       },
       transformPasted(slice) {
         return stripPastedAlignment(slice);
