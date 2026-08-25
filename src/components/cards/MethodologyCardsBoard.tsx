@@ -2150,7 +2150,7 @@ function BoardInner({
           proposalId={proposalId}
           save={{ saving, lastSaved, savedMode, isDirty, onSaveNow: handleSaveNow }}
           topBar={{
-              onPreview: isAdminOrOwner ? () => setTypstOpen(true) : undefined,
+              onPreview: isAdminOrOwner ? () => void openTypstPreview() : undefined,
               previewLabel: sectionMeta.previewLabel,
               collapseAll: {
                 allCollapsed: allBlocksCollapsed,
