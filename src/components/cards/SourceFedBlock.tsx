@@ -68,7 +68,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     loading,
   } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
 
-  console.log('[DEBUG] B31Source', sourceKey, 'proposalId', proposalId, 'loading', loading, 'wpData', wpData.length, 'participants', participants.length);
+
 
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],

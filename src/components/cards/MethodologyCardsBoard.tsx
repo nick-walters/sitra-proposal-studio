@@ -1260,8 +1260,9 @@ function CardBlock({
 /* Board                                                               */
 /* ------------------------------------------------------------------ */
 
-/** The cards board is the B1.2 methodologies section. */
-const SECTION_CAPTION_NUMBER = '1.2';
+/** Fallback caption sequence when the board is mounted without a section number. */
+const DEFAULT_CAPTION_NUMBER = '1.2';
+
 
 function BoardInner({
   proposalId,
@@ -1661,7 +1662,10 @@ function BoardInner({
     void jumpToElementId(domId);
   }, []);
 
-  // Figure blocks are labelled per section in document order (a, b, c…).
+  // Figure blocks are labelled per section in document order (a, b, c…). The
+  // figure sequence is independent of the table sequence: B3.1 runs figures
+  // a–b (Pert, Gantt) while its tables run a–h on their own letters.
+  const captionNumber = (sectionNumber ?? '').replace(/^B/i, '') || DEFAULT_CAPTION_NUMBER;
   const captionLabels = useMemo(() => {
     const ordered = [...headCards, ...freeCards, ...tailCards];
     const labels: Record<string, string> = {};
@@ -1670,12 +1674,13 @@ function BoardInner({
       // Tables are captioned inside the text block that contains them, by the
       // editor's own caption sequence — only figures get a block-level label.
       if (card.kind === 'figure') {
-        labels[card.id] = `Figure ${SECTION_CAPTION_NUMBER}.${String.fromCharCode(97 + figureIndex)}.`;
+        labels[card.id] = `Figure ${captionNumber}.${String.fromCharCode(97 + figureIndex)}.`;
         figureIndex += 1;
       }
     }
     return labels;
-  }, [headCards, freeCards, tailCards]);
+  }, [headCards, freeCards, tailCards, captionNumber]);
+
 
   /**
    * Case-study placeholder tables are lettered per section in document order
@@ -2115,7 +2120,7 @@ function BoardInner({
 }
 
 export function MethodologyCardsBoard(props: BoardProps) {
-  console.log('[DEBUG] MethodologyCardsBoard wrapper sectionId:', props.sectionId);
+
   return (
     <MethodologyEditorFocusProvider>
       <CardLockProvider

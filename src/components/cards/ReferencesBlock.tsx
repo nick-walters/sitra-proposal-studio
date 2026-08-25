@@ -51,8 +51,23 @@ export function ReferencesBlock({
     [entries],
   );
 
-  // Nothing cited: the block renders nothing at all — no heading, no shell.
-  if (rows.length === 0) return null;
+  // Nothing cited: the EDITOR still shows the block, with a note, so the author
+  // knows the tail block exists. The EXPORT omits it entirely — that rule lives
+  // in `printRenderer.tsx` (`appendSectionReferences` returns early when empty).
+  if (rows.length === 0) {
+    return (
+      <p
+        data-references-block=""
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="text-sm italic text-muted-foreground"
+      >
+        This section cites no references yet. This block stays empty and is left out of the
+        exported document until something in the section is cited.
+      </p>
+    );
+  }
+
 
   return (
     <div data-references-block="" contentEditable={false} suppressContentEditableWarning>
