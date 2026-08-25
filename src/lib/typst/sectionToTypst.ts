@@ -242,7 +242,10 @@ export function buildSectionTypstDocument(
     }
   }
 
-  const body = out.map((expr) => `#${expr}`).join('\n\n');
+  // Each block is emitted as a CODE BLOCK (`#{ … }`), not a bare `#expr`:
+  // in markup mode a `#` expression ends at the first operator, so the `+`
+  // chains this converter builds would spill out as literal text.
+  const body = out.map((expr) => `#{\n${expr}\n}`).join('\n\n');
   return {
     source: `${buildTypstPreamble(options.meta || {})}\n${body}\n`,
     unsupported: Array.from(ctx.unsupported).sort(),
