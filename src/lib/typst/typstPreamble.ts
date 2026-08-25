@@ -245,17 +245,21 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /// Acronym: coloured segments, heavy weight, no shape. Serif only — the
 /// document has no sans face loaded, so naming one only triggers a fallback
-/// with different metrics, which is what made the chip ride high.
-/// The segments keep the SURROUNDING text's size (body, table cell, footnote
-/// or footer), and the box uses the DEFAULT text edges so its baseline is the
-/// segments' own baseline. \`chip-baseline-drop\` then applies the same 0.36pt
-/// drop the pill and polygon chips end up with, so all chip types share one
-/// optical baseline. Overriding top-edge/bottom-edge here (as before) made the
-/// box bottom sit at the descender, lifting the label a descender-depth
-/// (~2.3pt at 11pt) above the line.
-#let chip-acronym(segments) = box(baseline: chip-baseline-drop, segments.map(seg =>
+/// with different metrics.
+///
+/// It is NOT wrapped in a `box`. The pill and polygon chips need one (they
+/// carry a shape and a fixed height), but a `box` around bare text is laid out
+/// against the document's `top-edge: cap-height` / `bottom-edge: descender`
+/// settings, so its own bottom edge — not the glyph baseline — lands on the
+/// line, lifting the label about 1.56pt. Measured at 1200 ppi: boxed, the ink
+/// sat 2.52pt above the body cap-height and stopped 1.44pt short of the
+/// baseline; unboxed it sits within 0.12pt of the body ink top and bottom, so
+/// the acronym shares the body baseline exactly, in body text, table cells,
+/// footnotes and the running footer alike.
+#let chip-acronym(segments) = segments.map(seg =>
   text(font: "${TYPST_SERIF}", weight: "bold", fill: rgb(seg.at(1)), seg.at(0))
-).join())
+).join()
+
 
 
 // ── tables and figures ─────────────────────────────────────────────────────
