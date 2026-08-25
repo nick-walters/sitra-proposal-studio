@@ -1,78 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
+import {
+  applicableModifiers, mergeModifierEffects, normaliseModifierRow,
+  type MergedEffects, type ProposalAttributes, type ResolvedModifier,
+} from '@/lib/templateModifiers';
 
-export interface TemplateModifier {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  conditions: Json;
-  effects: Json;
-  is_admin_editable: boolean;
-  is_active: boolean;
-  priority: number;
-  created_at: string;
-  updated_at: string;
-}
+export type TemplateModifier = ResolvedModifier;
 
-export interface WorkProgrammeExtension {
-  id: string;
-  work_programme_code: string;
-  name: string;
-  description: string | null;
-  extra_section_ids: string[] | null;
-  extra_part_a_fields: Json | null;
-  funding_overrides: Json | null;
-  page_limit_delta: number | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type ModifierInput = Omit<TemplateModifier, 'id'>;
 
+/** Admin CRUD over the single modifier table. */
 export function useTemplateModifiers() {
   const [modifiers, setModifiers] = useState<TemplateModifier[]>([]);
-  const [extensions, setExtensions] = useState<WorkProgrammeExtension[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [modifiersRes, extensionsRes] = await Promise.all([
-        supabase.from('template_modifiers').select('*').order('priority'),
-        supabase.from('work_programme_extensions').select('*').order('work_programme_code'),
-      ]);
-
-      if (modifiersRes.error) throw modifiersRes.error;
-      if (extensionsRes.error) throw extensionsRes.error;
-
-      setModifiers(modifiersRes.data || []);
-      setExtensions(extensionsRes.data || []);
+      const { data, error } = await supabase
+        .from('template_modifiers')
+        .select('*')
+        .order('priority')
+        .order('code');
+      if (error) throw error;
+      setModifiers((data ?? []).map(normaliseModifierRow));
     } catch (error) {
       console.error('Error loading template modifiers:', error);
-      toast.error('Failed to load template modifiers');
+      toast.error('Failed to load modifiers');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const createModifier = async (modifier: Omit<TemplateModifier, 'id' | 'created_at' | 'updated_at'>) => {
+  useEffect(() => { void loadData(); }, [loadData]);
+
+  const createModifier = async (modifier: ModifierInput) => {
     try {
       const { data, error } = await supabase
         .from('template_modifiers')
         .insert(modifier as any)
         .select()
         .single();
-
       if (error) throw error;
-      setModifiers(prev => [...prev, data as TemplateModifier]);
+      const row = normaliseModifierRow(data);
+      setModifiers((prev) => [...prev, row]);
       toast.success('Modifier created');
-      return data as TemplateModifier;
+      return row;
     } catch (error) {
       console.error('Error creating modifier:', error);
       toast.error('Failed to create modifier');
@@ -88,11 +63,11 @@ export function useTemplateModifiers() {
         .eq('id', id)
         .select()
         .single();
-
       if (error) throw error;
-      setModifiers(prev => prev.map(m => m.id === id ? data as TemplateModifier : m));
+      const row = normaliseModifierRow(data);
+      setModifiers((prev) => prev.map((m) => (m.id === id ? row : m)));
       toast.success('Modifier updated');
-      return data as TemplateModifier;
+      return row;
     } catch (error) {
       console.error('Error updating modifier:', error);
       toast.error('Failed to update modifier');
@@ -102,13 +77,9 @@ export function useTemplateModifiers() {
 
   const deleteModifier = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('template_modifiers')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('template_modifiers').delete().eq('id', id);
       if (error) throw error;
-      setModifiers(prev => prev.filter(m => m.id !== id));
+      setModifiers((prev) => prev.filter((m) => m.id !== id));
       toast.success('Modifier deleted');
       return true;
     } catch (error) {
@@ -118,73 +89,54 @@ export function useTemplateModifiers() {
     }
   };
 
-  const createExtension = async (extension: Omit<WorkProgrammeExtension, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('work_programme_extensions')
-        .insert(extension as any)
-        .select()
-        .single();
+  return { modifiers, loading, refresh: loadData, createModifier, updateModifier, deleteModifier };
+}
 
-      if (error) throw error;
-      setExtensions(prev => [...prev, data as WorkProgrammeExtension]);
-      toast.success('Extension created');
-      return data as WorkProgrammeExtension;
-    } catch (error) {
-      console.error('Error creating extension:', error);
-      toast.error('Failed to create extension');
-      return null;
-    }
-  };
+/** Every active modifier, for resolution against a proposal. */
+export function useAllModifiers() {
+  return useQuery({
+    queryKey: ['template-modifiers', 'active'],
+    queryFn: async (): Promise<ResolvedModifier[]> => {
+      const { data } = await supabase
+        .from('template_modifiers')
+        .select('*')
+        .eq('is_active', true)
+        .order('priority')
+        .order('code');
+      return (data ?? []).map(normaliseModifierRow);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
-  const updateExtension = async (id: string, updates: Partial<WorkProgrammeExtension>) => {
-    try {
-      const { data, error } = await supabase
-        .from('work_programme_extensions')
-        .update(updates as any)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      setExtensions(prev => prev.map(e => e.id === id ? data as WorkProgrammeExtension : e));
-      toast.success('Extension updated');
-      return data as WorkProgrammeExtension;
-    } catch (error) {
-      console.error('Error updating extension:', error);
-      toast.error('Failed to update extension');
-      return null;
-    }
-  };
-
-  const deleteExtension = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('work_programme_extensions')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      setExtensions(prev => prev.filter(e => e.id !== id));
-      toast.success('Extension deleted');
-      return true;
-    } catch (error) {
-      console.error('Error deleting extension:', error);
-      toast.error('Failed to delete extension');
-      return false;
-    }
-  };
-
-  return {
-    modifiers,
-    extensions,
-    loading,
-    refresh: loadData,
-    createModifier,
-    updateModifier,
-    deleteModifier,
-    createExtension,
-    updateExtension,
-    deleteExtension,
-  };
+/**
+ * The modifiers that apply to one proposal, and their merged effects.
+ * Reconstructed from the proposal's attributes on every read — nothing is
+ * snapshotted at creation.
+ */
+export function useProposalModifiers(proposalId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['proposal-modifiers', proposalId],
+    enabled: !!proposalId,
+    queryFn: async (): Promise<{ modifiers: ResolvedModifier[]; merged: MergedEffects }> => {
+      const [{ data: prop }, { data: rows }] = await Promise.all([
+        supabase
+          .from('proposals')
+          .select('type, budget_type, work_programme, submission_stage, uses_fstp')
+          .eq('id', proposalId!)
+          .maybeSingle(),
+        supabase.from('template_modifiers').select('*').eq('is_active', true),
+      ]);
+      const attrs: ProposalAttributes = {
+        actionType: prop?.type ?? null,
+        budgetType: prop?.budget_type ?? null,
+        workProgramme: (prop as any)?.work_programme ?? null,
+        submissionStage: (prop as any)?.submission_stage ?? null,
+        usesFstp: (prop as any)?.uses_fstp ?? false,
+      };
+      const mods = applicableModifiers((rows ?? []).map(normaliseModifierRow), attrs);
+      return { modifiers: mods, merged: mergeModifierEffects(mods) };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 }
