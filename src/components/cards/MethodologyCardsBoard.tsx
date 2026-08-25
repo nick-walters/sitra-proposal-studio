@@ -1761,11 +1761,12 @@ function BoardInner({
     focusedCard?.templateKey ?? focusedGuidelineKey ?? null,
     'part_b',
     proposalTemplateVersionId,
+    proposalId,
   );
 
   /* Criteria are a category of their own: they belong to the SECTION, not to a
      block, so they hang off the page-wide tier and never follow the focus. */
-  const { data: sectionCriteria = [] } = useSectionCriteria(sectionId, proposalTemplateVersionId);
+  const { data: sectionCriteria = [] } = useSectionCriteria(sectionId, proposalTemplateVersionId, proposalId);
 
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
