@@ -1037,7 +1037,7 @@ function CardBlock({
     transition: sortable.transition,
     opacity: sortable.isDragging ? 0.6 : 1,
   };
-  const contentDimClass = card.isVisible ? '' : 'opacity-60';
+  const contentDimClass = card.isVisible && !conditionUnmet ? '' : 'opacity-60';
 
 
   const commitTitle = () => {
