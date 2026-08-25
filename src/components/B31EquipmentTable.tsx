@@ -21,7 +21,7 @@ interface Props {
 
 export function B31EquipmentTable({ items, participants, proposalId, tableLabel = 'Table 3.1.h.' }: Props) {
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'equipment', canResize: isAdminOrOwner });
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'equipment', canResize: isAdminOrOwner, maxTotalWidth: 768 });
 
   const getParticipant = (id: string) => participants.find(p => p.id === id);
 

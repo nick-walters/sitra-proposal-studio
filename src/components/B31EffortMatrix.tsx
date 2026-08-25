@@ -28,7 +28,7 @@ interface Props {
 
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner, maxTotalWidth: 768 });
   const defaultParticipantWidth = '22%';
   const defaultTotalWidth = '8%';
   const defaultWpWidth = `${(70 / Math.max(wpData.length, 1)).toFixed(2)}%`;

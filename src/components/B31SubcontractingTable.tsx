@@ -21,7 +21,7 @@ interface Props {
 
 export function B31SubcontractingTable({ items, participants, proposalId, tableLabel = 'Table 3.1.g.' }: Props) {
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'subcontracting', canResize: isAdminOrOwner });
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'subcontracting', canResize: isAdminOrOwner, maxTotalWidth: 768 });
 
   const getParticipant = (id: string) => participants.find(p => p.id === id);
 
