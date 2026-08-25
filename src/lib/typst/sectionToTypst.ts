@@ -45,6 +45,7 @@ import {
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { countCaptionSlots } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
   fetchSectionCitationSources,
@@ -272,7 +273,16 @@ export function buildSectionTypstDocument(
   tree: SectionBlockTree,
   options: BuildTypstOptions = {},
 ): BuiltTypstDocument {
-  const ctx: ConvertContext = { data: options.data, unsupported: new Set<string>() };
+  const sectionNumber = (options.meta?.headings?.h2 || options.sectionLabel || '')
+    .match(/(?:B)?(\d+(?:\.\d+)+)/i)?.[1] ?? '';
+  const ctx: ConvertContext = {
+    data: options.data,
+    unsupported: new Set<string>(),
+    captionNumbering:
+      sectionNumber && sectionNumber !== '3.1'
+        ? { sectionNumber, tableIndex: 0, figureIndex: 0 }
+        : undefined,
+  };
   const out: string[] = [];
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
@@ -349,6 +359,7 @@ export function buildSectionTypstDocument(
     }
 
     if (card.kind === 'figure') {
+      if (ctx.captionNumbering) ctx.captionNumbering.figureIndex += 1;
       ctx.unsupported.add('figure block');
       out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
       continue;
@@ -368,6 +379,19 @@ export function buildSectionTypstDocument(
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
+      // Atom-backed case tables have no caption paragraph for the HTML walker
+      // to encounter, but still occupy a position-derived table slot.
+      if (ctx.captionNumbering) {
+        const slots = countCaptionSlots(field.contentHtml);
+        const parsedCaptions = typeof document === 'undefined'
+          ? 0
+          : (() => {
+              const holder = document.createElement('div');
+              holder.innerHTML = field.contentHtml || '';
+              return holder.querySelectorAll('p.document-table-caption').length;
+            })();
+        ctx.captionNumbering.tableIndex += Math.max(0, slots.tables - parsedCaptions);
+      }
     }
 
   }
