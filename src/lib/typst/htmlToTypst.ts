@@ -243,11 +243,20 @@ function convertHeading(el: Element, level: number, ctx: ConvertContext): string
   // Headings use the ordinary 3pt paragraph spacing (the document spec), not
   // an enlarged structural gap: a H4 between two modules must not open a
   // wider hole than a paragraph break.
-  return wrapBlock(
-    el,
-    `block(above: 3pt, below: 3pt, text(size: ${size}, weight: "bold", ${prefix}${title}))`,
-  );
-
+  //
+  // `wrapBlock` is deliberately NOT used for the spacing here. Editor-stored
+  // `data-spacing-before` / `data-spacing-after` attributes (typically 6-12pt,
+  // inherited from pasted content) were wrapping the heading in a SECOND block
+  // whose own margins won out over the 3pt inner ones, which is what made the
+  // gap above and below every H3 larger than specified. The heading's spacing
+  // is fixed by the document spec, so the stored values are ignored; only the
+  // alignment from `wrapBlock` still applies.
+  const alignRaw = ((el as HTMLElement).style?.textAlign || '').toLowerCase();
+  const align = ALIGNMENTS[alignRaw];
+  // `sticky: true` keeps the heading on the same page as the content it
+  // introduces.
+  const block = `block(above: 3pt, below: 3pt, sticky: true, text(size: ${size}, weight: "bold", ${prefix}${title}))`;
+  return align && align !== 'left' ? `align(${align}, ${block})` : block;
 }
 
 const LIST_NUMBERING: Record<string, string> = {
