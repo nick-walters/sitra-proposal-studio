@@ -289,11 +289,10 @@ export interface ProposalSectionGuideline {
   is_active: boolean;
 }
 
-// Helper type for assembled template (base + modifiers + extensions)
+// Helper type for assembled template (base + modifiers)
 export interface AssembledTemplate {
   baseTemplate: BaseTemplate;
   appliedModifiers: TemplateModifier[];
-  appliedExtension?: WorkProgrammeExtension;
   effectivePageLimit: number;
   includesBranding: boolean;
   includesParticipantTable: boolean;
