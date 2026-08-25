@@ -991,10 +991,11 @@ export function ProposalEditor() {
       }
     }
 
-    // 3. B1.2 and B3.1 open the block board (the legacy editors stay as
-    //    rollback paths, reachable from nothing).
+    // 3. Every Part B narrative section opens the block board (the legacy
+    //    editors stay in the codebase as rollback paths, reachable from nothing).
+    const BLOCK_BOARD_SECTIONS = ['1.1', '1.2', '2.1', '2.2', '3.1', '3.2'];
     const sectionNumber = (activeSection as Section).number?.replace(/^B/, '') || '';
-    if (!activeSection.isPartA && (sectionNumber === '1.2' || sectionNumber === '3.1')) {
+    if (!activeSection.isPartA && BLOCK_BOARD_SECTIONS.includes(sectionNumber)) {
       return (
         <div className="flex-1 overflow-y-auto">
           <MethodologiesCardsPanel
