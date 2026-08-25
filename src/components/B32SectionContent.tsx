@@ -122,6 +122,23 @@ export function B32SectionContent({ proposalId }: Props) {
   const badgeRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [badgeDims, setBadgeDims] = useState<Array<{ w: number; h: number }>>([]);
 
+  // The block the matrix sits in is the only authority on how wide the table
+  // may be. We measure it and fit the columns inside it, so no persisted or
+  // computed width can push the table past its container.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerPx, setContainerPx] = useState<number | null>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w > 0) setContainerPx((prev) => (prev !== null && Math.abs(prev - w) < 1 ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+
   // Column-width resize (reuse the B3.1 mirror's persistence path).
   const totalCols = 1 + ((dataQ.data?.cols.length) ?? 0);
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
