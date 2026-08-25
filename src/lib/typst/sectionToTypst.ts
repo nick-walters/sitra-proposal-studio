@@ -447,7 +447,7 @@ export async function fetchTypstDocMeta(
     sectionId
       ? supabase
           .from('proposal_template_sections')
-          .select('section_number, title, parent_section_id, order_index, proposal_template_id')
+          .select('id, section_number, title, parent_section_id, order_index, proposal_template_id')
           .eq('id', sectionId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
