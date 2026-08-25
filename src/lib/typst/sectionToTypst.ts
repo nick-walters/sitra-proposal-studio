@@ -24,7 +24,7 @@ import {
 } from './htmlToTypst';
 import { bannerCall, buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
 import {
-  emitFrontMatter,
+  emitParticipantList,
   SITRA_LOGO_ASSET_PATH,
   type TypstFrontMatter,
 } from './frontMatter';
