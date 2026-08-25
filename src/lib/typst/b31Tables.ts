@@ -278,26 +278,32 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
 
 /* ───────────────────── Table 3.1.f — effort matrix ──────────────────────── */
 
-const pm = (n: number) => (n === 0 ? '' : Number.isInteger(n) ? String(n) : n.toFixed(2));
+/** The board prints a bare 0, and one decimal only when there is one. */
+const pm = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** A cell painted in the WP colour with white text, as the board draws it. */
-function wpCell(colour: string, body: string, strong = false): string {
-  const inner = strong ? `strong(${body})` : body;
-  return `table.cell(fill: rgb(${typstString(colour)}), text(fill: white, ${inner}))`;
+function wpCell(colour: string, body: string, pos: 'top' | 'mid' | 'bottom'): string {
+  return `effort-cell(rgb(${typstString(colour)}), ${body}, ${typstString(pos)})`;
+}
+
+/** An unfilled cell — the participant column and the Total column. */
+function plainCell(body: string, al: 'left' | 'center' = 'center'): string {
+  return `effort-plain(${body}, ${al})`;
 }
 
 /**
- * On screen this is not a ruled table at all: it is a block of WP-coloured
- * cells with white figures, a participant badge down the left and a plain
- * bold Total column. `he-grid` reproduces that (no strokes, per-cell fills)
- * instead of forcing it through the ruled `he-table` furniture.
+ * On screen this is not a ruled table at all: it is a band of WP-coloured
+ * cells with white figures, rounded at the top of the header row and the
+ * bottom of the totals row, separated by a 5pt gutter, with a participant
+ * badge down the left and a plain bold Total column. `he-grid` reproduces
+ * exactly that instead of forcing it through the ruled table furniture.
  */
 export function emitEffortMatrix(data: B31TypstData): string[] {
   if (!data.wps.length || !data.participants.length) return [];
   const cells: string[] = [
-    lit(''),
-    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)))),
-    bold(lit('Total')),
+    plainCell(lit(''), 'left'),
+    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)), 'top')),
+    plainCell(bold(lit('Total'))),
   ];
 
   for (const p of data.participants) {
@@ -307,19 +313,20 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
         .filter((e) => e.participant_id === p.id)
         .reduce((s, e) => s + e.person_months, 0);
       rowTotal += value;
-      return wpCell(wp.color, lit(pm(value)));
+      return wpCell(wp.color, lit(pm(value)), 'mid');
     });
-    cells.push(participantChip(p), ...rowCells, bold(lit(pm(rowTotal))));
+    cells.push(plainCell(participantChip(p), 'left'), ...rowCells, plainCell(bold(lit(pm(rowTotal)))));
   }
 
   const colTotals = data.wps.map((wp) => wp.effort.reduce((s, e) => s + e.person_months, 0));
   cells.push(
-    bold(lit('Total')),
-    ...data.wps.map((wp, i) => wpCell(wp.color, lit(pm(colTotals[i])), true)),
-    bold(lit(pm(colTotals.reduce((s, v) => s + v, 0)))),
+    plainCell(bold(lit('Total')), 'left'),
+    ...data.wps.map((wp, i) => wpCell(wp.color, bold(lit(pm(colTotals[i]))), 'bottom')),
+    plainCell(bold(lit(pm(colTotals.reduce((s, v) => s + v, 0))))),
   );
 
   const cols = `(auto, ${data.wps.map(() => '1fr').join(', ')}, auto)`;
+
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
     `he-grid(${cols}, (${cells.join(', ')}))`,
