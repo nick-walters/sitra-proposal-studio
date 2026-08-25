@@ -353,6 +353,10 @@ export function buildSectionTypstDocument(
 
   for (const card of tree.cards) {
     if (card.sourceKey === 'b11.participants') continue; // emitted with page one
+    // References are per-page footnotes now: there is no reference LIST in the
+    // exported document, so a references block emits NOTHING AT ALL — not even
+    // its own "References" heading. Checked before the title is emitted.
+    if (card.kind === 'references') continue;
     const isGenerated =
       card.isSourceFed || (card.sourceKey && RELATIONAL_KEYS.has(card.sourceKey));
 
@@ -402,9 +406,6 @@ export function buildSectionTypstDocument(
       out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
       continue;
     }
-    // References are per-page footnotes now: there is no reference LIST in the
-    // exported document, so a references block emits nothing at all.
-    if (card.kind === 'references') continue;
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       if (field.headingEnabled && field.heading) {
@@ -412,7 +413,7 @@ export function buildSectionTypstDocument(
         // ordinary 3pt paragraph spacing, so items from two different modules
         // sit exactly as far apart as two paragraphs in one module.
         out.push(
-          `block(above: 3pt, below: 3pt, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
+          `block(above: 3pt, below: 3pt, sticky: true, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
         );
       }
       out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
