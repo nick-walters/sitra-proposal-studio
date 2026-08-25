@@ -218,7 +218,10 @@ export function B32SectionContent({ proposalId }: Props) {
   // AUTO width logic (only used when no manual widths persisted):
   //  - Every check column capped at ONE_CM_PX (1cm), min ROTATED_COL_MIN_PX.
   //  - If no expertise label needs wrapping, table shrinks to its content.
-  const ASSUMED_CONTAINER_PX = 680;
+  // Measured block width when available; the old hard-coded 680 was the reason
+  // the auto width could exceed the block it sits in.
+  const ASSUMED_CONTAINER_PX = containerPx ?? 680;
+
   const numChecks = orderedCols.length;
   const PX_PER_EXPERTISE_CHAR = 6.5;
   const expertiseContentNeedsPx = (label: string) =>
