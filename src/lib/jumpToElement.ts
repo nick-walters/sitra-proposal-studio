@@ -71,15 +71,19 @@ async function waitForScrollUnlock(timeoutMs = 2000) {
 
 function getScrollParent(el: HTMLElement): HTMLElement | null {
   let node = el.parentElement;
+  // An ancestor that CAN scroll but does not overflow yet (content still
+  // mounting) is remembered as the fallback rather than skipped.
+  let candidate: HTMLElement | null = null;
   while (node) {
     const style = window.getComputedStyle(node);
     const overflowY = style.overflowY;
-    if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1) {
-      return node;
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      if (node.scrollHeight > node.clientHeight + 1) return node;
+      candidate ||= node;
     }
     node = node.parentElement;
   }
-  return null;
+  return candidate;
 }
 
 /** Height of any sticky chrome pinned to the top of the scroll container. */
