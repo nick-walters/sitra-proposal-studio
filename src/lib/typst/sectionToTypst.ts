@@ -44,7 +44,7 @@ import {
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
-import { countCaptionSlots } from '@/lib/cards/captionSlots';
+import { countCaptionSlots, captionKind } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
   fetchSectionCitationSources,
@@ -403,7 +403,11 @@ export function buildSectionTypstDocument(
           : (() => {
               const holder = document.createElement('div');
               holder.innerHTML = field.contentHtml || '';
-              return holder.querySelectorAll('p.document-table-caption').length;
+              let n = 0;
+              holder.querySelectorAll('p').forEach((p) => {
+                if (captionKind(p) === 'table') n += 1;
+              });
+              return n;
             })();
         ctx.captionNumbering.tableIndex += Math.max(0, slots.tables - parsedCaptions);
       }

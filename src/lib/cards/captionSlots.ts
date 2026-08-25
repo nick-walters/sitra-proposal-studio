@@ -34,7 +34,7 @@ const LEGACY_LABEL = /^\s*(Figure|Table)\s+\d+(?:\.\d+)*\.[a-z]+\./i;
  * board's walk and the auto-numbering plugin can never disagree about how
  * many slots a text box burns.
  */
-function captionKind(p: Element): 'table' | 'figure' | null {
+export function captionKind(p: Element): 'table' | 'figure' | null {
   const cls = p.className || '';
   if (cls.includes('document-table-caption')) return 'table';
   if (cls.includes('figure-caption')) return 'figure';
