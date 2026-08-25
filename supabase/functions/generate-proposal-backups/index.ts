@@ -1798,6 +1798,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.b — Per-WP description tables ───
+  if (blockVisible("b31.table_b")) {
   children.push(H(HeadingLevel.HEADING_2, "Table 3.1.b — Work package descriptions"));
   for (const w of wps ?? []) {
     const wpTasks = (tasks ?? []).filter((t: any) => t.wp_draft_id === w.id);
@@ -1841,7 +1842,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (da !== db) return da - db;
     return (a.order_index ?? a.number ?? 0) - (b.order_index ?? b.number ?? 0);
   });
-  if (visibleDeliverables.length) {
+  if (visibleDeliverables.length && blockVisible("b31.table_c")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.c — Deliverables"));
     children.push(simpleTable(
       ["No.", "Deliverable title", "WP", "Lead", "Type", "Diss.", "Due"],
@@ -1871,7 +1872,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (wa !== wb) return wa - wb;
     return (a.number ?? 0) - (b.number ?? 0);
   });
-  if (sortedMilestones.length) {
+  if (sortedMilestones.length && blockVisible("b31.table_d")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.d — Milestones"));
     children.push(simpleTable(
       ["No.", "Milestone", "WP(s)", "Due", "Means of verification"],
@@ -1893,7 +1894,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.e — Critical risks ───
-  if ((risks ?? []).length) {
+  if ((risks ?? []).length && blockVisible("b31.table_e")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.e — Critical risks"));
     children.push(simpleTable(
       ["Risk", "Likelihood", "Severity", "WP(s)", "Mitigation & adaptation measures"],
@@ -1915,7 +1916,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
 
   // ─── Table 3.1.f — Effort matrix (Participants × WPs) ───
-  if ((wps ?? []).length && (participants ?? []).length) {
+  if ((wps ?? []).length && (participants ?? []).length && blockVisible("b31.table_f")) {
     children.push(H(HeadingLevel.HEADING_2, "Table 3.1.f — Summary of staff effort"));
     const wpCols = (wps ?? []);
     const headers = ["Participant", ...wpCols.map((w: any) => `WP${w.number}`), "Total PMs"];
