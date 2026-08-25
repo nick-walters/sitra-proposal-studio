@@ -14,6 +14,7 @@ import { getInstrumentAbbreviation, getInstrumentFullName, formatDurationShort }
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
 import { FIGURE_ASSET_PATH } from './typstFigures';
+import { emitPertChart } from './pertTypst';
 import type {
   B31TypstData,
   TypstCostBlock,
