@@ -146,6 +146,7 @@ export function B32SectionContent({ proposalId }: Props) {
     tableKey: 'b32-expertise-matrix',
     canResize,
     minWidth: ROTATED_COL_MIN_PX,
+    maxTotalWidth: containerPx ?? undefined,
   });
   const hasManualWidths = colWidths.length === totalCols && colWidths.every((w) => Number.isFinite(w));
 
