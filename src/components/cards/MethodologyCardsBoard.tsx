@@ -753,6 +753,12 @@ interface CardBlockProps {
   captionLabel?: string;
   /** Section declares that figures and tables are always full width (B3.1). */
   figuresFullWidth: boolean;
+  /** B3.2 conditional blocks: heading computed from A2 at render. */
+  conditionTitle?: string | null;
+  /** B3.2 conditional blocks: condition not met, so the block is left out downstream. */
+  conditionUnmet?: boolean;
+  /** Explains why a conditional block is left out. */
+  conditionReason?: string;
 }
 
 function CardBlock({
@@ -786,6 +792,9 @@ function CardBlock({
   reloadNonce,
   captionLabel,
   figuresFullWidth,
+  conditionTitle,
+  conditionUnmet,
+  conditionReason,
 }: CardBlockProps) {
   const queryClient = useQueryClient();
   const sortable = useSortable({ id: card.id, disabled: !draggable });
