@@ -530,6 +530,71 @@ function FieldRow({
   // models & assumptions" only, until the look is agreed.
   const isDocumentSurface = cardTemplateKey === DOCUMENT_SURFACE_TRIAL_KEY;
 
+  // The module's H3 header. On the page-styled surface it is not a form input
+  // above the page: it is the first field ON the page, sharing its white
+  // background, its typography and its growth behaviour.
+  const headerField = field.headingEnabled ? (
+    <div
+      className={
+        isDocumentSurface ? 'flex min-w-0 items-start gap-2' : 'flex min-w-0 flex-1 items-center gap-2'
+      }
+    >
+      {headerLock.lockedByOther ? (
+        // Read-only surface: a plain element, so no caret can be
+        // placed, while the text stays selectable for copying.
+        <div
+          className={
+            isDocumentSurface
+              ? 'doc-surface-heading min-w-0 flex-1 select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
+              : 'h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline'
+          }
+          aria-readonly="true"
+          dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
+        />
+      ) : (
+        // Single-line rich text, baseline formatting only.
+        <LazyRichField
+          singleLine
+          proposalId={proposalId}
+          value={ensureRichHtml(headingDraft)}
+          placeholder="Header"
+          disabled={!canEdit}
+          minHeight={isDocumentSurface ? '0px' : '28px'}
+          documentSurface={isDocumentSurface}
+          placeholderHideOnFocus={isDocumentSurface}
+          className={
+            isDocumentSurface
+              ? `doc-surface-heading min-w-0 flex-1 ${lockBorderClass(headerLock.isMine, false)}`
+              : `flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`
+          }
+          staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+          onFocus={() => {
+            headingFocused.current = true;
+            onFocusField(field.id, 'header');
+          }}
+          onChange={(html) => {
+            headerLock.onType();
+            setHeadingDraftBoth(html);
+            headerLock.push(html);
+          }}
+          onBlur={() => {
+            headingFocused.current = false;
+            const next = headingDraftRef.current.trim();
+            if (lastCommittedHeading.current !== next) {
+              lastCommittedHeading.current = next;
+              onHeadingChange(field, next || null);
+            }
+            headerLock.onBlur();
+          }}
+        />
+      )}
+
+      {headerLock.lockedByOther && headerLock.holder && (
+        <LockHolderBadge holder={headerLock.holder} />
+      )}
+    </div>
+  ) : null;
+
 
 
 
@@ -539,11 +604,13 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className={`space-y-2 rounded-md border border-border p-3 transition-shadow ${
-        field.isVisible ? '' : 'opacity-50 print:hidden'
-      }`}
+      className={`rounded-md border border-border transition-shadow ${
+        // The page-styled module is exactly one text column wide: 18 cm of
+        // content between 1.5 cm margins that run to the module's own edge.
+        isDocumentSurface ? 'w-[21cm] max-w-full' : 'space-y-2 p-3'
+      } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
     >
-      <div className="flex items-center gap-1">
+      <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
         {canEdit && (
           <Tip label="Drag to reorder this module">
             <button
@@ -572,52 +639,8 @@ function FieldRow({
           </div>
         ) : (
           <>
-            {field.headingEnabled ? (
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                {headerLock.lockedByOther ? (
-                  // Read-only surface: a plain element, so no caret can be
-                  // placed, while the text stays selectable for copying.
-                  <div
-                    className="h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline"
-                    aria-readonly="true"
-                    dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
-                  />
-                ) : (
-                  // Single-line rich text, baseline formatting only.
-                  <LazyRichField
-                    singleLine
-                    proposalId={proposalId}
-                    value={ensureRichHtml(headingDraft)}
-                    placeholder="Header"
-                    disabled={!canEdit}
-                    minHeight="28px"
-                    className={`flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`}
-                    staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-                    onFocus={() => {
-                      headingFocused.current = true;
-                      onFocusField(field.id, 'header');
-                    }}
-                    onChange={(html) => {
-                      headerLock.onType();
-                      setHeadingDraftBoth(html);
-                      headerLock.push(html);
-                    }}
-                    onBlur={() => {
-                      headingFocused.current = false;
-                      const next = headingDraftRef.current.trim();
-                      if (lastCommittedHeading.current !== next) {
-                        lastCommittedHeading.current = next;
-                        onHeadingChange(field, next || null);
-                      }
-                      headerLock.onBlur();
-                    }}
-                  />
-                )}
-
-                {headerLock.lockedByOther && headerLock.holder && (
-                  <LockHolderBadge holder={headerLock.holder} />
-                )}
-              </div>
+            {headerField && !isDocumentSurface ? (
+              headerField
             ) : (
 
               <span className="flex-1" aria-hidden="true" />
