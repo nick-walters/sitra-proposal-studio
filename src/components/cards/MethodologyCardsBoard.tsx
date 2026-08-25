@@ -1335,6 +1335,15 @@ function CardBlock({
             />
           ) : (
             <>
+              {/* B3.2 blocks are authored, but also mirror their A2 sources. */}
+              {b32BlockHasMirrors(card.templateKey) && (
+                <B32BlockMirrors
+                  proposalId={proposalId}
+                  templateKey={card.templateKey}
+                  fields={orderedFields}
+                />
+              )}
+
               <DndContext
                 sensors={fieldSensors}
                 collisionDetection={closestCenter}
