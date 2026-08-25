@@ -588,6 +588,7 @@ export type Database = {
           heading_enabled: boolean
           heading_version: number
           id: string
+          is_visible: boolean
           order_index: number
           origin: string
           placeholder_case_type_id: string | null
@@ -608,6 +609,7 @@ export type Database = {
           heading_enabled?: boolean
           heading_version?: number
           id?: string
+          is_visible?: boolean
           order_index: number
           origin?: string
           placeholder_case_type_id?: string | null
@@ -628,6 +630,7 @@ export type Database = {
           heading_enabled?: boolean
           heading_version?: number
           id?: string
+          is_visible?: boolean
           order_index?: number
           origin?: string
           placeholder_case_type_id?: string | null
