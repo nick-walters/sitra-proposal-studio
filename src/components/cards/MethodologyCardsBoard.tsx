@@ -2115,7 +2115,7 @@ function BoardInner({
 }
 
 export function MethodologyCardsBoard(props: BoardProps) {
-  console.log('[DEBUG] MethodologyCardsBoard wrapper sectionId:', props.sectionId);
+
   return (
     <MethodologyEditorFocusProvider>
       <CardLockProvider
