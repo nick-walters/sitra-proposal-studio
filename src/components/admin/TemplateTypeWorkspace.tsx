@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,7 @@ export function TemplateTypeWorkspace({
   }, [versionId, versions]);
   const activeVersion = versions.find((v) => v.id === activeVersionId) ?? null;
   const isDraft = activeVersion?.status === 'draft';
+  const hasDraft = versions.some((v) => v.status === 'draft');
   /* The draft is one coherent set of changes, so the lock covers the whole
      draft rather than any single field, and is cleared by publishing. */
   const lockedBy = isDraft ? activeVersion?.locked_by ?? null : null;
@@ -228,6 +229,33 @@ export function TemplateTypeWorkspace({
           </p>
         </div>
       )}
+
+      {/* Where the edits land. Saving into a draft looks like "nothing
+          happened" on the writers' side, because proposals keep reading the
+          version they were created from until this draft is published. */}
+      {editable && (
+        <div className="flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+          <Pencil className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            You are editing an <b>unpublished draft</b>. Guidelines and criteria you change here
+            are saved immediately into the draft, but proposals keep showing the published
+            version until you choose <b>Publish</b>.
+          </p>
+        </div>
+      )}
+
+      {!isDraft && hasDraft && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <History className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            You are looking at a published version, and an unpublished draft exists. Recent edits
+            live in that draft — switch to <b>Draft (unpublished)</b> in the version selector to
+            see them.
+          </p>
+        </div>
+      )}
+
+
 
       {partASlot}
 
@@ -611,17 +639,74 @@ function BlockRow({
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * One write to `card_guidelines`, with the outcome surfaced.
+ *
+ * PostgREST answers an update that no row-level policy lets through with a
+ * plain 204 and no error, so a silent "success" is indistinguishable from a
+ * refusal unless the changed rows are asked for. `.select()` makes the
+ * refusal visible: zero rows back means nothing was written.
+ */
+async function persistGuideline(id: string, patch: Partial<CardGuidelineRow>): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('card_guidelines')
+    .update(patch as any)
+    .eq('id', id)
+    .select('id');
+  if (error) {
+    toast.error(`Not saved — ${error.message}`);
+    return false;
+  }
+  if (!data || data.length === 0) {
+    toast.error(
+      'Not saved. This entry was not writable — you may not hold the draft, or it has been removed.',
+    );
+    return false;
+  }
+  return true;
+}
+
 function GuidelineEditor({
   guideline, editable, onSave, onDelete,
 }: {
   guideline: CardGuidelineRow;
   editable: boolean;
-  onSave: (patch: Partial<CardGuidelineRow>) => void;
+  onSave: (patch: Partial<CardGuidelineRow>) => Promise<boolean> | void;
   onDelete: () => void;
 }) {
   const [title, setTitle] = useState(guideline.title ?? '');
   const [content, setContent] = useState(guideline.content ?? '');
-  const dirty = title !== (guideline.title ?? '') || content !== (guideline.content ?? '');
+  /* The editor normalises the HTML it is given, so a plain comparison against
+     the row reports a change before anything is typed. Track real edits. */
+  const [touched, setTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const baseline = useRef({ title: guideline.title ?? '', content: guideline.content ?? '' });
+
+  /* Keep the fields in step with the row: without this the editor shows what
+     it was mounted with for ever, so a refetch — or another owner's change —
+     leaves stale text on screen that looks like a lost edit. */
+  useEffect(() => {
+    const incoming = { title: guideline.title ?? '', content: guideline.content ?? '' };
+    if (incoming.title === baseline.current.title && incoming.content === baseline.current.content) return;
+    baseline.current = incoming;
+    setTitle(incoming.title);
+    setContent(incoming.content);
+    setTouched(false);
+  }, [guideline.id, guideline.title, guideline.content]);
+
+  const dirty =
+    touched && (title !== baseline.current.title || content !== baseline.current.content);
+
+  const save = async () => {
+    setSaving(true);
+    const ok = await onSave({ title, content });
+    setSaving(false);
+    if (ok === false) return;
+    baseline.current = { title, content };
+    setTouched(false);
+    setSavedAt(Date.now());
+  };
 
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -629,20 +714,28 @@ function GuidelineEditor({
         value={title}
         disabled={!editable}
         placeholder="Entry title (optional)"
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => { setTouched(true); setTitle(e.target.value); }}
         className="h-8"
       />
       <AdminRichTextField
         value={content}
-        onChange={setContent}
+        onChange={(v) => { setTouched(true); setContent(v); }}
         disabled={!editable}
         minHeight="9rem"
       />
 
       {editable && (
         <div className="flex items-center gap-2">
-          <Button size="sm" disabled={!dirty} onClick={() => onSave({ title, content })}>Save</Button>
-          <Button size="sm" variant="ghost" className="text-destructive" onClick={onDelete}>
+          <Button size="sm" disabled={!dirty || saving} onClick={save}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+          {dirty && <Badge variant="outline" className="text-amber-700">Unsaved changes</Badge>}
+          {!dirty && savedAt && (
+            <span className="text-xs text-muted-foreground">
+              Saved into the draft — publish to make it live
+            </span>
+          )}
+          <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={onDelete}>
             <Trash2 className="mr-1.5 h-4 w-4" /> Delete
           </Button>
         </div>
@@ -650,6 +743,7 @@ function GuidelineEditor({
     </div>
   );
 }
+
 
 function GuidelinesDialogAdmin({
   block, versionId, editable, onOpenChange, onChanged,
@@ -695,14 +789,17 @@ function GuidelinesDialogAdmin({
   };
 
   const save = async (id: string, patch: Partial<CardGuidelineRow>) => {
-    await supabase.from('card_guidelines').update(patch as any).eq('id', id);
-    toast.success('Guideline saved');
+    const ok = await persistGuideline(id, patch);
+    if (!ok) return false;
+    toast.success('Guideline saved into the draft');
     invalidate();
+    return true;
   };
 
   const remove = async (linkId: string, id: string) => {
-    await supabase.from('card_guideline_templates').delete().eq('id', linkId);
-    await supabase.from('card_guidelines').delete().eq('id', id);
+    const { error: linkErr } = await supabase.from('card_guideline_templates').delete().eq('id', linkId);
+    const { error: rowErr } = await supabase.from('card_guidelines').delete().eq('id', id);
+    if (linkErr || rowErr) { toast.error(`Not deleted — ${(linkErr ?? rowErr)!.message}`); return; }
     invalidate();
   };
 
@@ -822,13 +919,21 @@ function CriteriaDialogAdmin({
                 guideline={e.guideline}
                 editable={editable}
                 onSave={async (patch) => {
-                  await supabase.from('card_guidelines').update(patch as any).eq('id', e.guideline.id);
-                  toast.success('Criterion saved');
+                  const ok = await persistGuideline(e.guideline.id, patch);
+                  if (!ok) return false;
+                  toast.success('Criterion saved into the draft');
                   invalidate();
+                  return true;
                 }}
                 onDelete={async () => {
-                  await supabase.from('card_guideline_sections').delete().eq('id', e.linkId);
-                  await supabase.from('card_guidelines').delete().eq('id', e.guideline.id);
+                  const { error: linkErr } = await supabase
+                    .from('card_guideline_sections').delete().eq('id', e.linkId);
+                  const { error: rowErr } = await supabase
+                    .from('card_guidelines').delete().eq('id', e.guideline.id);
+                  if (linkErr || rowErr) {
+                    toast.error(`Not deleted — ${(linkErr ?? rowErr)!.message}`);
+                    return;
+                  }
                   invalidate();
                 }}
               />
