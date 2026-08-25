@@ -62,11 +62,34 @@ export function TypstPreviewDialog({
     setError(null);
     const started = performance.now();
     try {
-      const [{ fetchSectionBlockTree, buildSectionTypstDocument }, { compileTypstToPdf }] =
-        await Promise.all([import('@/lib/typst/sectionToTypst'), import('@/lib/typst/typstCompiler')]);
-      const tree = await fetchSectionBlockTree(proposalId, sectionId);
-      const built = buildSectionTypstDocument(tree, { sectionLabel, data: refData });
-      const { pdf, compileMs } = await compileTypstToPdf(built.source);
+      const [
+        { fetchSectionBlockTree, buildSectionTypstDocument, fetchTypstDocMeta, fetchB31TypstData },
+        { compileTypstToPdf },
+        { captureFigureAssets },
+      ] = await Promise.all([
+        import('@/lib/typst/sectionToTypst'),
+        import('@/lib/typst/typstCompiler'),
+        import('@/lib/typst/typstFigures'),
+      ]);
+      // The Pert and Gantt charts are CSS-drawn DOM, so they are captured from
+      // the live board with the same snapshot utility as the PNG download.
+      const [tree, meta, sourceData, captured] = await Promise.all([
+        fetchSectionBlockTree(proposalId, sectionId),
+        fetchTypstDocMeta(proposalId),
+        fetchB31TypstData(proposalId),
+        captureFigureAssets(),
+      ]);
+      const built = buildSectionTypstDocument(tree, {
+        sectionLabel,
+        data: refData,
+        meta,
+        sourceData,
+        figuresAvailable: {
+          pert: captured.assets.some((a) => a.path.includes('pert')),
+          gantt: captured.assets.some((a) => a.path.includes('gantt')),
+        },
+      });
+      const { pdf, compileMs } = await compileTypstToPdf(built.source, captured.assets);
       const blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(blob);
