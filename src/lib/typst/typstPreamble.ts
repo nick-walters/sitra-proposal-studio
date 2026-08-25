@@ -7,6 +7,11 @@
  * Nimbus Roman (the URW Times metric clone) because a WASM compiler has no
  * access to system fonts — see `typstCompiler.ts`.
  *
+ * ORDER MATTERS: every `#let` helper is defined BEFORE `#set page(...)`,
+ * because the running footer is a closure that calls `chip-acronym` and `t`.
+ * A `set page` rule placed before those definitions would capture an empty
+ * scope and fail with "unknown variable".
+ *
  * The helper functions below are the chip vocabulary and the shared table /
  * figure / banner furniture. Every cross-reference chip is reduced to
  * `(label, colour, weight)` by `typstChips.ts` and drawn here as a real
@@ -28,9 +33,13 @@ export const TABLE_MAX_WIDTH_CM = 18;
  * Typst's baseline-to-baseline distance is `top-edge - bottom-edge + leading`.
  * Setting the edges to 0.75em / -0.25em and the leading to zero gives a pitch
  * of exactly 1em (11pt at 11pt type) — the same metric as the browser-print
- * path's `line-height: 1.0`. The previous `leading: 0.65em` left the font's
- * own ascender/descender in play and produced a ~1.55 pitch, which is why the
- * body looked loose.
+ * path's `line-height: 1.0`.
+ *
+ * That pitch only holds if nothing on the line is TALLER than 1em. Inline
+ * boxes contribute their own height to the line, which is why every chip is
+ * drawn with `outset` (paint-only, no layout) over a box whose measured height
+ * is the label's cap-height-to-descender extent — comfortably under 11pt. A
+ * line with chips therefore has exactly the same leading as one without.
  */
 export const TYPST_TOP_EDGE = '0.75em';
 export const TYPST_BOTTOM_EDGE = '-0.25em';
@@ -38,10 +47,17 @@ export const TYPST_LEADING = '0pt';
 /** 3pt before and after; adjacent paragraph margins collapse, as in CSS. */
 export const TYPST_PAR_SPACING = '3pt';
 
+export interface TypstAcronymSegment {
+  text: string;
+  color: string;
+}
+
 export interface TypstDocMeta {
-  /** Proposal acronym, plain text for now (the chip version comes later). */
+  /** Proposal acronym, plain text (footer fallback when no segments). */
   acronym?: string;
-  /** Footer middle segment, e.g. "Part B". */
+  /** Coloured acronym segments, so the footer carries the acronym CHIP. */
+  acronymSegments?: TypstAcronymSegment[];
+  /** Footer middle segment, e.g. "Part B3.1. Work plan & resources". */
   partLabel?: string;
   /** Page-one banner: topic line, acronym and full title. */
   banner?: { topicLine?: string; acronym?: string; title?: string } | null;
@@ -53,30 +69,44 @@ function lineArray(value: string): string {
   return `(${lines.map((l) => typstString(l)).join(', ')}${lines.length === 1 ? ',' : ''})`;
 }
 
+function hex(value: string | undefined): string {
+  const raw = (value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : '#000000';
+}
+
+function segmentsSource(meta: TypstDocMeta): string {
+  const segments = (meta.acronymSegments || []).filter((s) => (s.text || '').length > 0);
+  if (!segments.length) return '()';
+  const src = segments.map((s) => `(${typstString(s.text)}, ${typstString(hex(s.color))})`).join(', ');
+  return `(${src}${segments.length === 1 ? ',' : ''})`;
+}
+
+/**
+ * The running footer: acronym CHIP | section label | Page X of Y.
+ *
+ * The document is compiled one section at a time, so the section label is the
+ * same on every page and needs no per-page lookup.
+ */
 function footerSource(meta: TypstDocMeta): string {
   const acronym = (meta.acronym || '').trim();
   const part = (meta.partLabel || 'Part B').trim();
-  const prefix = [acronym, part].filter(Boolean).join(' | ');
-  // Plain string concatenation, NOT the `t()` helper: the footer closure is
-  // built by `#set page(...)` before the helpers are defined, so anything it
-  // references must already be in scope.
-  // One line: in a Typst code block a newline ends the expression, so the
-  // concatenation has to stay on a single line.
+  const segments = segmentsSource(meta);
+  const acronymExpr =
+    segments === '()'
+      ? acronym
+        ? `t(${typstString(acronym)}) + t(" | ")`
+        : ''
+      : `chip-acronym(${segments}) + t(" | ")`;
   return `context {
   set align(center)
   set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-  ${typstString(prefix ? `${prefix} | Page ` : 'Page ')} + str(counter(page).at(here()).first()) + " of " + str(counter(page).final().first())
+  ${acronymExpr}${part ? `t(${typstString(part)}) + t(" | ")` : ''}t("Page ") + str(counter(page).at(here()).first()) + t(" of ") + str(counter(page).final().first())
 }`;
 }
 
 /** The whole preamble, parameterised by the document's footer/banner text. */
 export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
-  return `#set page(
-  paper: "a4",
-  margin: (x: 15mm, top: 15mm, bottom: 15mm),
-  footer: ${footerSource(meta)},
-)
-#set text(
+  return `#set text(
   font: "${TYPST_SERIF}",
   size: 11pt,
   lang: "en",
@@ -96,21 +126,29 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 // ── chip vocabulary ────────────────────────────────────────────────────────
 #let chip-size = 10pt
 #let chip-pad = 3.5pt
+#let chip-out = 1.6pt
 
+/// Chip text. The explicit edges make the measured height cap-height →
+/// descender only, so a chip never grows the line it sits on.
 #let chip-label(s, colour) = text(
   font: "${TYPST_SERIF}",
   size: chip-size,
   weight: "bold",
   style: "normal",
+  top-edge: "cap-height",
+  bottom-edge: "descender",
   fill: colour,
   s,
 )
 
 /// Rounded pill. Filled (WP, participant) or outlined (task, case).
+/// Horizontal padding is INSET (it must push neighbouring text away); the
+/// vertical padding is OUTSET, which paints outside the box without adding
+/// anything to the line height.
 #let chip-pill(label, colour, filled: false) = box(
-  baseline: 0.15em,
-  inset: (x: chip-pad, y: 1.2pt),
-  outset: (y: 0pt),
+  baseline: 0pt,
+  inset: (x: chip-pad, y: 0pt),
+  outset: (y: chip-out),
   radius: 999pt,
   fill: if filled { colour } else { white },
   stroke: 1pt + colour,
@@ -118,15 +156,17 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 )
 
 /// Shared polygon chip: \`kind\` is "pentagon" (deliverable) or "chevron"
-/// (milestone). Width is measured from the label so the shape always fits.
-/// The label is placed as ordinary text ON TOP of the polygon — never as an
-/// outline — so it is selectable and copies out of the PDF as "D5.2".
+/// (milestone). The box reserves only the label's own height, and the shape is
+/// PLACED over it, so — like the pill — it leaves the leading untouched.
+/// The label is ordinary text ON TOP of the polygon, never an outline, so it
+/// is selectable and copies out of the PDF as "D5.2".
 #let chip-poly(label, colour, kind: "pentagon", filled: false) = context {
   let body = chip-label(label, if filled { white } else { colour })
   let m = measure(body)
-  let h = m.height + 3pt
-  let nose = 5pt
-  let w = m.width + 2 * chip-pad + nose
+  let nose = 4pt
+  let lead = if kind == "chevron" { nose } else { 0pt }
+  let h = m.height + 2 * chip-out
+  let w = m.width + 2 * chip-pad + nose + lead
   let pts = if kind == "chevron" {
     (
       (nose, 0pt), (w - nose, 0pt), (w, h / 2),
@@ -135,26 +175,29 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   } else {
     ((0pt, 0pt), (w - nose, 0pt), (w, h / 2), (w - nose, h), (0pt, h))
   }
-  box(baseline: 0.15em, width: w, height: h, {
-    place(polygon(
+  box(baseline: 0pt, width: w, height: m.height, {
+    place(top + left, dy: -chip-out, polygon(
       fill: if filled { colour } else { white },
       stroke: 1pt + colour,
       ..pts,
     ))
-    place(center + horizon, dx: -nose / 2, body)
+    place(top + left, dx: chip-pad + lead, body)
   })
 }
 
 #let chip-deliverable(label, colour) = chip-poly(label, colour, kind: "pentagon")
 #let chip-milestone(label) = chip-poly(label, black, kind: "chevron", filled: true)
 
-/// Acronym: coloured segments, heavy weight, no shape.
+/// Acronym: coloured segments, heavy weight, no shape. Serif only — the
+/// document has no sans face loaded, so naming one only triggers a fallback
+/// with different metrics, which is what made the chip ride high.
 #let chip-acronym(segments) = box(baseline: 0pt, segments.map(seg =>
-  text(font: ("Nimbus Sans", "${TYPST_SERIF}"), weight: "black", fill: rgb(seg.at(1)), seg.at(0))
+  text(font: "${TYPST_SERIF}", weight: "bold", top-edge: "cap-height", bottom-edge: "descender", fill: rgb(seg.at(1)), seg.at(0))
 ).join())
 
 // ── tables and figures ─────────────────────────────────────────────────────
 #let he-table-width = ${TABLE_MAX_WIDTH_CM}cm
+#let he-inset = (x: 4pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.
 #let he-caption(label, caption) = block(
@@ -180,7 +223,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   below: 6pt,
   table(
     columns: cols,
-    inset: (x: 3pt, y: 1.5pt),
+    inset: he-inset,
     align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
     stroke: (x, y) => (
       left: none,
@@ -191,6 +234,69 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
         else { 0.5pt + rgb("#e5e7eb") },
     ),
     ..header.map(cell => text(weight: "bold", cell)),
+    ..rows.flatten(),
+  ),
+)
+
+/// Same look as \`he-table\`, but takes an ALREADY FLATTENED cell list so a
+/// cell can span rows (\`table.cell(rowspan: n, …)\`). \`nrows\` is the grid row
+/// count, header included, so the last row keeps no rule under it.
+#let he-cell-table(cols, cells, nrows, aligns: none) = block(
+  width: he-table-width,
+  above: 0pt,
+  below: 6pt,
+  table(
+    columns: cols,
+    inset: he-inset,
+    align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
+    stroke: (x, y) => (
+      left: none,
+      right: none,
+      top: none,
+      bottom: if y == 0 { 1.5pt + black }
+        else if y == nrows - 1 { none }
+        else { 0.5pt + rgb("#e5e7eb") },
+    ),
+    ..cells,
+  ),
+)
+
+/// A rule-free grid whose cells carry their own fills — the staff-effort
+/// matrix, which on screen is a block of coloured cells, not a ruled table.
+#let he-grid(cols, cells) = block(
+  width: he-table-width,
+  above: 0pt,
+  below: 6pt,
+  table(
+    columns: cols,
+    inset: (x: 3pt, y: 1.5pt),
+    stroke: none,
+    align: (x, y) => if x == 0 { left + horizon } else { center + horizon },
+    ..cells,
+  ),
+)
+
+/// The work-package description table (3.1.b): no ruled grid, a coloured rule
+/// under the WP heading and a lighter one above each task, exactly as the
+/// board draws it. \`seps\` holds the grid rows that begin a task.
+#let he-wp-table(header, rows, colour, seps) = block(
+  width: he-table-width,
+  above: 0pt,
+  below: 8pt,
+  table(
+    columns: (1fr,),
+    inset: (x: 0pt, y: 2.5pt),
+    align: left + top,
+    stroke: (x, y) => (
+      left: none,
+      right: none,
+      bottom: none,
+      top: if y == 0 { none }
+        else if y == 1 { 1pt + colour }
+        else if seps.contains(y) { 0.5pt + colour }
+        else { none },
+    ),
+    header,
     ..rows.flatten(),
   ),
 )
@@ -206,7 +312,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 // ── page-one banner ────────────────────────────────────────────────────────
 /// Full-bleed black banner flush to the top edge of page one. Placed into the
 /// page margin, then the flow is advanced by the measured height so the body
-/// starts underneath it.
+/// starts underneath it. Only the FIRST section of the document emits this.
 #let doc-banner(topic, acronym, title) = context {
   let body = block(
     width: 210mm,
@@ -239,6 +345,14 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   stroke: 0.5pt + rgb("#999999"),
   fill: rgb("#f4f4f5"),
   text(size: 9pt, style: "italic", fill: rgb("#52525b"), what),
+)
+
+// Page setup comes LAST: the footer closure below references \`t\` and
+// \`chip-acronym\`, which must already be in scope.
+#set page(
+  paper: "a4",
+  margin: (x: 15mm, top: 15mm, bottom: 15mm),
+  footer: ${footerSource(meta)},
 )
 `;
 }

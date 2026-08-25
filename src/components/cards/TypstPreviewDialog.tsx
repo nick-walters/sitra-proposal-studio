@@ -81,7 +81,7 @@ export function TypstPreviewDialog({
       // the live board with the same snapshot utility as the PNG download.
       const [tree, meta, sourceData, captured, references] = await Promise.all([
         fetchSectionBlockTree(proposalId, sectionId),
-        fetchTypstDocMeta(proposalId),
+        fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
         fetchB31TypstData(proposalId),
         captureFigureAssets(),
         fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
@@ -97,6 +97,7 @@ export function TypstPreviewDialog({
           gantt: captured.assets.some((a) => a.path.includes('gantt')),
         },
       });
+
       const { pdf, compileMs } = await compileTypstToPdf(built.source, captured.assets);
       const blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);

@@ -164,10 +164,14 @@ function convertHeading(el: Element, level: number, ctx: ConvertContext): string
   const title = convertInlineChildren(clone, ctx).replace(/^t\(" /, 't("');
   const prefix = number ? `${lit(number.endsWith(' ') ? number : `${number} `)} + ` : '';
   const size = HEADING_SIZES[level] || '11pt';
+  // Headings use the ordinary 3pt paragraph spacing (the document spec), not
+  // an enlarged structural gap: a H4 between two modules must not open a
+  // wider hole than a paragraph break.
   return wrapBlock(
     el,
-    `block(above: 12pt, below: 6pt, text(size: ${size}, weight: "bold", ${prefix}${title}))`,
+    `block(above: 3pt, below: 3pt, text(size: ${size}, weight: "bold", ${prefix}${title}))`,
   );
+
 }
 
 const LIST_NUMBERING: Record<string, string> = {

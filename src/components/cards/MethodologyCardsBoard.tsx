@@ -1802,6 +1802,26 @@ function BoardInner({
   const allBlocksCollapsed =
     visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
 
+  /**
+   * The Pert and Gantt charts are rasterised from the live board, so a
+   * collapsed chart block is `display: none` and captures as nothing. Opening
+   * the preview expands both blocks first (and leaves them expanded), so the
+   * user never has to know that the capture reads the DOM.
+   */
+  const openTypstPreview = async () => {
+    const chartCardIds = cards
+      .filter((c) => c.sourceKey === 'b31.pert' || c.sourceKey === 'b31.gantt')
+      .map((c) => c.id)
+      .filter((id) => collapsedIds.has(id));
+    if (chartCardIds.length) {
+      await setAllCollapsed.mutateAsync({ ids: chartCardIds, collapsed: false });
+      // One frame for the charts to lay out before the snapshot is taken.
+      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 250)));
+    }
+    setTypstOpen(true);
+  };
+
+
 
 
   /** Deleted modules per live block, for the per-block bin icon. */
@@ -2130,7 +2150,7 @@ function BoardInner({
           proposalId={proposalId}
           save={{ saving, lastSaved, savedMode, isDirty, onSaveNow: handleSaveNow }}
           topBar={{
-              onPreview: isAdminOrOwner ? () => setTypstOpen(true) : undefined,
+              onPreview: isAdminOrOwner ? () => void openTypstPreview() : undefined,
               previewLabel: sectionMeta.previewLabel,
               collapseAll: {
                 allCollapsed: allBlocksCollapsed,

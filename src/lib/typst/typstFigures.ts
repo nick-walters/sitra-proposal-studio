@@ -29,13 +29,26 @@ export interface CapturedFigures {
   missing: FigureKind[];
 }
 
+/**
+ * The CHART ONLY — never the caption.
+ *
+ * `[data-figure-type]` wraps the chart *and* its on-screen caption, which is
+ * what the PNG download wants. Rasterising that wrapper baked the caption into
+ * the image, and Typst then emitted `he-figure-caption` underneath it, so the
+ * caption appeared twice and the two overlapped. `[data-figure-chart]` is the
+ * inner wrapper around the chart alone; the outer element is only a fallback
+ * for surfaces that have not been updated.
+ */
 async function captureOne(kind: FigureKind): Promise<Uint8Array | null> {
-  const el = document.querySelector<HTMLElement>(`[data-figure-type="${kind}"]`);
+  const el =
+    document.querySelector<HTMLElement>(`[data-figure-chart="${kind}"]`) ??
+    document.querySelector<HTMLElement>(`[data-figure-type="${kind}"]`);
   if (!el || el.offsetHeight === 0) return null;
   const blob = await renderElementToPngBlob(el);
   if (!blob) return null;
   return new Uint8Array(await blob.arrayBuffer());
 }
+
 
 /** Captures whichever charts are currently rendered on the board. */
 export async function captureFigureAssets(

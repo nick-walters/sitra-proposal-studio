@@ -162,15 +162,16 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.gantt':
       return ganttFigure ? (
         <FigureCapture kind="gantt">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <GanttChartFigure
-            figureId={ganttFigure.id}
-            proposalId={proposalId}
-            figureNumber={ganttFigure.figure_number}
-            content={ganttFigure.content as never}
-            onContentChange={() => {}}
-            canEdit={false}
-          />
+          <div data-figure-chart="gantt">
+            <GanttChartFigure
+              figureId={ganttFigure.id}
+              proposalId={proposalId}
+              figureNumber={ganttFigure.figure_number}
+              content={ganttFigure.content as never}
+              onContentChange={() => {}}
+              canEdit={false}
+            />
+          </div>
           <EditableCaption
             proposalId={proposalId}
             figureId={ganttFigure.id}
@@ -185,14 +186,16 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.pert':
       return pertFigure ? (
         <FigureCapture kind="pert">
-          <PERTChartFigure
-            figureId={pertFigure.id}
-            proposalId={proposalId}
-            figureNumber={pertFigure.figure_number}
-            content={pertFigure.content as never}
-            onContentChange={() => {}}
-            canEdit={false}
-          />
+          <div data-figure-chart="pert">
+            <PERTChartFigure
+              figureId={pertFigure.id}
+              proposalId={proposalId}
+              figureNumber={pertFigure.figure_number}
+              content={pertFigure.content as never}
+              onContentChange={() => {}}
+              canEdit={false}
+            />
+          </div>
           <EditableCaption
             proposalId={proposalId}
             figureId={pertFigure.id}
@@ -204,6 +207,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
       ) : (
         <Note>The Pert chart appears here once it has been created on the figures page.</Note>
       );
+
     default:
       return <Note>This source has no renderer yet.</Note>;
   }
