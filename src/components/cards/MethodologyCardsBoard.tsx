@@ -366,6 +366,7 @@ interface FieldRowProps {
   onContentChange: (field: CardField, html: string) => void;
   onDelete: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onToggleVisible: (field: CardField, visible: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
   /** Flushes the content text box immediately (used before a lock release). */
@@ -393,6 +394,7 @@ function FieldRow({
   onContentChange,
   onDelete,
   onToggleHeading,
+  onToggleVisible,
   onFocusField,
   onLostText,
   onFlushContent,
@@ -538,7 +540,9 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
+      className={`space-y-2 rounded-md border border-border p-3 transition-shadow ${
+        field.isVisible ? '' : 'opacity-50'
+      }`}
     >
       <div className="flex items-center gap-1">
         {canEdit && (
@@ -656,6 +660,34 @@ function FieldRow({
             )}
 
             {canEdit && (
+              <Tip
+                label={
+                  field.isVisible
+                    ? 'Hide this module from Part B'
+                    : 'Show this module in Part B'
+                }
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => onToggleVisible(field, !field.isVisible)}
+                  aria-label={
+                    field.isVisible
+                      ? 'Hide this module from Part B'
+                      : 'Show this module in Part B'
+                  }
+                >
+                  {field.isVisible ? (
+                    <Eye className="h-3.5 w-3.5" />
+                  ) : (
+                    <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </Button>
+              </Tip>
+            )}
+
+            {canEdit && !UNDELETABLE_MODULE_CARD_KEYS.has(cardTemplateKey ?? '') && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete module">
@@ -1410,6 +1442,7 @@ function CardBlock({
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
                         onToggleHeading={onToggleHeading}
+                        onToggleVisible={onToggleFieldVisible}
                         onFocusField={onFocusField}
                         onLostText={onLostText}
                         onFlushContent={onFlushContent}
@@ -2116,6 +2149,8 @@ function BoardInner({
       void saveTextBox(f.id, f.cardId, 'header', heading ?? '', false),
     onToggleHeading: (f: CardField, enabled: boolean) =>
       updateField.mutate({ fieldId: f.id, cardId: f.cardId, headingEnabled: enabled }),
+    onToggleFieldVisible: (f: CardField, visible: boolean) =>
+      updateField.mutate({ fieldId: f.id, cardId: f.cardId, isVisible: visible }),
 
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
