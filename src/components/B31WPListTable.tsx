@@ -109,13 +109,18 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             return (
               <tr key={wp.id}>
                 <td className={`${firstCellStyles} break-words`}>
-                  <WPBubble wpColor={wp.color || '#666'}>
+                  <WPBubble
+                    wpColor={wp.color || '#666'}
+                    style={{ whiteSpace: 'normal', height: 'auto', maxWidth: '100%', padding: '1px 5px', lineHeight: 1.15 }}
+                  >
                     WP{wp.number}: {shortName}{shortName && title ? ' – ' : ''}{title}
                   </WPBubble>
                 </td>
                 <td className={`${cellStyles} break-words`}>
                   {leader ? (
-                    <ParticipantBubble>
+                    <ParticipantBubble
+                      style={{ whiteSpace: 'normal', height: 'auto', maxWidth: '100%', padding: '1px 5px', lineHeight: 1.15 }}
+                    >
                       {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
                     </ParticipantBubble>
                   ) : '—'}
