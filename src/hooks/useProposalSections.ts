@@ -527,12 +527,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       ],
     };
 
-    // Milestones & risks (proposal-level managers)
-    const milestonesRisksSection: Section = {
-      id: 'milestones-risks',
-      number: '',
-      title: 'Milestones & risks',
-    };
+    // Milestones & risks are authored inside the Part B3.1 block editor
+    // (Tables 3.1.d and 3.1.e); the standalone page is retired and no longer
+    // appears in the navigation.
 
     // Combined WPs & cases section — dynamic title based on cases_enabled + case types.
     const wpCaseManagerTitle = buildWpCaseManagerTitle({
@@ -558,16 +555,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts, Milestones & risks
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP/case manager & drafts
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
 
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
         result.push(wpAndCasesSection);
       }
-
-      // Add Milestones & risks manager (always shown)
-      result.push(milestonesRisksSection);
 
       return result;
     }
@@ -579,9 +573,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
-
-    // Add Milestones & risks manager
-    fallbackSections.push(milestonesRisksSection);
 
     return fallbackSections;
 

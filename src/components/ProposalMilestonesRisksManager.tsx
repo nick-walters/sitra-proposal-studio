@@ -255,80 +255,113 @@ export function ProposalMilestonesRisksManager(props: Props) {
 }
 
 
+/**
+ * LEGACY PAGE — kept as the rollback path only.
+ *
+ * Milestones and risks are authored inside the B3.1 block editor (blocks
+ * Table 3.1.d and Table 3.1.e), which mounts the very same
+ * `MilestonesEditor` / `RisksEditor` exported below. This page is reachable
+ * from nothing.
+ */
 function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDuration = 36 }: Props) {
   const { activeEditor } = useMethodologyEditorFocus();
-  const runOnActiveEditor = (fn: (chain: ReturnType<NonNullable<typeof activeEditor>['chain']>) => void) => {
-    if (!activeEditor || activeEditor.isDestroyed) return;
-    fn(activeEditor.chain().focus());
-  };
-
-  /**
-   * Maps the shared toolbar's execCommand-style vocabulary onto the focused
-   * TipTap editor, so this page uses the same toolbar as every other surface.
-   */
-  const execCommand = (command: string, value?: string) => {
-    runOnActiveEditor((chain) => {
-      const c = chain as any;
-      switch (command) {
-        case 'bold': c.toggleBold().run(); break;
-        case 'italic': c.toggleItalic().run(); break;
-        case 'underline': c.toggleUnderline().run(); break;
-        case 'insertUnorderedList': c.toggleBulletList?.().run(); break;
-        case 'insertOrderedList': c.toggleOrderedList?.().run(); break;
-        case 'justifyLeft': c.setTextAlign?.('left')?.run(); break;
-        case 'justifyCenter': c.setTextAlign?.('center')?.run(); break;
-        case 'justifyRight': c.setTextAlign?.('right')?.run(); break;
-        case 'justifyFull': c.setTextAlign?.('justify')?.run(); break;
-        case 'insertHTML': c.insertContent(value ?? '').run(); break;
-        default: break;
-      }
-    });
-  };
-  const qc = useQueryClient();
-
-  // ── Save-state tracking for the page-header SaveIndicator ────
-  const pendingTextareasRef = useRef(0);
-  const [pendingTextareas, setPendingTextareas] = useState(0);
-  const flushers = useRef(new Set<() => void>());
-  const [activeSaves, setActiveSaves] = useState(0);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const tracker = useMemo<SaveTrackerCtx>(() => ({
-    bumpPending: (delta: number) => {
-      pendingTextareasRef.current = Math.max(0, pendingTextareasRef.current + delta);
-      setPendingTextareas(pendingTextareasRef.current);
-    },
-    registerFlush: (flush: () => void) => {
-      flushers.current.add(flush);
-      return () => { flushers.current.delete(flush); };
-    },
-  }), []);
-
-  // Offers back text refused by the version guard, as the cards board does.
-  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const guidelineKey = useFocusedGuidelineKey();
+  const pageSearch = usePageSearch();
 
-  // Apply to every mutation to track saving/lastSaved/saveError.
-  const saveHooks = useMemo(() => ({
-    onMutate: () => { setActiveSaves(s => s + 1); },
-    onSettled: (_data: unknown, err: unknown) => {
-      setActiveSaves(s => Math.max(0, s - 1));
-      if (err) setSaveError((err as any)?.message || String(err));
-      else { setLastSaved(new Date()); setSaveError(null); }
+  const { data: acronymSegments } = useQuery({
+    queryKey: ['proposal-acronym-segments', proposalId],
+    enabled: !!proposalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('acronym_segments')
+        .eq('id', proposalId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as { acronym_segments?: { text: string; color: string }[] } | null)?.acronym_segments) || [];
     },
-  }), []);
+  });
 
-  const saveNow = useCallback(() => {
-    // Flush every armed AutoTextarea timer — their onChange fires the mutation immediately.
-    Array.from(flushers.current).forEach(f => { try { f(); } catch { /* noop */ } });
-  }, []);
+  return (
+    <TooltipProvider>
+    <div className="p-6 space-y-6 compact-ref-badges">
+      <div className="flex items-start justify-between gap-4">
+        <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
+      </div>
+
+      {canEdit && (
+        <div className="contents">
+          <EditorToolbars
+            proposalId={proposalId}
+            // Rollback page only: each editor saves itself, so the indicator
+            // carries no page-level state.
+            save={{ saving: false, lastSaved: null }}
+            topBar={{
+              onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            }}
+            fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
+            formatting={{
+              proposalId,
+              crossRefDropdown: (
+                <ParticipantCrossRefDropdown
+                  proposalId={proposalId}
+                  acronymSegments={acronymSegments}
+                  editor={activeEditor}
+                />
+              ),
+            }}
+          />
+        </div>
+      )}
+
+      <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {guidelineKey === 'risks' ? 'Guidelines: critical risks' : 'Guidelines: milestones'}
+            </DialogTitle>
+          </DialogHeader>
+          <GuidelineBox
+            type="official"
+            title={guidelineKey === 'risks' ? 'Critical risks' : 'Milestones'}
+          >
+            {guidelineKey === 'risks' ? <RisksGuidelinesInline /> : <MilestonesGuidelinesInline />}
+          </GuidelineBox>
+        </DialogContent>
+      </Dialog>
+
+      <Card data-guideline-key="milestones">
+        <CardHeader className="space-y-1 pb-3">
+          <CardTitle className="text-base">Milestones</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MilestonesEditor
+            proposalId={proposalId}
+            canEdit={canEdit}
+            projectDuration={projectDuration}
+          />
+        </CardContent>
+      </Card>
+
+      <Card data-guideline-key="risks">
+        <CardHeader className="space-y-1 pb-3">
+          <CardTitle className="text-base">Critical risks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RisksEditor proposalId={proposalId} canEdit={canEdit} />
+        </CardContent>
+      </Card>
+    </div>
+      <PageFindReplacePanel />
+    </TooltipProvider>
+  );
+}
 
 
-
-  // ── WP + task lookups ────────────────────────────────────────
-  const { data: wps = [] } = useQuery<WPRow[]>({
+/** WP lookup shared by both editors. */
+function useWpRows(proposalId: string) {
+  return useQuery<WPRow[]>({
     queryKey: ['wp-drafts-mr-mgr', proposalId],
     queryFn: async () => {
       const { data } = await supabase
@@ -342,23 +375,48 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       }));
     },
   });
+}
 
-  const wpIdsKey = wps.map(w => w.id).join(',');
-  const { data: tasks = [] } = useQuery<TaskRow[]>({
-    queryKey: ['wp-tasks-mr-mgr', proposalId, wpIdsKey],
+/** Cross-reference consumers re-read the milestone/risk tables on this event. */
+function notifyRefs() {
+  window.dispatchEvent(
+    new CustomEvent('cross-ref-data-changed', { detail: { source: 'ProposalMilestonesRisksManager' } }),
+  );
+}
+
+/**
+ * Milestones editor — the authoring surface for Table 3.1.d.
+ *
+ * Mounted by the B3.1 block editor and, as the rollback path, by the legacy
+ * page above. Data stays in `proposal_milestones` / `proposal_milestone_wps`:
+ * only the surface moved.
+ */
+export function MilestonesEditor({
+  proposalId,
+  canEdit,
+  projectDuration,
+}: {
+  proposalId: string;
+  canEdit: boolean;
+  /** Omitted inside the B3.1 block, where the duration is read here. */
+  projectDuration?: number;
+}) {
+  const qc = useQueryClient();
+  const { data: fetchedDuration } = useQuery({
+    queryKey: ['proposal-duration', proposalId],
+    enabled: !!proposalId && projectDuration == null,
     queryFn: async () => {
-      if (wps.length === 0) return [];
-      const { data } = await supabase
-        .from('wp_draft_tasks')
-        .select('id, number, title, wp_draft_id')
-        .in('wp_draft_id', wps.map(wp => wp.id))
-        .order('number');
-      return data || [];
+      const { data } = await supabase.from('proposals').select('duration').eq('id', proposalId).maybeSingle();
+      return (data as { duration?: number } | null)?.duration ?? 36;
     },
-    enabled: wps.length > 0,
   });
+  const duration = projectDuration ?? fetchedDuration ?? 36;
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
+  const [msReorderOpen, setMsReorderOpen] = useState(false);
 
-  // ── Milestones ───────────────────────────────────────────────
+  const { data: wps = [] } = useWpRows(proposalId);
+  const wpsById = useMemo(() => new Map(wps.map((wp) => [wp.id, wp])), [wps]);
+
   const { data: milestones = [] } = useQuery<Milestone[]>({
     queryKey: MS_KEY(proposalId),
     queryFn: async () => {
@@ -388,38 +446,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
   });
 
-  const { data: risks = [] } = useQuery<Risk[]>({
-    queryKey: RISK_KEY(proposalId),
-    queryFn: async () => {
-      const { data: rows } = await supabase
-        .from('proposal_risks')
-        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at, version')
-        .eq('proposal_id', proposalId)
-        .order('order_index')
-        .order('created_at');
-      const ids = (rows || []).map((r: any) => r.id);
-      const linksRes = ids.length
-        ? await supabase.from('proposal_risk_wps').select('risk_id, wp_draft_id').in('risk_id', ids)
-        : { data: [] as any[] };
-      const wpMap = new Map<string, string[]>();
-      for (const l of linksRes.data || []) {
-        const a = wpMap.get(l.risk_id) || [];
-        a.push(l.wp_draft_id);
-        wpMap.set(l.risk_id, a);
-      }
-      return (rows || []).map((r: any) => ({ ...r, wp_ids: wpMap.get(r.id) || [] }));
-    },
-  });
-
-
-  // Helper: bump cross-ref consumers when MS data changes
-  const notifyRefs = () => {
-    window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'ProposalMilestonesRisksManager' } }));
-  };
-
-  const wpsById = useMemo(() => new Map(wps.map(wp => [wp.id, wp])), [wps]);
-
-  // ── Auto-order milestones: due_month asc (nulls last), then intra-month order_index, then id ──
+  // Due month asc (nulls last), then intra-month order_index, then id. The
+  // MS number itself is maintained by the database resequencing trigger —
+  // nothing on the client writes `number`.
   const orderedMs = useMemo(() => {
     return [...milestones].sort((a, b) => {
       const da = a.due_month ?? Number.POSITIVE_INFINITY;
@@ -430,10 +459,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     });
   }, [milestones]);
 
-  // ── Milestone numbering is maintained by the database resequencing trigger ──
-  // (due month, then order_index). Nothing on the client writes `number`.
-
-  // ── Persist same-month manual order_index (called by reorder dialog) ──
   const persistMsGroupOrder = useCallback(async (newSorted: Milestone[]) => {
     // All-or-nothing: the whole reorder is refused if any row moved on, since a
     // half-applied order leaves the list in a state nobody asked for.
@@ -461,30 +486,9 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     notifyRefs();
   }, [proposalId, qc]);
 
-
-  // Means of verification is rich text (formatting + cross-reference badges).
-  const { data: acronymSegments } = useQuery({
-    queryKey: ['proposal-acronym-segments', proposalId],
-    enabled: !!proposalId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select('acronym_segments')
-        .eq('id', proposalId)
-        .maybeSingle();
-      if (error) throw error;
-      return ((data as { acronym_segments?: { text: string; color: string }[] } | null)?.acronym_segments) || [];
-    },
-  });
-
-
-
-  // ── Mutations: milestones ────────────────────────────────────
   const addMilestone = useMutation({
     mutationFn: async () => {
       const nextOrder = (milestones.reduce((m, x) => Math.max(m, x.order_index), -1)) + 1;
-      // max(number) + 1, matching risks. `length + 1` duplicated an existing
-      // number whenever the list already had a gap.
       const nextNum = (milestones.reduce((m, x) => Math.max(m, x.number), 0)) + 1;
       const { error } = await supabase
         .from('proposal_milestones')
@@ -493,7 +497,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
     onError: (e: any) => toast.error(e.message),
-    ...saveHooks,
   });
 
   const updateMilestone = useMutation({
@@ -513,7 +516,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
-    ...saveHooks,
   });
 
   const deleteMilestone = useMutation({
@@ -528,9 +530,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
-    ...saveHooks,
   });
-
 
   const setMsWps = useMutation({
     mutationFn: async ({ id, wpIds, primaryWpId }: { id: string; wpIds: string[]; primaryWpId: string | null }) => {
@@ -544,10 +544,256 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
-    ...saveHooks,
   });
 
-  // ── Mutations: risks (UNCHANGED — part 2 will revisit) ───────
+  // Page-wide find and replace over the stored milestone text. Writes reuse
+  // the same versioned RPC as ordinary editing, so a stale row is rejected.
+  const searchFields = useCallback((): SearchableField[] => {
+    const out: SearchableField[] = [];
+    for (const m of milestones) {
+      const label = `MS${m.number}`;
+      for (const [column, columnLabel, value] of [
+        ['title', 'name', m.title],
+        ['means_of_verification', 'means of verification', m.means_of_verification],
+      ] as const) {
+        if (!value) continue;
+        out.push({
+          id: `milestone:${m.id}:${column}`,
+          label: `${label} › ${columnLabel}`,
+          groupId: m.id,
+          groupLabel: label,
+          format: 'text',
+          value,
+          readOnly: !canEdit,
+          reveal: () => jumpToElementId(`milestone-row-${m.id}`),
+          save: !canEdit
+            ? undefined
+            : async (next): Promise<FieldSaveOutcome> => {
+                const res = await saveVersionedRow('proposal_milestones', m.id, { [column]: next }, m.version ?? null);
+                if (res.conflict) return { ok: false, conflict: true };
+                if (!res.ok) return { ok: false, conflict: false, error: res.error };
+                qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
+                return { ok: true };
+              },
+        });
+      }
+    }
+    return out;
+  }, [milestones, canEdit, qc, proposalId]);
+
+  usePageSearchSource('milestones', 'Milestones', searchFields);
+
+  return (
+    <TooltipProvider>
+      <div className="compact-ref-badges">
+        <div className="space-y-1">
+          {/* Column labels for the second line — same fixed grid as every row,
+              indented to align with the milestone name above. */}
+          {orderedMs.length > 0 && (
+            <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
+              <div />
+              <div className={cn(MILESTONE_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                <div>Milestone name</div>
+                <div>WP(s)</div>
+                <div>Due month</div>
+                <div />
+              </div>
+            </div>
+          )}
+          {orderedMs.length === 0 && (
+            <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
+          )}
+          {orderedMs.map((m) => {
+            const selectedWps = m.wp_ids
+              .map(id => wpsById.get(id))
+              .filter((w): w is WPRow => !!w)
+              .sort((a, b) => a.number - b.number);
+            return (
+              <div
+                key={m.id}
+                id={`milestone-row-${m.id}`}
+                className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1"
+              >
+                {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
+                <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
+                  <MilestoneBadge number={m.number} />
+                </span>
+
+                <div className={MILESTONE_LINE1_GRID}>
+                  <div className="min-w-0">
+                    <DebouncedRichField
+                      value={m.title || ''}
+                      disabled={!canEdit}
+                      minHeight="30px"
+                      proposalId={proposalId}
+                      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                    />
+                  </div>
+                  <div>
+                    <MilestoneWpDialog
+                      wps={wps}
+                      selectedWpIds={m.wp_ids}
+                      primaryWpId={m.primary_wp_id}
+                      disabled={!canEdit}
+                      onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
+                      renderTrigger={(open) => (
+                        <button
+                          type="button"
+                          onClick={open}
+                          disabled={!canEdit}
+                          className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {selectedWps.length === 0 ? (
+                            <span className="text-muted-foreground italic">Select WP(s)…</span>
+                          ) : (
+                            <span className="flex flex-wrap gap-0.5 items-center">
+                              {isAllWPsSelected(selectedWps.length, wps.length) ? (
+                                <>
+                                  <AllWPsBubble />
+                                  {/* "All WPs" hides which WP is starred as
+                                      primary for the Gantt, so the primary is
+                                      shown alongside it — editor only, never
+                                      mirrored into the preview or export. */}
+                                  {selectedWps
+                                    .filter((wp) => wp.id === m.primary_wp_id)
+                                    .map((wp) => (
+                                      <WPBubble
+                                        key={wp.id}
+                                        wpNumber={wp.number}
+                                        wpColor={wp.color}
+                                        showStar
+                                      />
+                                    ))}
+                                </>
+                              ) : (
+                                selectedWps.map(wp => (
+                                  <WPBubble
+                                    key={wp.id}
+                                    wpNumber={wp.number}
+                                    wpColor={wp.color}
+                                    showStar={wp.id === m.primary_wp_id}
+                                  />
+                                ))
+                              )}
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <SingleMonthPicker
+                      value={m.due_month}
+                      projectDuration={duration}
+                      readOnly={!canEdit}
+                      label=""
+                      onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <Button
+                      size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+                      disabled={!canEdit}
+                      onClick={() => deleteMilestone.mutate(m.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* ── Line 2: means of verification, aligned with the name above ── */}
+                <div className="col-start-2">
+                  <DebouncedRichField
+                    value={m.means_of_verification || ''}
+                    disabled={!canEdit}
+                    minHeight="30px"
+                    proposalId={proposalId}
+                    staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+                    placeholder="Means of verification"
+                    onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {canEdit && (
+          <div className="flex items-center justify-end gap-2 pt-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-muted hover:bg-muted/80 text-foreground"
+                  onClick={() => setMsReorderOpen(true)}
+                >
+                  <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
+            </Tooltip>
+            <Button size="sm" onClick={() => addMilestone.mutate()}>
+              <Plus className="h-4 w-4 mr-1" /> Add milestone
+            </Button>
+          </div>
+        )}
+
+        <MsSameMonthReorderDialog
+          open={msReorderOpen}
+          onOpenChange={setMsReorderOpen}
+          sorted={orderedMs}
+          wpsById={wpsById}
+          onPersist={persistMsGroupOrder}
+        />
+        {conflictDialog}
+      </div>
+    </TooltipProvider>
+  );
+}
+
+
+/**
+ * Critical risks editor — the authoring surface for Table 3.1.e.
+ *
+ * Risks carry no printed number: they appear in the order the author drags
+ * them into. Data stays in `proposal_risks` / `proposal_risk_wps`.
+ */
+export function RisksEditor({
+  proposalId,
+  canEdit,
+}: {
+  proposalId: string;
+  canEdit: boolean;
+}) {
+  const qc = useQueryClient();
+  const { reportConflict, dialog: conflictDialog } = useVersionConflict();
+  const { data: wps = [] } = useWpRows(proposalId);
+
+  const { data: risks = [] } = useQuery<Risk[]>({
+    queryKey: RISK_KEY(proposalId),
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from('proposal_risks')
+        .select('id, number, title, likelihood, severity, mitigation, order_index, created_at, version')
+        .eq('proposal_id', proposalId)
+        .order('order_index')
+        .order('created_at');
+      const ids = (rows || []).map((r: any) => r.id);
+      const linksRes = ids.length
+        ? await supabase.from('proposal_risk_wps').select('risk_id, wp_draft_id').in('risk_id', ids)
+        : { data: [] as any[] };
+      const wpMap = new Map<string, string[]>();
+      for (const l of linksRes.data || []) {
+        const a = wpMap.get(l.risk_id) || [];
+        a.push(l.wp_draft_id);
+        wpMap.set(l.risk_id, a);
+      }
+      return (rows || []).map((r: any) => ({ ...r, wp_ids: wpMap.get(r.id) || [] }));
+    },
+  });
+
   const addRisk = useMutation({
     mutationFn: async () => {
       const nextNum = (risks.reduce((m, x) => Math.max(m, x.number), 0)) + 1;
@@ -559,7 +805,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
     onError: (e: any) => toast.error(e.message),
-    ...saveHooks,
   });
 
   const updateRisk = useMutation({
@@ -575,7 +820,6 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
-    ...saveHooks,
   });
 
   const deleteRisk = useMutation({
@@ -590,9 +834,7 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
-    ...saveHooks,
   });
-
 
   const setRiskWps = useMutation({
     mutationFn: async ({ id, wpIds }: { id: string; wpIds: string[] }) => {
@@ -605,10 +847,8 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
-    ...saveHooks,
   });
 
-  // Risks are user-ordered via drag-and-drop; sort by order_index then created_at (query already does this).
   const riskSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -642,337 +882,74 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
     const newIndex = risks.findIndex(r => r.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     const reordered = arrayMove(risks, oldIndex, newIndex);
-    // Optimistic cache update
     qc.setQueryData(RISK_KEY(proposalId), reordered.map((r, i) => ({ ...r, order_index: i })));
     persistRiskOrder(reordered);
   };
 
-
-  const [msReorderOpen, setMsReorderOpen] = useState(false);
-
-  /**
-   * Page-wide find and replace over the stored milestone and risk text. These
-   * rows are plain text, never HTML, and they carry no chips of their own, so
-   * every field here is searched verbatim. Writes reuse the same versioned
-   * RPCs as ordinary editing, so a stale row is rejected, not overwritten.
-   */
-  const searchFieldsForPage = useCallback((): SearchableField[] => {
+  const searchFields = useCallback((): SearchableField[] => {
     const out: SearchableField[] = [];
-
-    const push = (
-      kind: 'milestone' | 'risk',
-      rowId: string,
-      rowLabel: string,
-      column: string,
-      columnLabel: string,
-      value: string | null,
-      version: number | null,
-    ) => {
-      if (!value) return;
-      out.push({
-        id: `${kind}:${rowId}:${column}`,
-        label: `${rowLabel} › ${columnLabel}`,
-        groupId: rowId,
-        groupLabel: rowLabel,
-        format: 'text',
-        value,
-        readOnly: !canEdit,
-        reveal: () => jumpToElementId(`${kind}-row-${rowId}`),
-        save: !canEdit
-          ? undefined
-          : async (next): Promise<FieldSaveOutcome> => {
-              const table = kind === 'milestone' ? 'proposal_milestones' : 'proposal_risks';
-              const res = await saveVersionedRow(table, rowId, { [column]: next }, version);
-              if (res.conflict) return { ok: false, conflict: true };
-              if (!res.ok) return { ok: false, conflict: false, error: res.error };
-              qc.invalidateQueries({
-                queryKey: kind === 'milestone' ? MS_KEY(proposalId) : RISK_KEY(proposalId),
-              });
-              return { ok: true };
-            },
-      });
-    };
-
-    for (const m of milestones) {
-      const label = `MS${m.number}`;
-      push('milestone', m.id, label, 'title', 'name', m.title, m.version ?? null);
-      push(
-        'milestone',
-        m.id,
-        label,
-        'means_of_verification',
-        'means of verification',
-        m.means_of_verification,
-        m.version ?? null,
-      );
-    }
     for (const r of risks) {
       const label = `Risk ${r.number}`;
-      push('risk', r.id, label, 'title', 'description', r.title, r.version ?? null);
-      push('risk', r.id, label, 'mitigation', 'mitigation', r.mitigation, r.version ?? null);
+      for (const [column, columnLabel, value] of [
+        ['title', 'description', r.title],
+        ['mitigation', 'mitigation', r.mitigation],
+      ] as const) {
+        if (!value) continue;
+        out.push({
+          id: `risk:${r.id}:${column}`,
+          label: `${label} › ${columnLabel}`,
+          groupId: r.id,
+          groupLabel: label,
+          format: 'text',
+          value,
+          readOnly: !canEdit,
+          reveal: () => jumpToElementId(`risk-row-${r.id}`),
+          save: !canEdit
+            ? undefined
+            : async (next): Promise<FieldSaveOutcome> => {
+                const res = await saveVersionedRow('proposal_risks', r.id, { [column]: next }, r.version ?? null);
+                if (res.conflict) return { ok: false, conflict: true };
+                if (!res.ok) return { ok: false, conflict: false, error: res.error };
+                qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) });
+                return { ok: true };
+              },
+        });
+      }
     }
     return out;
-  }, [milestones, risks, canEdit, qc, proposalId]);
+  }, [risks, canEdit, qc, proposalId]);
 
-  usePageSearchSource('milestones-risks', 'Milestones & risks', searchFieldsForPage);
-  const pageSearch = usePageSearch();
-
+  usePageSearchSource('risks', 'Critical risks', searchFields);
 
   return (
-    <SaveTrackerContext.Provider value={tracker}>
     <TooltipProvider>
-    <div className="p-6 space-y-6 compact-ref-badges">
-      <div className="flex items-start justify-between gap-4">
-        <h1 className="text-xl font-bold text-foreground">Milestones &amp; risks</h1>
-      </div>
-
-      {/* Shared focus-dependent toolbars, as on every other editing surface. */}
-      {canEdit && (
-        // `display: contents` so the toolbar's own `sticky top-0` measures
-        // against the page column, not against a wrapper that hugs its height
-        // (which is what stopped it floating).
-        <div className="contents">
-          <EditorToolbars
-            proposalId={proposalId}
-            save={{ saving: activeSaves > 0, lastSaved, onSaveNow: saveNow }}
-            topBar={{
-              onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
-            }}
-            fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
-            formatting={{
-              proposalId,
-              crossRefDropdown: (
-                <ParticipantCrossRefDropdown
-                  proposalId={proposalId}
-                  acronymSegments={acronymSegments}
-                  editor={activeEditor}
-                />
-              ),
-            }}
-          />
-        </div>
-      )}
-
-
-      {/* Guidelines dialog: same guidance as the inline blocks, reachable
-          from the shared Guidelines control. Scoped to the focused field. */}
-      <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {guidelineKey === 'risks' ? 'Guidelines: critical risks' : 'Guidelines: milestones'}
-            </DialogTitle>
-          </DialogHeader>
-          {/* Styled as Commission guidance, exactly like every other surface. */}
-          <GuidelineBox
-            type="official"
-            title={guidelineKey === 'risks' ? 'Critical risks' : 'Milestones'}
-          >
-            {guidelineKey === 'risks' ? <RisksGuidelinesInline /> : <MilestonesGuidelinesInline />}
-          </GuidelineBox>
-
-        </DialogContent>
-      </Dialog>
-
-      {/* Milestones */}
-      <Card data-guideline-key="milestones">
-        <CardHeader className="space-y-1 pb-3">
-          <CardTitle className="text-base">Milestones</CardTitle>
-        </CardHeader>
-        <CardContent>
-
-
-
-
-
-          <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row,
-                indented to align with the milestone name above. */}
-            {orderedMs.length > 0 && (
-              <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
+      <div className="compact-ref-badges">
+        <div className="space-y-1">
+          {/* Column labels for the second line — same fixed grid as every row,
+              indented to align with the risk description above. */}
+          {risks.length > 0 && (
+            <div className="grid grid-cols-[18px_1fr] gap-x-1 px-1 pb-1 border-b">
+              <div />
+              <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
+                <div>Risk description</div>
+                <div className="text-center">i.</div>
+                <div className="text-center">ii.</div>
+                <div>WP(s)</div>
                 <div />
-                <div className={cn(MILESTONE_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
-                  <div>Milestone name</div>
-                  <div>WP(s)</div>
-                  <div>Due month</div>
-                  <div />
-                </div>
               </div>
-            )}
-            {orderedMs.length === 0 && (
-              <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
-            )}
-            {orderedMs.map((m) => {
-              const selectedWps = m.wp_ids
-                .map(id => wpsById.get(id))
-                .filter((w): w is WPRow => !!w)
-                .sort((a, b) => a.number - b.number);
-              return (
-                <div
-                  key={m.id}
-                  id={`milestone-row-${m.id}`}
-                  className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1"
-                >
-                  {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
-                  <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
-                    <MilestoneBadge number={m.number} />
-                  </span>
-
-                  <div className={MILESTONE_LINE1_GRID}>
-                    <div className="min-w-0">
-                      <DebouncedRichField
-                        value={m.title || ''}
-                        disabled={!canEdit}
-                        minHeight="30px"
-                        proposalId={proposalId}
-                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                      />
-                    </div>
-                    <div>
-                      <MilestoneWpDialog
-                        wps={wps}
-                        selectedWpIds={m.wp_ids}
-                        primaryWpId={m.primary_wp_id}
-                        disabled={!canEdit}
-                        onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
-                        renderTrigger={(open) => (
-                          <button
-                            type="button"
-                            onClick={open}
-                            disabled={!canEdit}
-                            className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {selectedWps.length === 0 ? (
-                              <span className="text-muted-foreground italic">Select WP(s)…</span>
-                            ) : (
-                              <span className="flex flex-wrap gap-0.5 items-center">
-                                {isAllWPsSelected(selectedWps.length, wps.length) ? (
-                                  <>
-                                    <AllWPsBubble />
-                                    {/* "All WPs" hides which WP is starred as
-                                        primary for the Gantt, so the primary is
-                                        shown alongside it — editor only, never
-                                        mirrored into the preview or export. */}
-                                    {selectedWps
-                                      .filter((wp) => wp.id === m.primary_wp_id)
-                                      .map((wp) => (
-                                        <WPBubble
-                                          key={wp.id}
-                                          wpNumber={wp.number}
-                                          wpColor={wp.color}
-                                          showStar
-                                        />
-                                      ))}
-                                  </>
-                                ) : (
-                                  selectedWps.map(wp => (
-                                    <WPBubble
-                                      key={wp.id}
-                                      wpNumber={wp.number}
-                                      wpColor={wp.color}
-                                      showStar={wp.id === m.primary_wp_id}
-                                    />
-                                  ))
-                                )}
-                              </span>
-                            )}
-                          </button>
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <SingleMonthPicker
-                        value={m.due_month}
-                        projectDuration={projectDuration}
-                        readOnly={!canEdit}
-                        label=""
-                        onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
-                      />
-                    </div>
-                    <div className="flex justify-center">
-                      <Button
-                        size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-                        disabled={!canEdit}
-                        onClick={() => deleteMilestone.mutate(m.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* ── Line 2: means of verification, aligned with the name above ── */}
-                  <div className="col-start-2">
-                    <DebouncedRichField
-                      value={m.means_of_verification || ''}
-                      disabled={!canEdit}
-                      minHeight="30px"
-                      proposalId={proposalId}
-                      staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-                      placeholder="Means of verification"
-                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {canEdit && (
-            <div className="flex items-center justify-end gap-2 pt-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="bg-muted hover:bg-muted/80 text-foreground"
-                    onClick={() => setMsReorderOpen(true)}
-                  >
-                    <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
-              </Tooltip>
-              <Button size="sm" onClick={() => addMilestone.mutate()}>
-                <Plus className="h-4 w-4 mr-1" /> Add milestone
-              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Risks */}
-      <Card data-guideline-key="risks">
-        <CardHeader className="space-y-1 pb-3">
-          <CardTitle className="text-base">Critical risks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row,
-                indented to align with the risk description above. */}
-            {risks.length > 0 && (
-              <div className="grid grid-cols-[18px_1fr] gap-x-1 px-1 pb-1 border-b">
-                <div />
-                <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
-                  <div>Risk description</div>
-                  <div className="text-center">i.</div>
-                  <div className="text-center">ii.</div>
-                  <div>WP(s)</div>
-                  <div />
-                </div>
-              </div>
-            )}
-            <DndContext
-              sensors={riskSensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleRiskDragEnd}
-            >
-              <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                {risks.length === 0 && (
-                  <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
-                )}
-                {risks.map((r) => (
-                  <div key={r.id} id={`risk-row-${r.id}`}>
+          <DndContext
+            sensors={riskSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleRiskDragEnd}
+          >
+            <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+              {risks.length === 0 && (
+                <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
+              )}
+              {risks.map((r) => (
+                <div key={r.id} id={`risk-row-${r.id}`}>
                   <SortableRiskRow
                     risk={r}
                     wps={wps}
@@ -982,37 +959,23 @@ function ProposalMilestonesRisksManagerInner({ proposalId, canEdit, projectDurat
                     onDelete={() => deleteRisk.mutate(r.id)}
                     proposalId={proposalId}
                   />
-                  </div>
-                ))}
-              </SortableContext>
-            </DndContext>
+                </div>
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+
+        {canEdit && (
+          <div className="flex items-center justify-end gap-2 pt-3">
+            <Button size="sm" onClick={() => addRisk.mutate()}>
+              <Plus className="h-4 w-4 mr-1" /> Add risk
+            </Button>
           </div>
-
-
-          {canEdit && (
-            <div className="flex items-center justify-end gap-2 pt-3">
-              <Button size="sm" onClick={() => addRisk.mutate()}>
-                <Plus className="h-4 w-4 mr-1" /> Add risk
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <MsSameMonthReorderDialog
-        open={msReorderOpen}
-        onOpenChange={setMsReorderOpen}
-        sorted={orderedMs}
-        wpsById={wpsById}
-        onPersist={persistMsGroupOrder}
-      />
-      {conflictDialog}
-    </div>
-      <PageFindReplacePanel />
+        )}
+        {conflictDialog}
+      </div>
     </TooltipProvider>
-    </SaveTrackerContext.Provider>
   );
-
 }
 
 
