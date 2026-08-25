@@ -48,6 +48,14 @@ export interface LazyRichFieldProps {
   singleLine?: boolean;
   /** Mount the editor immediately (click-to-edit surfaces). */
   autoFocus?: boolean;
+  /**
+   * Page-like presentation: no form chrome, white surface, proposal
+   * typography. Applies to BOTH the static and the mounted render so the
+   * field does not change shape when it gains focus.
+   */
+  documentSurface?: boolean;
+  /** Hide the placeholder while the caret is in the field. */
+  placeholderHideOnFocus?: boolean;
 }
 
 
@@ -101,6 +109,8 @@ export function LazyRichField({
   placeholder,
   singleLine = false,
   autoFocus = false,
+  documentSurface = false,
+  placeholderHideOnFocus = false,
 }: LazyRichFieldProps) {
 
   const [mounted, setMounted] = useState(false);
@@ -291,6 +301,8 @@ export function LazyRichField({
           minHeight={minHeight}
           onEditorReady={handleEditorReady}
           placeholder={placeholder}
+          documentSurface={documentSurface}
+          placeholderHideOnFocus={placeholderHideOnFocus}
         />
 
       ) : (
@@ -298,7 +310,12 @@ export function LazyRichField({
           {placeholder && !staticHtml.trim() && (
             <span
               aria-hidden
-              className="pointer-events-none absolute left-2.5 top-1.5 select-none text-sm italic text-muted-foreground"
+              className={cn(
+                'pointer-events-none absolute select-none text-muted-foreground',
+                documentSurface
+                  ? 'left-0 top-0 font-document text-[11pt]'
+                  : 'left-2.5 top-1.5 text-sm italic',
+              )}
             >
               {placeholder}
             </span>
@@ -308,7 +325,9 @@ export function LazyRichField({
             tabIndex={disabled ? -1 : 0}
             aria-readonly={disabled}
             className={cn(
-              'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
+              documentSurface
+                ? 'doc-surface-field document-content'
+                : 'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
               disabled ? 'cursor-default' : 'cursor-text',
             )}
             style={{ minHeight }}
