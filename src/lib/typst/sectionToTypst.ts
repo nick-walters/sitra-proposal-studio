@@ -134,6 +134,14 @@ function placeholder(label: string): string {
   return `not-converted(${typstString(label)})`;
 }
 
+/**
+ * Source-fed blocks that are simply absent from the document when they have
+ * nothing in them — an uncited references list, and the cost tables for a
+ * category no participant has budgeted. A placeholder note would be noise.
+ */
+const SILENT_WHEN_EMPTY = new Set(['b31.references', 'b31.table_g', 'b31.table_h']);
+
+
 export interface BuildTypstOptions {
   sectionLabel?: string;
   data?: RefSnapshot;
@@ -240,10 +248,12 @@ export function buildSectionTypstDocument(
         : null;
       if (emitted && emitted.length) {
         out.push(...emitted);
-      } else if (emitted && card.sourceKey === 'b31.references') {
-        // Nothing cited: the block exists in the board so the author can see
-        // it, but it is left out of the document entirely.
+      } else if (emitted && SILENT_WHEN_EMPTY.has(card.sourceKey || '')) {
+        // Nothing cited / no costs of this category: the block exists in the
+        // board so the author can see it, but it is left out of the document
+        // entirely rather than printing a placeholder note.
         continue;
+
       } else if (emitted) {
         // Recognised block with nothing in it yet — say so rather than
         // silently dropping the block from the document.

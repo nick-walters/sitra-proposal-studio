@@ -31,14 +31,39 @@ function getPdfjs(): Promise<typeof import('pdfjs-dist')> {
 }
 
 /**
- * Replaces `container`'s children with one canvas per page, scaled to the
- * container's width. Returns the page count.
+ * Text-layer CSS. PDF.js positions transparent spans over the canvas so the
+ * page can be selected and copied; the styles below are the minimum the
+ * viewer stylesheet provides, without pulling the whole viewer in.
+ */
+const TEXT_LAYER_CSS = `
+.typst-text-layer{position:absolute;inset:0;overflow:hidden;line-height:1;
+ text-align:initial;text-size-adjust:none;forced-color-adjust:none;
+ transform-origin:0 0;caret-color:CanvasText;z-index:1;}
+.typst-text-layer :is(span,br){color:transparent;position:absolute;
+ white-space:pre;cursor:text;transform-origin:0% 0%;}
+.typst-text-layer span[role="img"]{user-select:none;}
+.typst-text-layer ::selection{background:rgba(59,130,246,0.35);}
+`;
+
+function ensureTextLayerStyles(): void {
+  if (document.getElementById('typst-text-layer-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'typst-text-layer-styles';
+  style.textContent = TEXT_LAYER_CSS;
+  document.head.appendChild(style);
+}
+
+/**
+ * Replaces `container`'s children with one page per PDF page — a canvas with a
+ * transparent PDF.js text layer over it, so the preview is selectable and
+ * copyable, not a picture of a document. Returns the page count.
  */
 export async function renderPdfToContainer(
   pdf: Uint8Array,
   container: HTMLElement,
 ): Promise<number> {
   const pdfjs = await getPdfjs();
+  ensureTextLayerStyles();
   // getDocument transfers (detaches) the buffer to the worker — pass a copy so
   // the caller's bytes stay usable for the download link.
   const loadingTask = pdfjs.getDocument({ data: pdf.slice() });
@@ -50,22 +75,50 @@ export async function renderPdfToContainer(
     const page = await doc.getPage(pageNo);
     const base = page.getViewport({ scale: 1 });
     const cssScale = targetWidth / base.width;
+    const cssViewport = page.getViewport({ scale: cssScale });
     const viewport = page.getViewport({ scale: cssScale * dpr });
+
+    const pageEl = document.createElement('div');
+    pageEl.style.position = 'relative';
+    pageEl.style.width = '100%';
+    pageEl.style.height = `${cssViewport.height}px`;
+    pageEl.style.marginBottom = '8px';
+    pageEl.style.border = '1px solid hsl(var(--border))';
+    pageEl.style.borderRadius = '4px';
+    pageEl.style.overflow = 'hidden';
+    pageEl.style.setProperty('--scale-factor', String(cssScale));
+    pageEl.style.setProperty('--total-scale-factor', String(cssScale));
+
     const canvas = document.createElement('canvas');
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
     canvas.style.width = '100%';
-    canvas.style.height = 'auto';
+    canvas.style.height = '100%';
     canvas.style.display = 'block';
-    canvas.style.marginBottom = '8px';
-    canvas.style.border = '1px solid hsl(var(--border))';
-    canvas.style.borderRadius = '4px';
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D context unavailable');
+    pageEl.appendChild(canvas);
+
+    const textLayerEl = document.createElement('div');
+    textLayerEl.className = 'typst-text-layer';
+    pageEl.appendChild(textLayerEl);
+    container.appendChild(pageEl);
+
     await page.render({ canvasContext: ctx, viewport }).promise;
-    container.appendChild(canvas);
+    try {
+      const textLayer = new pdfjs.TextLayer({
+        textContentSource: page.streamTextContent(),
+        container: textLayerEl,
+        viewport: cssViewport,
+      });
+      await textLayer.render();
+    } catch {
+      // A page whose text layer fails still shows its canvas.
+      textLayerEl.remove();
+    }
   }
   const count = doc.numPages;
   void loadingTask.destroy();
   return count;
 }
+

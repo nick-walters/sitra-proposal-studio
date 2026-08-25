@@ -128,13 +128,12 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     const shortName = wp.short_name || '';
     const title = wp.title || '';
     const rows: string[][] = [];
-    // Grid rows that begin a task get the WP-coloured separator the board
-    // draws; the header row is row 0, so a row's grid index is its index + 1.
-    const seps: number[] = [];
+    const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
       participantChip(byId.get(wp.lead_participant_id || '')) + ` + t(" ") + ` + bold(lit(wpDuration(wp))),
     ]);
+    rows.push([sep]);
     if (htmlToPlainText(wp.objectives || '').trim()) {
       rows.push([bold(lit('Objectives: ')) + ' + ' + rich(wp.objectives, ctx)]);
     }
@@ -159,12 +158,14 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         participantChip(byId.get(task.lead_participant_id || '')) +
         (partners.length ? ` + t(" ") + ` + partners.join(' + t(" ") + ') : '') +
         months;
-      seps.push(rows.length + 1);
+      rows.push([sep]);
       rows.push([head]);
       if (htmlToPlainText(task.description || '').trim()) {
         rows.push([rich(task.description, ctx)]);
       }
     }
+    // The board closes every work package with a trailing rule.
+    rows.push([sep]);
 
     const heading = wpChip(
       wp.number,
@@ -172,11 +173,9 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
       `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`,
     );
     const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
-    const sepsSrc = `(${seps.join(', ')}${seps.length === 1 ? ',' : ''})`;
-    out.push(
-      `he-wp-table(${heading}, ${rowsSrc}, rgb(${typstString(wp.color)}), ${sepsSrc})`,
-    );
+    out.push(`he-wp-table(${heading}, ${rowsSrc}, rgb(${typstString(wp.color)}))`);
   }
+
   return out;
 }
 
@@ -221,8 +220,12 @@ function wpChipList(numbers: number[], colours: string[], allCount: number): str
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  return numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  // A narrow WP column wraps the chips over several lines; the default 0pt
+  // leading would let their outsets touch, so this paragraph opens the pitch.
+  return `par(leading: 4pt, spacing: 0pt, ${chips})`;
 }
+
 
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
@@ -236,14 +239,16 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   return [
     caption(data, 'milestones', 'Table 3.1.d.', 'List of milestones'),
     // Baseline shares were 2 / 1 / 2 (milestone / WPs / verification). The
-    // milestone title and the WP column each give up 30 %, and all of the
-    // freed width goes to the means of verification.
+    // milestone title gives up a further 5 %, the WP column is narrowed to
+    // roughly one chip wide, and all of the freed width goes to the means of
+    // verification.
     table(
-      '(auto, 1.4fr, 0.7fr, auto, 2.9fr)',
+      '(auto, 1.33fr, 0.5fr, auto, 3.17fr)',
       [lit('No.'), lit('Milestone'), lit('WP(s)'), lit('Due'), lit('Means of verification')],
       rows,
     ),
   ];
+
 }
 
 
@@ -273,26 +278,32 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
 
 /* ───────────────────── Table 3.1.f — effort matrix ──────────────────────── */
 
-const pm = (n: number) => (n === 0 ? '' : Number.isInteger(n) ? String(n) : n.toFixed(2));
+/** The board prints a bare 0, and one decimal only when there is one. */
+const pm = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** A cell painted in the WP colour with white text, as the board draws it. */
-function wpCell(colour: string, body: string, strong = false): string {
-  const inner = strong ? `strong(${body})` : body;
-  return `table.cell(fill: rgb(${typstString(colour)}), text(fill: white, ${inner}))`;
+function wpCell(colour: string, body: string, pos: 'top' | 'mid' | 'bottom'): string {
+  return `effort-cell(rgb(${typstString(colour)}), ${body}, ${typstString(pos)})`;
+}
+
+/** An unfilled cell — the participant column and the Total column. */
+function plainCell(body: string, al: 'left' | 'center' = 'center'): string {
+  return `effort-plain(${body}, ${al})`;
 }
 
 /**
- * On screen this is not a ruled table at all: it is a block of WP-coloured
- * cells with white figures, a participant badge down the left and a plain
- * bold Total column. `he-grid` reproduces that (no strokes, per-cell fills)
- * instead of forcing it through the ruled `he-table` furniture.
+ * On screen this is not a ruled table at all: it is a band of WP-coloured
+ * cells with white figures, rounded at the top of the header row and the
+ * bottom of the totals row, separated by a 5pt gutter, with a participant
+ * badge down the left and a plain bold Total column. `he-grid` reproduces
+ * exactly that instead of forcing it through the ruled table furniture.
  */
 export function emitEffortMatrix(data: B31TypstData): string[] {
   if (!data.wps.length || !data.participants.length) return [];
   const cells: string[] = [
-    lit(''),
-    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)))),
-    bold(lit('Total')),
+    plainCell(lit(''), 'left'),
+    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)), 'top')),
+    plainCell(bold(lit('Total'))),
   ];
 
   for (const p of data.participants) {
@@ -302,19 +313,20 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
         .filter((e) => e.participant_id === p.id)
         .reduce((s, e) => s + e.person_months, 0);
       rowTotal += value;
-      return wpCell(wp.color, lit(pm(value)));
+      return wpCell(wp.color, lit(pm(value)), 'mid');
     });
-    cells.push(participantChip(p), ...rowCells, bold(lit(pm(rowTotal))));
+    cells.push(plainCell(participantChip(p), 'left'), ...rowCells, plainCell(bold(lit(pm(rowTotal)))));
   }
 
   const colTotals = data.wps.map((wp) => wp.effort.reduce((s, e) => s + e.person_months, 0));
   cells.push(
-    bold(lit('Total')),
-    ...data.wps.map((wp, i) => wpCell(wp.color, lit(pm(colTotals[i])), true)),
-    bold(lit(pm(colTotals.reduce((s, v) => s + v, 0)))),
+    plainCell(bold(lit('Total')), 'left'),
+    ...data.wps.map((wp, i) => wpCell(wp.color, bold(lit(pm(colTotals[i]))), 'bottom')),
+    plainCell(bold(lit(pm(colTotals.reduce((s, v) => s + v, 0))))),
   );
 
   const cols = `(auto, ${data.wps.map(() => '1fr').join(', ')}, auto)`;
+
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
     `he-grid(${cols}, (${cells.join(', ')}))`,

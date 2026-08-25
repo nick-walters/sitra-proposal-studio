@@ -204,7 +204,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 // ── tables and figures ─────────────────────────────────────────────────────
 #let he-table-width = ${TABLE_MAX_WIDTH_CM}cm
-#let he-inset = (x: 4pt, y: 2.5pt)
+#let he-inset = (x: 5pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.
 #let he-caption(label, caption) = block(
@@ -269,44 +269,66 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 )
 
 /// A rule-free grid whose cells carry their own fills — the staff-effort
-/// matrix, which on screen is a block of coloured cells, not a ruled table.
+/// matrix, which on screen is a block of coloured cells separated by a 5pt
+/// gutter, not a ruled table. Cell padding lives INSIDE the coloured block so
+/// the fill hugs the figure exactly as the board draws it.
 #let he-grid(cols, cells) = block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
   table(
     columns: cols,
-    inset: (x: 3pt, y: 1.5pt),
+    inset: 0pt,
+    column-gutter: 5pt,
     stroke: none,
-    align: (x, y) => if x == 0 { left + horizon } else { center + horizon },
+    align: left + horizon,
     ..cells,
   ),
 )
 
-/// The work-package description table (3.1.b): no ruled grid, a coloured rule
-/// under the WP heading and a lighter one above each task, exactly as the
-/// board draws it. \`seps\` holds the grid rows that begin a task.
-#let he-wp-table(header, rows, colour, seps) = block(
+/// One coloured cell of the staff-effort matrix. \`pos\` rounds the outer
+/// corners of the band: "top" for the header row, "bottom" for the totals row.
+#let effort-cell(colour, body, pos) = block(
+  width: 100%,
+  fill: colour,
+  radius: if pos == "top" { (top: 9pt) } else if pos == "bottom" { (bottom: 9pt) } else { 0pt },
+  inset: (x: 3pt, y: 1.5pt),
+  align(center, text(fill: white, body)),
+)
+
+/// An unfilled cell of the staff-effort matrix (participant column, totals).
+#let effort-plain(body, al) = block(
+  width: 100%,
+  inset: (x: 3pt, y: 1.5pt),
+  align(al, body),
+)
+
+/// The WP-coloured hairline the board draws between the sections of a work
+/// package description, with the same clear space above and below.
+#let wp-sep(colour) = block(
+  width: 100%,
+  above: 5pt,
+  below: 5pt,
+  line(length: 100%, stroke: 0.75pt + colour),
+)
+
+/// The work-package description table (3.1.b): no ruled grid at all. The
+/// separators are ordinary rows carrying \`wp-sep\`, exactly as the board draws
+/// them, so badges never crowd a rule.
+#let he-wp-table(header, rows, colour) = block(
   width: he-table-width,
   above: 0pt,
   below: 8pt,
   table(
     columns: (1fr,),
-    inset: (x: 0pt, y: 2.5pt),
+    inset: (x: 0pt, y: 1.5pt),
     align: left + top,
-    stroke: (x, y) => (
-      left: none,
-      right: none,
-      bottom: none,
-      top: if y == 0 { none }
-        else if y == 1 { 1pt + colour }
-        else if seps.contains(y) { 0.5pt + colour }
-        else { none },
-    ),
+    stroke: none,
     header,
     ..rows.flatten(),
   ),
 )
+
 
 /// Full-width raster figure (Gantt / Pert), scaled to the table width.
 #let he-image(path, ratio) = block(
