@@ -898,6 +898,16 @@ function CardBlock({
     }
   };
 
+  // Header mode. Figure blocks historically carried no header at all (their
+  // caption is the label); they only get one when the template explicitly
+  // marks it editor-only, as the B3.1 Pert and Gantt blocks do.
+  const headerMode: 'off' | 'mirrored' | 'editor_only' =
+    card.titleMode === 'editor_only'
+      ? 'editor_only'
+      : card.titleMode === 'off' || card.kind === 'figure'
+        ? 'off'
+        : 'mirrored';
+
   const isPlaceholderCard = card.kind === 'references' || card.isSourceFed;
   // Authored, but backed by its own relational table rather than card fields:
   // the block renders the same editor as the old methodologies page.
@@ -981,7 +991,7 @@ function CardBlock({
               'editor_only' → header shows here for navigation only and is
                               never emitted to the preview, PDF or DOCX. */}
           <div className="min-w-0 flex-1">
-            {card.titleMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
+            {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
               // upgraded to HTML on read by `ensureRichHtml`.
@@ -1014,7 +1024,7 @@ function CardBlock({
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
-                {card.titleMode === 'editor_only' && (
+                {headerMode === 'editor_only' && (
                   <Tip label="Editor-only header — not mirrored to the preview or export">
                     <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
                       Editor only
