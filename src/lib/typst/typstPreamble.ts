@@ -243,9 +243,17 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Acronym: coloured segments, heavy weight, no shape. Serif only — the
 /// document has no sans face loaded, so naming one only triggers a fallback
 /// with different metrics, which is what made the chip ride high.
-#let chip-acronym(segments) = box(baseline: 0pt, segments.map(seg =>
-  text(font: "${TYPST_SERIF}", weight: "bold", top-edge: "cap-height", bottom-edge: "descender", fill: rgb(seg.at(1)), seg.at(0))
+/// The segments keep the SURROUNDING text's size (body, table cell, footnote
+/// or footer), and the box uses the DEFAULT text edges so its baseline is the
+/// segments' own baseline. \`chip-baseline-drop\` then applies the same 0.36pt
+/// drop the pill and polygon chips end up with, so all chip types share one
+/// optical baseline. Overriding top-edge/bottom-edge here (as before) made the
+/// box bottom sit at the descender, lifting the label a descender-depth
+/// (~2.3pt at 11pt) above the line.
+#let chip-acronym(segments) = box(baseline: -chip-baseline-drop, segments.map(seg =>
+  text(font: "${TYPST_SERIF}", weight: "bold", fill: rgb(seg.at(1)), seg.at(0))
 ).join())
+
 
 // ── tables and figures ─────────────────────────────────────────────────────
 #let he-table-width = ${TABLE_MAX_WIDTH_CM}cm
