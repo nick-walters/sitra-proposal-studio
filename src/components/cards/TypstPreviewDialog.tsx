@@ -77,13 +77,14 @@ export function TypstPreviewDialog({
         import('@/lib/typst/typstCompiler'),
         import('@/lib/typst/typstFigures'),
       ]);
-      // The Pert and Gantt charts are CSS-drawn DOM, so they are captured from
-      // the live board with the same snapshot utility as the PNG download.
+      // The Pert is emitted natively from its own layout data, so only the
+      // Gantt — CSS-drawn nested divs — is still captured from the live board
+      // with the same snapshot utility as the PNG download.
       const [tree, meta, sourceData, captured, references] = await Promise.all([
         fetchSectionBlockTree(proposalId, sectionId),
         fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
         fetchB31TypstData(proposalId),
-        captureFigureAssets(),
+        captureFigureAssets(['gantt']),
         fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
       ]);
       const built = buildSectionTypstDocument(tree, {
