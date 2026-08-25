@@ -28,6 +28,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { fetchPertChartData, type PertChartData } from './pertTypst';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -139,6 +140,12 @@ export interface B31TypstData {
   linkedActivities: TypstLinkedActivity[];
   pertFigure: TypstFigureMeta | null;
   ganttFigure: TypstFigureMeta | null;
+  /**
+   * The Pert chart's own drawing data. Present whenever a Pert figure row
+   * exists, so the chart is emitted natively and no longer depends on the
+   * block being expanded on screen.
+   */
+  pertChart: PertChartData | null;
   /** `table_captions.table_key` → caption text (user overrides only). */
   captions: Record<string, string>;
 }
@@ -202,7 +209,7 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .order('number'),
     supabase
       .from('figures')
-      .select('id, figure_number, figure_type, title, caption')
+      .select('id, figure_number, figure_type, title, caption, content')
       .eq('proposal_id', proposalId)
       .in('figure_type', ['pert', 'gantt']),
     supabase
@@ -410,6 +417,14 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   }
 
   const figures = (figureRows as any[]) || [];
+  const pertFigureRow = figures.find((f) => f.figure_type === 'pert') || null;
+  const pertChart = pertFigureRow
+    ? await fetchPertChartData(
+        proposalId,
+        pertFigureRow.content as Record<string, unknown> | null,
+        wps.map((w) => ({ id: w.id, number: w.number, short_name: w.short_name, color: w.color })),
+      )
+    : null;
   const captions: Record<string, string> = {};
   for (const row of (captionRows as any[]) || []) {
     if (row.caption) captions[row.table_key] = row.caption;
@@ -427,7 +442,8 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     purchaseBlocks,
     otherBlocks,
     linkedActivities: ((activityRows as any[]) || []) as TypstLinkedActivity[],
-    pertFigure: figures.find((f) => f.figure_type === 'pert') || null,
+    pertFigure: pertFigureRow,
+    pertChart,
     ganttFigure: figures.find((f) => f.figure_type === 'gantt') || null,
     captions,
   };

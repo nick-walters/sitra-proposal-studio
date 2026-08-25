@@ -500,7 +500,10 @@ export function emitFigure(
 ): string[] {
   const meta = kind === 'pert' ? data.pertFigure : data.ganttFigure;
   if (!meta) return [];
-  if (!available) {
+  // The Pert is drawn natively from its own data, so it never depends on a
+  // DOM capture. The Gantt is still rasterised (see typstFigures.ts).
+  const native = kind === 'pert' && data.pertChart ? emitPertChart(data.pertChart) : '';
+  if (!native && !available) {
     return [
       `not-converted(${typstString(
         `[${kind === 'pert' ? 'Pert' : 'Gantt'} chart — the chart was not on screen when this preview was built, so it could not be captured]`,
@@ -510,7 +513,7 @@ export function emitFigure(
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
-    `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
+    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
