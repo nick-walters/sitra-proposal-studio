@@ -1849,24 +1849,55 @@ function BoardInner({
     visibleCardIds.length > 0 && visibleCardIds.every((id) => collapsedIds.has(id));
 
   /**
-   * The Gantt is still rasterised from the live board, so a collapsed Gantt
-   * block is `display: none` and captures as nothing. Opening the preview
-   * expands it first (and leaves it expanded), so the user never has to know
-   * that the capture reads the DOM. The Pert needs no expansion: it is drawn
-   * natively in Typst from its own layout data.
+   * Figure blocks are rasterised from the live board, and a collapsed block is
+   * `display: none`, so it captures as nothing. Opening the preview therefore
+   * expands EVERY collapsed figure block (authored figures as well as the
+   * source-fed Gantt/Pert charts) before the snapshot runs.
+   *
+   * WHICH ONES WE EXPANDED is tracked in `autoExpandedRef`: only the ids that
+   * were collapsed at the moment the preview opened go into it, so closing the
+   * preview (or leaving the section) re-collapses exactly those and leaves a
+   * figure the user had already expanded alone.
    */
+  const autoExpandedRef = useRef<string[]>([]);
+
+  const isFigureBlock = useCallback(
+    (c: (typeof cards)[number]) =>
+      c.kind === 'figure' || c.sourceKey === 'b31.gantt' || c.sourceKey === 'b31.pert',
+    [],
+  );
+
+  const restoreAutoExpanded = useCallback(() => {
+    const ids = autoExpandedRef.current;
+    autoExpandedRef.current = [];
+    if (!ids.length) return;
+    setAllCollapsed.mutate({ ids, collapsed: true });
+  }, [setAllCollapsed]);
+
   const openTypstPreview = async () => {
-    const chartCardIds = cards
-      .filter((c) => c.sourceKey === 'b31.gantt')
-      .map((c) => c.id)
-      .filter((id) => collapsedIds.has(id));
-    if (chartCardIds.length) {
-      await setAllCollapsed.mutateAsync({ ids: chartCardIds, collapsed: false });
+    const figureCardIds = cards
+      .filter((c) => isFigureBlock(c) && collapsedIds.has(c.id))
+      .map((c) => c.id);
+    autoExpandedRef.current = figureCardIds;
+    if (figureCardIds.length) {
+      await setAllCollapsed.mutateAsync({ ids: figureCardIds, collapsed: false });
       // One frame for the charts to lay out before the snapshot is taken.
       await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 250)));
     }
     setTypstOpen(true);
   };
+
+  // Navigating away (section switch, route change, unmount) restores the
+  // blocks the preview expanded, exactly as closing the dialog does.
+  useEffect(() => {
+    return () => {
+      const ids = autoExpandedRef.current;
+      autoExpandedRef.current = [];
+      if (ids.length) setAllCollapsed.mutate({ ids, collapsed: true });
+    };
+    // Deliberately mount-scoped: the ref carries the ids across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
 
@@ -2375,7 +2406,10 @@ function BoardInner({
         {typstOpen && (
           <TypstPreviewDialog
             open
-            onOpenChange={setTypstOpen}
+            onOpenChange={(next) => {
+              setTypstOpen(next);
+              if (!next) restoreAutoExpanded();
+            }}
             proposalId={proposalId}
             sectionId={sectionId}
           />
