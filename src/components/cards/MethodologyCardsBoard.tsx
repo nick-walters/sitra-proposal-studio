@@ -1007,19 +1007,22 @@ function CardBlock({
   const collapsedSummary = (() => {
     if (card.kind === 'references')
       return `${referenceCount} reference${referenceCount === 1 ? '' : 's'}`;
-    if (card.kind === 'figure') return card.isSourceFed ? 'Source-fed figure' : (figureSummary ?? 'Figure');
+    if (card.kind === 'figure')
+      return card.isSourceFed
+        ? 'Source-fed figure'
+        : `User-written content — ${figureSummary ?? 'figure'}`;
+    if (card.isSourceFed) return 'Source-fed table';
     if (isLinkedActivitiesCard) {
       const n = linkedActivities.activities.length;
-      return `${n} linked ${n === 1 ? 'activity' : 'activities'}`;
+      return `User-written content — ${n} linked ${n === 1 ? 'activity' : 'activities'}`;
     }
-    // Source-fed tables are captioned by the block title itself, which stays
-    // visible in the header — the summary just names the kind.
-    if (isMilestonesCard) return 'Milestones';
-    if (isRisksCard) return 'Critical risks';
-    if (card.isSourceFed) return 'Source-fed table';
+    // Authored relational blocks carry their own row editors, so there are no
+    // modules to count — the label just states who writes them.
+    if (isMilestonesCard || isRisksCard) return 'User-written content';
     const n = fields.length;
-    return `${n} module${n === 1 ? '' : 's'}`;
+    return `User-written content — ${n} module${n === 1 ? '' : 's'}`;
   })();
+
 
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
