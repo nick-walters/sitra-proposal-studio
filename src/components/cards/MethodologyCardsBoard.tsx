@@ -2119,6 +2119,12 @@ function BoardInner({
           }
         : {};
     })(),
+    ...(card.sourceKey && b31Unmet.has(card.sourceKey)
+      ? {
+          conditionUnmet: true,
+          conditionReason: b31UnmetReason(card.sourceKey),
+        }
+      : {}),
     captionLabel: captionLabels[card.id],
     captionNumberingByFieldId,
     captionSectionNumber: captionNumber,
