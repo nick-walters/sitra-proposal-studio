@@ -312,7 +312,10 @@ export function B32SectionContent({ proposalId }: Props) {
   };
 
   return (
-    <div className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]">
+    <div
+      ref={containerRef}
+      className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px] w-full max-w-full"
+    >
       <EditableCaption
         proposalId={proposalId}
         tableKey="b32-expertise-matrix"
