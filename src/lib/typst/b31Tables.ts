@@ -325,7 +325,13 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
     plainCell(bold(lit(pm(colTotals.reduce((s, v) => s + v, 0))))),
   );
 
-  const cols = `(auto, ${data.wps.map(() => '1fr').join(', ')}, auto)`;
+  // Explicit widths, not `1fr`: a cell whose content is a `block(width: 100%)`
+  // measures as zero inside a fractional column, so the coloured bands would
+  // vanish entirely. 18cm = 510.24pt, less the participant and total columns
+  // and the 5pt gutters between every pair.
+  const n = data.wps.length;
+  const wpWidth = Math.max(18, (510.24 - 72 - 40 - (n + 1) * 5) / n);
+  const cols = `(72pt, ${data.wps.map(() => `${wpWidth.toFixed(2)}pt`).join(', ')}, 40pt)`;
 
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
