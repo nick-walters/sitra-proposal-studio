@@ -804,6 +804,46 @@ function CardBlock({
   const isLinkedActivities = card.sourceKey === 'b12.linked_activities' && !card.isSourceFed;
   const linkedActivities = useLinkedActivities(isLinkedActivities ? proposalId : '');
   const [activityBinOpen, setActivityBinOpen] = useState(false);
+  const relationalBinTable = isMilestonesCard
+    ? 'proposal_milestones'
+    : isRisksCard
+      ? 'proposal_risks'
+      : null;
+  const [relationalBinOpen, setRelationalBinOpen] = useState(false);
+  const { data: relationalBinEntries = [] } = useQuery({
+    queryKey: ['proposal-row-bin', proposalId, relationalBinTable],
+    enabled: !!relationalBinTable,
+    queryFn: async () => {
+      if (!relationalBinTable) return [];
+      const { data, error } = await supabase
+        .from('proposal_row_bin')
+        .select('id, label, created_at')
+        .eq('proposal_id', proposalId)
+        .eq('table_name', relationalBinTable)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const restoreRelationalRow = async (binId: string) => {
+    const { data, error } = await supabase.rpc('restore_binned_row', { p_bin_id: binId });
+    const result = data as { ok?: boolean; error?: string } | null;
+    if (error || !result?.ok) {
+      toast.error(error?.message || result?.error || 'Could not restore the row');
+      return;
+    }
+    const queryKey = isMilestonesCard
+      ? ['proposal-milestones-mgr', proposalId]
+      : ['proposal-risks-mgr', proposalId];
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey }),
+      queryClient.invalidateQueries({ queryKey: ['proposal-row-bin', proposalId, relationalBinTable] }),
+    ]);
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+    if (relationalBinEntries.length === 1) setRelationalBinOpen(false);
+    toast.success(isMilestonesCard ? 'Milestone restored' : 'Risk restored');
+  };
 
   const fieldSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1165,7 +1205,16 @@ function CardBlock({
                   Restore
                 </Button>
               </Tip>
-            ) : !isLinkedActivitiesCard && canEdit && binCount > 0 ? (
+            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalBinEntries.length > 0 ? (
+              <Tip
+                label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
+              >
+                <Button variant="ghost" size="sm" onClick={() => setRelationalBinOpen(true)}>
+                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                  Restore
+                </Button>
+              </Tip>
+            ) : !isRelationalCard && canEdit && binCount > 0 ? (
               <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
                 <Button variant="ghost" size="sm" onClick={() => onOpenBin(card)}>
                   <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
@@ -1324,6 +1373,37 @@ function CardBlock({
                           .catch(() => toast.error('Could not restore the activity'))
                       }
                     >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={relationalBinOpen} onOpenChange={setRelationalBinOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{isMilestonesCard ? 'Restore milestone' : 'Restore risk'}</DialogTitle>
+              <DialogDescription>
+                Deleted {isMilestonesCard ? 'milestones' : 'risks'} are kept here. Restoring brings the row back with all of its content.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[320px]">
+              <div className="space-y-1 p-1">
+                {relationalBinEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {htmlToPlainText(entry.label ?? '').trim() || (
+                        <span className="italic text-muted-foreground">Untitled</span>
+                      )}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => restoreRelationalRow(entry.id)}>
                       <RotateCcw className="mr-1 h-3.5 w-3.5" />
                       Restore
                     </Button>

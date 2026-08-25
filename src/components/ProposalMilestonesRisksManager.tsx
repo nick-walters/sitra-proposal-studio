@@ -48,7 +48,7 @@ import {
 } from '@/components/MethodologyEditorFocusContext';
 import { EditorToolbars } from '@/components/editor/EditorToolbars';
 import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
-import { saveVersionedRow, reorderVersionedRows, deleteAndResequence } from '@/lib/versionedSave';
+import { saveVersionedRow, reorderVersionedRows, binAndDeleteNumberedRow } from '@/lib/versionedSave';
 import {
   PageSearchProvider,
   usePageSearch,
@@ -521,7 +521,7 @@ export function MilestonesEditor({
   const deleteMilestone = useMutation({
     mutationFn: async (id: string) => {
       const known = milestones.find(m => m.id === id);
-      const res = await deleteAndResequence('proposal_milestones', id, known?.version ?? null);
+      const res = await binAndDeleteNumberedRow('proposal_milestones', id, known?.version ?? null);
       if (!res.ok) {
         throw new Error(res.conflict
           ? 'This milestone changed elsewhere — it was not deleted.'
@@ -529,7 +529,11 @@ export function MilestonesEditor({
       }
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: MS_KEY(proposalId) }); notifyRefs(); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MS_KEY(proposalId) });
+      qc.invalidateQueries({ queryKey: ['proposal-row-bin', proposalId, 'proposal_milestones'] });
+      notifyRefs();
+    },
   });
 
   const setMsWps = useMutation({
@@ -585,7 +589,7 @@ export function MilestonesEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_.ProseMirror_p]:!text-left [&_.ProseMirror_li]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the milestone name above. */}
@@ -825,7 +829,7 @@ export function RisksEditor({
   const deleteRisk = useMutation({
     mutationFn: async (id: string) => {
       const known = risks.find(r => r.id === id);
-      const res = await deleteAndResequence('proposal_risks', id, known?.version ?? null);
+      const res = await binAndDeleteNumberedRow('proposal_risks', id, known?.version ?? null);
       if (!res.ok) {
         throw new Error(res.conflict
           ? 'This risk changed elsewhere — it was not deleted.'
@@ -833,7 +837,11 @@ export function RisksEditor({
       }
     },
     onError: (e: any) => { toast.error(e.message); qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }); },
-    onSuccess: () => qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: RISK_KEY(proposalId) });
+      qc.invalidateQueries({ queryKey: ['proposal-row-bin', proposalId, 'proposal_risks'] });
+      notifyRefs();
+    },
   });
 
   const setRiskWps = useMutation({
@@ -923,7 +931,7 @@ export function RisksEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_.ProseMirror_p]:!text-left [&_.ProseMirror_li]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the risk description above. */}
