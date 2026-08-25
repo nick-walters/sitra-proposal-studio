@@ -536,7 +536,11 @@ function FieldRow({
   const headerField = field.headingEnabled ? (
     <div
       className={
-        isDocumentSurface ? 'flex min-w-0 items-start gap-2' : 'flex min-w-0 flex-1 items-center gap-2'
+        // On the page surface the header is an inline H4, so its field sizes
+        // to its own text rather than filling the column.
+        isDocumentSurface
+          ? 'inline-flex max-w-full items-start gap-2'
+          : 'flex min-w-0 flex-1 items-center gap-2'
       }
     >
       {headerLock.lockedByOther ? (
@@ -545,7 +549,7 @@ function FieldRow({
         <div
           className={
             isDocumentSurface
-              ? 'doc-surface-heading min-w-0 flex-1 select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
+              ? 'doc-surface-heading doc-surface-heading-inline select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
               : 'h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline'
           }
           aria-readonly="true"
