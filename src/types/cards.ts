@@ -45,6 +45,8 @@ export interface CardField {
   heading: string | null;
   /** When false the header text box is collapsed; `heading` is retained. */
   headingEnabled: boolean;
+  /** Module-level visibility: a hidden module is omitted from Part B. */
+  isVisible: boolean;
   contentHtml: string | null;
   /** Optimistic-concurrency counters, one per text box. */
   contentVersion: number;
@@ -134,6 +136,7 @@ export function mapField(row: any): CardField {
     proposalId: row.proposal_id,
     heading: row.heading ?? null,
     headingEnabled: row.heading_enabled ?? true,
+    isVisible: row.is_visible ?? true,
     contentHtml: row.content_html ?? null,
     contentVersion: row.content_version ?? 1,
     headingVersion: row.heading_version ?? 1,

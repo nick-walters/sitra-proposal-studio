@@ -356,6 +356,9 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /** Single block trialling the page-like editable surface (see index.css). */
 const DOCUMENT_SURFACE_TRIAL_KEY = 'b12.concepts';
 
+/** Blocks whose modules are fixed by the template and cannot be deleted. */
+const UNDELETABLE_MODULE_CARD_KEYS = new Set(['b11.maturity']);
+
 interface FieldRowProps {
   field: CardField;
   proposalId: string;
@@ -366,6 +369,7 @@ interface FieldRowProps {
   onContentChange: (field: CardField, html: string) => void;
   onDelete: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onToggleVisible: (field: CardField, visible: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
   /** Flushes the content text box immediately (used before a lock release). */
@@ -393,6 +397,7 @@ function FieldRow({
   onContentChange,
   onDelete,
   onToggleHeading,
+  onToggleVisible,
   onFocusField,
   onLostText,
   onFlushContent,
@@ -538,7 +543,9 @@ function FieldRow({
       ref={setNodeRef}
       id={`card-module-${field.id}`}
       style={style}
-      className="space-y-2 rounded-md border border-border p-3 transition-shadow"
+      className={`space-y-2 rounded-md border border-border p-3 transition-shadow ${
+        field.isVisible ? '' : 'opacity-50 print:hidden'
+      }`}
     >
       <div className="flex items-center gap-1">
         {canEdit && (
@@ -656,6 +663,34 @@ function FieldRow({
             )}
 
             {canEdit && (
+              <Tip
+                label={
+                  field.isVisible
+                    ? 'Hide this module from Part B'
+                    : 'Show this module in Part B'
+                }
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => onToggleVisible(field, !field.isVisible)}
+                  aria-label={
+                    field.isVisible
+                      ? 'Hide this module from Part B'
+                      : 'Show this module in Part B'
+                  }
+                >
+                  {field.isVisible ? (
+                    <Eye className="h-3.5 w-3.5" />
+                  ) : (
+                    <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </Button>
+              </Tip>
+            )}
+
+            {canEdit && !UNDELETABLE_MODULE_CARD_KEYS.has(cardTemplateKey ?? '') && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete module">
@@ -798,6 +833,7 @@ interface CardBlockProps {
   onContentChange: (field: CardField, html: string) => void;
   onDeleteField: (field: CardField) => void;
   onToggleHeading: (field: CardField, enabled: boolean) => void;
+  onToggleFieldVisible: (field: CardField, visible: boolean) => void;
   onFocusField: (fieldId: string, textBox: CardTextBox) => void;
   onLostText: (payload: LostTextPayload) => void;
   onFlushContent: (field: CardField, html: string) => Promise<void>;
@@ -841,6 +877,7 @@ function CardBlock({
   onContentChange,
   onDeleteField,
   onToggleHeading,
+  onToggleFieldVisible,
   onFocusField,
   onLostText,
   onFlushContent,
@@ -1410,6 +1447,7 @@ function CardBlock({
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
                         onToggleHeading={onToggleHeading}
+                        onToggleVisible={onToggleFieldVisible}
                         onFocusField={onFocusField}
                         onLostText={onLostText}
                         onFlushContent={onFlushContent}
@@ -2010,6 +2048,8 @@ function BoardInner({
       if (card.isSourceFed || card.kind === 'references') continue;
 
       for (const f of fieldsByCard[card.id] ?? []) {
+        // A hidden MODULE consumes no letter, exactly as a hidden block does.
+        if (!f.isVisible) continue;
         if (f.fieldRole === 'case_placeholder') {
           caseLetters[f.id] = tableIdx;
           tableIdx += 1;
@@ -2116,6 +2156,8 @@ function BoardInner({
       void saveTextBox(f.id, f.cardId, 'header', heading ?? '', false),
     onToggleHeading: (f: CardField, enabled: boolean) =>
       updateField.mutate({ fieldId: f.id, cardId: f.cardId, headingEnabled: enabled }),
+    onToggleFieldVisible: (f: CardField, visible: boolean) =>
+      updateField.mutate({ fieldId: f.id, cardId: f.cardId, isVisible: visible }),
 
     onContentChange: handleContentChange,
     onDeleteField: (f: CardField) => deleteField.mutate({ fieldId: f.id, cardId: f.cardId }),
