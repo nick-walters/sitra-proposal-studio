@@ -1756,7 +1756,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
 
   const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, "Part B3.1 — Work plan & work packages")];
 
-  if (intro && intro.trim()) {
+  if (intro && intro.trim() && blockVisible("b31.intro")) {
     children.push(H(HeadingLevel.HEADING_2, "Intro text"));
     children.push(...htmlToDocxChildren(intro));
   }
@@ -1823,6 +1823,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
       }),
     }));
     children.push(P(""));
+  }
   }
 
   // ─── Table 3.1.c — Deliverables (WP-scoped D{wp}.{n} labels) ───
