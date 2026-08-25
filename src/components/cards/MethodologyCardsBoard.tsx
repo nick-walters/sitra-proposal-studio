@@ -106,6 +106,7 @@ import { useSectionCards, sectionCardsKey } from '@/hooks/useSectionCards';
 import { ReferencesBlock } from './ReferencesBlock';
 import { useSectionCitedReferences } from '@/hooks/useSectionCitedReferences';
 import { SourceFedBlock } from '@/components/cards/SourceFedBlock';
+import { B32BlockMirrors, b32BlockHasMirrors } from '@/components/cards/B32BlockMirrors';
 import { MilestonesEditor, RisksEditor } from '@/components/ProposalMilestonesRisksManager';
 import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
