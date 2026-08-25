@@ -237,18 +237,43 @@ export function B32SectionContent({ proposalId }: Props) {
   );
 
   // Per-column width resolution: manual wins (no 1cm clamp), else auto default.
-  const colWidthFor = (i: number): number => {
+  const baseWidthFor = (i: number): number => {
     if (hasManualWidths) return colWidths[i];
     return i === 0 ? expertiseColPx : autoCheckColWidthPx;
   };
 
-  const autoContentWidthPx = expertiseColPx + numChecks * autoCheckColWidthPx;
-  const manualContentWidthPx = hasManualWidths ? colWidths.reduce((s, w) => s + w, 0) : 0;
-  const tableWidthStyle: React.CSSProperties = hasManualWidths
-    ? { width: `${manualContentWidthPx}px` }
-    : anyExpertiseWraps
-      ? { width: '100%' }
-      : { width: `${autoContentWidthPx}px` };
+  // Fit the columns inside the block: shrink the expertise column first (down
+  // to a readable floor), then scale the check columns proportionally, never
+  // below their rotated-badge minimum.
+  const EXPERTISE_MIN_PX = 80;
+  const baseWidths = Array.from({ length: 1 + numChecks }, (_, i) => baseWidthFor(i));
+  const fittedWidths = (() => {
+    const widths = [...baseWidths];
+    const total = widths.reduce((s, w) => s + w, 0);
+    const cap = containerPx ?? Infinity;
+    if (!Number.isFinite(cap) || total <= cap) return widths;
+    let overflow = total - cap;
+    const expShrink = Math.min(overflow, Math.max(0, widths[0] - EXPERTISE_MIN_PX));
+    widths[0] -= expShrink;
+    overflow -= expShrink;
+    if (overflow > 0 && numChecks > 0) {
+      const checksTotal = widths.slice(1).reduce((s, w) => s + w, 0);
+      const factor = checksTotal > 0 ? Math.max(0, (checksTotal - overflow) / checksTotal) : 1;
+      for (let i = 1; i < widths.length; i += 1) {
+        widths[i] = Math.max(ROTATED_COL_MIN_PX, Math.floor(widths[i] * factor));
+      }
+    }
+    return widths;
+  })();
+
+  const colWidthFor = (i: number): number => fittedWidths[i] ?? baseWidthFor(i);
+
+  const fittedTotalPx = fittedWidths.reduce((s, w) => s + w, 0);
+  const useFullWidth = !hasManualWidths && anyExpertiseWraps && (containerPx === null || fittedTotalPx >= containerPx);
+  const tableWidthStyle: React.CSSProperties = useFullWidth
+    ? { width: '100%', maxWidth: '100%' }
+    : { width: `${fittedTotalPx}px`, maxWidth: '100%' };
+
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
