@@ -17,6 +17,7 @@ import { PERTChartFigure } from '@/components/PERTChartFigure';
 import { B12LinkedActivitiesSlotContent } from '@/components/B12LinkedActivitiesSlotContent';
 import { B32MirrorSlotLiveView } from '@/components/B32MirrorSlotNodeView';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
+import { sourceFedEmptyReason } from '@/lib/cards/sourceFedEmptyReasons';
 
 /**
  * Read-only render of a source-fed block.
@@ -49,6 +50,28 @@ const B31_KEYS = new Set([
 
 function Note({ children }: { children: React.ReactNode }) {
   return <p className="text-sm italic text-muted-foreground">{children}</p>;
+}
+
+/**
+ * Shown in place of a source-fed block whose source is empty. The block keeps
+ * its place on the board (B3.1's tables are lettered, so a gap is meaningful)
+ * and states plainly why it will not be in the produced document. Nothing here
+ * is editable: there is nothing to author.
+ *
+ * The reason re-evaluates on every render, and every source behind these
+ * blocks is a live query, so the note turns into the real table the moment the
+ * data appears — and back again if it is removed.
+ */
+function UnmetNote({ sourceKey }: { sourceKey: string | null | undefined }) {
+  return (
+    <p
+      data-source-fed-unmet=""
+      data-source-key={sourceKey ?? ''}
+      className="text-sm text-muted-foreground"
+    >
+      {sourceFedEmptyReason(sourceKey)}
+    </p>
+  );
 }
 
 /* -------------------------------------------------------- figure capture */
@@ -116,8 +139,10 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
 
   switch (sourceKey) {
     case 'b31.table_a':
+      if (!wpData.length) return <UnmetNote sourceKey={sourceKey} />;
       return <B31WPListTable wpData={wpData} participants={participants} proposalId={proposalId} />;
     case 'b31.table_b':
+      if (!wpData.length) return <UnmetNote sourceKey={sourceKey} />;
       return (
         <B31WPDescriptionTables
           wpData={wpData}
@@ -133,6 +158,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.table_e':
       return <B31RisksTable proposalId={proposalId} />;
     case 'b31.table_f':
+      if (!wpData.length || !participants.length) return <UnmetNote sourceKey={sourceKey} />;
       return <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />;
     case 'b31.table_g':
       return subcontractingByParticipant.length > 0 ? (
@@ -143,7 +169,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
           tableLabel="Table 3.1.g."
         />
       ) : (
-        <Note>No subcontracting costs have been budgeted yet.</Note>
+        <UnmetNote sourceKey={sourceKey} />
       );
     case 'b31.table_h':
       return purchaseBlocks.length > 0 ? (
@@ -156,7 +182,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
           defaultCaption="Purchase cost justifications"
         />
       ) : (
-        <Note>No purchase costs have been budgeted yet.</Note>
+        <UnmetNote sourceKey={sourceKey} />
       );
 
     case 'b31.gantt':
@@ -181,7 +207,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
           />
         </FigureCapture>
       ) : (
-        <Note>The Gantt chart appears here once it has been created on the figures page.</Note>
+        <UnmetNote sourceKey={sourceKey} />
       );
     case 'b31.pert':
       return pertFigure ? (
@@ -205,7 +231,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
           />
         </FigureCapture>
       ) : (
-        <Note>The Pert chart appears here once it has been created on the figures page.</Note>
+        <UnmetNote sourceKey={sourceKey} />
       );
 
     default:
@@ -232,7 +258,12 @@ export function SourceFedBlock({ proposalId, sourceKey, kind }: SourceFedBlockPr
       );
     }
     if (sourceKey === 'b12.linked_activities') {
-      return <B12LinkedActivitiesSlotContent proposalId={proposalId} />;
+      return (
+        <B12LinkedActivitiesSlotContent
+          proposalId={proposalId}
+          emptyFallback={<UnmetNote sourceKey={sourceKey} />}
+        />
+      );
     }
     if (sourceKey && B32_SLOTS[sourceKey]) {
       return <B32MirrorSlotLiveView proposalId={proposalId} slotKey={B32_SLOTS[sourceKey]} />;
