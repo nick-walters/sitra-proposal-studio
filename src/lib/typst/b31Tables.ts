@@ -538,26 +538,3 @@ export function emitFigure(
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
-
-/**
- * The per-section reference list (the tail "References" block).
- *
- * Only references cited by VISIBLE content are exported, numbered with the
- * document-wide display number so the numbers match the superscripts in the
- * body. References cited only in hidden blocks are on-screen aids and are
- * left out here, exactly as the browser-print path does.
- */
-export function emitReferences(
-  entries: Array<{ displayNumber: number | null; html: string }>,
-  ctx: ConvertContext,
-): string[] {
-  const cited = entries.filter((e) => e.displayNumber != null);
-  if (!cited.length) return [];
-  return cited.map(
-    (entry) =>
-      `block(spacing: 3pt, super(t(${typstString(String(entry.displayNumber))})) + t(" ") + ${rich(
-        entry.html,
-        ctx,
-      )})`,
-  );
-}

@@ -216,8 +216,8 @@ export interface BuildTypstOptions {
   figuresAvailable?: { pert: boolean; gantt: boolean };
   /**
    * The section's cited references, already numbered — see
-   * `fetchSectionTypstReferences`. Omitted or empty means the tail
-   * References block is left out of the document entirely.
+   * `fetchSectionTypstReferences`. They feed the per-page footnotes; there is
+   * no reference list in the document.
    */
   references?: SectionTypstReference[];
   /** Page-one furniture (participant list, AI statement); B1.1 only. */
