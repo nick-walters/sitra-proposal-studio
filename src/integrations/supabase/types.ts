@@ -4661,6 +4661,53 @@ export type Database = {
           },
         ]
       }
+      proposal_row_bin: {
+        Row: {
+          created_at: string
+          deleted_by: string | null
+          id: string
+          label: string | null
+          links: Json
+          payload: Json
+          proposal_id: string
+          row_id: string
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_by?: string | null
+          id?: string
+          label?: string | null
+          links?: Json
+          payload: Json
+          proposal_id: string
+          row_id: string
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_by?: string | null
+          id?: string
+          label?: string | null
+          links?: Json
+          payload?: Json
+          proposal_id?: string
+          row_id?: string
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_row_bin_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_section_guidelines: {
         Row: {
           content: string
@@ -7018,6 +7065,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      bin_and_delete_numbered_row: {
+        Args: { p_expected_version?: number; p_id: string; p_table: string }
+        Returns: Json
+      }
       caller_is_sitra_staff: { Args: never; Returns: boolean }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
@@ -7209,6 +7260,7 @@ export type Database = {
         Args: { p_section_id: string }
         Returns: undefined
       }
+      restore_binned_row: { Args: { p_bin_id: string }; Returns: Json }
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }

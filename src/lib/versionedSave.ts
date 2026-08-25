@@ -148,6 +148,24 @@ export interface DeleteResequenceResult {
 }
 
 /**
+ * Moves a milestone or risk into the proposal row recycle bin, then
+ * resequences the surviving rows in the same transaction.
+ */
+export async function binAndDeleteNumberedRow(
+  table: 'proposal_milestones' | 'proposal_risks',
+  id: string,
+  expectedVersion: number | null = null,
+): Promise<DeleteResequenceResult> {
+  const { data, error } = await (supabase as any).rpc('bin_and_delete_numbered_row', {
+    p_table: table,
+    p_id: id,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, conflict: false, error: 'no response' }) as DeleteResequenceResult;
+}
+
+/**
  * Deletes one row of a numbered list and renumbers its surviving siblings in
  * the SAME transaction. The old delete-then-reorder pair could leave a gap
  * behind whenever the second call never landed.
