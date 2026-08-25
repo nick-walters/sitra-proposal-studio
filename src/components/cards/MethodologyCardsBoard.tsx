@@ -353,6 +353,9 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /* Field row                                                           */
 /* ------------------------------------------------------------------ */
 
+/** Single block trialling the page-like editable surface (see index.css). */
+const DOCUMENT_SURFACE_TRIAL_KEY = 'b12.concepts';
+
 interface FieldRowProps {
   field: CardField;
   proposalId: string;
@@ -514,6 +517,9 @@ function FieldRow({
   // both parts together, outside the editor, and the editor is remounted on
   // the rewritten HTML.
   const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
+  // Trial of the page-like editing surface — B1.2's "Underlying concepts,
+  // models & assumptions" only, until the look is agreed.
+  const isDocumentSurface = cardTemplateKey === DOCUMENT_SURFACE_TRIAL_KEY;
   const [rowNonce, setRowNonce] = useState(0);
   const applyRowChange = (next: string) => {
     mirroredHtml.current = next;
@@ -736,6 +742,7 @@ function FieldRow({
               canEdit={canEdit && !contentLock.lockedByOther}
               isCoordinator={isCoordinator}
               captionNumbering={captionNumbering ?? null}
+              documentSurface={isDocumentSurface}
               activeRingClass={
                 contentLock.isMine
                   ? 'border-emerald-600 ring-1 ring-emerald-600/60'
