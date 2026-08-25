@@ -2,7 +2,7 @@ import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Paragraph from '@tiptap/extension-paragraph';
 import { describe, expect, it } from 'vitest';
-import { CaptionAutoNumber } from '@/extensions/CaptionAutoNumber';
+import { CaptionAutoNumber, materializeCaptionLabels } from '@/extensions/CaptionAutoNumber';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 
 const CaptionParagraph = Paragraph.extend({
@@ -18,6 +18,16 @@ const CaptionParagraph = Paragraph.extend({
 });
 
 describe('CaptionAutoNumber', () => {
+  it('materialises a missing migrated label before the editor mounts', () => {
+    const html = materializeCaptionLabels(
+      '<p class="document-table-caption"><em>Starting &amp; target technology readiness levels</em></p>',
+      { sectionNumber: '1.1', tableOffset: 1, figureOffset: 0 },
+    );
+
+    expect(html).toContain('data-caption-label');
+    expect(html).toContain('Table 1.1.b. ');
+  });
+
   it('inserts a derived label into a migrated empty-label caption', () => {
     const editor = new Editor({
       extensions: [

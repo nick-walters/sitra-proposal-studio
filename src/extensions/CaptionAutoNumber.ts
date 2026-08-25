@@ -20,6 +20,69 @@ export interface CaptionNumbering {
 
 const LABEL_PATTERN = /^\s*(Figure|Table)\s+\d+(?:\.\d+)*\.[a-z]+\.[ \u00A0]?/i;
 
+/**
+ * Materialise derived labels before TipTap parses a field for the first time.
+ *
+ * Most captions already carry a populated captionLabel mark. Migrated module
+ * captions can instead contain only the canonical paragraph class and their
+ * description. Seeding those labels here makes the first editor paint
+ * deterministic; CaptionAutoNumber continues to own subsequent renumbering.
+ */
+export function materializeCaptionLabels(
+  html: string,
+  cfg: CaptionNumbering | null,
+): string {
+  if (!html || !cfg?.sectionNumber || typeof document === 'undefined') return html;
+
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  const section = cfg.sectionNumber.replace(/^[A-Za-z]+/, '');
+  let tableIdx = cfg.tableOffset;
+  let figureIdx = cfg.figureOffset;
+
+  Array.from(holder.children).forEach((element) => {
+    if (element.matches('div[data-cases-table-node]')) {
+      tableIdx += 1;
+      return;
+    }
+    if (!(element instanceof HTMLParagraphElement)) return;
+
+    const cls = element.className || '';
+    const match = LABEL_PATTERN.exec(element.textContent ?? '');
+    const kind = cls.includes('document-table-caption')
+      ? 'table'
+      : cls.includes('figure-caption')
+        ? 'figure'
+        : match?.[1].toLowerCase() === 'figure'
+          ? 'figure'
+          : match?.[1].toLowerCase() === 'table'
+            ? 'table'
+            : null;
+    if (!kind) return;
+
+    const index = kind === 'figure' ? figureIdx++ : tableIdx++;
+    const desired = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
+    const existingLabel = element.querySelector('[data-caption-label]');
+    if (existingLabel) {
+      existingLabel.textContent = desired;
+      return;
+    }
+
+    if (match) {
+      const firstText = element.firstChild;
+      if (firstText?.nodeType === Node.TEXT_NODE) {
+        firstText.textContent = (firstText.textContent ?? '').slice(match[0].length);
+      }
+    }
+    const label = document.createElement('span');
+    label.setAttribute('data-caption-label', '');
+    label.textContent = desired;
+    element.prepend(label);
+  });
+
+  return holder.innerHTML;
+}
+
 function isCaptionParagraph(node: PMNode): 'table' | 'figure' | null {
   if (node.type.name !== 'paragraph') return null;
   const cls = String((node.attrs as { class?: string })?.class ?? '');
