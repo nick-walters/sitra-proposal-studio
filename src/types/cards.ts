@@ -45,6 +45,8 @@ export interface CardField {
   heading: string | null;
   /** When false the header text box is collapsed; `heading` is retained. */
   headingEnabled: boolean;
+  /** Module-level visibility: a hidden module is omitted from Part B. */
+  isVisible: boolean;
   contentHtml: string | null;
   /** Optimistic-concurrency counters, one per text box. */
   contentVersion: number;
