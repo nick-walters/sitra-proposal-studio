@@ -117,6 +117,15 @@ interface Risk {
 
 const MS_KEY = (pid: string) => ['proposal-milestones-mgr', pid];
 const RISK_KEY = (pid: string) => ['proposal-risks-mgr', pid];
+const LEFT_ALIGNED_CELL_CLASS =
+  '[&_.document-content]:!text-left [&_.document-content_*]:!text-left [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left';
+
+/** Table cells are always left-aligned, irrespective of legacy paragraph alignment. */
+function leftAlignedCellHtml(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/text-align\s*:\s*(?:justify|center|right|start|end|left)\s*;?/gi, '')
+    .replace(/style=(['"])\s*\1/gi, '');
+}
 
 // Fixed column tracks shared by each row's metadata line and the label header
 // row above the list, so fields align across rows. A column is reserved for
@@ -440,6 +449,8 @@ export function MilestonesEditor({
       }
       return (rows || []).map((r: any) => ({
         ...r,
+        title: leftAlignedCellHtml(r.title),
+        means_of_verification: leftAlignedCellHtml(r.means_of_verification),
         wp_ids: wpMap.get(r.id) || [],
         primary_wp_id: primaryMap.get(r.id) ?? null,
       }));
@@ -502,6 +513,10 @@ export function MilestonesEditor({
   const updateMilestone = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Milestone> }) => {
       const { wp_ids, task_ids, ...rest } = patch as any;
+      if (typeof rest.title === 'string') rest.title = leftAlignedCellHtml(rest.title);
+      if (typeof rest.means_of_verification === 'string') {
+        rest.means_of_verification = leftAlignedCellHtml(rest.means_of_verification);
+      }
       const known = milestones.find(m => m.id === id);
       // A due-month change reorders the board, so the renumber has to happen in
       // the same transaction as the write rather than as a follow-up call.
@@ -627,6 +642,7 @@ export function MilestonesEditor({
                   <div className="min-w-0">
                     <DebouncedRichField
                       value={m.title || ''}
+                      className={LEFT_ALIGNED_CELL_CLASS}
                       disabled={!canEdit}
                       minHeight="30px"
                       proposalId={proposalId}
@@ -710,6 +726,7 @@ export function MilestonesEditor({
                 <div className="col-start-2">
                   <DebouncedRichField
                     value={m.means_of_verification || ''}
+                    className={LEFT_ALIGNED_CELL_CLASS}
                     disabled={!canEdit}
                     minHeight="30px"
                     proposalId={proposalId}
@@ -794,7 +811,12 @@ export function RisksEditor({
         a.push(l.wp_draft_id);
         wpMap.set(l.risk_id, a);
       }
-      return (rows || []).map((r: any) => ({ ...r, wp_ids: wpMap.get(r.id) || [] }));
+      return (rows || []).map((r: any) => ({
+        ...r,
+        title: leftAlignedCellHtml(r.title),
+        mitigation: leftAlignedCellHtml(r.mitigation),
+        wp_ids: wpMap.get(r.id) || [],
+      }));
     },
   });
 
@@ -814,6 +836,8 @@ export function RisksEditor({
   const updateRisk = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Risk> }) => {
       const { wp_ids, ...rest } = patch as any;
+      if (typeof rest.title === 'string') rest.title = leftAlignedCellHtml(rest.title);
+      if (typeof rest.mitigation === 'string') rest.mitigation = leftAlignedCellHtml(rest.mitigation);
       const known = risks.find(r => r.id === id);
       const res = await saveVersionedRow('proposal_risks', id, rest, known?.version ?? null);
       if (res.conflict) {
@@ -1030,6 +1054,7 @@ function SortableRiskRow({
         <div className="min-w-0">
           <DebouncedRichField
             value={risk.title || ''}
+            className={LEFT_ALIGNED_CELL_CLASS}
             disabled={!canEdit}
             minHeight="30px"
             proposalId={proposalId}
@@ -1074,6 +1099,7 @@ function SortableRiskRow({
       <div className="col-start-2">
         <DebouncedRichField
           value={risk.mitigation || ''}
+          className={LEFT_ALIGNED_CELL_CLASS}
           disabled={!canEdit}
           minHeight="30px"
           proposalId={proposalId}
