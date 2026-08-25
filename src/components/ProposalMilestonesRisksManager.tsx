@@ -591,7 +591,7 @@ export function MilestonesEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_.ProseMirror_p]:!text-left [&_.ProseMirror_li]:!text-left [&_.ProseMirror]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the milestone name above. */}
@@ -929,7 +929,7 @@ export function RisksEditor({
 
   return (
     <TooltipProvider>
-      <div className="compact-ref-badges">
+      <div className="compact-ref-badges [&_.ProseMirror_p]:!text-left [&_.ProseMirror_li]:!text-left [&_.ProseMirror]:!text-left">
         <div className="space-y-1">
           {/* Column labels for the second line — same fixed grid as every row,
               indented to align with the risk description above. */}
