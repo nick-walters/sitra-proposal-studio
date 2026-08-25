@@ -80,6 +80,7 @@ export function TypstPreviewDialog({
       // The Pert is emitted natively from its own layout data, so only the
       // Gantt — CSS-drawn nested divs — is still captured from the live board
       // with the same snapshot utility as the PNG download.
+      const { fetchTypstFrontMatter } = await import('@/lib/typst/frontMatter');
       const [tree, meta, sourceData, captured, references] = await Promise.all([
         fetchSectionBlockTree(proposalId, sectionId),
         fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
@@ -87,19 +88,27 @@ export function TypstPreviewDialog({
         captureFigureAssets(['gantt']),
         fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
       ]);
+      // Page-one furniture is only fetched for the section that carries the
+      // banner (B1.1); every other section starts on plain margins.
+      const frontMatter = meta.banner ? await fetchTypstFrontMatter(proposalId) : null;
       const built = buildSectionTypstDocument(tree, {
         sectionLabel,
         data: refData,
         meta,
         sourceData,
         references,
+        frontMatter,
         figuresAvailable: {
           pert: captured.assets.some((a) => a.path.includes('pert')),
           gantt: captured.assets.some((a) => a.path.includes('gantt')),
         },
       });
 
-      const { pdf, compileMs } = await compileTypstToPdf(built.source, captured.assets);
+      const { pdf, compileMs } = await compileTypstToPdf(built.source, [
+        ...captured.assets,
+        ...(frontMatter?.assets ?? []),
+      ]);
+
       const blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(blob);
