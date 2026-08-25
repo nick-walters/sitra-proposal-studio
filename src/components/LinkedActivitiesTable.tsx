@@ -133,137 +133,146 @@ function SortableActivityRow({
     <tbody ref={setNodeRef} style={style} className="border-y border-gray-200">
       <tr>
         <td className={firstCellStyles}>
-
-        {canEdit ? (
-          <Tip label="Drag to reorder this activity">
-            <button
-              type="button"
-              className="cursor-grab touch-none text-[#2563EB]"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-          </Tip>
-
-        ) : (
-          <span />
-        )}
+          {canEdit ? (
+            <Tip label="Drag to reorder this activity">
+              <button
+                type="button"
+                className="cursor-grab touch-none text-[#2563EB]"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+            </Tip>
+          ) : (
+            <span />
+          )}
+        </td>
 
         {/* Acronym — single-line rich text, title-field controls only
             (undo, redo, font colour). Legacy plain strings upgrade on read. */}
-        {canEdit ? (
-          <LazyRichField
-            singleLine
-            proposalId={proposalId}
-            value={ensureRichHtml(activity.acronym)}
-            placeholder="Acronym"
-            minHeight="32px"
-            className="text-xs [&_p]:m-0"
-            staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-            onChange={(html) => onUpdate(activity.id, { acronym: html })}
-          />
-        ) : (
-          <span
-            className="truncate text-xs [&_p]:m-0 [&_p]:inline"
-            dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
-          />
-        )}
+        <td className={`${cellStyles} break-words`}>
+          {canEdit ? (
+            <LazyRichField
+              singleLine
+              proposalId={proposalId}
+              value={ensureRichHtml(activity.acronym)}
+              placeholder="Acronym"
+              minHeight="24px"
+              className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
+              staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+              onChange={(html) => onUpdate(activity.id, { acronym: html })}
+            />
+          ) : (
+            <span
+              className="[&_p]:m-0 [&_p]:inline"
+              dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
+            />
+          )}
+        </td>
 
         {/* Instrument */}
-        {canEdit ? (
-          <div data-scalar-field="" className="flex min-w-0 items-center gap-1">
-            <Select
-              value={activity.instrumentCode ?? NONE}
-              onValueChange={(v) =>
-                onUpdate(activity.id, {
-                  instrumentCode: v === NONE ? null : v,
-                  ...(v === 'OTHER' ? {} : { instrumentCustom: null }),
-                })
-              }
-            >
-              <SelectTrigger className="h-8 min-w-0 flex-1 justify-between text-left text-xs [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left" aria-label="Funding instrument">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>—</SelectItem>
-                {FUNDING_INSTRUMENTS.map((inst) => (
-                  <SelectItem key={inst.code} value={inst.code}>
-                    {inst.fullName ? `${inst.abbreviation} (${inst.fullName})` : 'Other'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {isOther && (
-              <Input
-                value={activity.instrumentCustom ?? ''}
-                onChange={(e) => onUpdate(activity.id, { instrumentCustom: e.target.value })}
-                placeholder="Name"
-                className="h-8 w-24 text-xs"
-                aria-label="Custom funding instrument"
-              />
-            )}
-          </div>
-        ) : (
-          <span className="truncate text-xs">
-            {getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}
-          </span>
-        )}
+        <td className={`${cellStyles} break-words`}>
+          {canEdit ? (
+            <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${SUBTLE_CONTROL}`}>
+              <Select
+                value={activity.instrumentCode ?? NONE}
+                onValueChange={(v) =>
+                  onUpdate(activity.id, {
+                    instrumentCode: v === NONE ? null : v,
+                    ...(v === 'OTHER' ? {} : { instrumentCustom: null }),
+                  })
+                }
+              >
+                <SelectTrigger
+                  className="h-7 min-w-0 flex-1 justify-between px-1 text-left font-['Times_New_Roman',Times,serif] text-[11pt] [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left"
+                  aria-label="Funding instrument"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {FUNDING_INSTRUMENTS.map((inst) => (
+                    <SelectItem key={inst.code} value={inst.code}>
+                      {inst.fullName ? `${inst.abbreviation} (${inst.fullName})` : 'Other'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isOther && (
+                <Input
+                  value={activity.instrumentCustom ?? ''}
+                  onChange={(e) => onUpdate(activity.id, { instrumentCustom: e.target.value })}
+                  placeholder="Name"
+                  className="h-7 w-24 px-1 font-['Times_New_Roman',Times,serif] text-[11pt]"
+                  aria-label="Custom funding instrument"
+                />
+              )}
+            </div>
+          ) : (
+            <span>
+              {getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}
+            </span>
+          )}
+        </td>
 
         {/* Duration */}
-        {canEdit ? (
-          <div data-scalar-field="" className="min-w-0">
-            <YearRangePicker
-              startYear={activity.durationStart}
-              endYear={activity.durationEnd}
-              onChange={(start, end) =>
-                onUpdate(activity.id, { durationStart: start, durationEnd: end })
-              }
-            />
-          </div>
-        ) : (
-          <span className="truncate text-xs">
-            {formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}
-          </span>
-        )}
+        <td className={`${cellStyles} break-words`}>
+          {canEdit ? (
+            <div data-scalar-field="" className={`min-w-0 ${SUBTLE_CONTROL}`}>
+              <YearRangePicker
+                startYear={activity.durationStart}
+                endYear={activity.durationEnd}
+                onChange={(start, end) =>
+                  onUpdate(activity.id, { durationStart: start, durationEnd: end })
+                }
+                className="h-7 w-full justify-start px-1 font-['Times_New_Roman',Times,serif] text-[11pt]"
+              />
+            </div>
+          ) : (
+            <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
+          )}
+        </td>
 
-        {/* Responsible participant + delete control */}
+        {/* Responsible participant */}
         {/* tabIndex makes the chip itself focusable on click, so the features
             tier opens for this scalar field like it does for the others. */}
-        <div data-scalar-field="" tabIndex={-1} className="min-w-0 flex items-center gap-1 outline-none">
-          {selected ? (
-            <ParticipantBubble
-              onClick={() => {
-                if (canEdit) setAssignOpen(true);
-              }}
-              style={{
-                fontSize: '12px',
-                height: 'auto',
-                padding: '2px 8px',
-                cursor: canEdit ? 'pointer' : 'default',
-                opacity: canEdit ? 1 : 0.6,
-              }}
-              className="whitespace-nowrap transition-all hover:ring-2 hover:ring-primary/30"
-            >
-              {selected.organisation_short_name || `P${selected.participant_number}`}
-            </ParticipantBubble>
-          ) : canEdit ? (
-            <button
-              type="button"
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold transition-all hover:ring-2 hover:ring-primary/30"
-              style={{ border: '1px dashed hsl(var(--muted-foreground))' }}
-              onClick={() => setAssignOpen(true)}
-            >
-              + Assign
-            </button>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
-        </div>
+        <td className={cellStyles}>
+          <div data-scalar-field="" tabIndex={-1} className="flex min-w-0 items-center gap-1 outline-none">
+            {selected ? (
+              <ParticipantBubble
+                onClick={() => {
+                  if (canEdit) setAssignOpen(true);
+                }}
+                style={{
+                  fontSize: '12px',
+                  height: 'auto',
+                  padding: '2px 8px',
+                  cursor: canEdit ? 'pointer' : 'default',
+                  opacity: canEdit ? 1 : 0.6,
+                }}
+                className="whitespace-nowrap transition-all hover:ring-2 hover:ring-primary/30"
+              >
+                {selected.organisation_short_name || `P${selected.participant_number}`}
+              </ParticipantBubble>
+            ) : canEdit ? (
+              <button
+                type="button"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold transition-all hover:ring-2 hover:ring-primary/30"
+                style={{ border: '1px dashed hsl(var(--muted-foreground))' }}
+                onClick={() => setAssignOpen(true)}
+              >
+                + Assign
+              </button>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+          </div>
+        </td>
 
-        {/* Fixed delete column: inside the block, identical position on every
-            row whatever the participant chip's width. */}
-        <div className="flex w-9 shrink-0 items-center justify-center">
+        {/* Fixed delete column: identical position on every row whatever the
+            participant chip's width. */}
+        <td className={`${cellStyles} text-center`}>
           {canEdit && (
             <DeleteConfirmDialog
               itemLabel="this linked activity"
@@ -271,72 +280,74 @@ function SortableActivityRow({
               onConfirm={() => onDelete(activity.id)}
             />
           )}
-        </div>
 
+          <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Participant responsible for establishing the link</DialogTitle>
+                <DialogDescription>
+                  Choose the partner organisation responsible for establishing this link.
+                </DialogDescription>
+              </DialogHeader>
 
-      </div>
-
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Participant responsible for establishing the link</DialogTitle>
-            <DialogDescription>
-              Choose the partner organisation responsible for establishing this link.
-            </DialogDescription>
-          </DialogHeader>
-
-          <ScrollArea className="max-h-[400px]">
-            <div className="space-y-1 p-1">
-              <button
-                onClick={() => {
-                  onUpdate(activity.id, { responsibleParticipantId: null });
-                  setAssignOpen(false);
-                }}
-                className="w-full rounded-md p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/80"
-              >
-                None
-              </button>
-              {participants.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    onUpdate(activity.id, { responsibleParticipantId: p.id });
-                    setAssignOpen(false);
-                  }}
-                  className="flex w-full items-center rounded-md p-3 text-left transition-colors hover:bg-muted/80"
-                >
-                  <div className="w-24 shrink-0">
-                    <ParticipantBubble
-                      style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
+              <ScrollArea className="max-h-[400px]">
+                <div className="space-y-1 p-1">
+                  <button
+                    onClick={() => {
+                      onUpdate(activity.id, { responsibleParticipantId: null });
+                      setAssignOpen(false);
+                    }}
+                    className="w-full rounded-md p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/80"
+                  >
+                    None
+                  </button>
+                  {participants.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        onUpdate(activity.id, { responsibleParticipantId: p.id });
+                        setAssignOpen(false);
+                      }}
+                      className="flex w-full items-center rounded-md p-3 text-left transition-colors hover:bg-muted/80"
                     >
-                      {p.organisation_short_name || `P${p.participant_number}`}
-                    </ParticipantBubble>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm">{p.organisation_name}</div>
-                    {p.english_name && p.english_name !== p.organisation_name && (
-                      <div className="truncate text-xs text-muted-foreground">{p.english_name}</div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+                      <div className="w-24 shrink-0">
+                        <ParticipantBubble
+                          style={{ fontSize: '12px', height: 'auto', padding: '2px 8px' }}
+                        >
+                          {p.organisation_short_name || `P${p.participant_number}`}
+                        </ParticipantBubble>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm">{p.organisation_name}</div>
+                        {p.english_name && p.english_name !== p.organisation_name && (
+                          <div className="truncate text-xs text-muted-foreground">{p.english_name}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </td>
+      </tr>
 
-      <div className="space-y-1">
-        <MethodologyRichEditor
-          proposalId={proposalId}
-          value={activity.linkDescriptionHtml ?? ''}
-          onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
-          canEdit={canEdit}
-          isCoordinator={isCoordinator}
-          minHeight="2.5rem"
-          placeholder="How the project will be linked"
-        />
-      </div>
-    </div>
+      {/* Second line: the link description spans the full table width. */}
+      <tr>
+        <td className={`${firstCellStyles} !pt-0`} colSpan={6}>
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={activity.linkDescriptionHtml ?? ''}
+            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            minHeight="2.5rem"
+            placeholder="How the project will be linked"
+          />
+        </td>
+      </tr>
+    </tbody>
+
   );
 }
 
