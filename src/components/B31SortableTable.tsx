@@ -241,6 +241,7 @@ export function B31SortableTable<TRow extends { id: string; order_index: number 
     proposalId,
     tableKey: columnResizeKey ?? dbTable,
     canResize: isAdminOrOwner,
+    maxTotalWidth: 768,
   });
 
   const sensors = useSensors(

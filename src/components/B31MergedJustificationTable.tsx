@@ -31,7 +31,7 @@ export function B31MergedJustificationTable({
 }: Props) {
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, tableRef, handleColResizeStart } = useColumnResize({
-    proposalId, tableKey, canResize: isAdminOrOwner,
+    proposalId, tableKey, canResize: isAdminOrOwner, maxTotalWidth: 768,
   });
 
   const getParticipant = (id: string) => participants.find(p => p.id === id);
