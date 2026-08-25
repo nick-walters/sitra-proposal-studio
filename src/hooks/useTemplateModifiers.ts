@@ -140,3 +140,30 @@ export function useProposalModifiers(proposalId: string | null | undefined) {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+/**
+ * One-shot resolution used inside other queries: the modifier codes that apply
+ * to a proposal and the wording substitutions they carry.
+ */
+export async function fetchProposalModifierContext(
+  proposalId: string | null | undefined,
+): Promise<{ codes: string[]; substitutions: Record<string, string> }> {
+  if (!proposalId) return { codes: [], substitutions: {} };
+  const [{ data: prop }, { data: rows }] = await Promise.all([
+    supabase
+      .from('proposals')
+      .select('type, budget_type, work_programme, submission_stage, uses_fstp')
+      .eq('id', proposalId)
+      .maybeSingle(),
+    supabase.from('template_modifiers').select('*').eq('is_active', true),
+  ]);
+  const mods = applicableModifiers((rows ?? []).map(normaliseModifierRow), {
+    actionType: prop?.type ?? null,
+    budgetType: prop?.budget_type ?? null,
+    workProgramme: (prop as any)?.work_programme ?? null,
+    submissionStage: (prop as any)?.submission_stage ?? null,
+    usesFstp: (prop as any)?.uses_fstp ?? false,
+  });
+  const merged = mergeModifierEffects(mods);
+  return { codes: merged.codes, substitutions: merged.substitutions };
+}
