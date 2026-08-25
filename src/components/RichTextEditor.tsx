@@ -50,6 +50,7 @@ import { BadgeCaretHost } from '@/extensions/BadgeCaretHost';
 
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { CaptionAutoNumber, type CaptionNumbering } from '@/extensions/CaptionAutoNumber';
+import { PairedTables } from '@/extensions/PairedTables';
 
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
@@ -1487,6 +1488,7 @@ export function useRichTextEditor({
   onBlockDeleteRequest,
   canEditCaptions = true,
   captionNumbering,
+  pairedTables = false,
 }: { 
   content: string; 
   onChange: (content: string) => void;
@@ -1512,10 +1514,17 @@ export function useRichTextEditor({
    * non-editable; when omitted, caption labels are left exactly as stored.
    */
   captionNumbering?: CaptionNumbering | null;
+  /**
+   * Binds the two stacked parts of a split table (B2.1's impact summary) into
+   * one logical table: rows can only be added or deleted across both parts.
+   */
+  pairedTables?: boolean;
 }) {
   const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
   const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
   captionNumberingRef.current = captionNumbering ?? null;
+  const pairedTablesRef = useRef(pairedTables);
+  pairedTablesRef.current = pairedTables;
 
 
   // Track the last content we set to the editor to avoid infinite loops
@@ -1627,6 +1636,7 @@ StarterKit.configure({
       AcronymReference,
       CaptionLabel,
       CaptionAutoNumber.configure({ getConfig: () => captionNumberingRef.current ?? null }),
+      PairedTables.configure({ isEnabled: () => pairedTablesRef.current }),
 
       HeadingNumberLabel,
       // Figure/table reference marks for atomic deletion
