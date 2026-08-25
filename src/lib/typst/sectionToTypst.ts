@@ -298,30 +298,62 @@ export function buildSectionTypstDocument(
   };
 }
 
-/** Proposal-level text for the banner and footer. */
+/**
+ * Proposal-level text for the banner and footer.
+ *
+ * THE BANNER IS PAGE ONE OF THE DOCUMENT, NOT PAGE ONE OF EVERY SECTION.
+ * Only B1.1 — the first section of Part B — carries it; every other section
+ * starts on plain 15mm margins. The footer, by contrast, names the section it
+ * belongs to ("Part B3.1. Work plan & resources") and carries the acronym as
+ * a chip rather than as plain text.
+ */
 export async function fetchTypstDocMeta(
   proposalId: string,
-  partLabel = 'Part B',
+  sectionId?: string,
+  acronymSegments?: TypstDocMeta['acronymSegments'],
 ): Promise<TypstDocMeta> {
-  const { data } = await supabase
-    .from('proposals')
-    .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override, banner_title_override')
-    .eq('id', proposalId)
-    .maybeSingle();
+  const [{ data }, section] = await Promise.all([
+    supabase
+      .from('proposals')
+      .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override, banner_title_override')
+      .eq('id', proposalId)
+      .maybeSingle(),
+    sectionId
+      ? supabase
+          .from('proposal_template_sections')
+          .select('section_number, title')
+          .eq('id', sectionId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const row = (data || {}) as Record<string, string | null>;
+  const sec = ((section as { data: Record<string, string | null> | null }).data || {}) as Record<
+    string,
+    string | null
+  >;
+  const sectionNumber = (sec.section_number || '').trim();
+  const sectionTitle = (sec.title || '').trim();
+  const partLabel = sectionNumber
+    ? `Part ${sectionNumber}.${sectionTitle ? ` ${sectionTitle}` : ''}`
+    : 'Part B';
   const computedTopic =
     `${row.topic_id || ''}${row.topic_id && row.topic_title ? ': ' : ''}${row.topic_title || ''}` +
     `${row.type ? ` (${row.type})` : ''}`;
+  const isFirstSection = sectionNumber.toUpperCase() === 'B1.1';
   return {
     acronym: row.acronym || '',
+    acronymSegments,
     partLabel,
-    banner: {
-      topicLine: row.banner_topic_line_override ?? computedTopic,
-      acronym: row.acronym || '',
-      title: row.banner_title_override ?? row.title ?? '',
-    },
+    banner: isFirstSection
+      ? {
+          topicLine: row.banner_topic_line_override ?? computedTopic,
+          acronym: row.acronym || '',
+          title: row.banner_title_override ?? row.title ?? '',
+        }
+      : null,
   };
 }
+
 
 export { fetchB31TypstData };
 
