@@ -49,6 +49,8 @@ import { BadgeTrailingCaret } from '@/extensions/BadgeTrailingCaret';
 import { BadgeCaretHost } from '@/extensions/BadgeCaretHost';
 
 import { CaptionLabel } from '@/extensions/CaptionLabel';
+import { CaptionAutoNumber, type CaptionNumbering } from '@/extensions/CaptionAutoNumber';
+
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
