@@ -544,7 +544,7 @@ function FieldRow({
       id={`card-module-${field.id}`}
       style={style}
       className={`space-y-2 rounded-md border border-border p-3 transition-shadow ${
-        field.isVisible ? '' : 'opacity-50'
+        field.isVisible ? '' : 'opacity-50 print:hidden'
       }`}
     >
       <div className="flex items-center gap-1">
