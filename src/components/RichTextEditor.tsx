@@ -351,6 +351,40 @@ function normalizePartBLoadedContent(html: string) {
   const div = document.createElement('div');
   div.innerHTML = html;
 
+  // Caption paragraphs created by the legacy editor used `table-caption`.
+  // Promote them before TipTap parses the document so the slot counter,
+  // auto-numberer and editor CSS all see the same structure.
+  div.querySelectorAll('p.table-caption').forEach((paragraph) => {
+    paragraph.classList.remove('table-caption');
+    paragraph.classList.add('document-table-caption');
+  });
+
+  div.querySelectorAll('p.document-table-caption').forEach((paragraph) => {
+    const caption = paragraph as HTMLElement;
+    // Width/float attributes belong only to figure captions. A stale value on
+    // a table caption can collapse it to the width of a narrow figure.
+    caption.removeAttribute('data-max-width-cm');
+    caption.removeAttribute('data-narrow');
+    caption.removeAttribute('data-float');
+    caption.style.maxWidth = '';
+    caption.style.width = '';
+    caption.style.float = '';
+    caption.style.clear = '';
+    caption.style.marginLeft = '';
+    caption.style.marginRight = '';
+
+    // Data migrations used an empty caption-label span as a placeholder. An
+    // empty DOM mark has no ProseMirror text range and therefore differs from
+    // the structure emitted by CaptionLabel. Remove it; CaptionAutoNumber
+    // inserts the real marked label from the field's section-wide position.
+    caption.querySelectorAll('[data-caption-label]').forEach((label) => {
+      if (!(label.textContent ?? '').trim()) label.remove();
+    });
+    Array.from(caption.querySelectorAll('span, strong, em')).reverse().forEach((element) => {
+      if (!(element.textContent ?? '').trim() && element.children.length === 0) element.remove();
+    });
+  });
+
   div.querySelectorAll('sup').forEach((sup) => {
     const el = sup as HTMLElement;
     const dataCitation = el.getAttribute('data-citation');
@@ -761,7 +795,7 @@ export function FormattingToolbar({
         content: [
           {
             type: 'text',
-            marks: [{ type: 'italic' }, { type: 'bold' }],
+             marks: [{ type: 'captionLabel' }],
             text: `${tableLabel}. `,
           },
           {
