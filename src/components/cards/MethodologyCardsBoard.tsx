@@ -1815,7 +1815,7 @@ function BoardInner({
   // B3.2's two conditional blocks stay reachable in the editor (their content
   // must never disappear), but a block whose condition is not met is excluded
   // from the mirror, the preview and the export — see b32Conditions.ts.
-  const b32Signals = useB32Conditions(proposalId, sectionMeta.number === 'B3.2');
+  const b32Signals = useB32Conditions(proposalId, (sectionNumber ?? '').replace(/^B/i, '') === '3.2');
   const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
   /** Blocks this user can see — the target set for Collapse all / Expand all. */
