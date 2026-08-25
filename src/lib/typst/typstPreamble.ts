@@ -24,6 +24,16 @@ import { typstString } from './htmlToTypst';
 /** Family name reported by the bundled Nimbus Roman OTFs. */
 export const TYPST_SERIF = 'Nimbus Roman';
 
+/**
+ * Display face for the banner, the H1/H2 headings and figure text — the same
+ * family the platform names in `index.css`. The TTF is bundled and registered
+ * with the compiler in `typstCompiler.ts`; without that registration Typst
+ * silently falls back to the only loaded family (the serif), which is what
+ * made every heading look like Times.
+ */
+export const TYPST_DISPLAY = 'Arial Black';
+
+
 /** Tables are capped at the Part B maximum printable width. */
 export const TABLE_MAX_WIDTH_CM = 18;
 
