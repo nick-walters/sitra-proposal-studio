@@ -670,6 +670,7 @@ function FieldRow({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0"
+                  aria-pressed={!field.isVisible}
                   onClick={() => onToggleVisible(field, !field.isVisible)}
                   aria-label={
                     field.isVisible
@@ -677,10 +678,12 @@ function FieldRow({
                       : 'Show this module in Part B'
                   }
                 >
+                  {/* Same colour logic as the block-level eye: green when the
+                      module is included, red when it is left out. */}
                   {field.isVisible ? (
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                   ) : (
-                    <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                    <EyeOff className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
                   )}
                 </Button>
               </Tip>
@@ -2166,7 +2169,12 @@ function BoardInner({
     onToggleVisible: (c: ProposalCard) =>
       updateCard.mutate({ cardId: c.id, isVisible: !c.isVisible }),
     onDeleteCard: (c: ProposalCard) => deleteCard.mutate(c.id),
-    onAddField: (c: ProposalCard) => createField.mutate({ cardId: c.id }),
+    onAddField: (c: ProposalCard) =>
+      createField.mutate(
+        { cardId: c.id },
+        // Same helper as a new block: bring the new module into view.
+        { onSuccess: (f) => jumpToRestored('field', f.id) },
+      ),
     onReorderFields: (c: ProposalCard, orderedIds: string[]) =>
       reorderFields.mutate({ cardId: c.id, orderedFieldIds: orderedIds }),
     onHeadingChange: (f: CardField, heading: string | null) =>
