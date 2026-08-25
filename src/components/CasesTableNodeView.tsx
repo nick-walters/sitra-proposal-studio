@@ -564,7 +564,6 @@ export function CasesTableNodeView(props: NodeViewProps) {
     const doc = props.editor?.state?.doc;
     const myPos = typeof props.getPos === 'function' ? props.getPos() : null;
     if (doc && typeof myPos === 'number') {
-      const tableCaptionPattern = /^(Table)\s+\d+\.\d+\.[a-z]\./i;
       let count = 0;
       doc.forEach((n, pos) => {
         if (pos >= myPos) return;
@@ -574,7 +573,7 @@ export function CasesTableNodeView(props: NodeViewProps) {
         }
         if (n.type?.name === 'paragraph') {
           const cls = (n.attrs?.class || '') as string;
-          if (cls.includes('document-table-caption') && tableCaptionPattern.test(n.textContent)) {
+          if (cls.includes('document-table-caption')) {
             count++;
           }
         }
