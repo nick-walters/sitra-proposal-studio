@@ -204,7 +204,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 // ── tables and figures ─────────────────────────────────────────────────────
 #let he-table-width = ${TABLE_MAX_WIDTH_CM}cm
-#let he-inset = (x: 4pt, y: 2.5pt)
+#let he-inset = (x: 5pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.
 #let he-caption(label, caption) = block(
