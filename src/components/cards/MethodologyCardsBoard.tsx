@@ -134,7 +134,7 @@ import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 interface BoardProps {
   proposalId: string;
   sectionId: string;
-  sectionNumber: string;
+  sectionNumber?: string;
   canEdit: boolean;
   isCoordinator: boolean;
   proposalAcronym?: string;
