@@ -673,6 +673,43 @@ function BlockRow({
 /* ------------------------------------------------------------------ */
 
 /**
+ * Shared close handling for the guideline and criteria dialogs: every exit
+ * route (close button, outside click, Escape) funnels through `requestClose`,
+ * and browser reloads / Back presses are caught by the exit guard.
+ */
+function useCloseGuard(registry: DirtyRegistry, close: () => void) {
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const dirty = registry.dirtyCount > 0;
+
+  useExitGuard(dirty, () => setPromptOpen(true));
+
+  const requestClose = () => {
+    if (dirty) { setPromptOpen(true); return; }
+    close();
+  };
+
+  return {
+    requestClose,
+    dialogProps: {
+      open: promptOpen,
+      count: registry.dirtyCount,
+      saving,
+      onCancel: () => setPromptOpen(false),
+      onDiscard: () => { setPromptOpen(false); close(); },
+      onSave: async () => {
+        setSaving(true);
+        const ok = await registry.saveAll();
+        setSaving(false);
+        if (!ok) return;
+        setPromptOpen(false);
+        close();
+      },
+    },
+  };
+}
+
+/**
  * One write to `card_guidelines`, with the outcome surfaced.
  *
  * PostgREST answers an update that no row-level policy lets through with a
@@ -792,6 +829,8 @@ function GuidelinesDialogAdmin({
 }) {
   const qc = useQueryClient();
   const { data: entries = [] } = useBlockGuidelines(block.id);
+  const registry = useDirtyRegistry();
+  const guard = useCloseGuard(registry, () => onOpenChange(false));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin-block-guidelines', block.id] });
@@ -842,7 +881,7 @@ function GuidelinesDialogAdmin({
   const byCategory = (type: string) => entries.filter((e) => e.guideline.guideline_type === type);
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={(o) => (o ? onOpenChange(true) : guard.requestClose())}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Guidelines — {block.default_title || block.key}</DialogTitle>
@@ -872,6 +911,7 @@ function GuidelinesDialogAdmin({
                     key={e.guideline.id}
                     guideline={e.guideline}
                     editable={editable}
+                    registry={registry}
                     onSave={(patch) => save(e.guideline.id, patch)}
                     onDelete={() => remove(e.linkId, e.guideline.id)}
                   />
@@ -884,6 +924,7 @@ function GuidelinesDialogAdmin({
 
           </div>
         </ScrollArea>
+        <UnsavedChangesDialog {...guard.dialogProps} />
       </DialogContent>
     </Dialog>
   );
@@ -904,6 +945,8 @@ function CriteriaDialogAdmin({
 }) {
   const qc = useQueryClient();
   const { data: entries = [] } = useSectionCriteriaAdmin(open ? versionId : null, sectionSourceId);
+  const registry = useDirtyRegistry();
+  const guard = useCloseGuard(registry, () => onOpenChange(false));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin-section-criteria', versionId, sectionSourceId] });
@@ -934,7 +977,7 @@ function CriteriaDialogAdmin({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : guard.requestClose())}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Criteria — {sectionNumber}</DialogTitle>
@@ -954,6 +997,7 @@ function CriteriaDialogAdmin({
                 key={e.guideline.id}
                 guideline={e.guideline}
                 editable={editable}
+                registry={registry}
                 onSave={async (patch) => {
                   const ok = await persistGuideline(e.guideline.id, patch);
                   if (!ok) return false;
@@ -979,6 +1023,7 @@ function CriteriaDialogAdmin({
             )}
           </div>
         </ScrollArea>
+        <UnsavedChangesDialog {...guard.dialogProps} />
       </DialogContent>
     </Dialog>
   );
