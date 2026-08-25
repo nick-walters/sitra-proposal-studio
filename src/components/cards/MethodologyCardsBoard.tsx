@@ -141,6 +141,7 @@ import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePa
 
 import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 import { useB32Conditions } from '@/hooks/useB32Conditions';
+import { useB31UnmetSourceBlocks, b31UnmetReason } from '@/hooks/useB31UnmetSourceBlocks';
 import { resolveB32Condition, b32UnmetReason } from '@/lib/cards/b32Conditions';
 
 interface BoardProps {
