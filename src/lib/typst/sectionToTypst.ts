@@ -23,6 +23,12 @@ import {
   type ConvertContext,
 } from './htmlToTypst';
 import { bannerCall, buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
+import {
+  emitFrontMatter,
+  SITRA_LOGO_ASSET_PATH,
+  type TypstFrontMatter,
+} from './frontMatter';
+
 import { fetchB31TypstData, type B31TypstData } from './b31Data';
 import {
   emitDeliverables,
