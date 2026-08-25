@@ -49,7 +49,11 @@ import { BadgeTrailingCaret } from '@/extensions/BadgeTrailingCaret';
 import { BadgeCaretHost } from '@/extensions/BadgeCaretHost';
 
 import { CaptionLabel } from '@/extensions/CaptionLabel';
-import { CaptionAutoNumber, type CaptionNumbering } from '@/extensions/CaptionAutoNumber';
+import {
+  CaptionAutoNumber,
+  materializeCaptionLabels,
+  type CaptionNumbering,
+} from '@/extensions/CaptionAutoNumber';
 import { PairedTables } from '@/extensions/PairedTables';
 
 import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
@@ -1554,7 +1558,9 @@ export function useRichTextEditor({
    */
   pairedTables?: boolean;
 }) {
-  const initialContentRef = useRef<string>(normalizePartBLoadedContent(content));
+  const prepareNumberedContent = (html: string) =>
+    materializeCaptionLabels(normalizePartBLoadedContent(html), captionNumbering ?? null);
+  const initialContentRef = useRef<string>(prepareNumberedContent(content));
   const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
   captionNumberingRef.current = captionNumbering ?? null;
   // The numbering plugin recomputes on the editor view's own update cycle. A
@@ -1587,7 +1593,7 @@ export function useRichTextEditor({
   const canEditCaptionsRef = useRef(canEditCaptions);
   canEditCaptionsRef.current = canEditCaptions;
   if (!isReady) {
-    initialContentRef.current = normalizePartBLoadedContent(content);
+    initialContentRef.current = prepareNumberedContent(content);
     lastSetContentRef.current = initialContentRef.current;
   }
   
@@ -2041,7 +2047,10 @@ StarterKit.configure({
     if (!editor || editor.isDestroyed || !editor.schema) return;
     if (!isReady) return;
     if (!content && editor.state.doc.content.size > 2) return;
-    const nextContent = normalizePartBLoadedContent(content);
+    const nextContent = materializeCaptionLabels(
+      normalizePartBLoadedContent(content),
+      captionNumberingRef.current,
+    );
     if (nextContent === lastSetContentRef.current) return;
     const currentEditorNormalized = normalizePartBLoadedContent(editor.getHTML());
     if (nextContent === currentEditorNormalized) {
