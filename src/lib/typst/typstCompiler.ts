@@ -17,8 +17,21 @@ import nimbusRegular from '@/assets/typst/NimbusRoman-Regular.otf.asset.json';
 import nimbusBold from '@/assets/typst/NimbusRoman-Bold.otf.asset.json';
 import nimbusItalic from '@/assets/typst/NimbusRoman-Italic.otf.asset.json';
 import nimbusBoldItalic from '@/assets/typst/NimbusRoman-BoldItalic.otf.asset.json';
+// Display face for the banner, the H1/H2 headings and figure text. The
+// compiler has no system-font access, so the same TTF the platform relies on
+// (`local('Arial Black')` in index.css) is bundled and registered explicitly;
+// it reports family "Arial Black" / PostScript "Arial-Black" and its OS/2
+// fsType is 0, so embedding it in the produced PDF is permitted.
+import arialBlackUrl from '@/assets/fonts/arial_black.ttf?url';
 
-const FONT_URLS = [nimbusRegular.url, nimbusBold.url, nimbusItalic.url, nimbusBoldItalic.url];
+const FONT_URLS = [
+  nimbusRegular.url,
+  nimbusBold.url,
+  nimbusItalic.url,
+  nimbusBoldItalic.url,
+  arialBlackUrl,
+];
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let snippetPromise: Promise<any> | null = null;
