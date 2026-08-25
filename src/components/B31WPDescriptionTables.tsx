@@ -230,7 +230,13 @@ function B31WPDescriptionTablesInner({ wpData, participants, proposalId }: Props
         return (
           <div key={wp.id}>
             <div style={{ height: '0.7em' }} />
-            <table className={`${tableStyles} w-full border-collapse`} style={tableFontStyle}>
+            {/* Table 3.1.b keeps its fixed layout and is the one Part B table
+                without draggable columns — its structure is prescribed. */}
+            <table
+              data-table-key="wp-descriptions"
+              className={`${tableStyles} w-full border-collapse`}
+              style={tableFontStyle}
+            >
               <tbody>
                 {/* WP Header */}
                 <tr>
