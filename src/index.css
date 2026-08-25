@@ -54,6 +54,20 @@ html, body {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   text-align: left !important;
+  width: 100%;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Derived labels are atomic inline islands: keep the number together without
+   turning the whole caption into a flex row or a narrow intrinsic column. */
+.figure-caption [data-caption-label],
+.document-table-caption [data-caption-label] {
+  display: inline;
+  width: auto;
+  max-width: none;
   white-space: nowrap;
 }
 
@@ -614,7 +628,10 @@ html, body {
   margin-bottom: 1pt !important;
   padding-bottom: 0 !important;
   text-align: left !important;
-  white-space: nowrap !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }
 
 .ProseMirror .figure-caption,

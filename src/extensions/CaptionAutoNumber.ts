@@ -145,7 +145,10 @@ export const CaptionAutoNumber = Extension.create<{
         },
 
         appendTransaction(transactions, _oldState, newState) {
-          if (!transactions.some((tr) => tr.docChanged)) return null;
+          const shouldRefresh = transactions.some(
+            (tr) => tr.docChanged || tr.getMeta('captionNumberingRefresh'),
+          );
+          if (!shouldRefresh) return null;
           return buildTransaction(newState, getConfig());
         },
       }),
