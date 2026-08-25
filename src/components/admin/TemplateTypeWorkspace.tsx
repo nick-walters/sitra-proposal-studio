@@ -761,14 +761,17 @@ function GuidelinesDialogAdmin({
   };
 
   const save = async (id: string, patch: Partial<CardGuidelineRow>) => {
-    await supabase.from('card_guidelines').update(patch as any).eq('id', id);
-    toast.success('Guideline saved');
+    const ok = await persistGuideline(id, patch);
+    if (!ok) return false;
+    toast.success('Guideline saved into the draft');
     invalidate();
+    return true;
   };
 
   const remove = async (linkId: string, id: string) => {
-    await supabase.from('card_guideline_templates').delete().eq('id', linkId);
-    await supabase.from('card_guidelines').delete().eq('id', id);
+    const { error: linkErr } = await supabase.from('card_guideline_templates').delete().eq('id', linkId);
+    const { error: rowErr } = await supabase.from('card_guidelines').delete().eq('id', id);
+    if (linkErr || rowErr) { toast.error(`Not deleted — ${(linkErr ?? rowErr)!.message}`); return; }
     invalidate();
   };
 
