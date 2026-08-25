@@ -66,6 +66,14 @@ const BLOCK_TAGS = new Set([
   'H1', 'H2', 'H3', 'H4', 'BLOCKQUOTE',
 ]);
 
+/** Platform classes that must survive an in-app copy/paste round trip. */
+const KEEP_CLASSES = new Set<string>([
+  'document-table-caption',
+  'document-figure-caption',
+  'editor-table-caption',
+  'b12-cases-table',
+]);
+
 /** Foreign paint declarations that only ever arrive with pasted markup. */
 const FOREIGN_PAINT = /^(color|background|background-color|border-color)$/i;
 
@@ -101,6 +109,98 @@ export function stripForeignBlockColour(html: string): string {
   return root.innerHTML;
 }
 
+
+/**
+ * Presentational declarations that never carry authored meaning. Word,
+ * Google Docs, Confluence and web pages all ship these; keeping them makes
+ * paragraphs render as indented / oddly-spaced blocks downstream (the Typst
+ * converter turns a left margin or a blockquote wrapper into an indented
+ * quote).
+ */
+const NOISE_STYLE_PROPS =
+  /^(margin|margin-(left|right|top|bottom)|padding|padding-(left|right|top|bottom)|text-indent|line-height|font|font-family|font-size|font-stretch|font-variant|font-feature-settings|letter-spacing|word-spacing|white-space|text-rendering|-webkit-text-stroke-width|border|border-(top|bottom|left|right|width|style|radius)|box-shadow|background|background-color|outline|position|top|left|right|bottom|z-index|overflow|text-transform)$/i;
+
+/** Wrappers that only ever arrive from a foreign source. */
+const UNWRAP_TAGS = new Set(['BLOCKQUOTE', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'MAIN', 'ASIDE', 'FIGURE', 'FIGCAPTION', 'CENTER']);
+
+/**
+ * Paste-only structural cleaner. Runs on the way IN, never on load/render.
+ *
+ * Removes what is presentational and structural but not meaningful:
+ * blockquote/section wrappers that came from the source, indentation and
+ * margins, block-level paint, foreign font metrics, and spans left with no
+ * semantic role. Keeps bold/italic/underline/sub/sup, deliberate font colour
+ * (span-level `color`), links, lists, tables — and short-circuits on every
+ * preserved custom node (cross-reference chips, citations, casesTable).
+ */
+export function stripPasteResidue(html: string): string {
+  if (!html || typeof document === 'undefined') return html;
+
+  const doc = new DOMParser().parseFromString(`<div id="__pr">${html}</div>`, 'text/html');
+  const root = doc.getElementById('__pr');
+  if (!root) return html;
+
+  // 1. Unwrap foreign block wrappers (deepest first so nesting collapses).
+  for (let pass = 0; pass < 6; pass++) {
+    const wrappers = (Array.from(root.getElementsByTagName('*')) as Element[]).filter(
+      (el) => UNWRAP_TAGS.has(el.tagName.toUpperCase()) && !isPreservedElement(el),
+    );
+    if (wrappers.length === 0) break;
+    for (const el of wrappers) if (el.parentNode) unwrap(el);
+  }
+
+  // 2. Strip presentational declarations everywhere; strip paint on blocks.
+  for (const el of Array.from(root.getElementsByTagName('*')) as Element[]) {
+    if (!el.parentNode) continue;
+    if (isPreservedElement(el)) continue;
+
+    const style = el.getAttribute('style');
+    if (style) {
+      const isBlock = BLOCK_TAGS.has(el.tagName.toUpperCase());
+      const kept = style
+        .split(';')
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .filter((d) => {
+          const prop = (d.split(':')[0] || '').trim();
+          if (NOISE_STYLE_PROPS.test(prop)) return false;
+          if (isBlock && FOREIGN_PAINT.test(prop)) return false;
+          return true;
+        });
+      if (kept.length === 0) el.removeAttribute('style');
+      else el.setAttribute('style', kept.join('; '));
+    }
+
+    // Foreign classes carry no meaning for us; the allow-listed ones already
+    // short-circuited above.
+    const cls = el.getAttribute('class');
+    if (cls) {
+      const kept = cls
+        .split(/\s+/)
+        .filter(Boolean)
+        .filter((c) => ALLOWED_CLASSES.has(c) || c.startsWith('inline-ref') || KEEP_CLASSES.has(c));
+      if (kept.length === 0) el.removeAttribute('class');
+      else el.setAttribute('class', kept.join(' '));
+    }
+
+    // Alignment/indent legacy attributes.
+    for (const attr of ['align', 'valign', 'bgcolor', 'background', 'border', 'cellpadding', 'cellspacing', 'dir', 'id', 'role']) {
+      if (el.hasAttribute(attr)) el.removeAttribute(attr);
+    }
+  }
+
+  // 3. Unwrap spans and divs left with no semantic role.
+  for (let pass = 0; pass < 4; pass++) {
+    const bare = (Array.from(root.querySelectorAll('span, div')) as Element[]).filter(
+      (el) => el.parentNode && !isPreservedElement(el) && el.attributes.length === 0,
+    );
+    if (bare.length === 0) break;
+    for (const el of bare) unwrap(el);
+  }
+
+  return root.innerHTML;
+}
+
 /**
  * Public entry point. Returns sanitised HTML (always passed through
  * sanitizeEditorHtml as a final canonicalisation step).
@@ -111,12 +211,14 @@ export function stripForeignBlockColour(html: string): string {
  */
 export function stripWordHtml(
   html: string,
-  opts?: { stripBlockColour?: boolean },
+  opts?: { stripBlockColour?: boolean; pasteMode?: boolean },
 ): string {
   if (!html || typeof html !== 'string') return '';
 
-  const blockColour = (s: string) =>
-    opts?.stripBlockColour ? stripForeignBlockColour(s) : s;
+  const blockColour = (s: string) => {
+    const painted = opts?.stripBlockColour ? stripForeignBlockColour(s) : s;
+    return opts?.pasteMode ? stripPasteResidue(painted) : painted;
+  };
 
   // Fast path: if there's no Word-junk signature, just run the canonical
   // sanitiser.
