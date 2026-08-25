@@ -16,13 +16,21 @@ let workerReady: Promise<typeof import('pdfjs-dist')> | null = null;
 function getPdfjs(): Promise<typeof import('pdfjs-dist')> {
   if (!workerReady) {
     workerReady = (async () => {
+      console.info('[Typst preview diagnostic] PDF.js worker load started');
       const [pdfjs, worker] = await Promise.all([
         import('pdfjs-dist'),
         import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
       ]);
       pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      console.info('[Typst preview diagnostic] PDF.js worker resolved', {
+        workerSrc: Boolean(pdfjs.GlobalWorkerOptions.workerSrc),
+      });
       return pdfjs;
-    })();
+    })().catch((error) => {
+      console.error('[Typst preview diagnostic] PDF.js worker failed', error);
+      workerReady = null;
+      throw error;
+    });
   }
   return workerReady;
 }
@@ -35,6 +43,11 @@ export async function renderPdfToContainer(
   pdf: Uint8Array,
   container: HTMLElement,
 ): Promise<number> {
+  console.info('[Typst preview diagnostic] renderPdfToContainer entered', {
+    pdfBytes: pdf.byteLength,
+    containerClientWidth: container.clientWidth,
+    containerClientHeight: container.clientHeight,
+  });
   const pdfjs = await getPdfjs();
   // getDocument transfers (detaches) the buffer to the worker — pass a copy so
   // the caller's bytes stay usable for the download link.
@@ -63,6 +76,10 @@ export async function renderPdfToContainer(
     container.appendChild(canvas);
   }
   const count = doc.numPages;
+  console.info('[Typst preview diagnostic] renderPdfToContainer exited', {
+    pageCount: count,
+    canvasCount: container.querySelectorAll('canvas').length,
+  });
   void loadingTask.destroy();
   return count;
 }
