@@ -134,6 +134,7 @@ import type { CardField, CardTextBox, ProposalCard } from '@/types/cards';
 interface BoardProps {
   proposalId: string;
   sectionId: string;
+  sectionNumber?: string;
   canEdit: boolean;
   isCoordinator: boolean;
   proposalAcronym?: string;
@@ -1265,6 +1266,7 @@ const SECTION_CAPTION_NUMBER = '1.2';
 function BoardInner({
   proposalId,
   sectionId,
+  sectionNumber,
   canEdit,
   isCoordinator,
   proposalAcronym,
@@ -1274,6 +1276,20 @@ function BoardInner({
     proposalId,
     sectionId,
   );
+  const sectionMeta = useMemo(() => {
+    const normalized = (sectionNumber ?? '').replace(/^B/i, '');
+    const meta: Record<string, { title: string; description: string; previewLabel: string }> = {
+      '1.2': { title: 'Methodologies', description: 'Content written here is mirrored into Part B1.2.', previewLabel: 'Part B1.2' },
+      '3.1': { title: 'Work plan & resources', description: 'Content written here is mirrored into Part B3.1.', previewLabel: 'Part B3.1' },
+    };
+    return (
+      meta[normalized] ?? {
+        title: 'Methodologies',
+        description: `Content written here is mirrored into ${sectionNumber ?? 'Part B'}.`,
+        previewLabel: sectionNumber ?? 'Part B',
+      }
+    );
+  }, [sectionNumber]);
   const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
@@ -1599,13 +1615,13 @@ function BoardInner({
     reorderCards.mutate(next, { onError: () => setLocalOrder(null) });
   };
 
-  // A references block appears only when the section cites something. It stays
-  // undeletable and unhideable; it simply renders nothing when empty.
+  // The references block is part of the required sequence for every Part B section
+  // (B1.2, B3.1, …). It always appears so authors can hide it if needed, and it
+  // shows a note when the section currently cites nothing.
   const { hasAny: sectionCitesAnything, entries: sectionCitedEntries } =
     useSectionCitedReferences(proposalId, sectionId);
   const referenceCount = sectionCitedEntries.length;
-  const visibleCard = (c: ProposalCard) =>
-    (c.kind !== 'references' || sectionCitesAnything) && (c.isVisible || isCoordinator);
+  const visibleCard = (c: ProposalCard) => c.isVisible || isCoordinator;
 
   /** Blocks this user can see — the target set for Collapse all / Expand all. */
   const visibleCardIds = useMemo(
@@ -1929,10 +1945,8 @@ function BoardInner({
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-foreground">Methodologies</h1>
-          <p className="w-full text-sm text-muted-foreground">
-            Content written here is mirrored into Part B1.2.
-          </p>
+          <h1 className="text-xl font-bold text-foreground">{sectionMeta.title}</h1>
+          <p className="w-full text-sm text-muted-foreground">{sectionMeta.description}</p>
         </div>
 
         <EditorToolbars
@@ -1940,7 +1954,7 @@ function BoardInner({
           save={{ saving, lastSaved, savedMode, isDirty, onSaveNow: handleSaveNow }}
           topBar={{
               onPreview: isAdminOrOwner ? () => setTypstOpen(true) : undefined,
-              previewLabel: 'Part B1.2',
+              previewLabel: sectionMeta.previewLabel,
               collapseAll: {
                 allCollapsed: allBlocksCollapsed,
                 disabled: setAllCollapsed.isPending || visibleCardIds.length === 0,
@@ -2101,6 +2115,7 @@ function BoardInner({
 }
 
 export function MethodologyCardsBoard(props: BoardProps) {
+  console.log('[DEBUG] MethodologyCardsBoard wrapper sectionId:', props.sectionId);
   return (
     <MethodologyEditorFocusProvider>
       <CardLockProvider

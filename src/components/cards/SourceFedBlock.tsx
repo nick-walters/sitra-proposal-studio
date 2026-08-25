@@ -54,7 +54,7 @@ function Note({ children }: { children: React.ReactNode }) {
 /* ------------------------------------------------------------------ B3.1 */
 
 function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: string }) {
-  const { toggles } = useB31JustificationToggles(proposalId);
+  const { toggles, loading: togglesLoading } = useB31JustificationToggles(proposalId);
   const presence = useB31CostPresence(proposalId);
   const {
     wpData,
@@ -67,6 +67,8 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     otherGoodsByParticipant,
     loading,
   } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
+
+  console.log('[DEBUG] B31Source', sourceKey, 'proposalId', proposalId, 'loading', loading, 'wpData', wpData.length, 'participants', participants.length);
 
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
@@ -81,7 +83,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     },
   });
 
-  if (loading) return <Note>Loading the source data…</Note>;
+  if (loading || togglesLoading) return <Note>Loading the source data…</Note>;
 
   // Purchase-cost sub-blocks follow the A3 flags, with the >15% equipment rule
   // forcing equipment on exactly as the legacy mirror does.

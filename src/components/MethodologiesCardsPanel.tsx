@@ -56,6 +56,7 @@ export default function MethodologiesCardsPanel({
     <MethodologyCardsBoard
       proposalId={proposalId}
       sectionId={sectionId}
+      sectionNumber={sectionNumber}
       canEdit={canEdit}
       isCoordinator={isCoordinator}
       proposalAcronym={proposalAcronym}
