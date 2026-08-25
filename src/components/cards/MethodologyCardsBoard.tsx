@@ -781,6 +781,7 @@ function FieldRow({
               isCoordinator={isCoordinator}
               captionNumbering={captionNumbering ?? null}
               documentSurface={isDocumentSurface}
+              pairedTables={isImpactSummary}
               activeRingClass={
                 contentLock.isMine
                   ? 'border-emerald-600 ring-1 ring-emerald-600/60'

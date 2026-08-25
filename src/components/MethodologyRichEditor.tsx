@@ -38,6 +38,11 @@ interface MethodologyRichEditorProps {
    * border. Trialled on B1.2's "Underlying concepts" block only.
    */
   documentSurface?: boolean;
+  /**
+   * B2.1 impact summary: the six-column table shown as two stacked parts is
+   * one logical table — rows may only be added or removed across both parts.
+   */
+  pairedTables?: boolean;
 }
 
 
@@ -58,6 +63,7 @@ export function MethodologyRichEditor({
   placeholder,
   captionNumbering,
   documentSurface = false,
+  pairedTables = false,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -69,6 +75,7 @@ export function MethodologyRichEditor({
     isReady: true,
     instanceKey,
     captionNumbering,
+    pairedTables,
   });
 
   // TipTap's `editable` is instance state, not a reactive prop: it MUST be

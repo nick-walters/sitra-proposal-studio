@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/core';
+import { PAIRED_TABLES_ROW_OP } from '@/extensions/PairedTables';
 import type { Node as PMNode } from '@tiptap/pm/model';
 /**
  * B2.1 impact summary table — linked row operations.
@@ -208,6 +209,9 @@ export function impactSummaryAddRowInEditor(editor: Editor): boolean {
         if (!row) return false;
         tr.insert(table.pos + table.node.nodeSize - 1, row);
       }
+      // Marks this as the paired operation the invariant plugin allows: any
+      // untagged transaction that changed one part's row count is rejected.
+      tr.setMeta(PAIRED_TABLES_ROW_OP, true);
       if (dispatch) dispatch(tr.scrollIntoView());
       return true;
     })
@@ -230,6 +234,7 @@ export function impactSummaryDeleteRowInEditor(editor: Editor, index: number): b
         .filter((row): row is TableRef => Boolean(row));
       if (targets.length !== tables.length) return false;
       for (const row of targets) tr.delete(row.pos, row.pos + row.node.nodeSize);
+      tr.setMeta(PAIRED_TABLES_ROW_OP, true);
       if (dispatch) dispatch(tr);
       return true;
     })
