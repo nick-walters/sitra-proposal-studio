@@ -610,8 +610,14 @@ function FieldRow({
       style={style}
       className={`rounded-md border border-border transition-shadow ${
         // The page-styled module is exactly one text column wide: 18 cm of
-        // content between 1.5 cm margins that run to the module's own edge.
-        isDocumentSurface ? 'w-[21cm] max-w-full' : 'space-y-2 p-3'
+        // content between 1.5 cm margins that run to the module's own edge,
+        // so the module measures 21 cm. The board's own 768 px column is
+        // narrower than that, so the module is NOT clamped to it (`max-w-none`)
+        // and the symmetric negative margin lets it grow evenly past the
+        // column instead of being squeezed to ~16 cm of text.
+        isDocumentSurface
+          ? 'w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)]'
+          : 'space-y-2 p-3'
       } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
     >
       <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
