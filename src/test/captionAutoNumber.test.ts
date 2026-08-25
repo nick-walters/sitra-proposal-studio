@@ -1,14 +1,28 @@
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Paragraph from '@tiptap/extension-paragraph';
 import { describe, expect, it } from 'vitest';
 import { CaptionAutoNumber } from '@/extensions/CaptionAutoNumber';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
+
+const CaptionParagraph = Paragraph.extend({
+  addAttributes() {
+    return {
+      class: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('class'),
+        renderHTML: (attributes) => attributes.class ? { class: attributes.class } : {},
+      },
+    };
+  },
+});
 
 describe('CaptionAutoNumber', () => {
   it('inserts a derived label into a migrated empty-label caption', () => {
     const editor = new Editor({
       extensions: [
-        StarterKit,
+        StarterKit.configure({ paragraph: false }),
+        CaptionParagraph,
         CaptionLabel,
         CaptionAutoNumber.configure({
           getConfig: () => ({ sectionNumber: '1.1', tableOffset: 0, figureOffset: 0 }),
@@ -31,7 +45,8 @@ describe('CaptionAutoNumber', () => {
     let tableOffset = 0;
     const editor = new Editor({
       extensions: [
-        StarterKit,
+        StarterKit.configure({ paragraph: false }),
+        CaptionParagraph,
         CaptionLabel,
         CaptionAutoNumber.configure({
           getConfig: () => ({ sectionNumber: '2.1', tableOffset, figureOffset: 0 }),
