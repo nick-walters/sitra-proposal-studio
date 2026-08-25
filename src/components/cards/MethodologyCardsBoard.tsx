@@ -519,21 +519,15 @@ function FieldRow({
 
   // B2.1 impact summary: the six-column table is stored as two stacked
   // three-column tables in this one text box, so rows are added and removed in
-  // both parts together, outside the editor, and the editor is remounted on
-  // the rewritten HTML.
+  // both parts together — as ProseMirror transactions on the LIVE document, so
+  // nothing typed since mount is lost and the change joins TipTap's history.
   const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
+  const contentEditor = useRef<Editor | null>(null);
+  const [rowTick, setRowTick] = useState(0);
   // Trial of the page-like editing surface — B1.2's "Underlying concepts,
   // models & assumptions" only, until the look is agreed.
   const isDocumentSurface = cardTemplateKey === DOCUMENT_SURFACE_TRIAL_KEY;
-  const [rowNonce, setRowNonce] = useState(0);
-  const applyRowChange = (next: string) => {
-    mirroredHtml.current = next;
-    contentRef.current = next;
-    touchedRef.current = true;
-    contentLock.push(next);
-    onContentChange(field, next);
-    setRowNonce((n) => n + 1);
-  };
+
 
 
 
@@ -757,12 +751,19 @@ function FieldRow({
             }}
           >
             {isImpactSummary && canEdit && !contentLock.lockedByOther && (
-              <ImpactSummaryRowControls html={contentViewHtml} onChange={applyRowChange} />
+              <ImpactSummaryRowControls editor={contentEditor.current} tick={rowTick} />
             )}
             <MethodologyRichEditor
-              key={`${field.id}-${reloadNonce}-${rowNonce}`}
+              key={`${field.id}-${reloadNonce}`}
               proposalId={proposalId}
               value={contentViewHtml}
+              onEditorReady={(ed) => {
+                contentEditor.current = ed;
+                if (!isImpactSummary) return;
+                // Row controls mirror the live document, so re-read on update.
+                ed.on('update', () => setRowTick((t) => t + 1));
+                setRowTick((t) => t + 1);
+              }}
 
               onChange={(html) => {
                 // A non-holder never contributes content: the editor is

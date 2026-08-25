@@ -17,32 +17,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import type { Editor } from '@tiptap/core';
 import {
-  impactSummaryAddRow,
-  impactSummaryDeleteRow,
+  impactSummaryAddRowInEditor,
+  impactSummaryDeleteRowInEditor,
+  impactSummaryEditorRowCount,
   impactSummaryFilledCells,
-  impactSummaryRowCount,
   impactSummaryRowPreview,
 } from '@/lib/cards/impactSummaryRows';
 
 interface Props {
-  /** Current HTML of the impact summary text box. */
-  html: string;
-  /** Receives the rewritten HTML; the caller saves it and remounts the editor. */
-  onChange: (html: string) => void;
+  /** Live TipTap instance owning the impact summary text box. */
+  editor: Editor | null;
+  /**
+   * Bumped on every editor update so the row list and previews re-render
+   * against the CURRENT document rather than the value seen at mount.
+   */
+  tick?: number;
 }
 
 /**
  * Add and delete controls for the B2.1 impact summary table. A row spans all
  * six columns, so each action is applied to both stacked parts at once.
  */
-export function ImpactSummaryRowControls({ html, onChange }: Props) {
-  const rowCount = impactSummaryRowCount(html);
+export function ImpactSummaryRowControls({ editor, tick }: Props) {
   const [pending, setPending] = useState<number | null>(null);
+  // Read straight from the live document — `tick` only forces the re-read.
+  void tick;
+  const rowCount = editor ? impactSummaryEditorRowCount(editor) : 0;
+  const html = editor?.getHTML() ?? '';
 
   const confirmDelete = (index: number) => {
+    if (!editor) return;
     if (impactSummaryFilledCells(html, index) === 0) {
-      onChange(impactSummaryDeleteRow(html, index));
+      impactSummaryDeleteRowInEditor(editor, index);
       return;
     }
     setPending(index);
@@ -56,7 +64,7 @@ export function ImpactSummaryRowControls({ html, onChange }: Props) {
         size="sm"
         className="h-7"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => onChange(impactSummaryAddRow(html))}
+        onClick={() => editor && impactSummaryAddRowInEditor(editor)}
       >
         <Plus className="mr-1 h-3.5 w-3.5" />
         Add row
@@ -69,7 +77,7 @@ export function ImpactSummaryRowControls({ html, onChange }: Props) {
             variant="outline"
             size="sm"
             className="h-7"
-            disabled={rowCount === 0}
+            disabled={!editor || rowCount === 0}
             onMouseDown={(e) => e.preventDefault()}
           >
             <Minus className="mr-1 h-3.5 w-3.5 text-destructive" />
@@ -109,7 +117,9 @@ export function ImpactSummaryRowControls({ html, onChange }: Props) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (pending !== null) onChange(impactSummaryDeleteRow(html, pending));
+                if (pending !== null && editor) {
+                  impactSummaryDeleteRowInEditor(editor, pending);
+                }
                 setPending(null);
               }}
             >
