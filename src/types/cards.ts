@@ -7,6 +7,8 @@ export type CardAnchor = 'head' | 'free' | 'tail';
 export type CardDocument = 'part_b' | 'fstp_annex';
 export type CardOrigin = 'auto' | 'manual';
 export type CardFieldRole = 'narrative' | 'case_placeholder';
+/** How a block's header behaves: hidden, mirrored to the preview, or editor-only. */
+export type CardTitleMode = 'off' | 'mirrored' | 'editor_only';
 
 export interface ProposalCard {
   id: string;
@@ -24,6 +26,7 @@ export interface ProposalCard {
   isFixedPosition: boolean;
   isVisible: boolean;
   titleVersion: number;
+  titleMode: CardTitleMode;
   sourceKey: string | null;
   renderGroup: string | null;
   origin: CardOrigin;
@@ -114,6 +117,7 @@ export function mapCard(row: any): ProposalCard {
     isFixedPosition: row.is_fixed_position,
     isVisible: row.is_visible,
     titleVersion: row.title_version ?? 1,
+    titleMode: (row.title_mode ?? 'mirrored') as CardTitleMode,
     sourceKey: row.source_key ?? null,
     renderGroup: row.render_group ?? null,
     origin: row.origin,

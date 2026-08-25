@@ -898,6 +898,16 @@ function CardBlock({
     }
   };
 
+  // Header mode. Figure blocks historically carried no header at all (their
+  // caption is the label); they only get one when the template explicitly
+  // marks it editor-only, as the B3.1 Pert and Gantt blocks do.
+  const headerMode: 'off' | 'mirrored' | 'editor_only' =
+    card.titleMode === 'editor_only'
+      ? 'editor_only'
+      : card.titleMode === 'off' || card.kind === 'figure'
+        ? 'off'
+        : 'mirrored';
+
   const isPlaceholderCard = card.kind === 'references' || card.isSourceFed;
   // Authored, but backed by its own relational table rather than card fields:
   // the block renders the same editor as the old methodologies page.
@@ -975,10 +985,13 @@ function CardBlock({
           </div>
 
 
-          {/* Figure blocks carry no title: the caption under the figure is the
-              only label, so a block title would duplicate it. */}
+          {/* Header visibility follows the block's `titleMode`:
+              'off'         → no header at all (B3.1 intro block),
+              'mirrored'    → header prints in the preview/export (B1.2),
+              'editor_only' → header shows here for navigation only and is
+                              never emitted to the preview, PDF or DOCX. */}
           <div className="min-w-0 flex-1">
-            {card.kind === 'figure' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
+            {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
               // upgraded to HTML on read by `ensureRichHtml`.
@@ -1011,6 +1024,13 @@ function CardBlock({
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
+                {headerMode === 'editor_only' && (
+                  <Tip label="Editor-only header — not mirrored to the preview or export">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                      Editor only
+                    </span>
+                  </Tip>
+                )}
                 {titleLock.lockedByOther && titleLock.holder && (
                   <LockHolderBadge holder={titleLock.holder} />
                 )}
@@ -1021,6 +1041,7 @@ function CardBlock({
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
             )}
           </div>
+
 
           {/* Fixed control columns: visibility | add | restore | delete.
               Every block reserves all four, so a block that lacks a control
@@ -1279,18 +1300,19 @@ function BoardInner({
   );
   const sectionMeta = useMemo(() => {
     const normalized = (sectionNumber ?? '').replace(/^B/i, '');
-    const meta: Record<string, { title: string; description: string; previewLabel: string }> = {
-      '1.2': { title: 'Methodologies', description: 'Content written here is mirrored into Part B1.2.', previewLabel: 'Part B1.2' },
-      '3.1': { title: 'Work plan & resources', description: 'Content written here is mirrored into Part B3.1.', previewLabel: 'Part B3.1' },
+    const names: Record<string, string> = {
+      '1.2': 'Methodologies',
+      '3.1': 'Work plan & resources',
     };
-    return (
-      meta[normalized] ?? {
-        title: 'Methodologies',
-        description: `Content written here is mirrored into ${sectionNumber ?? 'Part B'}.`,
-        previewLabel: sectionNumber ?? 'Part B',
-      }
-    );
+    const previewLabel = normalized ? `Part B${normalized}` : 'Part B';
+    const name = names[normalized];
+    return {
+      title: name ? `${previewLabel}. ${name}` : previewLabel,
+      description: `Content written in this editor is mirrored to the ${previewLabel} preview.`,
+      previewLabel,
+    };
   }, [sectionNumber]);
+
   const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
@@ -1946,7 +1968,11 @@ function BoardInner({
           setHistoryOpen(false);
         }}
       />
-      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+      {/* 18 cm content column: the card's own px-5 padding (20 px each side)
+          sits inside 720 px, leaving exactly 680 px ≈ 18 cm of content — the
+          same physical width the PDF and DOCX use. */}
+      <div className="mx-auto w-full max-w-[720px] space-y-4 p-6">
+
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}
         <div className="space-y-1">
