@@ -154,6 +154,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       headingEnabled,
       contentHtml,
       assignedParticipantId,
+      isVisible,
     }: {
       fieldId: string;
       cardId: string;
@@ -161,15 +162,18 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       headingEnabled?: boolean;
       contentHtml?: string | null;
       assignedParticipantId?: string | null;
+      isVisible?: boolean;
     }) => {
       const patch: Partial<{
         heading: string | null;
         heading_enabled: boolean;
         content_html: string | null;
         assigned_participant_id: string | null;
+        is_visible: boolean;
       }> = {};
       if (heading !== undefined) patch.heading = heading;
       if (headingEnabled !== undefined) patch.heading_enabled = headingEnabled;
+      if (isVisible !== undefined) patch.is_visible = isVisible;
       if (contentHtml !== undefined) patch.content_html = contentHtml;
       if (assignedParticipantId !== undefined) patch.assigned_participant_id = assignedParticipantId;
       if (Object.keys(patch).length === 0) return;

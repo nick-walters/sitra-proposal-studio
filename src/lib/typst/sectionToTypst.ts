@@ -153,6 +153,7 @@ export async function fetchSectionBlockTree(
       .from('card_fields')
       .select('*')
       .in('card_id', cards.map((c) => c.id))
+      .eq('is_visible', true)
       .is('deleted_at', null)
       .order('order_index');
     if (fieldError) throw fieldError;
