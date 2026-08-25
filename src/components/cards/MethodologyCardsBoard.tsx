@@ -1446,8 +1446,12 @@ function BoardInner({
   const sectionMeta = useMemo(() => {
     const normalized = (sectionNumber ?? '').replace(/^B/i, '');
     const names: Record<string, string> = {
+      '1.1': 'Objectives & ambition',
       '1.2': 'Methodologies',
+      '2.1': "Project's pathways towards impact",
+      '2.2': 'Measures to maximise impact',
       '3.1': 'Work plan & resources',
+      '3.2': 'Capacity of participants & consortium',
     };
     const previewLabel = normalized ? `Part B${normalized}` : 'Part B';
     const name = names[normalized];
