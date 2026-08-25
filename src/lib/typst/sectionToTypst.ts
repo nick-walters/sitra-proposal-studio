@@ -240,10 +240,12 @@ export function buildSectionTypstDocument(
         : null;
       if (emitted && emitted.length) {
         out.push(...emitted);
-      } else if (emitted && card.sourceKey === 'b31.references') {
-        // Nothing cited: the block exists in the board so the author can see
-        // it, but it is left out of the document entirely.
+      } else if (emitted && SILENT_WHEN_EMPTY.has(card.sourceKey || '')) {
+        // Nothing cited / no costs of this category: the block exists in the
+        // board so the author can see it, but it is left out of the document
+        // entirely rather than printing a placeholder note.
         continue;
+
       } else if (emitted) {
         // Recognised block with nothing in it yet — say so rather than
         // silently dropping the block from the document.
