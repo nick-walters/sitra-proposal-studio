@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +64,11 @@ export function useDirtyRegistry(): DirtyRegistry {
     return ok;
   }, [sync]);
 
-  return { register, unregister, dirtyCount, saveAll };
+  /* Stable identity: consumers depend on it in effects. */
+  return useMemo(
+    () => ({ register, unregister, dirtyCount, saveAll }),
+    [register, unregister, dirtyCount, saveAll],
+  );
 }
 
 /** Lets a field publish its dirty state and a save callback to the registry. */
