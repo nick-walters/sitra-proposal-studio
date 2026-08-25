@@ -1007,7 +1007,7 @@ function CardBlock({
   const collapsedSummary = (() => {
     if (card.kind === 'references')
       return `${referenceCount} reference${referenceCount === 1 ? '' : 's'}`;
-    if (card.kind === 'figure') return figureSummary ?? 'Figure';
+    if (card.kind === 'figure') return card.isSourceFed ? 'Source-fed figure' : (figureSummary ?? 'Figure');
     if (isLinkedActivitiesCard) {
       const n = linkedActivities.activities.length;
       return `${n} linked ${n === 1 ? 'activity' : 'activities'}`;
