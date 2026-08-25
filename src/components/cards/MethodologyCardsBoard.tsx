@@ -366,6 +366,10 @@ interface FieldRowProps {
   collapsed: boolean;
   /** 0-based caption letter for case-study placeholder tables. */
   caseLetterIndex?: number;
+  /** Section caption sequences this text box starts from (derived, uneditable). */
+  captionNumbering?: CaptionNumbering | null;
+  /** Section number without the "B" prefix, for the cases-table caption. */
+  captionSectionNumber?: string;
 }
 
 function FieldRow({
@@ -383,6 +387,8 @@ function FieldRow({
   reloadNonce,
   collapsed,
   caseLetterIndex,
+  captionNumbering,
+  captionSectionNumber,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -523,6 +529,7 @@ function FieldRow({
                 proposalId={proposalId}
                 caseTypeId={field.placeholderCaseTypeId ?? null}
                 letterIndex={caseLetterIndex ?? 0}
+                sectionNumber={captionSectionNumber}
               />
             </RefDataProvider>
           </div>
@@ -696,6 +703,7 @@ function FieldRow({
               }}
               canEdit={canEdit && !contentLock.lockedByOther}
               isCoordinator={isCoordinator}
+              captionNumbering={captionNumbering ?? null}
               activeRingClass={
                 contentLock.isMine
                   ? 'border-emerald-600 ring-1 ring-emerald-600/60'
@@ -728,6 +736,10 @@ interface CardBlockProps {
   caseTypeLabels: Record<string, string>;
   /** Caption letters for case-study placeholder modules, keyed by field id. */
   caseLetterByFieldId: Record<string, number>;
+  /** Where each module's text box starts in the section caption sequences. */
+  captionNumberingByFieldId?: Record<string, CaptionNumbering>;
+  /** Section number without the "B" prefix, e.g. "1.2". */
+  captionSectionNumber?: string;
   collapsed: boolean;
   /** Per-user view preference: content hidden, header + summary stay. */
   userCollapsed: boolean;
@@ -772,6 +784,8 @@ function CardBlock({
   draggable,
   caseTypeLabels,
   caseLetterByFieldId,
+  captionNumberingByFieldId,
+  captionSectionNumber,
   collapsed,
   userCollapsed,
   onToggleCollapse,
@@ -1300,6 +1314,7 @@ function CardBlock({
               canEdit={canEdit}
               isCoordinator={isCoordinator}
               controller={linkedActivities}
+              captionLabel={captionLabel}
             />
           ) : isPlaceholderCard ? (
             <SourceFedBlock
@@ -1341,6 +1356,8 @@ function CardBlock({
                             : undefined
                         }
                         caseLetterIndex={caseLetterByFieldId[f.id] ?? 0}
+                        captionNumbering={captionNumberingByFieldId?.[f.id] ?? null}
+                        captionSectionNumber={captionSectionNumber}
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
                         onDelete={onDeleteField}
