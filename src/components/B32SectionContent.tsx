@@ -412,7 +412,9 @@ export function B32SectionContent({ proposalId }: Props) {
                         </span>
                       )}
                   </div>
-                  {canResize && colIdx < lastColIdx && (
+                  {/* The final column gets a handle too: the hook treats the
+                      last border as a table-width drag, capped at the block. */}
+                  {canResize && (
                     <ColumnResizer onMouseDown={handleColResizeStart(colIdx)} />
                   )}
                 </th>
