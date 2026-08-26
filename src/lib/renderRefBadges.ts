@@ -434,26 +434,49 @@ function renderFigTableRef(el: HTMLElement, data?: RefSnapshot) {
 
 /* ────────────────────────── badge spacing hygiene ──────────────────────── */
 
-const SPACING_SELECTOR =
-  '[data-deliverable-reference], [data-ref-type="milestone"], [data-milestone-reference], [data-ref-type]';
+const SPACING_SELECTOR = [
+  '[data-ref-type]',
+  '[data-wp-reference]', '[data-wp-id]',
+  '[data-task-reference]', '[data-task-id]',
+  '[data-deliverable-reference]', '[data-deliverable-id]',
+  '[data-milestone-reference]', '[data-milestone-id]',
+  '[data-participant-reference]', '[data-participant-id]',
+  '[data-case-reference]:not([data-case-block]):not([data-cases-table-node]):not([data-cases-table-nodeview])',
+  '[data-acronym-reference]',
+  '[data-fig-table-ref]',
+].join(', ');
 
 /**
- * A badge insertion leaves a non-breaking space after the badge so the gap
- * survives in contentEditable. When real text follows, that nbsp must become a
- * normal space, otherwise the space cannot break and gets dragged onto the
- * next line in front of the wrapped word.
+ * The single space that follows a chip is kept NON-BREAKING.
+ *
+ * A break opportunity there lets the space be carried to the head of the next
+ * line when the chip lands at the end of a line, which reads as a stray
+ * indent. An nbsp removes the opportunity without changing the gap; the next
+ * ordinary space in the text still provides a wrap point.
  */
-function normaliseBadgeSpacing(root: ParentNode) {
+export function glueBadgeSpacing(root: ParentNode) {
   root.querySelectorAll<HTMLElement>(SPACING_SELECTOR).forEach((badge) => {
     const next = badge.nextSibling;
     if (!next || next.nodeType !== 3 /* TEXT_NODE */) return;
     const text = next.textContent ?? '';
     const match = /^[\u00a0 ]+/.exec(text);
     if (!match) return;
+    const glued = '\u00a0' + match[0].slice(1).replace(/\u00a0/g, ' ');
     const rest = text.slice(match[0].length);
-    if (!rest.trim()) return; // trailing spacer: keep it non-breaking
-    next.textContent = ' ' + rest;
+    const out = glued + rest;
+    if (out !== text) next.textContent = out;
   });
+}
+
+/** Same glue, applied to an HTML string. No-op outside the browser. */
+export function glueBadgeSpacingInHtml(html: string): string {
+  if (!html || typeof document === 'undefined' || !html.includes('data-')) return html;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  glueBadgeSpacing(tpl.content);
+  const out = document.createElement('div');
+  out.appendChild(tpl.content.cloneNode(true));
+  return out.innerHTML;
 }
 
 /* ─────────────────────────────── entry points ──────────────────────────── */
@@ -526,7 +549,7 @@ export function resolveRefBadgesInDom(root: ParentNode, data?: RefSnapshot): voi
     .querySelectorAll<HTMLElement>('[data-fig-table-ref]')
     .forEach((el) => renderFigTableRef(el, data));
 
-  normaliseBadgeSpacing(root);
+  glueBadgeSpacing(root);
 }
 
 /**
