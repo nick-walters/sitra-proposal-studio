@@ -19,6 +19,11 @@ import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode'
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import {
+  EDITOR_TABLE_CLASS,
+  EDITOR_TABLE_HEADER_CELL_CLASS,
+  EDITOR_TABLE_BODY_CELL_CLASS,
+} from '@/lib/tableStyleSpec';
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { ParagraphClassStatic } from '@/extensions/ParagraphClassStatic';
 import {
@@ -76,10 +81,12 @@ export const WP_DRAFT_FIELD_EXTENSIONS: Extensions = [
   TextStyle,
   Color,
   ParagraphSpacing,
-  Table.configure({ resizable: false }),
+  // Same presentation classes the live editor emits, so a table keeps its
+  // Horizon Europe styling in the static (unfocused) render.
+  Table.configure({ resizable: false, HTMLAttributes: { class: EDITOR_TABLE_CLASS } }),
   TableRow,
-  TableHeader,
-  TableCell,
+  TableHeader.configure({ HTMLAttributes: { class: EDITOR_TABLE_HEADER_CELL_CLASS } }),
+  TableCell.configure({ HTMLAttributes: { class: EDITOR_TABLE_BODY_CELL_CLASS } }),
   ...REFERENCE_NODES,
   CitationNode,
   CitationMark,
