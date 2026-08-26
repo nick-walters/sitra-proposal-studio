@@ -586,7 +586,10 @@ export function emitMergedJustification(
   ]);
   return [
     caption(data, tableKey, label, defaultCaption),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    // `tableKey` is the same key the editor's own resizable table stores under
+    // (`purchase-costs`, `equipment`, `other-direct-costs`, …).
+    `he-cell-table(${storedCols(data, tableKey, 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+
   ];
 }
 
