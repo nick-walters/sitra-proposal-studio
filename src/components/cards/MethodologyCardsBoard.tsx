@@ -1354,7 +1354,15 @@ function CardBlock({
                   Add
                 </Button>
               </Tip>
+            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
+              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
+                <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </Tip>
             ) : canAddModule ? (
+
               <Tip label="Add module to this block">
                 <Button variant="ghost" size="sm" onClick={() => onAddField(card)}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
