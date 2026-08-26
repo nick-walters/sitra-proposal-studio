@@ -719,6 +719,7 @@ export function MilestonesEditor({
                         <DebouncedRichField
                           value={m.title || ''}
                           className={LEFT_ALIGNED_CELL_CLASS}
+                          cellSurface
                           disabled={!canEdit}
                           minHeight="0"
                           proposalId={proposalId}
@@ -773,6 +774,7 @@ export function MilestonesEditor({
                           projectDuration={duration}
                           readOnly={!canEdit}
                           label=""
+                          cellSurface
                           onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
                         />
                       </td>
@@ -795,6 +797,7 @@ export function MilestonesEditor({
                         <DebouncedRichField
                           value={m.means_of_verification || ''}
                           className={LEFT_ALIGNED_CELL_CLASS}
+                          cellSurface
                           disabled={!canEdit}
                           minHeight="0"
                           proposalId={proposalId}

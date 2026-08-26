@@ -8,6 +8,8 @@ interface SingleMonthPickerProps {
   readOnly?: boolean;
   onChange: (month: number | null) => void;
   label?: string;
+  /** Render the trigger as document text when embedded in a document table. */
+  cellSurface?: boolean;
 }
 
 export function SingleMonthPicker({
@@ -16,6 +18,7 @@ export function SingleMonthPicker({
   readOnly = false,
   onChange,
   label = 'Due:',
+  cellSurface = false,
 }: SingleMonthPickerProps) {
   const [open, setOpen] = useState(false);
   const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
@@ -32,7 +35,15 @@ export function SingleMonthPicker({
       <span className="text-draft text-muted-foreground">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-draft h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
+          <button
+            className={cn(
+              'cursor-pointer hover:opacity-80 text-draft',
+              cellSurface
+                ? "h-auto w-full border-0 bg-transparent p-0 text-left font-['Times_New_Roman',Times,serif] text-[11pt] leading-none"
+                : 'h-6 px-2 border rounded-md bg-background',
+            )}
+            disabled={readOnly}
+          >
             {value != null ? (
               fmt(value)
             ) : (
