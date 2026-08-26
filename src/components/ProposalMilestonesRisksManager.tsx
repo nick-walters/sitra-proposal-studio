@@ -716,7 +716,7 @@ export function MilestonesEditor({
           proposalId={proposalId}
           tableKey="milestones"
           label="Table 3.1.d."
-          defaultCaption="List of milestones"
+          defaultCaption="List of milestones (★ indicates the primary WP & position in the Gantt chart)"
           canEdit={false}
           className="mb-0"
         />
@@ -1120,7 +1120,7 @@ export function RisksEditor({
           proposalId={proposalId}
           tableKey="risks"
           label="Table 3.1.e."
-          defaultCaption="Critical risks for implementation"
+          defaultCaption="Critical risks for implementation (i. likelihood; ii. severity)"
           canEdit={false}
           className="mb-0"
         />
