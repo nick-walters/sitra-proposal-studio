@@ -705,9 +705,9 @@ export function MilestonesEditor({
                   .filter((w): w is WPRow => !!w)
                   .sort((a, b) => a.number - b.number);
                 return (
-                  <>
+                  <Fragment key={m.id}>
                     {/* Scalar line: chip, name, WP(s), due month, delete. */}
-                    <tr key={`${m.id}-a`} id={`milestone-row-${m.id}`} className="!border-b-0">
+                    <tr id={`milestone-row-${m.id}`} className="!border-b-0">
                       <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
                         <MilestoneBadge number={m.number} />
                       </td>
@@ -785,7 +785,7 @@ export function MilestonesEditor({
                       </td>
                     </tr>
                     {/* Means of verification: its own full-width row beneath. */}
-                    <tr key={`${m.id}-b`}>
+                    <tr>
                       <td data-noresize="" className={docFirstCellStyles} />
                       <td className={`${docCellStyles} break-words`} colSpan={4}>
                         <DebouncedRichField
@@ -800,7 +800,7 @@ export function MilestonesEditor({
                         />
                       </td>
                     </tr>
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
