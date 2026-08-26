@@ -687,11 +687,23 @@ export function MilestonesEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onRegisterAdd, proposalId]);
 
-  // "Reorder" sits beside "Add" in the block header, styled identically.
+  // "Reorder" sits in the block header. It only means anything when at least
+  // two milestones share a due month (the dialog groups by due month, nulls
+  // together), so the control is withdrawn otherwise.
+  const canReorderMs = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const m of milestones) {
+      const key = String(m.due_month ?? '∅');
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from(counts.values()).some((n) => n >= 2);
+  }, [milestones]);
+
   useEffect(() => {
-    onRegisterReorder?.(() => setMsReorderOpen(true));
+    onRegisterReorder?.(canReorderMs ? () => setMsReorderOpen(true) : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onRegisterReorder, proposalId]);
+  }, [onRegisterReorder, proposalId, canReorderMs]);
+
 
 
   return (
