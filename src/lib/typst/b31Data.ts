@@ -85,6 +85,8 @@ export interface TypstMilestone {
   means_of_verification: string | null;
   wpNumbers: number[];
   wpColors: string[];
+  /** WP number flagged `is_primary` for this milestone, if any. */
+  primaryWpNumber?: number | null;
 }
 
 export interface TypstRisk {
