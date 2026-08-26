@@ -625,7 +625,7 @@ function FieldRow({
         isDocumentSurface
           ? 'w-full max-w-none'
           : 'space-y-2 p-3'
-      } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
+      } ${field.isVisible ? '' : 'print:hidden'}`}
     >
       <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
         {canEdit && (
