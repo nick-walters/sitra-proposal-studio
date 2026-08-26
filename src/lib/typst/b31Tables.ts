@@ -141,7 +141,8 @@ export function emitWpList(data: B31TypstData): string[] {
     // others and the titles wrapped. First column flush (no left inset) and
     // tight padding, matching the board's own rendering of this table.
     table(
-      '(1fr, auto, auto, auto)',
+      storedCols(data, 'wp-list', 4, '(1fr, auto, auto, auto)'),
+
       [lit('Work package'), lit('WP leader'), lit('PMs'), lit('Duration')],
       rows,
       undefined,
