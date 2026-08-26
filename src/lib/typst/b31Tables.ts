@@ -345,7 +345,7 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   return [
     `he-caption(${typstString('Table 3.1.d.')}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
-      storedCols(data, 'b31-milestones-v2', 4, '(32fr, 34fr, 22fr, 12fr)'),
+      storedCols(data, ['b31-3-1-d-milestones', 'b31-milestones-v2'], 4, '(32fr, 34fr, 22fr, 12fr)'),
       headers.map((h) => lit(h)),
       rows,
       undefined,
