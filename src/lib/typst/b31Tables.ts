@@ -33,6 +33,8 @@ const EMPTY = lit('—');
  */
 const NBSP = '\u00a0';
 const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
+/** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
+const CHIP_SEP = ` + t(" ") + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
@@ -185,7 +187,7 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         bold(lit(task.title || '')) +
         ` + linebreak() + ` +
         participantChip(byId.get(task.lead_participant_id || '')) +
-        (partners.length ? CHIP_GAP + partners.join(CHIP_GAP) : '') +
+        (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
         months;
       rows.push([sep]);
       rows.push([head]);
@@ -249,7 +251,7 @@ function wpChipList(numbers: number[], colours: string[], allCount: number): str
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(CHIP_GAP);
+  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(CHIP_SEP);
   // A narrow WP column wraps the chips over several lines; the default 0pt
   // leading would let their outsets touch, so this paragraph opens the pitch.
   return `par(leading: 4pt, spacing: 0pt, ${chips})`;
