@@ -82,6 +82,9 @@ export interface TypstDocMeta {
   runningHeader?: string;
   /** Section heading pair, numbered from the template (see `fetchTypstDocMeta`). */
   headings?: { h1?: string; h2?: string } | null;
+  /** Draws the pale "CONFIDENTIAL DRAFT" wash across every page. */
+  watermark?: boolean;
+
 }
 
 
