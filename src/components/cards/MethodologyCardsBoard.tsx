@@ -1167,9 +1167,13 @@ function CardBlock({
      action up here on mount. */
   const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
   const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
-  // Milestones also hand up a "Reorder" action, shown beside "Add".
+  // Milestones also hand up a "Reorder" action; null withdraws the control.
   const [relationalReorder, setRelationalReorder] = useState<(() => void) | null>(null);
-  const registerRelationalReorder = useCallback((fn: () => void) => setRelationalReorder(() => fn), []);
+  const registerRelationalReorder = useCallback(
+    (fn: (() => void) | null) => setRelationalReorder(() => fn),
+    [],
+  );
+
 
 
   // Dragging also collapses (kept from before); the user's own collapse
