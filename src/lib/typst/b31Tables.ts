@@ -279,18 +279,32 @@ function wpChipList(
 
 
 /**
- * Column widths and headers are taken from the EDITOR's own stored state
- * (`table_column_widths` / `table_column_headers`), so a preview reproduces
- * the table the author sees rather than a second, hardcoded layout. Stored
- * pixel widths become `fr` ratios, which Typst then fits to the 18 cm column.
+ * Column widths are taken from the EDITOR's own stored state
+ * (`table_column_widths`), so a preview reproduces the table the author sees
+ * rather than a second, hardcoded layout. Stored pixel widths become `fr`
+ * ratios, which Typst then fits to the 18 cm column.
+ *
+ * Several tables exist in two places (the B3.1 board and the older manager
+ * screen) under different keys, so `keys` is tried in order and the first
+ * stored row of the right shape wins. `fallback` is the EDITOR's own default
+ * proportions, used while a table has never been resized.
  */
-function storedCols(data: B31TypstData, key: string, count: number, fallback: string): string {
-  const widths = data.columnWidths[key];
-  if (widths && widths.length === count && widths.every((w) => w > 0)) {
-    return `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`;
+function storedCols(
+  data: B31TypstData,
+  keys: string | string[],
+  count: number,
+  fallback: string,
+): string {
+  for (const key of Array.isArray(keys) ? keys : [keys]) {
+    const widths = data.columnWidths[key];
+    if (widths && widths.length === count && widths.every((w) => w > 0)) {
+      const min = Math.min(...widths);
+      return `(${widths.map((w) => `${(w / min).toFixed(3)}fr`).join(', ')})`;
+    }
   }
   return fallback;
 }
+
 
 function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
   const stored = data.columnHeaders[key] || {};
