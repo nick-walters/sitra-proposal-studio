@@ -1449,6 +1449,7 @@ function CardBlock({
         {/* Every field inside the block — card fields and the relational
             tables alike — inherits the block's guideline key from here, so
             the Guidelines button resolves from any of them. */}
+        {/* eslint-disable-next-line no-inner-declarations */}
         <CardContent
           data-guideline-key={card.templateKey ?? undefined}
           className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}
