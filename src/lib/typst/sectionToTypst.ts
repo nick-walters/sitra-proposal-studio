@@ -343,11 +343,17 @@ function emitAuthoredFigure(
   return out;
 }
 
-export function buildSectionTypstDocument(
+/**
+ * One section's BODY — every emitted expression, without the preamble. The
+ * full Part B document concatenates six of these under a single preamble
+ * (`partBDocument.ts`); `buildSectionTypstDocument` wraps one of them.
+ */
+export function buildSectionTypstBody(
 
   tree: SectionBlockTree,
   options: BuildTypstOptions = {},
 ): BuiltTypstDocument {
+
   const sectionNumber = (options.meta?.headings?.h2 || options.sectionLabel || '')
     .match(/(?:B)?(\d+(?:\.\d+)+)/i)?.[1] ?? '';
   const refEntries = options.references ?? [];
