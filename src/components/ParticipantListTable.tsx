@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StorageImage } from '@/components/StorageImage';
 import { Participant } from '@/types/proposal';
+import { buildCaseLabel } from '@/lib/caseTypeLabels';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { B31Pill, WPBubble, ParticipantBubble } from '@/components/B31Pill';
 
@@ -17,6 +18,8 @@ export interface CaseLeadershipInfo {
   color: string;
   shortName?: string;
   prefix: string; // CS, UC, LL, P, D, C
+  includeNumber?: boolean;
+  includeAbbreviation?: boolean;
 }
 
 interface ParticipantListTableProps {
@@ -71,7 +74,8 @@ export function ParticipantListTable({
               <th style={{ width: '5%' }}>No.</th>
               <th style={{ width: '12%' }}>Short name</th>
               <th style={{ width: '40%' }}>Legal name</th>
-              <th style={{ width: '8%' }}>Logo</th>
+              <th style={{ width: '8%' }} aria-label="Logo" />
+              <th style={{ width: '8%' }}>Type</th>
               <th style={{ width: '15%' }}>Lead roles</th>
               <th style={{ width: '20%' }}>Country</th>
             </tr>
@@ -155,7 +159,7 @@ export function ParticipantListTable({
                                 textColor="hsl(var(--primary-foreground))"
                                 style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px', fontWeight: 500, borderRadius: '4px' }}
                               >
-                                Coord
+                                 Coordinator
                               </B31Pill>
                             </TooltipTrigger>
                             <TooltipContent>Project coordinator</TooltipContent>
@@ -186,7 +190,16 @@ export function ParticipantListTable({
                                 color="#000000"
                                 style={{ fontSize: '11pt', height: 'auto', padding: '4px 10px' }}
                               >
-                                {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
+                                 {c.includeNumber === false
+                                   ? c.shortName || '—'
+                                   : buildCaseLabel({
+                                       prefix: c.prefix,
+                                       number: c.caseNumber,
+                                       shortName: c.shortName,
+                                       includeNumber: true,
+                                       includeAbbreviation: c.includeAbbreviation !== false,
+                                       withShortName: false,
+                                     })}
                               </B31Pill>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -200,6 +213,10 @@ export function ParticipantListTable({
                         )}
                       </span>
                     </p>
+                  </td>
+
+                  <td>
+                    <p>{participant.organisationCategory || '—'}</p>
                   </td>
                   
                   {/* Country */}

@@ -363,6 +363,15 @@ function normalizePartBLoadedContent(html: string) {
     paragraph.classList.add('document-table-caption');
   });
 
+  // A small set of legacy/template-seeded captions kept the captionLabel mark
+  // but lost the paragraph class. Promote them before TipTap parses the field,
+  // otherwise the section walk and the editor extension see different slots.
+  div.querySelectorAll('p:has([data-caption-label])').forEach((paragraph) => {
+    if (paragraph.classList.contains('document-table-caption') || paragraph.classList.contains('figure-caption')) return;
+    const label = paragraph.querySelector('[data-caption-label]')?.textContent ?? '';
+    paragraph.classList.add(/^\s*Figure\b/i.test(label) ? 'figure-caption' : 'document-table-caption');
+  });
+
   div.querySelectorAll('p.document-table-caption').forEach((paragraph) => {
     const caption = paragraph as HTMLElement;
     // Width/float attributes belong only to figure captions. A stale value on

@@ -48,7 +48,8 @@ export function materializeCaptionLabels(
     if (!(element instanceof HTMLParagraphElement)) return;
 
     const cls = element.className || '';
-    const match = LABEL_PATTERN.exec(element.textContent ?? '');
+    const markedLabel = element.querySelector('[data-caption-label]')?.textContent ?? '';
+    const match = LABEL_PATTERN.exec(markedLabel) ?? LABEL_PATTERN.exec(element.textContent ?? '');
     const kind = cls.includes('document-table-caption')
       ? 'table'
       : cls.includes('figure-caption')
@@ -88,7 +89,14 @@ function isCaptionParagraph(node: PMNode): 'table' | 'figure' | null {
   const cls = String((node.attrs as { class?: string })?.class ?? '');
   if (cls.includes('document-table-caption')) return 'table';
   if (cls.includes('figure-caption')) return 'figure';
-  // Legacy captions carry no class — fall back to the text they start with.
+  // Legacy captions carry no class — fall back to the marked prefix or text.
+  let marked = '';
+  node.forEach((child) => {
+    if (marked || !child.isText) return;
+    if (child.marks.some((mark) => mark.type.name === 'captionLabel')) marked = child.text ?? '';
+  });
+  const markedMatch = LABEL_PATTERN.exec(marked);
+  if (markedMatch) return markedMatch[1].toLowerCase() === 'figure' ? 'figure' : 'table';
   const m = LABEL_PATTERN.exec(node.textContent);
   if (!m) return null;
   return m[1].toLowerCase() === 'figure' ? 'figure' : 'table';

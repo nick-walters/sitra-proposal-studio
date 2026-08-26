@@ -25,7 +25,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
-import { getCaseTypePrefix } from '@/lib/caseTypeLabels';
+import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import type { TypstAsset } from './typstCompiler';
 import { typstString, htmlToTypstBlocks, type ConvertContext } from './htmlToTypst';
@@ -51,6 +51,7 @@ interface FrontMatterParticipant {
   legalName: string;
   englishName: string;
   country: string;
+  organisationType: string;
   roles: RoleBubble[];
   /** Virtual asset path of the organisation logo, when one was resolvable. */
   logoPath: string | null;
@@ -100,12 +101,12 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     { path: SITRA_LOGO_ASSET_PATH, bytes: decodeBase64(SITRA_LOGO_BASE64) },
   ];
 
-  const [{ data: partRows }, { data: wpRows }, { data: caseRows }, { data: aiRow }, { data: widthRow }] =
+  const [{ data: partRows }, { data: wpRows }, { data: caseRows }, { data: caseTypes }, { data: aiRow }, { data: widthRow }] =
     await Promise.all([
       supabase
         .from('participants')
         .select(
-          'id, participant_number, organisation_name, organisation_short_name, english_name, country, logo_url',
+          'id, participant_number, organisation_name, organisation_short_name, english_name, country, logo_url, organisation_category',
         )
         .eq('proposal_id', proposalId)
         .order('participant_number'),
@@ -116,9 +117,13 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
         .order('number'),
       supabase
         .from('case_drafts')
-        .select('number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .select('number, short_name, lead_participant_id, color, case_type, case_type_id, custom_type_name')
         .eq('proposal_id', proposalId)
         .order('number'),
+      supabase
+        .from('proposal_case_types')
+        .select('id, include_number, include_abbreviation')
+        .eq('proposal_id', proposalId),
       supabase
         .from('part_a1')
         .select('ai_statement_enabled, ai_statement_text')
@@ -133,6 +138,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     ]);
 
   const rolesByParticipant = new Map<string, RoleBubble[]>();
+  const caseTypeById = new Map(((caseTypes || []) as any[]).map((type) => [type.id, type]));
   const push = (id: string | null, bubble: RoleBubble) => {
     if (!id) return;
     if (!rolesByParticipant.has(id)) rolesByParticipant.set(id, []);
@@ -147,8 +153,12 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
   }
   for (const c of (caseRows || []) as any[]) {
     const prefix = getCaseTypePrefix(c.case_type, c.custom_type_name);
+    const settings = c.case_type_id ? caseTypeById.get(c.case_type_id) : undefined;
+    const includeNumber = settings?.include_number !== false;
     push(c.lead_participant_id, {
-      label: prefix ? `${prefix}${c.number}` : c.short_name || String(c.number),
+      label: includeNumber
+        ? buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: true, includeAbbreviation: settings?.include_abbreviation !== false, withShortName: false })
+        : c.short_name || buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: false, includeAbbreviation: false, withShortName: false }),
       color: '#000000',
       filled: false,
     });
@@ -162,7 +172,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     const english = (row.english_name || '').trim();
     const roles: RoleBubble[] = [];
     if (row.participant_number === 1) {
-      roles.push({ label: 'Coord', color: COORD_BADGE, filled: true });
+      roles.push({ label: 'Coordinator', color: COORD_BADGE, filled: true });
     }
     roles.push(...(rolesByParticipant.get(row.id) || []));
 
@@ -189,6 +199,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
       legalName,
       englishName: english && english.toLowerCase() !== legalName.toLowerCase() ? english : '',
       country: (row.country || '').trim(),
+      organisationType: (row.organisation_category || '').trim(),
       roles,
       logoPath,
     });
@@ -228,7 +239,8 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
   const header = [
     't("Short name")',
     't("Participant legal name | ") + emph(t("English name, if different"))',
-    't("Logo")',
+    't("")',
+    't("Type")',
     't("Lead roles")',
     't("Country")',
   ];
@@ -243,7 +255,7 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
       ? `align(center, image(${typstString(p.logoPath)}, height: 8mm, fit: "contain"))`
       : 't("—")';
     const roles = p.roles.length ? p.roles.map(bubble).join(' + t(" ") + ') : 't("—")';
-    return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.country || '—')}))`;
+    return `(${short}, ${name}, ${logo}, t(${typstString(p.organisationType || '—')}), ${roles}, t(${typstString(p.country || '—')}))`;
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
   const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');

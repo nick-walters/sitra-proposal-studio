@@ -38,7 +38,11 @@ export function captionKind(p: Element): 'table' | 'figure' | null {
   const cls = p.className || '';
   if (cls.includes('document-table-caption')) return 'table';
   if (cls.includes('figure-caption')) return 'figure';
-  const m = LEGACY_LABEL.exec(p.textContent ?? '');
+  // Some old template fields retained the captionLabel mark but lost the
+  // paragraph class. Treat the mark as authoritative so the board does not
+  // skip that slot while the editor/preview still displays its label.
+  const label = p.querySelector('[data-caption-label]')?.textContent ?? '';
+  const m = LEGACY_LABEL.exec(label) ?? LEGACY_LABEL.exec(p.textContent ?? '');
   if (!m) return null;
   return m[1].toLowerCase() === 'figure' ? 'figure' : 'table';
 }
