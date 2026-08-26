@@ -124,12 +124,33 @@ function convertInlineChildren(node: Node, ctx: ConvertContext): string {
   return join(Array.from(node.childNodes).map((child) => convertInline(child, ctx)));
 }
 
+/** The previous sibling that carries ink (whitespace-only text is skipped). */
+function previousMeaningful(node: Node): Node | null {
+  let prev = node.previousSibling;
+  while (prev && prev.nodeType === Node.TEXT_NODE && !(prev.textContent || '').trim()) {
+    prev = prev.previousSibling;
+  }
+  return prev;
+}
+
 function convertInline(node: Node, ctx: ConvertContext): string {
   if (node.nodeType === Node.TEXT_NODE) {
-    const text = (node.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
+    let text = (node.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
     if (!text) return '';
+    // A space that immediately FOLLOWS a chip is made non-breaking, so it can
+    // never be pushed to the head of the next line as a stray indent.
+    const prev = previousMeaningful(node);
+    if (
+      text.startsWith(' ') &&
+      prev &&
+      prev.nodeType === Node.ELEMENT_NODE &&
+      chipKind(prev as Element)
+    ) {
+      text = `\u00a0${text.slice(1)}`;
+    }
     return lit(text);
   }
+
   if (node.nodeType !== Node.ELEMENT_NODE) return '';
   const el = node as Element;
   const tag = el.tagName.toLowerCase();
