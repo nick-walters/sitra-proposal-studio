@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WPBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Check, Star } from 'lucide-react';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
