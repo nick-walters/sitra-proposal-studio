@@ -1570,6 +1570,15 @@ export function useRichTextEditor({
   const prepareNumberedContent = (html: string) =>
     materializeCaptionLabels(normalizePartBLoadedContent(html), captionNumbering ?? null);
   const preparedContent = prepareNumberedContent(content);
+  const diagnosticCaption = /(?:Starting\s*&(?:amp;)?\s*target technology readiness levels|Advances beyond the state of the art)/i.test(content);
+  if (diagnosticCaption) {
+    console.info('[caption-diagnostic] render input', {
+      instanceKey,
+      captionNumbering,
+      rawContent: content,
+      preparedContent,
+    });
+  }
   const initialContentRef = useRef<string>(preparedContent);
   const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
   captionNumberingRef.current = captionNumbering ?? null;
@@ -2024,12 +2033,25 @@ StarterKit.configure({
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     onCreate: ({ editor }) => {
+      if (diagnosticCaption) {
+        console.info('[caption-diagnostic] onCreate before refresh', {
+          instanceKey,
+          html: editor.getHTML(),
+          captionNumbering: captionNumberingRef.current,
+        });
+      }
       // Explicitly run the position-derived caption pass after TipTap has
       // parsed the document. This covers both an existing captionLabel mark
       // and a canonical caption paragraph with no stored label span.
       editor.view.dispatch(
         editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
       );
+      if (diagnosticCaption) {
+        console.info('[caption-diagnostic] onCreate after refresh', {
+          instanceKey,
+          html: editor.getHTML(),
+        });
+      }
     },
     
     onUpdate: ({ editor }) => {
@@ -2063,6 +2085,13 @@ StarterKit.configure({
   // new offset, so a block/module reorder renumbers immediately.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
+    if (diagnosticCaption) {
+      console.info('[caption-diagnostic] numbering effect before refresh', {
+        instanceKey,
+        captionNumbering: captionNumberingRef.current,
+        html: editor.getHTML(),
+      });
+    }
     editor.view.dispatch(
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
@@ -2071,6 +2100,12 @@ StarterKit.configure({
     // synchroniser below cannot immediately replace it with stale, unlabelled
     // template HTML from the asynchronous field load.
     lastSetContentRef.current = normalizePartBLoadedContent(editor.getHTML());
+    if (diagnosticCaption) {
+      console.info('[caption-diagnostic] numbering effect after refresh', {
+        instanceKey,
+        html: editor.getHTML(),
+      });
+    }
   }, [editor, captionNumberingKey]);
 
   useEffect(() => {
@@ -2081,6 +2116,14 @@ StarterKit.configure({
       normalizePartBLoadedContent(content),
       captionNumberingRef.current,
     );
+    if (diagnosticCaption) {
+      console.info('[caption-diagnostic] content sync decision', {
+        instanceKey,
+        nextContent,
+        currentHtml: editor.getHTML(),
+        lastSetContent: lastSetContentRef.current,
+      });
+    }
     if (nextContent === lastSetContentRef.current) return;
     const currentEditorNormalized = normalizePartBLoadedContent(editor.getHTML());
     if (nextContent === currentEditorNormalized) {

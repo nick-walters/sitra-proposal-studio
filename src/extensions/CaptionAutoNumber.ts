@@ -136,6 +136,15 @@ function buildTransaction(state: EditorState, cfg: CaptionNumbering | null): Tra
       return;
     }
     const kind = isCaptionParagraph(node);
+    const diagnosticCaption = /(?:Starting\s*&\s*target technology readiness levels|Advances beyond the state of the art)/i.test(node.textContent);
+    if (diagnosticCaption) {
+      console.info('[caption-diagnostic] extension caption test', {
+        text: node.textContent,
+        kind,
+        className: String((node.attrs as { class?: string })?.class ?? ''),
+        config: cfg,
+      });
+    }
     if (!kind) return;
 
     const index = kind === 'figure' ? figureIdx++ : tableIdx++;
@@ -144,6 +153,15 @@ function buildTransaction(state: EditorState, cfg: CaptionNumbering | null): Tra
     const text = node.textContent;
     const m = LABEL_PATTERN.exec(text);
     const consume = Math.max(m ? m[0].length : 0, markedPrefixLength(node));
+    if (diagnosticCaption) {
+      console.info('[caption-diagnostic] extension label decision', {
+        text,
+        existingTextLabel: m?.[0] ?? null,
+        existingMarkedLength: markedPrefixLength(node),
+        desired,
+        action: text.slice(0, consume) === desired ? 'none' : consume > 0 ? 'replace' : 'insert',
+      });
+    }
     if (text.slice(0, consume) === desired) return;
 
     const from = offset + 1;
