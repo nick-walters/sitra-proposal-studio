@@ -646,16 +646,9 @@ function FieldRow({
 
 
         {isPlaceholder ? (
-          <div className={collapsed ? 'hidden' : 'min-w-0 flex-1'}>
-            <RefDataProvider proposalId={proposalId}>
-              <CasesTableLiveView
-                proposalId={proposalId}
-                caseTypeId={field.placeholderCaseTypeId ?? null}
-                letterIndex={caseLetterIndex ?? 0}
-                sectionNumber={captionSectionNumber}
-              />
-            </RefDataProvider>
-          </div>
+          // The pilots table itself moved onto the page below; the toolbar row
+          // keeps only the drag grip.
+          <span className="flex-1" aria-hidden="true" />
         ) : (
           <>
             {headerField && !isDocumentSurface ? (
