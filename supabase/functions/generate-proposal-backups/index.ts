@@ -1578,19 +1578,15 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   const { data: propFlags } = await supabase
     .from("proposals")
     .select(
-      "b31_show_purchase_costs, b31_show_other_direct_costs, b31_show_travel_justification, b31_show_equipment_justification, b31_show_all_equipment_justification, b31_show_other_goods_justification, b31_show_fstp_justification, b31_show_internally_invoiced_justification"
+      "b31_show_purchase_costs, b31_show_travel_justification, b31_show_equipment_justification, b31_show_other_goods_justification"
     )
     .eq("id", proposal.id)
     .maybeSingle();
   const toggles = {
     purchase_costs: !!propFlags?.b31_show_purchase_costs,
-    other_direct_costs: !!propFlags?.b31_show_other_direct_costs,
     travel: !!propFlags?.b31_show_travel_justification,
     equipment: !!propFlags?.b31_show_equipment_justification,
-    equipment_all: !!propFlags?.b31_show_all_equipment_justification,
     other_goods: !!propFlags?.b31_show_other_goods_justification,
-    fstp: !!propFlags?.b31_show_fstp_justification,
-    internally_invoiced: !!propFlags?.b31_show_internally_invoiced_justification,
   };
 
   // Block visibility from the B3.1 block board. The board is the preview the
@@ -1755,8 +1751,7 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     if (!includeEquipmentCategory) return false;
     const partId = brToPart.get(it.budget_row_id);
     if (!partId) return false;
-    if (partsForced.has(partId)) return true;
-    return toggles.equipment_all; // include below-15% only when explicitly opted in
+    return partsForced.has(partId); // below-15% participants are never justified
   });
   const includeTravel = toggles.purchase_costs && toggles.travel && travelItems.length > 0;
   const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsItems.length > 0;
