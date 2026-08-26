@@ -355,9 +355,6 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /* Field row                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Single block trialling the page-like editable surface (see index.css). */
-const DOCUMENT_SURFACE_TRIAL_KEY = 'b12.concepts';
-
 /** Blocks whose modules are fixed by the template and cannot be deleted. */
 const UNDELETABLE_MODULE_CARD_KEYS = new Set(['b11.maturity']);
 
@@ -536,9 +533,10 @@ function FieldRow({
   const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
   const contentEditor = useRef<Editor | null>(null);
   const [rowTick, setRowTick] = useState(0);
-  // Trial of the page-like editing surface — B1.2's "Underlying concepts,
-  // models & assumptions" only, until the look is agreed.
-  const isDocumentSurface = cardTemplateKey === DOCUMENT_SURFACE_TRIAL_KEY;
+  // The page-like editing surface is now the standard for every text module
+  // in every Part B block. Case-study placeholder modules are not text
+  // modules: they render a live table, so they keep the plain module frame.
+  const isDocumentSurface = !isPlaceholder;
 
   // The module's H3 header. On the page-styled surface it is not a form input
   // above the page: it is the first field ON the page, sharing its white
