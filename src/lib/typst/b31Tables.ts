@@ -46,8 +46,11 @@ function monthLabel(m: number | null | undefined): string {
   return m == null ? '—' : `M${String(m).padStart(2, '0')}`;
 }
 
-function wpChip(number: number, colour: string, label?: string): string {
-  return `chip-pill(${typstString(label ?? `WP${number}`)}, rgb(${typstString(colour)}), filled: true)`;
+function wpChip(number: number, colour: string, label?: string, star = false): string {
+  // A leading ★ marks the milestone's primary WP, exactly as the editor's
+  // WPBubble does; the milestones caption explains the symbol.
+  const text = `${star ? '★' : ''}${label ?? `WP${number}`}`;
+  return `chip-pill(${typstString(text)}, rgb(${typstString(colour)}), filled: true)`;
 }
 
 function participantChip(p: TypstParticipant | undefined): string {
@@ -246,12 +249,19 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
 
 /* ───────────────────── Table 3.1.d — milestones ─────────────────────────── */
 
-function wpChipList(numbers: number[], colours: string[], allCount: number): string {
+function wpChipList(
+  numbers: number[],
+  colours: string[],
+  allCount: number,
+  primaryNumber?: number | null,
+): string {
   if (!numbers.length) return EMPTY;
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(CHIP_SEP);
+  const chips = numbers
+    .map((n, i) => wpChip(n, colours[i] || '#666666', undefined, n === primaryNumber))
+    .join(CHIP_SEP);
   // A narrow WP column wraps the chips over several lines; the default 0pt
   // leading would let their outsets touch, so this paragraph opens the pitch.
   return `par(leading: 4pt, spacing: 0pt, ${chips})`;
@@ -292,7 +302,7 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   const rows = data.milestones.map((m) => [
     milestoneChip(m.number) + CHIP_GAP + rich(m.title, ctx),
     rich(m.means_of_verification, ctx),
-    wpChipList(m.wpNumbers, m.wpColors, data.wps.length),
+    wpChipList(m.wpNumbers, m.wpColors, data.wps.length, m.primaryWpNumber),
     lit(monthLabel(m.due_month)),
   ]);
   const headers = storedHeaders(data, 'b31-milestones', [
