@@ -163,29 +163,42 @@ function captionDecorations(state: EditorState, cfg: CaptionNumbering | null): D
     const kind = isCaptionParagraph(node);
     if (!kind) return;
     const index = kind === 'figure' ? figureIdx++ : tableIdx++;
-    if (section) {
-      const label = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
-      decos.push(Decoration.widget(offset + 1, () => {
-        const span = document.createElement('span');
-        span.className = 'caption-label';
-        span.setAttribute('data-caption-label', '');
-        span.setAttribute('contenteditable', 'false');
-        span.textContent = label;
-        return span;
-      }, { side: -1, key: `caption-label-${offset}-${label}`, ignoreSelection: true }));
-    }
+    if (!section) return;
+
     const consumed = Math.max(
       LABEL_PATTERN.exec(node.textContent)?.[0].length ?? 0,
       markedPrefixLength(node),
     );
     const description = node.textContent.slice(consumed).trim();
-    if (description) return;
-    decos.push(
-      Decoration.node(offset, offset + node.nodeSize, {
-        class: 'caption-empty',
-        'data-caption-placeholder': CAPTION_PLACEHOLDER[kind],
-      }),
-    );
+    const label = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
+    const isEmpty = !description;
+
+    // Render both the bold derived label and, when the caption has no authored
+    // description, the grey placeholder inside a single inline widget. This
+    // keeps the placeholder on the same line as the number; if it were a
+    // paragraph ::after pseudo-element it would fall after ProseMirror's empty-
+    // paragraph <br> and wrap to the next line.
+    decos.push(Decoration.widget(offset + 1, () => {
+      const wrapper = document.createElement('span');
+      wrapper.style.display = 'inline';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'caption-label';
+      labelSpan.setAttribute('data-caption-label', '');
+      labelSpan.setAttribute('contenteditable', 'false');
+      labelSpan.textContent = label;
+      wrapper.appendChild(labelSpan);
+
+      if (isEmpty) {
+        const placeholderSpan = document.createElement('span');
+        placeholderSpan.className = 'caption-placeholder';
+        placeholderSpan.setAttribute('contenteditable', 'false');
+        placeholderSpan.textContent = CAPTION_PLACEHOLDER[kind];
+        wrapper.appendChild(placeholderSpan);
+      }
+
+      return wrapper;
+    }, { side: -1, key: `caption-label-${offset}-${label}-${isEmpty ? 'empty' : 'filled'}`, ignoreSelection: true }));
   });
   return DecorationSet.create(state.doc, decos);
 }
