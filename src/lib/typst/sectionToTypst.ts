@@ -410,11 +410,20 @@ export function buildSectionTypstDocument(
     }
 
     if (card.kind === 'figure') {
-      if (ctx.captionNumbering) ctx.captionNumbering.figureIndex += 1;
-      ctx.unsupported.add('figure block');
-      out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
+      // The figure keeps its slot in the section's caption sequence whether or
+      // not a bitmap could be resolved, so a broken figure never renumbers the
+      // ones after it.
+      const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+      const placed = options.authoredFigures?.get(card.id) ?? null;
+      const fallbackLabel =
+        ctx.captionNumbering && slot != null
+          ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+          : '';
+      out.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
       continue;
     }
+
+
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       // The B1.2 pilots table is NOT stored as HTML at all: on the block board
