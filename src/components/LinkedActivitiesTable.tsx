@@ -97,7 +97,7 @@ const CELL_CONTROL =
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '14%', '42%', '4%'];
+const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '42%', '14%', '4%'];
 
 const NONE = '__none__';
 

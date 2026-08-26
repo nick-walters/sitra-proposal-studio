@@ -77,4 +77,37 @@ describe('CaptionAutoNumber', () => {
     expect(editor.getText()).toBe('Table 2.1.c. Impact summary canvas');
     editor.destroy();
   });
+
+  it.each([
+    ['B1.1 SOTA', '<p class="document-table-caption"><span data-caption-label="">Table 1.1.a. </span><em>Advances beyond the state of the art</em></p>', 'Table 1.1.a. Advances beyond the state of the art'],
+    ['B1.1 TRL', '<p class="document-table-caption"><em>Starting &amp; target technology readiness levels</em></p>', 'Table 1.1.b. Starting & target technology readiness levels'],
+    ['B2.1 impact summary', '<p class="document-table-caption"><em>Impact summary canvas</em></p>', 'Table 2.1.a. Impact summary canvas'],
+  ])('renders the derived label for %s', (_name, storedHtml, expectedText) => {
+    const sectionNumber = expectedText.startsWith('Table 2.1') ? '2.1' : '1.1';
+    const tableOffset = expectedText.startsWith('Table 1.1.b') ? 1 : 0;
+    const preparedHtml = materializeCaptionLabels(storedHtml, {
+      sectionNumber,
+      tableOffset,
+      figureOffset: 0,
+    });
+    const editor = new Editor({
+      extensions: [
+        StarterKit.configure({ paragraph: false }),
+        CaptionParagraph,
+        CaptionLabel,
+        CaptionAutoNumber.configure({
+          getConfig: () => ({ sectionNumber, tableOffset, figureOffset: 0 }),
+        }),
+      ],
+      content: preparedHtml,
+    });
+
+    editor.view.dispatch(
+      editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
+    );
+
+    expect(editor.getText()).toBe(expectedText);
+    expect(editor.getHTML()).toContain('data-caption-label');
+    editor.destroy();
+  });
 });
