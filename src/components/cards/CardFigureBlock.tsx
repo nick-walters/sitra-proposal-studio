@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Pencil, Plus, Unlink } from 'lucide-react';
+import { Image as ImageIcon, Pencil, Plus, Settings2, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tip } from '@/components/ui/control-tip';
 import { Input } from '@/components/ui/input';
@@ -72,6 +72,14 @@ export function CardFigureBlock({
   const { figureBlock, isLoading, save } = useCardFigure(cardId);
   const { data: figures = [] } = useProposalFigures(proposalId);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
+  /**
+   * "First insertion" is an in-session event, not a stored flag: the manager
+   * sets this when it fills a block that had no figure, and the effect below
+   * opens the controls once the save lands. A reload never re-fires it, so the
+   * dialog cannot reopen on every load.
+   */
+  const promptControls = useRef(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [captionDraft, setCaptionDraft] = useState('');
   const captionTouched = useRef(false);
@@ -79,6 +87,13 @@ export function CardFigureBlock({
   useEffect(() => {
     if (!captionTouched.current) setCaptionDraft(figureBlock?.caption ?? '');
   }, [figureBlock?.caption]);
+
+  useEffect(() => {
+    if (promptControls.current && figureBlock?.figureId) {
+      promptControls.current = false;
+      setControlsOpen(true);
+    }
+  }, [figureBlock?.figureId]);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading the figure…</p>;
   if (!figureBlock) {
@@ -97,6 +112,22 @@ export function CardFigureBlock({
 
   return (
     <div className="space-y-3">
+      {canEdit && (
+        <div className="flex items-center justify-end">
+          <Tip label="Open this figure's layout controls">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs"
+              onClick={() => setControlsOpen(true)}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Figure controls
+            </Button>
+          </Tip>
+        </div>
+      )}
+
       <div
         className={cn(
           'flex',
@@ -157,8 +188,16 @@ export function CardFigureBlock({
         )}
       </div>
 
-      {canEdit && (
-        <div className="space-y-4 rounded-md bg-muted/40 p-3">
+      <Dialog open={controlsOpen} onOpenChange={setControlsOpen}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Figure controls</DialogTitle>
+            <DialogDescription>
+              Width, grouping, position and page breaks for this figure block. The caption is
+              edited beneath the figure itself.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
           {showLayoutControls && !fullWidthOnly && (
             <div className="grid gap-4 md:grid-cols-2">
               {/* a. WIDTH */}
@@ -290,8 +329,9 @@ export function CardFigureBlock({
               </Tip>
             </div>
           )}
-        </div>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Clear the figure — the asset itself survives and becomes unplaced. */}
       <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
@@ -332,6 +372,7 @@ export function CardFigureBlock({
             proposalId={proposalId}
             canEdit={canEdit}
             onAddToBlock={(figureId) => {
+              if (!figureBlock.figureId) promptControls.current = true;
               save.mutate({ figure_id: figureId });
               setManagerOpen(false);
             }}
