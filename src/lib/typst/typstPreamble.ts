@@ -314,7 +314,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// \`tight\` switches to the shared authored-table cell padding (3pt / 0.75pt),
 /// which is what the board's own tables use — 3.1.a is emitted tight so the
 /// editor and the preview allocate the same width to each column.
-#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = block(
+#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = {
+  // Table content is LEFT ALIGNED: the document sets `justify: true`
+  // globally, which stretches short cell lines. Tables opt out locally.
+  set par(justify: false)
+  block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
@@ -348,7 +352,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Same look as \`he-table\`, but takes an ALREADY FLATTENED cell list so a
 /// cell can span rows (\`table.cell(rowspan: n, …)\`). \`nrows\` is the grid row
 /// count, header included, so the last row keeps no rule under it.
-#let he-cell-table(cols, cells, nrows, aligns: none) = block(
+#let he-cell-table(cols, cells, nrows, aligns: none) = {
+  // Table content is LEFT ALIGNED: the document sets `justify: true`
+  // globally, which stretches short cell lines. Tables opt out locally.
+  set par(justify: false)
+  block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
@@ -377,7 +385,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// the specialised B3.1 table geometry: 3pt horizontal / 0.75pt vertical
 /// padding, no vertical rules, a 1.5px-equivalent header rule, 1px-equivalent
 /// body separators and no rule below the final row.
-#let he-authored-table(cols, cells, nrows) = block(
+#let he-authored-table(cols, cells, nrows) = {
+  // Table content is LEFT ALIGNED: the document sets `justify: true`
+  // globally, which stretches short cell lines. Tables opt out locally.
+  set par(justify: false)
+  block(
   width: he-table-width,
   above: 3pt,
   below: 3pt,
@@ -406,7 +418,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// matrix, which on screen is a block of coloured cells separated by a 5pt
 /// gutter, not a ruled table. Cell padding lives INSIDE the coloured block so
 /// the fill hugs the figure exactly as the board draws it.
-#let he-grid(cols, cells) = block(
+#let he-grid(cols, cells) = {
+  // Table content is LEFT ALIGNED: the document sets `justify: true`
+  // globally, which stretches short cell lines. Tables opt out locally.
+  set par(justify: false)
+  block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
