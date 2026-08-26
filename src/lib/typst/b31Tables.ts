@@ -243,7 +243,13 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
   return [
     caption(data, 'deliverables', 'Table 3.1.c.', 'List of deliverables'),
     table(
-      '(auto, 1fr, auto, auto, auto, auto, auto)',
+      storedCols(
+        data,
+        'b31-3-1-c-deliverables',
+        7,
+        '(auto, 1fr, auto, auto, auto, auto, auto)',
+      ),
+
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Diss.'), lit('Due')],
       rows,
     ),
