@@ -23,6 +23,8 @@ import { Tip } from '@/components/ui/control-tip';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { EditableColumnHeader } from '@/components/EditableColumnHeader';
+import { useColumnHeaders } from '@/hooks/useColumnHeaders';
 
 
 import { Input } from '@/components/ui/input';
@@ -412,6 +414,11 @@ export default function LinkedActivitiesTable({
     expectedColumnCount: DEFAULT_COL_PCT.length,
   });
   const sized = colWidths.length === DEFAULT_COL_PCT.length;
+  const { headers, setHeader } = useColumnHeaders(
+    proposalId,
+    'b12-linked-activities',
+    DEFAULT_HEADERS,
+  );
   const instrumentLegend = Array.from(
     new Map(
       activities
