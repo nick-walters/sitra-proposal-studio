@@ -84,8 +84,11 @@ interface LinkedActivitiesTableProps {
 /** Document table spec: TNR 11pt, tight cells, no vertical rules. */
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles =
-  "px-[6pt] py-[2pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+  "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const firstCellStyles = `${cellStyles} !pl-0`;
+const projectAcronymCellStyles = `${firstCellStyles} !pr-0`;
+const projectInstrumentCellStyles = `${cellStyles} !px-0`;
+const projectDurationCellStyles = `${cellStyles} !pl-0`;
 
 /**
  * Controls embedded in cells read as document text until hovered or focused:
@@ -97,7 +100,7 @@ const CELL_CONTROL =
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '42%', '14%', '4%'];
+const DEFAULT_COL_PCT = ['13%', '14%', '10%', '42%', '17%', '4%'];
 
 const NONE = '__none__';
 
@@ -139,26 +142,21 @@ function SortableActivityRow({
        row so the sortable unit is a real table row. */
     <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
 
-        <td className={firstCellStyles}>
+        <td className={`${projectAcronymCellStyles} relative break-words`}>
           {canEdit ? (
             <Tip label="Drag to reorder this activity">
               <button
                 type="button"
-                className="cursor-grab touch-none text-[#2563EB]"
+                className="absolute right-full top-1/2 mr-1 -translate-y-1/2 cursor-grab touch-none text-blue-600"
                 {...attributes}
                 {...listeners}
               >
                 <GripVertical className="h-4 w-4" />
               </button>
             </Tip>
-          ) : (
-            <span />
-          )}
-        </td>
-
-        {/* Acronym — single-line rich text, title-field controls only
-            (undo, redo, font colour). Legacy plain strings upgrade on read. */}
-        <td className={`${cellStyles} break-words`}>
+          ) : null}
+          {/* Acronym — single-line rich text, title-field controls only
+              (undo, redo, font colour). Legacy plain strings upgrade on read. */}
           {canEdit ? (
             <LazyRichField
               singleLine
@@ -180,7 +178,7 @@ function SortableActivityRow({
         </td>
 
         {/* Instrument */}
-        <td className={`${cellStyles} break-words`}>
+        <td className={`${projectInstrumentCellStyles} break-words`}>
           {canEdit ? (
             <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${CELL_CONTROL}`}>
               <Select
@@ -225,7 +223,7 @@ function SortableActivityRow({
         </td>
 
         {/* Duration */}
-        <td className={`${cellStyles} break-words`}>
+        <td className={`${projectDurationCellStyles} break-words`}>
           {canEdit ? (
             <div data-scalar-field="" className={`min-w-0 ${CELL_CONTROL}`}>
               <YearRangePicker
@@ -243,7 +241,7 @@ function SortableActivityRow({
         </td>
 
         {/* How the project will be linked — a normal cell on the same row. */}
-        <td className={`${cellStyles} !align-top break-words`}>
+        <td className={`${cellStyles} break-words`}>
           <MethodologyRichEditor
             proposalId={proposalId}
             value={activity.linkDescriptionHtml ?? ''}
@@ -467,9 +465,20 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'How the project will be linked', 'Participant responsible', ''].map(
+                  {['Project acronym', 'Funding instrument', 'Duration', 'How the project will be linked', 'Participant responsible', ''].map(
                     (h, i) => (
-                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative align-bottom font-bold`}>
+                      <th
+                        key={i}
+                        className={`${
+                          i === 0
+                            ? projectAcronymCellStyles
+                            : i === 1
+                              ? projectInstrumentCellStyles
+                              : i === 2
+                                ? projectDurationCellStyles
+                                : cellStyles
+                        } relative align-bottom font-bold`}
+                      >
                         {h}
                         {canResize && i < DEFAULT_COL_PCT.length - 1 && (
                           <ColumnResizer onMouseDown={handleColResizeStart(i)} />

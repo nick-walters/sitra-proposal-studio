@@ -487,11 +487,10 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
   const rows = data.linkedActivities.map((a) => {
     const abbrev = getInstrumentAbbreviation(a.instrument_code, a.instrument_custom);
     const duration = formatDurationShort(a.duration_start, a.duration_end);
-    const project = [htmlToPlainText(a.acronym || '').trim(), abbrev, duration]
-      .filter(Boolean)
-      .join(', ');
     return [
-      lit(project || '—'),
+      lit(htmlToPlainText(a.acronym || '').trim() || '—'),
+      lit(abbrev || '—'),
+      lit(duration || '—'),
       rich(a.link_description_html, ctx),
       participantChip(byId.get(a.responsible_participant_id || '')),
     ];
@@ -512,9 +511,11 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
 
   const out = [
     table(
-      '(auto, 1fr, auto)',
+      '(auto, auto, auto, 1fr, auto)',
       [
-        lit('Project'),
+        lit('Project acronym'),
+        lit('Funding instrument'),
+        lit('Duration'),
         lit('How the project will be linked'),
         lit('Participant responsible for establishing the link'),
       ],
