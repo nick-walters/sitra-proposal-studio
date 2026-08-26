@@ -1868,12 +1868,12 @@ body.table-col-resizing * {
    never the whole text column. The minimum keeps an empty field — showing the
    grey "Header" placeholder — comfortably clickable.
 
-   Only the OUTER field is shrink-to-fit. Applying `max-content` to the inner
-   ProseMirror as well made the browser round the fractional advance width of
-   bold italic Times down to a whole pixel twice over, so the measured box came
-   out narrower than the text it was measured from and the final word wrapped.
-   The inner surface now fills its parent, and a 2px right buffer absorbs the
-   remaining sub-pixel rounding. */
+   The document field normally reserves an 8px focus-rule gutter (2px border +
+   6px padding). In a shrink-to-fit header that gutter was included in the
+   outer max-content measurement but removed from the inner content box. The
+   border box therefore measured wide enough while the usable line was exactly
+   8px too narrow, consistently wrapping the final word. Inline headers do not
+   need that body-field gutter: the outer lock/focus treatment remains visible. */
 .doc-surface-heading-inline {
   width: max-content;
   min-width: 8rem;
@@ -1885,6 +1885,9 @@ body.table-col-resizing * {
 .doc-surface-heading-inline .document-content {
   width: 100%;
   max-width: 100%;
+  margin-left: 0;
+  border-left-width: 0;
+  padding-left: 0;
 }
 
 
