@@ -357,7 +357,6 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /* ------------------------------------------------------------------ */
 
 /** Blocks whose modules are fixed by the template and cannot be deleted. */
-const UNDELETABLE_MODULE_CARD_KEYS = new Set(['b11.maturity']);
 
 interface FieldRowProps {
   field: CardField;
