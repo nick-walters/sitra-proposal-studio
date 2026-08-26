@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { ParticipantBubble } from '@/components/B31Pill';
+import { useColumnResize } from '@/hooks/useColumnResize';
 import {
   FUNDING_INSTRUMENTS,
   getInstrumentAbbreviation,
@@ -124,6 +125,11 @@ export function B12LinkedActivitiesSlotContent({
 }: B12LinkedActivitiesSlotContentProps) {
   const { data: activities = [] } = useLinkedActivitiesMirror(proposalId);
   const { data: participants = [] } = useMirrorParticipants(proposalId);
+  const { colWidths, tableRef } = useColumnResize({
+    proposalId,
+    tableKey: 'b12-linked-activities',
+    expectedColumnCount: 3,
+  });
 
   if (activities.length === 0) return <>{emptyFallback}</>;
 
@@ -136,14 +142,20 @@ export function B12LinkedActivitiesSlotContent({
       className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]"
     >
       <table
+        ref={tableRef}
         data-table-key="b12-linked-activities"
         className="platform-table platform-table--tight"
-        style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: '100%' }}
+        style={{
+          tableLayout: 'fixed',
+          borderCollapse: 'collapse',
+          width: colWidths.length === 3 ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
+          maxWidth: '100%',
+        }}
       >
         <colgroup>
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '53%' }} />
-          <col style={{ width: '25%' }} />
+          {['37%', '43%', '20%'].map((fallback, index) => (
+            <col key={fallback} style={{ width: colWidths.length === 3 ? `${colWidths[index]}px` : fallback }} />
+          ))}
         </colgroup>
         <thead>
           <tr>

@@ -17,8 +17,18 @@ export function useColumnResize(options: {
   minWidths?: number[];
   /** Hard cap on the total table width (e.g. the 18cm text column in px). */
   maxTotalWidth?: number;
+  /** Current number of physical columns. Stale arrays from an older layout are discarded. */
+  expectedColumnCount?: number;
 } = { tableKey: 'default' }) {
-  const { proposalId, tableKey, canResize = false, minWidth = 40, minWidths, maxTotalWidth } = options;
+  const {
+    proposalId,
+    tableKey,
+    canResize = false,
+    minWidth = 40,
+    minWidths,
+    maxTotalWidth,
+    expectedColumnCount,
+  } = options;
 
   const [colWidths, setColWidths] = useState<number[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -38,13 +48,21 @@ export function useColumnResize(options: {
         .maybeSingle();
       
       if (data?.column_widths && Array.isArray(data.column_widths) && data.column_widths.length > 0) {
-        setColWidths(data.column_widths as number[]);
+        const widths = (data.column_widths as unknown[]).filter(
+          (width): width is number => typeof width === 'number' && Number.isFinite(width) && width > 0,
+        );
+        // Column structures change over time. Never silently apply a five- or
+        // six-column geometry to a newer table: discard it and let the live
+        // three/six-cell DOM provide the next drag's authoritative widths.
+        setColWidths(
+          expectedColumnCount == null || widths.length === expectedColumnCount ? widths : [],
+        );
       }
       setLoaded(true);
     };
     
     load();
-  }, [proposalId, tableKey]);
+  }, [proposalId, tableKey, expectedColumnCount]);
 
   // Save widths to DB
   const saveWidths = useCallback(async (widths: number[]) => {

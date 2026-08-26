@@ -377,6 +377,7 @@ export default function LinkedActivitiesTable({
     tableKey: 'b12-linked-activities',
     canResize,
     maxTotalWidth: BLOCK_WIDTH,
+    expectedColumnCount: DEFAULT_COL_PCT.length,
   });
   const sized = colWidths.length === DEFAULT_COL_PCT.length;
   const instrumentLegend = Array.from(

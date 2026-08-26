@@ -207,7 +207,11 @@ function convertParagraph(el: Element, ctx: ConvertContext): string {
 /** Table/figure captions are SIBLING paragraphs, not children of the table. */
 function convertCaption(el: Element, ctx: ConvertContext): string {
   const classes = el.classList;
-  const isFigure = classes.contains('figure-caption') || classes.contains('document-figure-caption');
+  const markedLabel = el.querySelector('[data-caption-label]')?.textContent ?? '';
+  const isFigure =
+    classes.contains('figure-caption') ||
+    classes.contains('document-figure-caption') ||
+    /^\s*Figure\b/i.test(markedLabel);
   const kind = isFigure ? 'Figure' : 'Table';
   const numbering = ctx.captionNumbering;
   const index = numbering
@@ -416,7 +420,8 @@ function convertBlock(el: Element, ctx: ConvertContext): string {
     el.classList.contains('document-table-caption') ||
     el.classList.contains('figure-caption') ||
     el.classList.contains('document-figure-caption') ||
-    el.hasAttribute('data-caption-label')
+    el.hasAttribute('data-caption-label') ||
+    !!el.querySelector('[data-caption-label]')
   ) {
     return convertCaption(el, ctx);
   }
