@@ -59,9 +59,18 @@ async function getSnippet(): Promise<any> {
     // Nimbus Roman. Raw buffers take the unambiguous add_raw_font path.
     const fontBuffers = await Promise.all(
       FONT_URLS.map(async (url) => {
-        const response = await fetch(url);
+        // `cache: 'reload'` bypasses the HTTP cache for the font bodies. The
+        // display face lives at an unhashed dev URL, so a stale or truncated
+        // cache entry from an earlier build could be replayed — that is what
+        // produced the recurring "unknown font family: archivo black"
+        // warnings, and renaming the file only papered over it once.
+        const response = await fetch(url, { cache: 'reload' });
         if (!response.ok) throw new Error(`Unable to load Typst font (${response.status})`);
-        return new Uint8Array(await response.arrayBuffer());
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes.byteLength < 1024) {
+          throw new Error(`Typst font at ${url} came back empty (${bytes.byteLength} bytes)`);
+        }
+        return bytes;
       }),
     );
     typst.use(
