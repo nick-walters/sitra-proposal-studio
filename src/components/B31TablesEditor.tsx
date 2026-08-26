@@ -312,7 +312,7 @@ function MirrorTable({
       style={{
         tableLayout: 'fixed',
         width: totalWidth,
-        maxWidth: '100%',
+        maxWidth: 'none',
         borderCollapse: 'collapse',
       }}
     >
