@@ -22,6 +22,8 @@ import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesRisksManager";
 import MethodologiesPage from "@/components/MethodologiesPage";
 import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
+import PartBDocumentView from "@/components/cards/PartBDocumentView";
+
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
