@@ -240,6 +240,26 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let chip-deliverable(label, colour) = chip-poly(label, colour, kind: "pentagon")
 #let chip-milestone(label) = chip-poly(label, black, kind: "chevron", filled: true)
 
+/// A run of chips that is allowed to WRAP onto several lines (the participant
+/// list's role badges are the case in point).
+///
+/// Every chip is an 11pt-tall box sitting on an 11pt line pitch, and the
+/// document fixes the line box to the text edges (0.75em / -0.25em, zero
+/// leading), so a chip is exactly as tall as the line it sits on and the line
+/// box never grows to contain it. On a single line that is precisely what we
+/// want — chips do not inflate the leading. As soon as the run wraps, though,
+/// the second line's chips start where the first line's chips end, and the
+/// 1pt strokes print on top of one another.
+///
+/// Inside a chip run we therefore widen the pitch by 3pt, which is the gap
+/// the editor leaves between wrapped rows of badges, and stop justification
+/// from stretching the spaces between them. The cell grows by itself: table
+/// row height follows the paragraph's own height.
+#let chip-run(body) = {
+  set par(justify: false, leading: 3pt)
+  body
+}
+
 /// Acronym: coloured segments, heavy weight, no shape. Serif only — the
 /// document has no sans face loaded, so naming one only triggers a fallback
 /// with different metrics.
