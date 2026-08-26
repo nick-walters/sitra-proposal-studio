@@ -1330,7 +1330,7 @@ function RiskLevelSelect({
       <SelectTrigger
         hideArrow
         className={cellSurface
-          ? `${SUBTLE_CONTROL} h-auto min-h-0 py-[1px] inline-flex justify-start focus:ring-0`
+          ? `${SUBTLE_CONTROL} h-auto min-h-0 py-0 inline-flex justify-start focus:ring-0`
           : 'h-8 w-auto inline-flex px-0 border-0 bg-transparent focus:ring-0'}
       >
         <span className="inline-flex items-center">

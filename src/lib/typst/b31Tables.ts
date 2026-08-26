@@ -257,7 +257,15 @@ function wpChipList(
 ): string {
   if (!numbers.length) return EMPTY;
   if (allCount > 0 && numbers.length === allCount) {
-    return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
+    const allWps = `chip-pill(${typstString('All WPs')}, black, filled: true)`;
+    // Match the editor: its collapsed “All WPs” bubble is followed by the
+    // starred primary WP, otherwise the caption describes an invisible mark.
+    if (primaryNumber != null) {
+      const primaryIndex = numbers.indexOf(primaryNumber);
+      const primaryColour = primaryIndex >= 0 ? colours[primaryIndex] : undefined;
+      return `${allWps}${CHIP_SEP}${wpChip(primaryNumber, primaryColour || '#666666', undefined, true)}`;
+    }
+    return allWps;
   }
   const chips = numbers
     .map((n, i) => wpChip(n, colours[i] || '#666666', undefined, n === primaryNumber))
