@@ -61,6 +61,32 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
   return DecorationSet.create(doc, decorations);
 }
 
+/**
+ * Turns the single plain space that follows a chip into a non-breaking space.
+ *
+ * The nowrap DECORATION cannot do this on its own: an inline decoration that
+ * spans an atom node and its neighbouring text is applied to each part
+ * separately (the atom's own DOM element gets the style, the text gets its
+ * own span), so the break opportunity BETWEEN them survives. Rewriting the
+ * character removes the opportunity outright, and — unlike a decoration — it
+ * is stored, so every static/mirror/export render inherits it too.
+ */
+function glueTrailingSpaces(newState: any) {
+  const { doc, tr } = newState;
+  let changed = false;
+  doc.descendants((node: PMNode, pos: number) => {
+    if (!(node.isInline && REF_ATOM_NODE_NAMES.has(node.type.name))) return;
+    const after = pos + node.nodeSize;
+    const $after = doc.resolve(after);
+    if ($after.parentOffset >= $after.parent.content.size) return;
+    const next = doc.textBetween(after, Math.min(after + 1, $after.end()));
+    if (next !== ' ') return;
+    tr.insertText('\u00a0', after, after + 1);
+    changed = true;
+  });
+  return changed ? tr : null;
+}
+
 export const ParenBadgeGlue = Extension.create({
   name: 'parenBadgeGlue',
 
@@ -69,6 +95,10 @@ export const ParenBadgeGlue = Extension.create({
     return [
       new Plugin({
         key: pluginKey,
+        appendTransaction: (transactions, _oldState, newState) => {
+          if (!transactions.some((t) => t.docChanged)) return null;
+          return glueTrailingSpaces(newState);
+        },
         state: {
           init: (_config, state) => buildGlueDecorations(state.doc),
           apply: (tr, oldDeco) => (tr.docChanged ? buildGlueDecorations(tr.doc) : oldDeco),

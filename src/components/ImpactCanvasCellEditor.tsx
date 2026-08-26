@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react';
 import { wordCleanPasteProps } from '@/lib/tiptapPasteProps';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
+import { ParenBadgeGlue } from '@/extensions/ParenBadgeGlue';
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { CanvasFontSize } from '@/extensions/CanvasFontSize';
 import { CanvasHeader } from '@/extensions/CanvasHeader';
@@ -63,6 +64,7 @@ export function ImpactCanvasCellEditor({ html, onChange, onFocus, onBlur, disabl
       WPReferenceNode,
       CaseReferenceNode,
       InlineReferenceNode,
+      ParenBadgeGlue,
     ],
     content: collapseStackedCanvasFontSize(html || ''),
     editable: !disabled,

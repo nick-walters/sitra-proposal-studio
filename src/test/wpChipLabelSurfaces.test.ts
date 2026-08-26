@@ -67,7 +67,12 @@ function editorLabel(html: string): string {
 
 /** Mirror surface (B3.1 tables and B3.2 paragraph slots both call this). */
 function mirrorLabel(html: string): string {
-  return renderRefBadges(html, clientSnapshot()).replace(/<[^>]+>/g, '').trim();
+  // The space after a chip is glued (nbsp); this assertion is about the
+  // LABEL, so it is normalised back to a plain space.
+  return renderRefBadges(html, clientSnapshot())
+    .replace(/<[^>]+>/g, '')
+    .replace(/[\u00a0]|&nbsp;/g, ' ')
+    .trim();
 }
 
 /** Export surface: the DOM pass PDF and DOCX both run via prepareExportContainer. */
@@ -75,7 +80,7 @@ function exportLabel(html: string): string {
   const container = document.createElement('div');
   container.innerHTML = html;
   resolveRefBadgesInDom(container, clientSnapshot());
-  return (container.textContent || '').trim();
+  return (container.textContent || '').replace(/\u00a0/g, ' ').trim();
 }
 
 /** Backup edge function surface. */

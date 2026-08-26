@@ -7,6 +7,7 @@ import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import { LAZY_RICH_FIELD_EXTENSIONS } from './lazyRichFieldExtensions';
 import { useReferenceData, type RefSnapshot } from '@/lib/referenceData';
 import { resolveReferenceJson } from '@/lib/resolveReferenceJson';
+import { glueBadgeSpacingInHtml } from '@/lib/renderRefBadges';
 import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
 import { collapseToSingleLineHtml } from '@/lib/richTextUpgrade';
 import { isHtmlBlank } from '@/lib/htmlBlank';
@@ -82,10 +83,12 @@ function renderStatic(
   try {
     const json = resolveReferenceJson(generateJSON(html, extensions), refData);
     const out = generateHTML(json, extensions);
-    return DOMPurify.sanitize(out, CROSS_REF_RICH_TEXT_CONFIG);
+    // The unfocused render carries no ProseMirror decorations, so the chip
+    // glue has to be baked into the markup here as well.
+    return DOMPurify.sanitize(glueBadgeSpacingInHtml(out), CROSS_REF_RICH_TEXT_CONFIG);
   } catch {
     // Never blank a field because of a parse failure.
-    return DOMPurify.sanitize(html, CROSS_REF_RICH_TEXT_CONFIG);
+    return DOMPurify.sanitize(glueBadgeSpacingInHtml(html), CROSS_REF_RICH_TEXT_CONFIG);
   }
 }
 
