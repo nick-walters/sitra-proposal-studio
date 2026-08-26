@@ -26,9 +26,13 @@ export const B11_PARTICIPANTS_TABLE_KEY = 'b11-participants';
 export const B11_PARTICIPANT_COLUMN_SHARES = [15, 40, 8, 20, 17];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+// House table style: no vertical rules, a 1.5px black rule under the header,
+// a 1px light rule between rows and none under the last one.
 const cellStyles =
-  "px-[2pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border border-black";
-const headerCellStyles = `${cellStyles} font-bold`;
+  "px-[3pt] py-[0.75pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-0 border-b border-b-[#e5e7eb] [tr:last-child>&]:border-b-0";
+const headerCellStyles =
+  "px-[3pt] py-[0.75pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-0 border-b-[1.5px] border-b-black font-bold";
+
 
 interface RoleBubble {
   label: string;
