@@ -58,6 +58,10 @@ import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types'
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { GuidelineBox } from '@/components/GuidelineBox';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { useColumnHeaders } from '@/hooks/useColumnHeaders';
+import { ColumnResizer } from '@/components/ColumnResizer';
+import { EditableColumnHeader } from '@/components/EditableColumnHeader';
 
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
