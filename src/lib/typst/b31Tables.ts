@@ -47,10 +47,12 @@ function monthLabel(m: number | null | undefined): string {
 }
 
 function wpChip(number: number, colour: string, label?: string, star = false): string {
-  // A leading ★ marks the milestone's primary WP, exactly as the editor's
-  // WPBubble does; the milestones caption explains the symbol.
-  const text = `${star ? '★' : ''}${label ?? `WP${number}`}`;
-  return `chip-pill(${typstString(text)}, rgb(${typstString(colour)}), filled: true)`;
+  const text = label ?? `WP${number}`;
+  // Nimbus Roman has no U+2605 glyph. The primary variant therefore draws a
+  // native vector star inside the pill while retaining selectable label text.
+  return star
+    ? `chip-pill-primary(${typstString(text)}, rgb(${typstString(colour)}))`
+    : `chip-pill(${typstString(text)}, rgb(${typstString(colour)}), filled: true)`;
 }
 
 function participantChip(p: TypstParticipant | undefined): string {
@@ -303,6 +305,12 @@ export const MILESTONES_CAPTION =
   'List of milestones (★ indicates the primary WP & position in the Gantt chart)';
 export const RISKS_CAPTION = 'Critical risks for implementation (i. likelihood; ii. severity)';
 
+/** Replace the unsupported U+2605 with the same native vector used in chips. */
+function captionWithVectorStar(text: string): string {
+  const parts = text.split('★');
+  return parts.map((part) => lit(part)).join(' + chip-star(black) + ');
+}
+
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
   // Same four columns as the editor: badge inline at the head of the
@@ -319,8 +327,9 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
     'WP(s)',
     'Due month',
   ]);
+  const milestoneCaption = data.captions.milestones || MILESTONES_CAPTION;
   return [
-    caption(data, 'milestones', 'Table 3.1.d.', MILESTONES_CAPTION),
+    `he-caption(${typstString('Table 3.1.d.')}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
       storedCols(data, 'b31-milestones-v2', 4, '(32fr, 34fr, 22fr, 12fr)'),
       headers.map((h) => lit(h)),
