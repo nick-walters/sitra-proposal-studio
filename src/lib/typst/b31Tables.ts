@@ -12,6 +12,7 @@
 import { formatCurrency } from '@/lib/formatNumber';
 import { getInstrumentAbbreviation, getInstrumentFullName, formatDurationShort } from '@/lib/fundingInstruments';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { captionLetter } from '@/lib/cards/captionSlots';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
 import { FIGURE_ASSET_PATH } from './typstFigures';
 import { emitPertChart } from './pertTypst';
@@ -481,6 +482,10 @@ export function emitMergedJustification(
 
 /* ─────────────────────── B1.2 — linked activities ───────────────────────── */
 
+/** Mirrors `DEFAULT_CAPTION` in `LinkedActivitiesTable.tsx`. */
+const LINKED_ACTIVITIES_CAPTION =
+  'How relevant research & innovation activities will be linked & whom will establish the link';
+
 export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.linkedActivities.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
@@ -524,7 +529,20 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
       ? `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`
       : '(37fr, 43fr, 20fr)';
 
-  const out = [
+  // The caption is code-side (the block board renders it from a default with a
+  // position-derived label), so `table_captions` usually holds NO row for this
+  // table. Emitting only on a stored override therefore dropped it entirely:
+  // fall back to the same default the editor shows, and take the letter from
+  // the running caption counter so editor and preview agree.
+  const numbering = ctx.captionNumbering;
+  const out: string[] = [];
+  if (numbering) {
+    const label = `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
+      numbering.tableIndex++,
+    )}.`;
+    out.push(caption(data, 'b12.linked_activities', label, LINKED_ACTIVITIES_CAPTION));
+  }
+  out.push(
     table(
       cols,
       headers.map((h) => lit(h)),
@@ -532,7 +550,7 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
       undefined,
       true,
     ),
-  ];
+  );
   if (legendEntries.length) {
     out.push(
       `block(width: he-table-width, above: 0pt, below: 6pt, text(size: 9pt, style: "italic", ${lit(
