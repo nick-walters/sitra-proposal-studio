@@ -213,6 +213,45 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   align(horizon, move(dy: chip-label-shift, chip-label(label, if filled { white } else { colour }))),
 )
 
+/// Five-point star drawn as geometry rather than text. Nimbus Roman does not
+/// contain U+2605, so a literal star is silently dropped by the PDF compiler.
+/// Keeping this as a vector also matches the Lucide filled-star icon used by
+/// the editor and avoids loading another font solely for one glyph.
+#let chip-star(colour: black, size: 7pt) = box(
+  baseline: 1.5pt,
+  width: size,
+  height: size,
+  polygon(
+    fill: colour,
+    stroke: none,
+    (50%, 0%), (61.2%, 34.5%), (97.6%, 34.5%), (68.2%, 55.9%),
+    (79.4%, 90.5%), (50%, 69.1%), (20.6%, 90.5%), (31.8%, 55.9%),
+    (2.4%, 34.5%), (38.8%, 34.5%),
+  ),
+)
+
+/// Filled WP pill with the primary-WP star inside the leading edge. The star
+/// is a vector while the WP label remains real, selectable text.
+#let chip-pill-primary(label, colour) = context {
+  let body = chip-label(label, white)
+  let m = measure(body)
+  let star-size = 7pt
+  let star-gap = 1.5pt
+  let w = m.width + 2 * chip-pad + star-size + star-gap
+  box(
+    baseline: 2.4pt,
+    width: w,
+    height: chip-height,
+    radius: 999pt,
+    fill: colour,
+    stroke: 1pt + colour,
+    {
+      place(horizon + left, dx: chip-pad, dy: 1.9pt, chip-star(white, size: star-size))
+      place(horizon + left, dx: chip-pad + star-size + star-gap, dy: chip-label-shift, body)
+    },
+  )
+}
+
 /// Shared polygon chip: \`kind\` is "pentagon" (deliverable) or "chevron"
 /// (milestone). The box reserves only the label's own height, and the shape is
 /// PLACED over it, so — like the pill — it leaves the leading untouched.
