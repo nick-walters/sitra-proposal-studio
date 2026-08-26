@@ -177,6 +177,12 @@ ${s}${t} td {
   background: #fff;
   color: #000;
 }
+${s}${t} tr > :first-child {
+  padding-left: 0;
+}
+${s}${t} tr > :last-child {
+  padding-right: 0;
+}
 ${s}${t} tr:last-child > td,
 ${s}${t} tr:last-child > th {
   border-bottom: none;
