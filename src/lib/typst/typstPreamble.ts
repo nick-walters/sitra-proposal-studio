@@ -106,8 +106,14 @@ function segmentsSource(meta: TypstDocMeta): string {
 /**
  * The running footer: acronym CHIP | section label | Page X of Y.
  *
- * The document is compiled one section at a time, so the section label is the
- * same on every page and needs no per-page lookup.
+ * A SINGLE-SECTION document has the same label on every page, so the default
+ * below is all it needs. The FULL Part B document is one compile of six
+ * sections, so each section drops a `<part-marker>` metadata tag at its start
+ * and the footer resolves the label from the last marker at or before the
+ * current page (`part-label-for`). A `state` update would not do: header and
+ * footer contexts resolve at the START of the page, before the update on that
+ * page has been seen, so the first page of every section would carry the
+ * previous section's label.
  */
 function footerSource(meta: TypstDocMeta): string {
   const acronym = (meta.acronym || '').trim();
@@ -119,7 +125,8 @@ function footerSource(meta: TypstDocMeta): string {
   const terms: string[] = [];
   if (segments !== '()') terms.push(`chip-acronym(${segments})`, 't(" | ")');
   else if (acronym) terms.push(`t(${typstString(acronym)})`, 't(" | ")');
-  if (part) terms.push(`t(${typstString(part)})`, 't(" | ")');
+  if (part) terms.push('t(part-label-for(here()))', 't(" | ")');
+
   terms.push(
     't("Page ")',
     'str(counter(page).at(here()).first())',
