@@ -23,6 +23,8 @@ import { Tip } from '@/components/ui/control-tip';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { EditableColumnHeader } from '@/components/EditableColumnHeader';
+import { useColumnHeaders } from '@/hooks/useColumnHeaders';
 
 
 import { Input } from '@/components/ui/input';
@@ -96,7 +98,14 @@ const BLOCK_WIDTH = 768;
 
 const DEFAULT_COL_PCT = ['37%', '43%', '20%'];
 
+/** Template defaults; a user's retyped wording overrides these per proposal. */
+const DEFAULT_HEADERS = ['Project', 'How the project will be linked', 'By whom'];
+
+const DEFAULT_CAPTION =
+  'How relevant research & innovation activities will be linked & whom will establish the link';
+
 const NONE = '__none__';
+
 
 interface RowProps {
   activity: LinkedActivity;
@@ -249,7 +258,9 @@ function SortableActivityRow({
         </td>
 
 
-        {/* How the project will be linked — a normal cell on the same row. */}
+        {/* How the project will be linked — a normal cell on the same row.
+            No min-height: the field hugs its own text so the cell's
+            vertical-align: middle centres placeholder and content alike. */}
         <td className={`${cellStyles} break-words`}>
           <MethodologyRichEditor
             proposalId={proposalId}
@@ -257,11 +268,12 @@ function SortableActivityRow({
             onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
             canEdit={canEdit}
             isCoordinator={isCoordinator}
-            minHeight="1.5rem"
+            minHeight="0"
             placeholder="How the project will be linked"
             cellSurface
           />
         </td>
+
 
         {/* Participant is the final content column; the trailing cell contains
             only the row action, as in other authored tables. */}
@@ -297,17 +309,19 @@ function SortableActivityRow({
           </div>
         </td>
 
-
-          {/* Row actions live in the right margin, not in a document column. */}
+        {/* Row actions live in their own narrow column so they are always
+            visible; a bare <div> child of <tr> is not laid out as a cell and
+            could only be positioned against the drag transform. */}
+        <td data-noresize="" className={`${cellStyles} !px-0 w-[28px] text-right`}>
           {canEdit && (
-            <div className="absolute left-full top-1/2 ml-1 -translate-y-1/2">
             <DeleteConfirmDialog
               itemLabel="this linked activity"
               tooltip="Delete this linked activity"
               onConfirm={() => onDelete(activity.id)}
             />
-            </div>
           )}
+        </td>
+
 
           <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
             <DialogContent className="max-w-xl">
@@ -400,6 +414,11 @@ export default function LinkedActivitiesTable({
     expectedColumnCount: DEFAULT_COL_PCT.length,
   });
   const sized = colWidths.length === DEFAULT_COL_PCT.length;
+  const { headers, setHeader } = useColumnHeaders(
+    proposalId,
+    'b12-linked-activities',
+    DEFAULT_HEADERS,
+  );
   const instrumentLegend = Array.from(
     new Map(
       activities
@@ -444,7 +463,7 @@ export default function LinkedActivitiesTable({
           proposalId={proposalId}
           tableKey="b12.linked_activities"
           label={captionLabel}
-          defaultCaption="Linked research & innovation activities"
+          defaultCaption={DEFAULT_CAPTION}
           canEdit={canEdit}
         />
       )}
@@ -471,24 +490,29 @@ export default function LinkedActivitiesTable({
                 {DEFAULT_COL_PCT.map((pct, i) => (
                   <col key={i} style={{ width: sized ? `${colWidths[i]}px` : pct }} />
                 ))}
+                {/* Editor-only action column; never part of the document table. */}
+                <col style={{ width: '28px' }} />
               </colgroup>
               <thead>
                 <tr>
-                  {['Project', 'How the project will be linked', 'Participant responsible'].map(
-                    (h, i) => (
-                      <th
-                        key={i}
-                        className={`${
-                          i === 0 ? firstCellStyles : cellStyles
-                        } relative align-bottom font-bold`}
-                      >
-                        {h}
-                        {canResize && i < DEFAULT_COL_PCT.length - 1 && (
-                          <ColumnResizer onMouseDown={handleColResizeStart(i)} />
-                        )}
-                      </th>
-                    ),
-                  )}
+                  {headers.map((h, i) => (
+                    <th
+                      key={i}
+                      className={`${
+                        i === 0 ? firstCellStyles : cellStyles
+                      } relative align-bottom font-bold`}
+                    >
+                      <EditableColumnHeader
+                        value={h}
+                        canEdit={canEdit}
+                        onCommit={(next) => setHeader(i, next)}
+                      />
+                      {canResize && i < DEFAULT_COL_PCT.length - 1 && (
+                        <ColumnResizer onMouseDown={handleColResizeStart(i)} />
+                      )}
+                    </th>
+                  ))}
+                  <th data-noresize="" className={`${cellStyles} !px-0 !border-0`} />
                 </tr>
               </thead>
               <tbody>
@@ -510,7 +534,7 @@ export default function LinkedActivitiesTable({
               {instrumentLegend.length > 0 && (
                 <tfoot>
                   <tr>
-                    <td colSpan={DEFAULT_COL_PCT.length} className="!border-0 !px-0 !pt-[2pt] !pb-0 align-top text-[8pt] leading-tight">
+                    <td colSpan={DEFAULT_COL_PCT.length + 1} className="!border-0 !px-0 !pt-[2pt] !pb-0 align-top text-[8pt] leading-tight">
                       {instrumentLegend.map(([abbreviation, fullName], index) => (
                         <span key={abbreviation}>
                           {index > 0 ? '; ' : ''}
@@ -521,6 +545,7 @@ export default function LinkedActivitiesTable({
                   </tr>
                 </tfoot>
               )}
+
 
             </table>
           </SortableContext>

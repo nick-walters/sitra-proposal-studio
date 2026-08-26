@@ -148,6 +148,10 @@ export interface B31TypstData {
   pertChart: PertChartData | null;
   /** `table_captions.table_key` → caption text (user overrides only). */
   captions: Record<string, string>;
+  /** `table_column_widths.table_key` → stored pixel widths. */
+  columnWidths: Record<string, number[]>;
+  /** `table_column_headers.table_key` → { columnIndex: header } overrides. */
+  columnHeaders: Record<string, Record<string, string>>;
 }
 
 const COST_CATEGORIES = [
@@ -183,7 +187,10 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     { data: figureRows },
     { data: proposalRow },
     { data: captionRows },
+    { data: widthRows },
+    { data: headerRows },
     { data: activityRows },
+
   ] = await Promise.all([
     supabase
       .from('participants')
@@ -222,6 +229,14 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .eq('id', proposalId)
       .maybeSingle(),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
+    supabase
+      .from('table_column_widths')
+      .select('table_key, column_widths')
+      .eq('proposal_id', proposalId),
+    (supabase as any)
+      .from('table_column_headers')
+      .select('table_key, headers')
+      .eq('proposal_id', proposalId),
     supabase
       .from('methodology_linked_activities')
       .select(
@@ -430,6 +445,23 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     if (row.caption) captions[row.table_key] = row.caption;
   }
 
+  const columnWidths: Record<string, number[]> = {};
+  for (const row of ((widthRows as any[]) || [])) {
+    const list = Array.isArray(row.column_widths)
+      ? (row.column_widths as unknown[]).filter(
+          (w): w is number => typeof w === 'number' && Number.isFinite(w) && w > 0,
+        )
+      : [];
+    if (list.length) columnWidths[row.table_key] = list;
+  }
+
+  const columnHeaders: Record<string, Record<string, string>> = {};
+  for (const row of ((headerRows as any[]) || [])) {
+    if (row.headers && typeof row.headers === 'object' && !Array.isArray(row.headers)) {
+      columnHeaders[row.table_key] = row.headers as Record<string, string>;
+    }
+  }
+
   const deliverables = wps.flatMap((w) => w.deliverables);
 
   return {
@@ -442,6 +474,8 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     purchaseBlocks,
     otherBlocks,
     linkedActivities: ((activityRows as any[]) || []) as TypstLinkedActivity[],
+    columnWidths,
+    columnHeaders,
     pertFigure: pertFigureRow,
     pertChart,
     ganttFigure: figures.find((f) => f.figure_type === 'gantt') || null,

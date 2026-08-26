@@ -174,7 +174,7 @@ export function MethodologyRichEditor({
               canEdit ? 'cursor-text' : 'cursor-default select-text'
             } ${isActive && canEdit ? 'is-active' : ''}`
           : cellSurface
-            ? `relative overflow-visible bg-transparent p-0 [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+            ? `relative overflow-visible bg-transparent p-0 [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.ProseMirror]:leading-tight [&_.ProseMirror>p]:!m-0 [&_.document-content]:!min-h-0 ${
                 canEdit ? 'cursor-text' : 'cursor-default select-text'
               }`
             : `relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${

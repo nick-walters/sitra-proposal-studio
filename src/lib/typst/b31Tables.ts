@@ -510,14 +510,24 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([abbrev, full]) => `${abbrev} = ${full}`);
 
+  // The preview follows the editor: stored drag widths become fr ratios, and
+  // any header the user retyped replaces the template default.
+  const DEFAULT_HEADERS = ['Project', 'How the project will be linked', 'By whom'];
+  const stored = data.columnHeaders['b12-linked-activities'] || {};
+  const headers = DEFAULT_HEADERS.map((fallback, index) => {
+    const value = stored[String(index)];
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  });
+  const widths = data.columnWidths['b12-linked-activities'];
+  const cols =
+    widths && widths.length === 3
+      ? `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`
+      : '(37fr, 43fr, 20fr)';
+
   const out = [
     table(
-      '(37fr, 43fr, 20fr)',
-      [
-        lit('Project'),
-        lit('How the project will be linked'),
-        lit('Participant responsible for establishing the link'),
-      ],
+      cols,
+      headers.map((h) => lit(h)),
       rows,
       undefined,
       true,

@@ -5,6 +5,7 @@ import { sanitizeEditorHtml } from '@/lib/editorContentSanitizer';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { useColumnResize } from '@/hooks/useColumnResize';
+import { useColumnHeaders } from '@/hooks/useColumnHeaders';
 import {
   FUNDING_INSTRUMENTS,
   getInstrumentAbbreviation,
@@ -130,6 +131,11 @@ export function B12LinkedActivitiesSlotContent({
     tableKey: 'b12-linked-activities',
     expectedColumnCount: 3,
   });
+  const { headers } = useColumnHeaders(proposalId, 'b12-linked-activities', [
+    'Project',
+    'How the project will be linked',
+    'By whom',
+  ]);
 
   if (activities.length === 0) return <>{emptyFallback}</>;
 
@@ -159,13 +165,11 @@ export function B12LinkedActivitiesSlotContent({
         </colgroup>
         <thead>
           <tr>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">Project</th>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">
-              How the project will be linked
-            </th>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">
-              Participant responsible for establishing the link
-            </th>
+            {headers.map((header, index) => (
+              <th key={index} className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">
+                {header}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>

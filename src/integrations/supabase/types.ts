@@ -5873,6 +5873,41 @@ export type Database = {
           },
         ]
       }
+      table_column_headers: {
+        Row: {
+          headers: Json
+          id: string
+          proposal_id: string
+          table_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          headers?: Json
+          id?: string
+          proposal_id: string
+          table_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          headers?: Json
+          id?: string
+          proposal_id?: string
+          table_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_column_headers_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_column_widths: {
         Row: {
           column_widths: Json
