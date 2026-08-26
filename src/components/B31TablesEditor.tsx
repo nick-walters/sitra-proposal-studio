@@ -681,7 +681,7 @@ function B31MilestonesTableInner({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.d"
         label="Table 3.1.d."
-        defaultCaption="List of milestones"
+        defaultCaption="List of milestones (★ indicates the primary WP & position in the Gantt chart)"
         className="mb-0"
       />
       <MirrorTable
@@ -786,7 +786,7 @@ function B31RisksTableInner({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.e"
         label="Table 3.1.e."
-        defaultCaption="Staff effort in person months"
+        defaultCaption="Critical risks for implementation"
         className="mb-0"
         suffixSpacing={false}
         suffix={

@@ -26,6 +26,15 @@ import type {
 
 const lit = (s: string) => `t(${typstString(s)})`;
 const EMPTY = lit('—');
+/**
+ * The gap after a chip is a NON-BREAKING space, so it can never be pushed to
+ * the head of the next line (which showed as a stray indent). Every emitter
+ * that used to join a chip to what follows with a plain `t(" ")` uses this.
+ */
+const NBSP = '\u00a0';
+const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
+/** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
+const CHIP_SEP = ` + t(" ") + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
@@ -153,7 +162,7 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
-      participantChip(byId.get(wp.lead_participant_id || '')) + ` + t(" ") + ` + bold(lit(wpDuration(wp))),
+      participantChip(byId.get(wp.lead_participant_id || '')) + CHIP_GAP + bold(lit(wpDuration(wp))),
     ]);
     rows.push([sep]);
     if (htmlToPlainText(wp.objectives || '').trim()) {
@@ -169,16 +178,16 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         .filter((c) => c !== EMPTY);
       const months =
         task.start_month != null || task.end_month != null
-          ? ` + t(" ") + ` +
+          ? CHIP_GAP +
             bold(lit(`${monthLabel(task.start_month)}–${monthLabel(task.end_month)}`))
           : '';
       const head =
         taskChip(wp.number, task.number, wp.color) +
-        ` + t(" ") + ` +
+        CHIP_GAP +
         bold(lit(task.title || '')) +
         ` + linebreak() + ` +
         participantChip(byId.get(task.lead_participant_id || '')) +
-        (partners.length ? ` + t(" ") + ` + partners.join(' + t(" ") + ') : '') +
+        (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
         months;
       rows.push([sep]);
       rows.push([head]);
@@ -242,32 +251,64 @@ function wpChipList(numbers: number[], colours: string[], allCount: number): str
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(CHIP_SEP);
   // A narrow WP column wraps the chips over several lines; the default 0pt
   // leading would let their outsets touch, so this paragraph opens the pitch.
   return `par(leading: 4pt, spacing: 0pt, ${chips})`;
 }
 
 
+/**
+ * Column widths and headers are taken from the EDITOR's own stored state
+ * (`table_column_widths` / `table_column_headers`), so a preview reproduces
+ * the table the author sees rather than a second, hardcoded layout. Stored
+ * pixel widths become `fr` ratios, which Typst then fits to the 18 cm column.
+ */
+function storedCols(data: B31TypstData, key: string, count: number, fallback: string): string {
+  const widths = data.columnWidths[key];
+  if (widths && widths.length === count && widths.every((w) => w > 0)) {
+    return `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`;
+  }
+  return fallback;
+}
+
+function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
+  const stored = data.columnHeaders[key] || {};
+  return defaults.map((fallback, index) => {
+    const value = stored[String(index)];
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  });
+}
+
+/** Mirrors the editor's caption, which is template-owned and uneditable. */
+export const MILESTONES_CAPTION =
+  'List of milestones (★ indicates the primary WP & position in the Gantt chart)';
+export const RISKS_CAPTION = 'Critical risks for implementation (i. likelihood; ii. severity)';
+
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
+  // Same four columns as the editor: badge inline at the head of the
+  // milestone column, then verification, WP(s) and due month.
   const rows = data.milestones.map((m) => [
-    milestoneChip(m.number),
-    rich(m.title, ctx),
+    milestoneChip(m.number) + CHIP_GAP + rich(m.title, ctx),
+    rich(m.means_of_verification, ctx),
     wpChipList(m.wpNumbers, m.wpColors, data.wps.length),
     lit(monthLabel(m.due_month)),
-    rich(m.means_of_verification, ctx),
+  ]);
+  const headers = storedHeaders(data, 'b31-milestones', [
+    'Milestone',
+    'Means of verification',
+    'WP(s)',
+    'Due month',
   ]);
   return [
-    caption(data, 'milestones', 'Table 3.1.d.', 'List of milestones'),
-    // Baseline shares were 2 / 1 / 2 (milestone / WPs / verification). The
-    // milestone title gives up a further 5 %, the WP column is narrowed to
-    // roughly one chip wide, and all of the freed width goes to the means of
-    // verification.
+    caption(data, 'milestones', 'Table 3.1.d.', MILESTONES_CAPTION),
     table(
-      '(auto, 1.33fr, 0.5fr, auto, 3.17fr)',
-      [lit('No.'), lit('Milestone'), lit('WP(s)'), lit('Due'), lit('Means of verification')],
+      storedCols(data, 'b31-milestones-v2', 4, '(32fr, 34fr, 22fr, 12fr)'),
+      headers.map((h) => lit(h)),
       rows,
+      undefined,
+      true,
     ),
   ];
 
@@ -285,18 +326,25 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
     wpChipList(r.wpNumbers, r.wpColors, data.wps.length),
     rich(r.mitigation, ctx),
   ]);
+  const headers = storedHeaders(data, 'b31-risks', [
+    'Risk description',
+    'i.',
+    'ii.',
+    'WP(s)',
+    'Mitigation & adaptation measures',
+  ]);
   return [
-    caption(data, 'risks', 'Table 3.1.e.', 'Critical risks for implementation'),
-    // Baseline shares were 2 / 1 / 2 (risk / WPs / mitigation). The WP column
-    // gives up 50 % and the risk description 20 %; the mitigation column takes
-    // all of the freed width.
+    caption(data, 'risks', 'Table 3.1.e.', RISKS_CAPTION),
     table(
-      '(1.6fr, auto, auto, 0.5fr, 2.9fr)',
-      [lit('Risk'), lit('i.'), lit('ii.'), lit('WP(s)'), lit('Mitigation & adaptation measures')],
+      storedCols(data, 'b31-risks', 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
+      headers.map((h) => lit(h)),
       rows,
+      undefined,
+      true,
     ),
   ];
 }
+
 
 /* ───────────────────── Table 3.1.f — effort matrix ──────────────────────── */
 
