@@ -20,6 +20,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowUpDown,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
