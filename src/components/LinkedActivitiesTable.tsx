@@ -44,7 +44,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
-import { FUNDING_INSTRUMENTS, getInstrumentAbbreviation } from '@/lib/fundingInstruments';
+import {
+  FUNDING_INSTRUMENTS,
+  getInstrumentAbbreviation,
+  getInstrumentFullName,
+} from '@/lib/fundingInstruments';
 import { YearRangePicker, formatYearRange } from '@/components/YearRangePicker';
 import { useLinkedActivities, type LinkedActivity } from '@/hooks/useLinkedActivities';
 import { LazyRichField } from '@/components/participant/LazyRichField';
@@ -87,13 +91,13 @@ const firstCellStyles = `${cellStyles} !pl-0`;
  * Controls embedded in cells read as document text until hovered or focused:
  * transparent border and background, revealing the affordance on interaction.
  */
-const SUBTLE_CONTROL =
-  "[&_button]:border-transparent [&_button]:bg-transparent [&_button]:shadow-none [&_input]:border-transparent [&_input]:bg-transparent [&_input]:shadow-none hover:[&_button]:border-input hover:[&_input]:border-input focus-within:[&_button]:border-input focus-within:[&_input]:border-input";
+const CELL_CONTROL =
+  "[&_button]:rounded-none [&_button]:border-0 [&_button]:bg-transparent [&_button]:p-0 [&_button]:shadow-none [&_button]:ring-0 [&_input]:rounded-none [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:shadow-none [&_input]:ring-0";
 
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '14%', '42%', '4%'];
+const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '42%', '14%', '4%'];
 
 const NONE = '__none__';
 
@@ -163,6 +167,7 @@ function SortableActivityRow({
               placeholder="Acronym"
               minHeight="24px"
               className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
+              cellSurface
               staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
               onChange={(html) => onUpdate(activity.id, { acronym: html })}
             />
@@ -177,7 +182,7 @@ function SortableActivityRow({
         {/* Instrument */}
         <td className={`${cellStyles} break-words`}>
           {canEdit ? (
-            <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${SUBTLE_CONTROL}`}>
+            <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${CELL_CONTROL}`}>
               <Select
                 value={activity.instrumentCode ?? NONE}
                 onValueChange={(v) =>
@@ -188,7 +193,7 @@ function SortableActivityRow({
                 }
               >
                 <SelectTrigger
-                  className="h-7 min-w-0 flex-1 justify-between px-1 text-left font-['Times_New_Roman',Times,serif] text-[11pt] [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left"
+                  className="h-auto min-w-0 flex-1 justify-between text-left font-['Times_New_Roman',Times,serif] text-[11pt] [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left"
                   aria-label="Funding instrument"
                 >
                   <SelectValue placeholder="Select" />
@@ -207,7 +212,7 @@ function SortableActivityRow({
                   value={activity.instrumentCustom ?? ''}
                   onChange={(e) => onUpdate(activity.id, { instrumentCustom: e.target.value })}
                   placeholder="Name"
-                  className="h-7 w-24 px-1 font-['Times_New_Roman',Times,serif] text-[11pt]"
+                  className="h-auto w-24 font-['Times_New_Roman',Times,serif] text-[11pt]"
                   aria-label="Custom funding instrument"
                 />
               )}
@@ -222,14 +227,14 @@ function SortableActivityRow({
         {/* Duration */}
         <td className={`${cellStyles} break-words`}>
           {canEdit ? (
-            <div data-scalar-field="" className={`min-w-0 ${SUBTLE_CONTROL}`}>
+            <div data-scalar-field="" className={`min-w-0 ${CELL_CONTROL}`}>
               <YearRangePicker
                 startYear={activity.durationStart}
                 endYear={activity.durationEnd}
                 onChange={(start, end) =>
                   onUpdate(activity.id, { durationStart: start, durationEnd: end })
                 }
-                className="h-7 w-full justify-start px-1 font-['Times_New_Roman',Times,serif] text-[11pt]"
+                className="h-auto w-full justify-start font-['Times_New_Roman',Times,serif] text-[11pt]"
               />
             </div>
           ) : (
@@ -237,9 +242,22 @@ function SortableActivityRow({
           )}
         </td>
 
-        {/* Responsible participant */}
-        {/* tabIndex makes the chip itself focusable on click, so the features
-            tier opens for this scalar field like it does for the others. */}
+        {/* How the project will be linked — a normal cell on the same row. */}
+        <td className={`${cellStyles} !align-top break-words`}>
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={activity.linkDescriptionHtml ?? ''}
+            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            minHeight="1.5rem"
+            placeholder="How the project will be linked"
+            cellSurface
+          />
+        </td>
+
+        {/* Participant is the final content column; the trailing cell contains
+            only the row action, as in other authored tables. */}
         <td className={cellStyles}>
           <div data-scalar-field="" tabIndex={-1} className="flex min-w-0 items-center gap-1 outline-none">
             {selected ? (
@@ -261,8 +279,7 @@ function SortableActivityRow({
             ) : canEdit ? (
               <button
                 type="button"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold transition-all hover:ring-2 hover:ring-primary/30"
-                style={{ border: '1px dashed hsl(var(--muted-foreground))' }}
+                className="inline-flex items-center justify-center whitespace-nowrap text-xs font-bold"
                 onClick={() => setAssignOpen(true)}
               >
                 + Assign
@@ -271,19 +288,6 @@ function SortableActivityRow({
               <span className="text-muted-foreground">—</span>
             )}
           </div>
-        </td>
-
-        {/* How the project will be linked — a normal cell on the same row. */}
-        <td className={`${cellStyles} !align-top break-words`}>
-          <MethodologyRichEditor
-            proposalId={proposalId}
-            value={activity.linkDescriptionHtml ?? ''}
-            onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-            minHeight="1.5rem"
-            placeholder="How the project will be linked"
-          />
         </td>
 
 
@@ -389,6 +393,19 @@ export default function LinkedActivitiesTable({
     maxTotalWidth: BLOCK_WIDTH,
   });
   const sized = colWidths.length === DEFAULT_COL_PCT.length;
+  const instrumentLegend = Array.from(
+    new Map(
+      activities
+        .map((activity) => {
+          const abbreviation = getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom);
+          const fullName = getInstrumentFullName(activity.instrumentCode, activity.instrumentCustom);
+          return abbreviation && fullName && abbreviation !== fullName
+            ? [abbreviation, fullName] as const
+            : null;
+        })
+        .filter((entry): entry is readonly [string, string] => entry !== null),
+    ).entries(),
+  );
 
 
   const ordered = (() => {
@@ -450,7 +467,7 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'Participant responsible', 'How the project will be linked', ''].map(
+                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'How the project will be linked', 'Participant responsible', ''].map(
                     (h, i) => (
                       <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative align-bottom font-bold`}>
                         {h}
@@ -478,6 +495,20 @@ export default function LinkedActivitiesTable({
                   />
                 ))}
               </tbody>
+              {instrumentLegend.length > 0 && (
+                <tfoot>
+                  <tr>
+                    <td colSpan={DEFAULT_COL_PCT.length} className="!border-0 !px-0 !pt-[2pt] !pb-0 align-top text-[8pt] leading-tight">
+                      {instrumentLegend.map(([abbreviation, fullName], index) => (
+                        <span key={abbreviation}>
+                          {index > 0 ? '; ' : ''}
+                          <strong>{abbreviation}</strong> = {fullName}
+                        </span>
+                      ))}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
 
             </table>
           </SortableContext>

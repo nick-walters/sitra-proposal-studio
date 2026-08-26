@@ -49,6 +49,8 @@ interface MethodologyRichEditorProps {
    * one logical table — rows may only be added or removed across both parts.
    */
   pairedTables?: boolean;
+  /** Render as bare document text inside an existing table cell. */
+  cellSurface?: boolean;
 }
 
 
@@ -71,6 +73,7 @@ export function MethodologyRichEditor({
   documentSurface = false,
   placeholderHideOnFocus = false,
   pairedTables = false,
+  cellSurface = false,
 }: MethodologyRichEditorProps) {
   // Stable, unique per mounted instance — several editors live on one page.
   const instanceKey = useId();
@@ -170,7 +173,11 @@ export function MethodologyRichEditor({
           ? `doc-surface-field relative overflow-visible transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
               canEdit ? 'cursor-text' : 'cursor-default select-text'
             } ${isActive && canEdit ? 'is-active' : ''}`
-          : `relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+          : cellSurface
+            ? `relative overflow-visible bg-transparent p-0 [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
+                canEdit ? 'cursor-text' : 'cursor-default select-text'
+              }`
+            : `relative overflow-visible rounded-md border bg-background px-2.5 py-1.5 transition-colors [&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:overflow-visible [&_.document-content]:!min-h-0 ${
               canEdit ? 'cursor-text' : 'cursor-default select-text'
             } ${isActive && canEdit ? activeRingClass : 'border-border'}`
       }
