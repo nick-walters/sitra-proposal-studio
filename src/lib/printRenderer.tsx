@@ -18,7 +18,6 @@ import { extractFilePathFromUrl } from '@/lib/proposalStorage';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
 import { cellAlignCss } from '@/lib/tableStyleSpec';
-import { stripBakedOverviewCanvasText } from '@/lib/exportOverviewCanvasScrub';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
 import {
   citationHtml,
@@ -1272,14 +1271,6 @@ export async function prepareExportContainer(
   container.style.background = '#fff';
   container.style.overflow = 'visible';
   document.body.appendChild(container);
-
-  // Drop the legacy baked text copy of the B1.1 overview canvas that sits
-  // immediately before the canvas slot (export-only; nothing is written back).
-  try {
-    await stripBakedOverviewCanvasText(container, options.proposal.id);
-  } catch (e) {
-    console.error('Overview canvas text scrub failed', e);
-  }
 
   // Mount B3.1 tables, B3.2 expertise matrix, and B1.2 cases-table placeholders
   await mountDynamicComponents(container, options.proposal.id, options.proposal.acronym, appQueryClient);
