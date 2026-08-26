@@ -171,16 +171,29 @@ const SUBTLE_CONTROL =
   'hover:border-input focus:border-input focus:outline-none focus-visible:outline-none ' +
   'disabled:opacity-70 disabled:cursor-not-allowed';
 
-
+/**
+ * Saved column widths were measured when these tables still carried an
+ * editor-only column, so their total falls short of the 18 cm text column and
+ * the table renders narrow. Widths narrower than the column are scaled back up
+ * proportionally; a table deliberately dragged WIDER than 18 cm is left alone.
+ */
+function fitToTextColumn(widths: number[]): number[] {
+  if (widths.length === 0) return widths;
+  const total = widths.reduce((s, w) => s + w, 0);
+  if (!Number.isFinite(total) || total <= 0 || total >= DOC_BLOCK_WIDTH - 1) return widths;
+  const factor = DOC_BLOCK_WIDTH / total;
+  return widths.map((w) => w * factor);
+}
 
 
 // ── Hexagon MS badge (matches B31TablesEditor.MilestoneBadge) ──
+// Height matches the deliverable pentagon (17 px) so the two badges sit level.
 function MilestoneBadge({ number }: { number: number | null | undefined }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
-      fontSize: '11pt', fontWeight: 700, lineHeight: '18px', height: '18px', padding: '0 6px',
+      fontSize: '11pt', fontWeight: 700, lineHeight: '17px', height: '17px', padding: '0 6px',
       clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
       minWidth: 38,
     }}>
