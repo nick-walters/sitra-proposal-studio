@@ -1920,3 +1920,10 @@ body.table-col-resizing * {
   hyphens: none;
   -webkit-hyphens: none;
 }
+
+/* Relational blocks (milestones, risks) on the page surface. The 18 cm text
+   column still governs the default layout, but a table the author has widened
+   past it must not be clipped — see the unbounded last-column resize. */
+.doc-surface-block > * {
+  max-width: none;
+}
