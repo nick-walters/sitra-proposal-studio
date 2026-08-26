@@ -116,13 +116,13 @@ export function CardFigureBlock({
         <div className="flex items-center justify-end">
           <Tip label="Open this figure's layout controls">
             <Button
-              size="sm"
+              size="icon"
               variant="ghost"
-              className="h-7 gap-1 px-2 text-xs"
+              className="h-7 w-7"
+              aria-label="Open this figure's layout controls"
               onClick={() => setControlsOpen(true)}
             >
               <Settings2 className="h-3.5 w-3.5" />
-              Figure controls
             </Button>
           </Tip>
         </div>
