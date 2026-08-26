@@ -1953,10 +1953,10 @@ body.table-col-resizing * {
 }
 
 
-/* --- Empty table/figure captions: grey prompt beside the label widget. --- */
-.ProseMirror p.caption-empty::after {
-  content: attr(data-caption-placeholder);
+/* --- Empty table/figure captions: grey prompt inside the label widget. --- */
+.ProseMirror .caption-placeholder {
   color: hsl(var(--muted-foreground));
   font-style: italic;
   pointer-events: none;
+  display: inline;
 }
