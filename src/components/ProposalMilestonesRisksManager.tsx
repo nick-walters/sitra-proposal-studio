@@ -654,7 +654,11 @@ export function MilestonesEditor({
     MS_HEADERS,
   );
 
-
+  // The block header owns the "Add" button, so the add action is handed up.
+  useEffect(() => {
+    onRegisterAdd?.(() => addMilestone.mutate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterAdd, proposalId]);
 
 
   return (
