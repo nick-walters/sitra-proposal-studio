@@ -243,7 +243,7 @@ export function EditorTopBar({
 
       {onAddBlock && (
         <FeatureButton
-          icon={<Plus className="h-3.5 w-3.5" />}
+          icon={<Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />}
           primary="Add"
           secondary="block"
           secondarySmall
