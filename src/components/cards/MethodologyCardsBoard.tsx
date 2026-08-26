@@ -1456,42 +1456,55 @@ function CardBlock({
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isMilestonesCard ? (
-            <MilestonesEditor proposalId={proposalId} canEdit={canEdit} />
+            <DocPageFrame>
+              <MilestonesEditor proposalId={proposalId} canEdit={canEdit} />
+            </DocPageFrame>
           ) : isRisksCard ? (
-            <RisksEditor proposalId={proposalId} canEdit={canEdit} />
+            <DocPageFrame>
+              <RisksEditor proposalId={proposalId} canEdit={canEdit} />
+            </DocPageFrame>
           ) : isLinkedActivitiesCard ? (
-            <LinkedActivitiesTable
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              controller={linkedActivities}
-              captionLabel={captionLabel}
-            />
+            <DocPageFrame>
+              <LinkedActivitiesTable
+                proposalId={proposalId}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+                controller={linkedActivities}
+                captionLabel={captionLabel}
+              />
+            </DocPageFrame>
           ) : isPlaceholderCard ? (
-            <SourceFedBlock
-              proposalId={proposalId}
-              sourceKey={card.sourceKey}
-              kind={card.kind}
-            />
+            <DocPageFrame>
+              <SourceFedBlock
+                proposalId={proposalId}
+                sourceKey={card.sourceKey}
+                kind={card.kind}
+              />
+            </DocPageFrame>
           ) : card.kind === 'figure' ? (
-            <CardFigureBlock
-              cardId={card.id}
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              fullWidthOnly={figuresFullWidth}
-              captionLabel={captionLabel ?? 'Figure.'}
-            />
+            <DocPageFrame>
+              <CardFigureBlock
+                cardId={card.id}
+                proposalId={proposalId}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+                fullWidthOnly={figuresFullWidth}
+                captionLabel={captionLabel ?? 'Figure.'}
+              />
+            </DocPageFrame>
           ) : (
             <>
               {/* B3.2 blocks are authored, but also mirror their A2 sources. */}
               {b32BlockHasMirrors(card.templateKey) && (
-                <B32BlockMirrors
-                  proposalId={proposalId}
-                  templateKey={card.templateKey}
-                  fields={orderedFields}
-                />
+                <DocPageFrame>
+                  <B32BlockMirrors
+                    proposalId={proposalId}
+                    templateKey={card.templateKey}
+                    fields={orderedFields}
+                  />
+                </DocPageFrame>
               )}
+
 
               <DndContext
                 sensors={fieldSensors}
