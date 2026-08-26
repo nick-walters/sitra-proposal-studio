@@ -348,6 +348,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     ..rows.flatten(),
   ),
 )
+}
 
 /// Same look as \`he-table\`, but takes an ALREADY FLATTENED cell list so a
 /// cell can span rows (\`table.cell(rowspan: n, …)\`). \`nrows\` is the grid row
@@ -380,6 +381,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     ..cells,
   ),
 )
+}
 
 /// Authored TipTap tables use the same Horizon Europe rules without changing
 /// the specialised B3.1 table geometry: 3pt horizontal / 0.75pt vertical
@@ -413,6 +415,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     ..cells,
   ),
 )
+}
 
 /// A rule-free grid whose cells carry their own fills — the staff-effort
 /// matrix, which on screen is a block of coloured cells separated by a 5pt
@@ -435,6 +438,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     ..cells,
   ),
 )
+}
 
 /// One coloured cell of the staff-effort matrix. \`pos\` rounds the outer
 /// corners of the band: "top" for the header row, "bottom" for the totals row.
