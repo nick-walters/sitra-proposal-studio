@@ -229,6 +229,13 @@ export interface BuildTypstOptions {
   frontMatter?: TypstFrontMatter | null;
   /** B1.2 cases ("pilots") rows, for the `casesTable` atom nodes. */
   casesData?: CasesTypstData | null;
+  /**
+   * Authored figure blocks: their resolved bitmaps (already in the compiler's
+   * virtual filesystem) plus their per-block layout settings, keyed by card id.
+   */
+  authoredFigures?: Map<string, AuthoredFigureBlock> | null;
+
+
 
 }
 
