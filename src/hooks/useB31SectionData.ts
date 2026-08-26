@@ -75,8 +75,7 @@ export interface B31EquipmentParticipant {
   personnelCosts: number;
 }
 
-export function useB31SectionData(proposalId: string, opts: { includeAllEquipment?: boolean } = {}) {
-  const includeAllEquipment = !!opts.includeAllEquipment;
+export function useB31SectionData(proposalId: string) {
   // Live source of truth: wp_drafts + wp_draft_tasks + wp_draft_deliverables.
   const wpQuery = useQuery({
     queryKey: ['b31-wp-data', proposalId],
@@ -167,7 +166,7 @@ export function useB31SectionData(proposalId: string, opts: { includeAllEquipmen
           .from('budget_cost_justification_items')
           .select('*')
           .in('budget_row_id', rowIds)
-          .in('category', ['subcontracting', 'equipment', 'travel', 'other_goods', 'fstp', 'internally_invoiced'])
+          .in('category', ['subcontracting', 'equipment', 'travel', 'other_goods'])
           .order('order_index');
         justItems = data || [];
       }
@@ -209,11 +208,8 @@ export function useB31SectionData(proposalId: string, opts: { includeAllEquipmen
       const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
       const totalPMs = br.pmTotals.get(r.participant_id) || 0;
       const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
-      // 15%-of-personnel "major equipment" rule applied per participant, unless the
-      // coordinator has opted in to showing every participant's equipment costs.
-      if (!includeAllEquipment) {
-        if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
-      }
+      // 15%-of-personnel "major equipment" rule applied per participant.
+      if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
       result.push({
         participantId: r.participant_id,
         items,
@@ -224,7 +220,7 @@ export function useB31SectionData(proposalId: string, opts: { includeAllEquipmen
     return result;
   })();
 
-  // Generic per-participant accumulator for optional categories (travel / other_goods / fstp / internally_invoiced).
+  // Generic per-participant accumulator for optional categories (travel / other_goods).
   const buildOptionalCategory = (category: string): B31SubcontractingParticipant[] => {
     const br = budgetRowsQuery.data;
     if (!br) return [];

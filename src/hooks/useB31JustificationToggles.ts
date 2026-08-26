@@ -2,39 +2,26 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface B31JustificationToggles {
-  // umbrellas
+  // umbrella
   purchase_costs: boolean;
-  other_direct_costs: boolean;
   // C sub-toggles
   travel: boolean;
   equipment: boolean;          // user-controlled C.2 inclusion (forced on by >15% rule in UI)
-  equipment_all: boolean;      // include below-15% participants too
   other_goods: boolean;
-  // D sub-toggles
-  fstp: boolean;
-  internally_invoiced: boolean;
 }
 
 const DEFAULTS: B31JustificationToggles = {
   purchase_costs: false,
-  other_direct_costs: false,
   travel: false,
   equipment: false,
-  equipment_all: false,
   other_goods: false,
-  fstp: false,
-  internally_invoiced: false,
 };
 
 const COLUMN_MAP: Record<keyof B31JustificationToggles, string> = {
   purchase_costs: 'b31_show_purchase_costs',
-  other_direct_costs: 'b31_show_other_direct_costs',
   travel: 'b31_show_travel_justification',
   equipment: 'b31_show_equipment_justification',
-  equipment_all: 'b31_show_all_equipment_justification',
   other_goods: 'b31_show_other_goods_justification',
-  fstp: 'b31_show_fstp_justification',
-  internally_invoiced: 'b31_show_internally_invoiced_justification',
 };
 
 const SELECT_COLS = Object.values(COLUMN_MAP).join(', ');
