@@ -45,6 +45,11 @@ interface MethodologyRichEditorProps {
    */
   placeholderHideOnFocus?: boolean;
   /**
+   * Horizontal start position of the placeholder, e.g. when a floated badge
+   * occupies the start of the first line and the hint must follow it.
+   */
+  placeholderIndent?: string;
+  /**
    * B2.1 impact summary: the six-column table shown as two stacked parts is
    * one logical table — rows may only be added or removed across both parts.
    */
@@ -72,6 +77,7 @@ export function MethodologyRichEditor({
   captionNumbering,
   documentSurface = false,
   placeholderHideOnFocus = false,
+  placeholderIndent,
   pairedTables = false,
   cellSurface = false,
 }: MethodologyRichEditorProps) {
@@ -215,6 +221,7 @@ export function MethodologyRichEditor({
       {placeholder && isEmpty && (
         <span
           aria-hidden
+          style={placeholderIndent ? { left: placeholderIndent } : undefined}
           className={`pointer-events-none absolute select-none text-muted-foreground ${
             documentSurface
               ? 'left-0 top-0 font-document text-[11pt] italic'
