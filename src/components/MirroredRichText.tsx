@@ -29,10 +29,15 @@ export function MirroredRichText({ proposalId, value, fallback = '—', classNam
   }, [value, refData]);
 
   if (!html) return <>{fallback}</>;
+  // The FIRST paragraph runs inline so a cell that prefixes the value (the
+  // bold-italic cost category in tables 3.1.g / 3.1.h) keeps it on one line;
+  // any further paragraphs stay blocks and break as authored.
+  const base = '[&_p]:m-0 [&>p:first-child]:inline';
   return (
     <span
-      className={className ? `${className} [&_p]:m-0` : '[&_p]:m-0'}
+      className={className ? `${className} ${base}` : base}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }
+
