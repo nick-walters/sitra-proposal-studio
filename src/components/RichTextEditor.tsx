@@ -1560,7 +1560,8 @@ export function useRichTextEditor({
 }) {
   const prepareNumberedContent = (html: string) =>
     materializeCaptionLabels(normalizePartBLoadedContent(html), captionNumbering ?? null);
-  const initialContentRef = useRef<string>(prepareNumberedContent(content));
+  const preparedContent = prepareNumberedContent(content);
+  const initialContentRef = useRef<string>(preparedContent);
   const captionNumberingRef = useRef<CaptionNumbering | null>(captionNumbering ?? null);
   captionNumberingRef.current = captionNumbering ?? null;
   // The numbering plugin recomputes on the editor view's own update cycle. A
@@ -2006,10 +2007,21 @@ StarterKit.configure({
     // captions may have the canonical paragraph class but no captionLabel
     // span; prepareNumberedContent inserts that marked label before TipTap's
     // first paint, while CaptionAutoNumber owns subsequent renumbering.
-    content: isReady ? initialContentRef.current : '<p></p>',
+    // Use the value prepared on THIS render. A field can first render while
+    // section-wide caption offsets are still being derived; retaining only the
+    // first ref value leaves migrated captions without their label on mount.
+    content: isReady ? preparedContent : '<p></p>',
     enableExtensionDispatchTransaction: true,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
+    onCreate: ({ editor }) => {
+      // Explicitly run the position-derived caption pass after TipTap has
+      // parsed the document. This covers both an existing captionLabel mark
+      // and a canonical caption paragraph with no stored label span.
+      editor.view.dispatch(
+        editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
+      );
+    },
     
     onUpdate: ({ editor }) => {
       if (!readyRef.current) return;

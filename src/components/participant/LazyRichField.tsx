@@ -56,6 +56,8 @@ export interface LazyRichFieldProps {
   documentSurface?: boolean;
   /** Hide the placeholder while the caret is in the field. */
   placeholderHideOnFocus?: boolean;
+  /** Bare text presentation when the field already sits inside a table cell. */
+  cellSurface?: boolean;
 }
 
 
@@ -111,6 +113,7 @@ export function LazyRichField({
   autoFocus = false,
   documentSurface = false,
   placeholderHideOnFocus = false,
+  cellSurface = false,
 }: LazyRichFieldProps) {
 
   const [mounted, setMounted] = useState(false);
@@ -303,6 +306,7 @@ export function LazyRichField({
           placeholder={placeholder}
           documentSurface={documentSurface}
           placeholderHideOnFocus={placeholderHideOnFocus}
+          cellSurface={cellSurface}
         />
 
       ) : (
@@ -327,6 +331,8 @@ export function LazyRichField({
             className={cn(
               documentSurface
                 ? 'doc-surface-field document-content'
+                : cellSurface
+                  ? 'document-content bg-transparent p-0 font-document text-[11pt]'
                 : 'document-content rounded-md border border-border bg-background px-2.5 py-1.5 text-sm',
               disabled ? 'cursor-default' : 'cursor-text',
             )}
