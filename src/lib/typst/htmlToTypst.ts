@@ -326,9 +326,12 @@ function convertCell(cell: Element, ctx: ConvertContext, header: boolean): strin
   const blocks = Array.from(cell.children).filter((c) =>
     ['p', 'ul', 'ol', 'blockquote', 'h1', 'h2', 'h3', 'h4'].includes(c.tagName.toLowerCase()),
   );
-  const body = blocks.length
+  // A document paragraph may deliberately be justified, but that formatting
+  // must not leak into a table cell. Tables are left aligned throughout Part B.
+  const body = (blocks.length
     ? join(blocks.map((b) => convertBlock(b, ctx)))
-    : `par(justify: false, ${convertInlineChildren(cell, ctx)})`;
+    : `par(justify: false, ${convertInlineChildren(cell, ctx)})`)
+    .replace(/par\(justify: true,/g, 'par(justify: false,');
   const inner = header ? `strong(${body})` : body;
   const args: string[] = [];
   const colspan = Number(cell.getAttribute('colspan') || '1');

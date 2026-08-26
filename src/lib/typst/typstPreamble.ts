@@ -323,6 +323,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
+  set text(hyphenate: false)
   set par(justify: false)
   block(
   width: he-table-width,
@@ -362,6 +363,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-cell-table(cols, cells, nrows, aligns: none) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
+  set text(hyphenate: false)
   set par(justify: false)
   block(
   width: he-table-width,
@@ -396,6 +398,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-authored-table(cols, cells, nrows) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
+  set text(hyphenate: false)
   set par(justify: false)
   block(
   width: he-table-width,
@@ -430,6 +433,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-grid(cols, cells) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
+  set text(hyphenate: false)
   set par(justify: false)
   block(
   width: he-table-width,
