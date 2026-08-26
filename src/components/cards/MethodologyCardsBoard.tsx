@@ -537,6 +537,12 @@ function FieldRow({
   // modules: they render a live table, so they keep the plain module frame.
   const isDocumentSurface = !isPlaceholder;
 
+  // A hidden module dims its CONTENT, exactly as a hidden block does. The dim
+  // cannot live on the module wrapper: dnd-kit writes an inline `opacity` there
+  // on every render, and an inline style beats a utility class — which is why
+  // the earlier `opacity-50` never took effect (computed opacity stayed 1).
+  const fieldDimClass = field.isVisible ? '' : 'opacity-60';
+
   // The module's H3 header. On the page-styled surface it is not a form input
   // above the page: it is the first field ON the page, sharing its white
   // background, its typography and its growth behaviour.
@@ -625,7 +631,7 @@ function FieldRow({
         isDocumentSurface
           ? 'w-full max-w-none'
           : 'space-y-2 p-3'
-      } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
+      } ${field.isVisible ? '' : 'print:hidden'}`}
     >
       <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
         {canEdit && (
@@ -773,8 +779,8 @@ function FieldRow({
                 // The page itself: white, 1.5 cm side margins running to the
                 // module's edge, and 3 pt of air above and below the text —
                 // the same spacing a body paragraph carries, no more.
-                ? 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
-                : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''}`
+                ? `doc-surface-page bg-white px-[1.5cm] py-[3pt] ${fieldDimClass}`
+                : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''} ${fieldDimClass}`
           }
         >
           {isDocumentSurface && headerField}
