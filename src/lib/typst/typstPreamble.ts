@@ -435,10 +435,15 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   // which stretches short cell lines. Tables opt out locally.
   set text(hyphenate: false)
   set par(justify: false)
+  // Unbreakable: the effort matrix is a compact band of coloured cells with
+  // rounded top and bottom edges — splitting it across pages would cut the
+  // band open. Typst pushes the whole grid to the next page instead, and the
+  // sticky caption above it travels with it.
   block(
   width: he-table-width,
   above: 0pt,
   below: 6pt,
+  breakable: false,
   table(
     columns: cols,
     inset: 0pt,
