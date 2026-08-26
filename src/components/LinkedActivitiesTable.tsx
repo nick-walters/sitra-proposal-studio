@@ -124,6 +124,7 @@ function SortableActivityRow({
     id: activity.id,
   });
   const [assignOpen, setAssignOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -133,6 +134,17 @@ function SortableActivityRow({
 
   const selected = participants.find((p) => p.id === activity.responsibleParticipantId);
   const isOther = activity.instrumentCode === 'OTHER';
+
+  /* One value, one cell: "TEHDAS2, EU4H, 2024-26". The instrument shows its
+     abbreviation only and the year range uses a hyphen with a two-digit end
+     year, matching the Typst emitter exactly. */
+  const projectLabel = [
+    htmlToPlainText(activity.acronym || '').trim(),
+    getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom).trim(),
+    formatDurationShort(activity.durationStart, activity.durationEnd).trim(),
+  ]
+    .filter((part) => part.length > 0)
+    .join(', ');
 
   return (
     /* One <tr> per activity: every column, description included, on a single
@@ -152,82 +164,93 @@ function SortableActivityRow({
               </button>
             </Tip>
           ) : null}
-          <div className="flex min-w-0 items-center gap-1">
-            <div className="min-w-0 flex-1">
-              {canEdit ? (
-                <LazyRichField
-                  singleLine
-                  proposalId={proposalId}
-                  value={ensureRichHtml(activity.acronym)}
-                  placeholder="Acronym"
-                  minHeight="24px"
-                  className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
-                  cellSurface
-                  staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-                  onChange={(html) => onUpdate(activity.id, { acronym: html })}
-                />
-              ) : (
-                <span
-                  className="[&_p]:m-0 [&_p]:inline"
-                  dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
-                />
+          {canEdit ? (
+            <button
+              type="button"
+              data-scalar-field=""
+              onClick={() => setDetailsOpen(true)}
+              className="w-full break-words text-left font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+            >
+              {projectLabel || (
+                <span className="italic text-muted-foreground">Project, instrument, years</span>
               )}
-            </div>
-            {canEdit ? (
-              <div data-scalar-field="" className={`flex min-w-0 flex-1 items-center gap-1 ${CELL_CONTROL}`}>
-              <Select
-                value={activity.instrumentCode ?? NONE}
-                onValueChange={(v) =>
-                  onUpdate(activity.id, {
-                    instrumentCode: v === NONE ? null : v,
-                    ...(v === 'OTHER' ? {} : { instrumentCustom: null }),
-                  })
-                }
-              >
-                <SelectTrigger
-                  className="h-auto min-w-0 flex-1 justify-between text-left font-['Times_New_Roman',Times,serif] text-[11pt] [&>span]:block [&>span]:w-full [&>span]:truncate [&>span]:text-left"
-                  aria-label="Funding instrument"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>—</SelectItem>
-                  {FUNDING_INSTRUMENTS.map((inst) => (
-                    <SelectItem key={inst.code} value={inst.code}>
-                      {inst.fullName ? `${inst.abbreviation} (${inst.fullName})` : 'Other'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isOther && (
-                <Input
-                  value={activity.instrumentCustom ?? ''}
-                  onChange={(e) => onUpdate(activity.id, { instrumentCustom: e.target.value })}
-                  placeholder="Name"
-                  className="h-auto w-24 font-['Times_New_Roman',Times,serif] text-[11pt]"
-                  aria-label="Custom funding instrument"
-                />
-              )}
+            </button>
+          ) : (
+            <span>{projectLabel || '—'}</span>
+          )}
+
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Project details</DialogTitle>
+                <DialogDescription>
+                  The acronym, funding instrument and years appear together in the Project column.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Acronym</label>
+                  <LazyRichField
+                    singleLine
+                    proposalId={proposalId}
+                    value={ensureRichHtml(activity.acronym)}
+                    placeholder="Acronym"
+                    minHeight="32px"
+                    className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
+                    staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+                    onChange={(html) => onUpdate(activity.id, { acronym: html })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Funding instrument
+                  </label>
+                  <Select
+                    value={activity.instrumentCode ?? NONE}
+                    onValueChange={(v) =>
+                      onUpdate(activity.id, {
+                        instrumentCode: v === NONE ? null : v,
+                        ...(v === 'OTHER' ? {} : { instrumentCustom: null }),
+                      })
+                    }
+                  >
+                    <SelectTrigger aria-label="Funding instrument">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>—</SelectItem>
+                      {FUNDING_INSTRUMENTS.map((inst) => (
+                        <SelectItem key={inst.code} value={inst.code}>
+                          {inst.fullName ? `${inst.abbreviation} (${inst.fullName})` : 'Other'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isOther && (
+                    <Input
+                      value={activity.instrumentCustom ?? ''}
+                      onChange={(e) => onUpdate(activity.id, { instrumentCustom: e.target.value })}
+                      placeholder="Instrument abbreviation"
+                      aria-label="Custom funding instrument"
+                    />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Years</label>
+                  <YearRangePicker
+                    startYear={activity.durationStart}
+                    endYear={activity.durationEnd}
+                    onChange={(start, end) =>
+                      onUpdate(activity.id, { durationStart: start, durationEnd: end })
+                    }
+                    className="w-full justify-start"
+                  />
+                </div>
               </div>
-            ) : (
-              <span>{getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}</span>
-            )}
-            {canEdit ? (
-              <div data-scalar-field="" className={`min-w-0 flex-1 ${CELL_CONTROL}`}>
-              <YearRangePicker
-                startYear={activity.durationStart}
-                endYear={activity.durationEnd}
-                onChange={(start, end) =>
-                  onUpdate(activity.id, { durationStart: start, durationEnd: end })
-                }
-                className="h-auto w-full justify-start font-['Times_New_Roman',Times,serif] text-[11pt]"
-              />
-              </div>
-            ) : (
-              <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
-            )}
-          </div>
+            </DialogContent>
+          </Dialog>
         </td>
+
 
         {/* How the project will be linked — a normal cell on the same row. */}
         <td className={`${cellStyles} break-words`}>
