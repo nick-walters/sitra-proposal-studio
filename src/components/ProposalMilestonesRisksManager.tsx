@@ -624,6 +624,28 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
+  /* Document table geometry. Three content columns are resizable; the MS chip
+     and the editor-only delete cell are excluded via data-noresize, so the
+     saved array always has exactly three entries. */
+  const MS_HEADERS = ['Milestone name', 'WP(s)', 'Due month'];
+  const MS_COL_PCT = ['50%', '32%', '18%'];
+  const { colWidths: msColWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
+    useColumnResize({
+      proposalId,
+      tableKey: 'b31-milestones',
+      canResize: canEdit,
+      maxTotalWidth: DOC_BLOCK_WIDTH,
+      expectedColumnCount: MS_COL_PCT.length,
+    });
+  const msSized = msColWidths.length === MS_COL_PCT.length;
+  const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
+    proposalId,
+    'b31-milestones',
+    MS_HEADERS,
+  );
+
+
+
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
