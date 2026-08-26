@@ -16,6 +16,7 @@ import DOMPurify from 'isomorphic-dompurify';
 export const ALLOWED_CLASSES = new Set<string>([
   'figure-caption',
   'table-caption',
+  'document-table-caption',
   'he-table',
   'he-table-cell',
   'he-table-header',

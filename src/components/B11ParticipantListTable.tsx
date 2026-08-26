@@ -23,7 +23,9 @@ import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
 export const B11_PARTICIPANTS_TABLE_KEY = 'b11-participants';
 
 /** Default proportions (percent of the 18cm text column), as the export uses. */
-export const B11_PARTICIPANT_COLUMN_SHARES = [14, 35, 7, 10, 19, 15];
+export const B11_PARTICIPANT_COLUMN_SHARES = [14, 35, 7, 19, 10, 15];
+
+const TYPE_LEGEND = 'HES: Higher or secondary education establishment; RES: Research organisation; SME: Small or medium-sized enterprise; LE: Large enterprise; PUB: Public body; INT: International organisation; OTH: Other.';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 // House table style: no vertical rules, a 1.5px black rule under the header,
@@ -199,8 +201,8 @@ export function B11ParticipantListTable({ proposalId }: { proposalId: string }) 
     'Short name',
     'Participant legal name | English name, if different',
     '',
-    'Type',
     'Lead roles',
+    'Type',
     'Country',
   ];
   const fixed = colWidths.length === headers.length;
@@ -245,7 +247,7 @@ export function B11ParticipantListTable({ proposalId }: { proposalId: string }) 
       </thead>
       <tbody>
         {rows.map((p) => (
-          <tr key={p.id}>
+          <tr key={p.id} className="min-h-10">
             <td className={cellStyles}>
               {p.shortName ? (
                 <span className="inline-block whitespace-nowrap rounded-full bg-black px-[5px] text-[11pt] font-bold leading-tight text-white">
@@ -267,14 +269,21 @@ export function B11ParticipantListTable({ proposalId }: { proposalId: string }) 
             <td className={`${cellStyles} text-center`}>
               <LogoCell url={p.logoUrl} />
             </td>
-            <td className={cellStyles}>{p.organisationType || '—'}</td>
             <td className={cellStyles}>
-              {p.roles.length ? p.roles.map((b) => <Bubble key={b.label} bubble={b} />) : '—'}
+              {p.roles.map((b) => <Bubble key={b.label} bubble={b} />)}
             </td>
+            <td className={`${cellStyles} font-normal`}>{p.organisationType || '—'}</td>
             <td className={cellStyles}>{p.country || '—'}</td>
           </tr>
         ))}
       </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={headers.length} className="border-0 pt-1 text-left text-[8pt] font-normal leading-tight">
+            {TYPE_LEGEND}
+          </td>
+        </tr>
+      </tfoot>
     </table>
   );
 }
