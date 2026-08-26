@@ -1313,7 +1313,7 @@ function CardBlock({
               control row exactly. Icons only — each control's tooltip text is
               also its aria-label. Controls stay at full opacity when the block
               is hidden; only the block's content dims. */}
-          <div className="ml-auto grid shrink-0 grid-cols-[28px_28px_28px_28px_28px_28px] items-center justify-items-center gap-1.5 opacity-100">
+          <div className="ml-auto grid shrink-0 grid-cols-[28px_28px_28px_28px_28px_28px] items-center justify-items-center gap-1 opacity-100">
 
             {/* Column 1 — block-specific: download (Pert and Gantt charts) */}
             {isPertCard || isGanttCard ? (
