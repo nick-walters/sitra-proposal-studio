@@ -26,6 +26,13 @@ import type {
 
 const lit = (s: string) => `t(${typstString(s)})`;
 const EMPTY = lit('—');
+/**
+ * The gap after a chip is a NON-BREAKING space, so it can never be pushed to
+ * the head of the next line (which showed as a stray indent). Every emitter
+ * that used to join a chip to what follows with a plain `t(" ")` uses this.
+ */
+const NBSP = '\u00a0';
+const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
