@@ -449,7 +449,7 @@ export default function LinkedActivitiesTable({
           proposalId={proposalId}
           tableKey="b12.linked_activities"
           label={captionLabel}
-          defaultCaption="Linked research & innovation activities"
+          defaultCaption={DEFAULT_CAPTION}
           canEdit={canEdit}
         />
       )}
@@ -476,24 +476,29 @@ export default function LinkedActivitiesTable({
                 {DEFAULT_COL_PCT.map((pct, i) => (
                   <col key={i} style={{ width: sized ? `${colWidths[i]}px` : pct }} />
                 ))}
+                {/* Editor-only action column; never part of the document table. */}
+                <col style={{ width: '28px' }} />
               </colgroup>
               <thead>
                 <tr>
-                  {['Project', 'How the project will be linked', 'Participant responsible'].map(
-                    (h, i) => (
-                      <th
-                        key={i}
-                        className={`${
-                          i === 0 ? firstCellStyles : cellStyles
-                        } relative align-bottom font-bold`}
-                      >
-                        {h}
-                        {canResize && i < DEFAULT_COL_PCT.length - 1 && (
-                          <ColumnResizer onMouseDown={handleColResizeStart(i)} />
-                        )}
-                      </th>
-                    ),
-                  )}
+                  {headers.map((h, i) => (
+                    <th
+                      key={i}
+                      className={`${
+                        i === 0 ? firstCellStyles : cellStyles
+                      } relative align-bottom font-bold`}
+                    >
+                      <EditableColumnHeader
+                        value={h}
+                        canEdit={canEdit}
+                        onCommit={(next) => setHeader(i, next)}
+                      />
+                      {canResize && i < DEFAULT_COL_PCT.length - 1 && (
+                        <ColumnResizer onMouseDown={handleColResizeStart(i)} />
+                      )}
+                    </th>
+                  ))}
+                  <th data-noresize="" className={`${cellStyles} !px-0 !border-0`} />
                 </tr>
               </thead>
               <tbody>
@@ -515,7 +520,7 @@ export default function LinkedActivitiesTable({
               {instrumentLegend.length > 0 && (
                 <tfoot>
                   <tr>
-                    <td colSpan={DEFAULT_COL_PCT.length} className="!border-0 !px-0 !pt-[2pt] !pb-0 align-top text-[8pt] leading-tight">
+                    <td colSpan={DEFAULT_COL_PCT.length + 1} className="!border-0 !px-0 !pt-[2pt] !pb-0 align-top text-[8pt] leading-tight">
                       {instrumentLegend.map(([abbreviation, fullName], index) => (
                         <span key={abbreviation}>
                           {index > 0 ? '; ' : ''}
@@ -526,6 +531,7 @@ export default function LinkedActivitiesTable({
                   </tr>
                 </tfoot>
               )}
+
 
             </table>
           </SortableContext>
