@@ -1023,49 +1023,98 @@ export function RisksEditor({
 
   usePageSearchSource('risks', 'Critical risks', searchFields);
 
+  /* Document table geometry. Four content columns are resizable; the grip and
+     the editor-only delete cell are excluded via data-noresize, so the saved
+     array always has exactly four entries. */
+  const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)'];
+  const RISK_COL_PCT = ['46%', '9%', '9%', '36%'];
+  const { colWidths: riskColWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
+    useColumnResize({
+      proposalId,
+      tableKey: 'b31-risks',
+      canResize: canEdit,
+      maxTotalWidth: DOC_BLOCK_WIDTH,
+      expectedColumnCount: RISK_COL_PCT.length,
+    });
+  const riskSized = riskColWidths.length === RISK_COL_PCT.length;
+  const { headers: riskHeaders, setHeader: setRiskHeader } = useColumnHeaders(
+    proposalId,
+    'b31-risks',
+    RISK_HEADERS,
+  );
+
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
-        <div className="space-y-1">
-          {/* Column labels for the second line — same fixed grid as every row,
-              indented to align with the risk description above. */}
-          {risks.length > 0 && (
-            <div className="grid grid-cols-[18px_1fr] gap-x-1 px-1 pb-1 border-b">
-              <div />
-              <div className={cn(RISK_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
-                <div>Risk description</div>
-                <div className="text-center">i.</div>
-                <div className="text-center">ii.</div>
-                <div>WP(s)</div>
-                <div />
-              </div>
-            </div>
-          )}
+        {risks.length === 0 ? (
+          <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
+        ) : (
           <DndContext
             sensors={riskSensors}
             collisionDetection={closestCenter}
             onDragEnd={handleRiskDragEnd}
           >
             <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-              {risks.length === 0 && (
-                <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
-              )}
-              {risks.map((r) => (
-                <div key={r.id} id={`risk-row-${r.id}`}>
-                  <SortableRiskRow
-                    risk={r}
-                    wps={wps}
-                    canEdit={canEdit}
-                    onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
-                    onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
-                    onDelete={() => deleteRisk.mutate(r.id)}
-                    proposalId={proposalId}
-                  />
-                </div>
-              ))}
+              {/* A single <tbody> holds every row: the resize hook measures
+                  `tbody tr:first-child`, so one tbody per risk would have it
+                  measure the wrong row. */}
+              <table
+                ref={riskTableRef}
+                data-table-key="b31-risks"
+                className={`${docTableStyles} ${docTableRules} w-full max-w-full`}
+                style={{
+                  tableLayout: 'fixed',
+                  width: riskSized
+                    ? `${Math.min(riskColWidths.reduce((s, w) => s + w, 0) + 76, DOC_BLOCK_WIDTH)}px`
+                    : '100%',
+                  maxWidth: `${DOC_BLOCK_WIDTH}px`,
+                  borderCollapse: 'collapse',
+                }}
+              >
+                <colgroup>
+                  <col style={{ width: '48px' }} />
+                  {RISK_COL_PCT.map((pct, i) => (
+                    <col key={i} style={{ width: riskSized ? `${riskColWidths[i]}px` : pct }} />
+                  ))}
+                  {/* Editor-only action column; never part of the document table. */}
+                  <col style={{ width: '28px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th data-noresize="" className={`${docFirstCellStyles} align-bottom font-bold`} />
+                    {riskHeaders.map((h, i) => (
+                      <th key={i} className={`${docCellStyles} relative align-bottom font-bold`}>
+                        <EditableColumnHeader
+                          value={h}
+                          canEdit={canEdit}
+                          onCommit={(next) => setRiskHeader(i, next)}
+                        />
+                        {canEdit && i < RISK_COL_PCT.length - 1 && (
+                          <ColumnResizer onMouseDown={riskResizeStart(i)} />
+                        )}
+                      </th>
+                    ))}
+                    <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {risks.map((r) => (
+                    <SortableRiskRow
+                      key={r.id}
+                      risk={r}
+                      wps={wps}
+                      canEdit={canEdit}
+                      onUpdate={(patch) => updateRisk.mutate({ id: r.id, patch })}
+                      onSetWps={(ids) => setRiskWps.mutate({ id: r.id, wpIds: ids })}
+                      onDelete={() => deleteRisk.mutate(r.id)}
+                      proposalId={proposalId}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </SortableContext>
           </DndContext>
-        </div>
+        )}
 
         {canEdit && (
           <div className="flex items-center justify-end gap-2 pt-3">
@@ -1081,7 +1130,8 @@ export function RisksEditor({
 }
 
 
-// ── Sortable row for the risks table (drag-handle in first cell) ──
+// ── Sortable rows for the risks table: scalars, then mitigation full-width ──
+// Risks carry no printed number, so the first cell holds only the grip.
 function SortableRiskRow({
   risk, wps, canEdit, onUpdate, onSetWps, onDelete, proposalId,
 }: {
@@ -1097,91 +1147,100 @@ function SortableRiskRow({
     id: risk.id,
     disabled: !canEdit,
   });
+  // Both rows of the pair carry the same transform so a dragged risk moves whole.
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group grid grid-cols-[18px_1fr] gap-x-1 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: grip + description + likelihood + severity + WP(s) + delete ──
-          The grip is permanently visible (no hover reveal) and sits close to
-          the description field. */}
-      <span className="flex-none w-[18px] flex items-center justify-start pt-1">
-        {canEdit && (
-          <button
-            type="button"
-            className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag to reorder"
-          >
-            <GripVertical className="h-4 w-4 text-[#2563EB]" />
-          </button>
-        )}
-      </span>
-      <div className={RISK_LINE1_GRID}>
-        <div className="min-w-0">
+    <Fragment>
+      {/* Scalar line: grip, description, likelihood, severity, WP(s), delete.
+          The rule sits under the mitigation row, so it falls between risks. */}
+      <tr ref={setNodeRef} style={style} id={`risk-row-${risk.id}`} className="!border-b-0">
+        <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
+          {canEdit && (
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
+              {...attributes}
+              {...listeners}
+              aria-label="Drag to reorder"
+            >
+              <GripVertical className="h-4 w-4 text-[#2563EB]" />
+            </button>
+          )}
+        </td>
+        <td className={`${docCellStyles} break-words`}>
           <DebouncedRichField
             value={risk.title || ''}
             className={LEFT_ALIGNED_CELL_CLASS}
+            cellSurface
             disabled={!canEdit}
-            minHeight="30px"
+            minHeight="0"
             proposalId={proposalId}
             staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
             onChange={(html) => onUpdate({ title: html })}
           />
-        </div>
-        <div className="flex justify-center">
+        </td>
+        <td className={docCellStyles}>
           <RiskLevelSelect
             value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
             disabled={!canEdit}
+            cellSurface
             onChange={(v) => onUpdate({ likelihood: v })}
           />
-        </div>
-        <div className="flex justify-center">
+        </td>
+        <td className={docCellStyles}>
           <RiskLevelSelect
             value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
             disabled={!canEdit}
+            cellSurface
             onChange={(v) => onUpdate({ severity: v })}
           />
-        </div>
-        <div>
+        </td>
+        <td className={docCellStyles}>
           <WPMultiSelect
             allWps={wps}
             selectedIds={risk.wp_ids}
             disabled={!canEdit}
+            cellSurface
             onChange={onSetWps}
           />
-        </div>
-        <div className="flex justify-center">
+        </td>
+        {/* Row action in its own cell: a bare div in a <tr> is not laid out as
+            a cell and would disappear. */}
+        <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
           <Button
-            size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
+            size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
             disabled={!canEdit}
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-        </div>
-      </div>
-
-      {/* ── Line 2: mitigation & adaptation measures, aligned with the description above ── */}
-      <div className="col-start-2">
-        <DebouncedRichField
-          value={risk.mitigation || ''}
-          className={LEFT_ALIGNED_CELL_CLASS}
-          disabled={!canEdit}
-          minHeight="30px"
-          proposalId={proposalId}
-          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-          placeholder="Mitigation & adaptation measures"
-          onChange={(html) => onUpdate({ mitigation: html })}
-        />
-      </div>
-    </div>
-
+        </td>
+      </tr>
+      {/* Mitigation & adaptation measures: its own full-width row beneath. */}
+      <tr style={style}>
+        <td data-noresize="" className={docFirstCellStyles} />
+        <td className={`${docCellStyles} break-words`} colSpan={5}>
+          <DebouncedRichField
+            value={risk.mitigation || ''}
+            className={LEFT_ALIGNED_CELL_CLASS}
+            cellSurface
+            disabled={!canEdit}
+            minHeight="0"
+            proposalId={proposalId}
+            staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+            placeholder="Mitigation & adaptation measures"
+            onChange={(html) => onUpdate({ mitigation: html })}
+          />
+        </td>
+      </tr>
+    </Fragment>
   );
 }
+
 
 
 // ── L/M/H badge dropdown (uses the same RiskBadge as Table 3.1.e) ──
