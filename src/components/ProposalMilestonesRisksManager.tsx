@@ -628,11 +628,13 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
-  /* Document table geometry. Three content columns are resizable; the MS chip
-     and the editor-only delete cell are excluded via data-noresize, so the
-     saved array always has exactly three entries. */
-  const MS_HEADERS = ['Milestone name', 'WP(s)', 'Due month'];
-  const MS_COL_PCT = ['50%', '32%', '18%'];
+  /* Document table geometry. Four content columns are resizable; the
+     editor-only delete cell is excluded via data-noresize, so the saved array
+     always has exactly four entries. The two long-text columns (name and
+     means of verification) take the bulk of the 18 cm column; the WP and due
+     month columns are sized to their controls. */
+  const MS_HEADERS = ['Milestone name', 'Means of verification', 'WP(s)', 'Due month'];
+  const MS_COL_PCT = ['32%', '34%', '22%', '12%'];
   const { colWidths: msColWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
@@ -647,6 +649,7 @@ export function MilestonesEditor({
     'b31-milestones',
     MS_HEADERS,
   );
+
 
 
 
