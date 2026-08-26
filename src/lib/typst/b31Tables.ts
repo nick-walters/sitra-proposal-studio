@@ -564,7 +564,8 @@ export function emitSubcontracting(
   ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${storedCols(data, 'subcontracting', 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+
   ];
 }
 
