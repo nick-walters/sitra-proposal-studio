@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WPBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from '@/components/B31Pill';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
-import { Plus, Trash2, GripVertical, ArrowUpDown, Check, Star } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Check, Star } from 'lucide-react';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
@@ -61,6 +61,7 @@ import { GuidelineBox } from '@/components/GuidelineBox';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { useColumnHeaders } from '@/hooks/useColumnHeaders';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { EditableCaption } from '@/components/EditableCaption';
 import { EditableColumnHeader } from '@/components/EditableColumnHeader';
 
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
@@ -149,6 +150,10 @@ const RISK_LINE1_GRID =
    rows and none under the last, no vertical rules, tight padding, flush
    outer edges. The 18 cm text column in CSS pixels caps every table. */
 const DOC_BLOCK_WIDTH = 768;
+/** The page's content column: 21 cm page less 1.5 cm of margin each side. */
+const DOC_TEXT_COLUMN = '18cm';
+/** Empty rich cells keep one line of height so the caret can be placed. */
+const CELL_MIN_HEIGHT = '1.35em';
 const docTableStyles =
   "font-['Times_New_Roman',Times,serif] text-[11pt] text-left bg-white [&_p]:!text-left";
 const docTableRules =
@@ -431,6 +436,7 @@ export function MilestonesEditor({
   canEdit,
   projectDuration,
   onRegisterAdd,
+  onRegisterReorder,
 }: {
   proposalId: string;
   canEdit: boolean;
@@ -438,6 +444,8 @@ export function MilestonesEditor({
   projectDuration?: number;
   /** Lets the block header host the "Add" button, as other blocks do. */
   onRegisterAdd?: (add: () => void) => void;
+  /** Lets the block header host the "Reorder" button beside "Add". */
+  onRegisterReorder?: (reorder: () => void) => void;
 }) {
 
   const qc = useQueryClient();
@@ -637,7 +645,7 @@ export function MilestonesEditor({
      always has exactly four entries. The two long-text columns (name and
      means of verification) take the bulk of the 18 cm column; the WP and due
      month columns are sized to their controls. */
-  const MS_HEADERS = ['Milestone name', 'Means of verification', 'WP(s)', 'Due month'];
+  const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   const MS_COL_PCT = ['32%', '34%', '22%', '12%'];
   const { colWidths: msColWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
@@ -660,10 +668,26 @@ export function MilestonesEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onRegisterAdd, proposalId]);
 
+  // "Reorder" sits beside "Add" in the block header, styled identically.
+  useEffect(() => {
+    onRegisterReorder?.(() => setMsReorderOpen(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterReorder, proposalId]);
+
 
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
+        {/* The template captions this table (Table 3.1.d in the export), so
+            the caption is shown here too and edits reach the PDF. */}
+        <EditableCaption
+          proposalId={proposalId}
+          tableKey="milestones"
+          label="Table 3.1.d."
+          defaultCaption="List of milestones"
+          canEdit={canEdit}
+          className="mb-0"
+        />
         {orderedMs.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
         ) : (
@@ -677,9 +701,12 @@ export function MilestonesEditor({
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
+              // The table fills the page's 18 cm content column; only the
+              // internal borders move, so the total never drifts.
               width: msSized
-                ? `${msColWidths.reduce((s, w) => s + w, 0) + 28}px`
-                : '100%',
+                ? `${msColWidths.reduce((s, w) => s + w, 0)}px`
+                : DOC_TEXT_COLUMN,
+              maxWidth: 'none',
               borderCollapse: 'collapse',
             }}
           >
@@ -687,8 +714,6 @@ export function MilestonesEditor({
               {MS_COL_PCT.map((pct, i) => (
                 <col key={i} style={{ width: msSized ? `${msColWidths[i]}px` : pct }} />
               ))}
-              {/* Editor-only action column; never part of the document table. */}
-              <col style={{ width: '28px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -707,7 +732,6 @@ export function MilestonesEditor({
                     )}
                   </th>
                 ))}
-                <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
               </tr>
             </thead>
             <tbody>
@@ -720,24 +744,24 @@ export function MilestonesEditor({
                   <tr key={m.id} id={`milestone-row-${m.id}`}>
                     {/* The MS badge lives at the start of the name cell, so the
                         badge and the name share one column. */}
+                    {/* The badge is floated into the start of the name text
+                        rather than sitting in a column of its own, so badge
+                        and name read as a single field. */}
                     <td className={`${docFirstCellStyles} break-words`}>
-                      <div className="flex items-start gap-1">
-                        <span className="shrink-0 whitespace-nowrap">
-                          <MilestoneBadge number={m.number} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <DebouncedRichField
-                            value={m.title || ''}
-                            className={LEFT_ALIGNED_CELL_CLASS}
-                            cellSurface
-                            disabled={!canEdit}
-                            minHeight="0"
-                            proposalId={proposalId}
-                            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                            onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                          />
-                        </div>
-                      </div>
+                      <span className="float-left mr-1 select-none whitespace-nowrap leading-tight">
+                        <MilestoneBadge number={m.number} />
+                      </span>
+                      <DebouncedRichField
+                        value={m.title || ''}
+                        className={LEFT_ALIGNED_CELL_CLASS}
+                        cellSurface
+                        disabled={!canEdit}
+                        minHeight={CELL_MIN_HEIGHT}
+                        proposalId={proposalId}
+                        staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                        placeholder="Milestone name"
+                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                      />
                     </td>
                     <td className={`${docCellStyles} break-words`}>
                       <DebouncedRichField
@@ -745,7 +769,7 @@ export function MilestonesEditor({
                         className={LEFT_ALIGNED_CELL_CLASS}
                         cellSurface
                         disabled={!canEdit}
-                        minHeight="0"
+                        minHeight={CELL_MIN_HEIGHT}
                         proposalId={proposalId}
                         staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
                         placeholder="Means of verification"
@@ -793,7 +817,20 @@ export function MilestonesEditor({
                         )}
                       />
                     </td>
-                    <td className={docCellStyles}>
+                    {/* The delete button lives in the page's right margin,
+                        mirroring the drag grips on the left, so no editor-only
+                        column intrudes on the 18 cm document table. */}
+                    <td className={`${docCellStyles} relative`}>
+                      {canEdit && (
+                        <Button
+                          size="icon" variant="ghost"
+                          className="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
+                          onClick={() => deleteMilestone.mutate(m.id)}
+                          aria-label="Delete milestone"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       <SingleMonthPicker
                         value={m.due_month}
                         projectDuration={duration}
@@ -803,40 +840,12 @@ export function MilestonesEditor({
                         onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
                       />
                     </td>
-                    {/* Row action in its own cell: a bare div in a <tr> is not
-                        laid out as a cell and would disappear. */}
-                    <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
-                      <Button
-                        size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
-                        disabled={!canEdit}
-                        onClick={() => deleteMilestone.mutate(m.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
+
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        )}
-
-        {canEdit && (
-          <div className="flex items-center justify-end gap-2 pt-3">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="bg-muted hover:bg-muted/80 text-foreground"
-                  onClick={() => setMsReorderOpen(true)}
-                >
-                  <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
-            </Tooltip>
-          </div>
         )}
 
 
@@ -1069,6 +1078,15 @@ export function RisksEditor({
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
+        {/* The template captions this table (Table 3.1.e in the export). */}
+        <EditableCaption
+          proposalId={proposalId}
+          tableKey="risks"
+          label="Table 3.1.e."
+          defaultCaption="Critical risks for implementation"
+          canEdit={canEdit}
+          className="mb-0"
+        />
         {risks.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground italic">No risks yet.</div>
         ) : (
@@ -1088,8 +1106,9 @@ export function RisksEditor({
                 style={{
                   tableLayout: 'fixed',
                   width: riskSized
-                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 28}px`
-                    : '100%',
+                    ? `${riskColWidths.reduce((s, w) => s + w, 0)}px`
+                    : DOC_TEXT_COLUMN,
+                  maxWidth: 'none',
                   borderCollapse: 'collapse',
                 }}
               >
@@ -1097,8 +1116,6 @@ export function RisksEditor({
                   {RISK_COL_PCT.map((pct, i) => (
                     <col key={i} style={{ width: riskSized ? `${riskColWidths[i]}px` : pct }} />
                   ))}
-                  {/* Editor-only action column; never part of the document table. */}
-                  <col style={{ width: '28px' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -1117,7 +1134,6 @@ export function RisksEditor({
                         )}
                       </th>
                     ))}
-                    <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
                   </tr>
                 </thead>
 
@@ -1191,9 +1207,10 @@ function SortableRiskRow({
           className={LEFT_ALIGNED_CELL_CLASS}
           cellSurface
           disabled={!canEdit}
-          minHeight="0"
+          minHeight={CELL_MIN_HEIGHT}
           proposalId={proposalId}
           staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          placeholder="Risk description"
           onChange={(html) => onUpdate({ title: html })}
         />
       </td>
@@ -1222,29 +1239,30 @@ function SortableRiskRow({
           onChange={onSetWps}
         />
       </td>
-      <td className={`${docCellStyles} break-words`}>
+      {/* Delete sits in the page's right margin, mirroring the grip on the
+          left, so the document table keeps exactly its five columns. */}
+      <td className={`${docCellStyles} relative break-words`}>
+        {canEdit && (
+          <Button
+            size="icon" variant="ghost"
+            className="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
+            onClick={onDelete}
+            aria-label="Delete risk"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
         <DebouncedRichField
           value={risk.mitigation || ''}
           className={LEFT_ALIGNED_CELL_CLASS}
           cellSurface
           disabled={!canEdit}
-          minHeight="0"
+          minHeight={CELL_MIN_HEIGHT}
           proposalId={proposalId}
           staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
           placeholder="Mitigation & adaptation measures"
           onChange={(html) => onUpdate({ mitigation: html })}
         />
-      </td>
-      {/* Row action in its own cell: a bare div in a <tr> is not laid out as
-          a cell and would disappear. */}
-      <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
-        <Button
-          size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
-          disabled={!canEdit}
-          onClick={onDelete}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
       </td>
     </tr>
   );

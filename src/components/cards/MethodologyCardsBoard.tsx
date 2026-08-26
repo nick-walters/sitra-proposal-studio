@@ -20,6 +20,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowUpDown,
   ChevronDown,
   ChevronsDownUp,
   ChevronsUpDown,
@@ -1169,6 +1170,9 @@ function CardBlock({
      action up here on mount. */
   const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
   const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
+  // Milestones also hand up a "Reorder" action, shown beside "Add".
+  const [relationalReorder, setRelationalReorder] = useState<(() => void) | null>(null);
+  const registerRelationalReorder = useCallback((fn: () => void) => setRelationalReorder(() => fn), []);
 
 
   // Dragging also collapses (kept from before); the user's own collapse
@@ -1355,12 +1359,22 @@ function CardBlock({
                 </Button>
               </Tip>
             ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
-              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
-                <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </Tip>
+              <div className="flex items-center">
+                {isMilestonesCard && relationalReorder && (
+                  <Tip label="Manually reorder milestones that share the same due month">
+                    <Button variant="ghost" size="sm" onClick={() => relationalReorder()}>
+                      <ArrowUpDown className="mr-1 h-3.5 w-3.5" />
+                      Reorder
+                    </Button>
+                  </Tip>
+                )}
+                <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
+                  <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Add
+                  </Button>
+                </Tip>
+              </div>
             ) : canAddModule ? (
 
               <Tip label="Add module to this block">
@@ -1470,6 +1484,7 @@ function CardBlock({
                 proposalId={proposalId}
                 canEdit={canEdit}
                 onRegisterAdd={registerRelationalAdd}
+                onRegisterReorder={registerRelationalReorder}
               />
             </div>
           ) : isRisksCard ? (
