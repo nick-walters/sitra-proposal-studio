@@ -587,7 +587,7 @@ export function emitSubcontracting(
   ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    `he-cell-table(${storedCols(data, 'subcontracting', 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${costCols(data, 'subcontracting')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
 
   ];
 }
@@ -611,7 +611,7 @@ export function emitMergedJustification(
     caption(data, tableKey, label, defaultCaption),
     // `tableKey` is the same key the editor's own resizable table stores under
     // (`purchase-costs`, `equipment`, `other-direct-costs`, …).
-    `he-cell-table(${storedCols(data, tableKey, 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${costCols(data, tableKey)}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
 
   ];
 }
