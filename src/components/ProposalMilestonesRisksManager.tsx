@@ -168,7 +168,10 @@ const docFirstCellStyles = `${docCellStyles} !pl-0`;
 /* Controls read as cell text until hovered or focused. Editable surfaces must
    name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
 const SUBTLE_CONTROL =
-  "w-full bg-transparent border border-transparent rounded-[2px] px-1 py-0 text-left " +
+  // No horizontal padding of its own: the cell already supplies the shared
+  // 3pt inset, and a second 4px inside every control doubled the gap between
+  // these columns compared with the other document tables.
+  "w-full bg-transparent border border-transparent rounded-[2px] px-0 py-0 text-left " +
   "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight " +
   'hover:border-input focus:border-input focus:outline-none focus-visible:outline-none ' +
   'disabled:opacity-70 disabled:cursor-not-allowed';
@@ -1328,7 +1331,7 @@ function RiskLevelSelect({
         hideArrow
         className={cellSurface
           ? `${SUBTLE_CONTROL} h-auto min-h-0 py-[1px] inline-flex justify-start focus:ring-0`
-          : 'h-8 w-auto inline-flex px-1 border-0 bg-transparent focus:ring-0'}
+          : 'h-8 w-auto inline-flex px-0 border-0 bg-transparent focus:ring-0'}
       >
         <span className="inline-flex items-center">
           {value ? <RiskBadge level={value} /> : <span className="text-muted-foreground">—</span>}
@@ -1444,7 +1447,7 @@ function WPMultiSelect({
             </span>
           </button>
         ) : (
-          <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-1.5 whitespace-normal" disabled={disabled}>
+          <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-0 whitespace-normal" disabled={disabled}>
             <span className="flex flex-wrap gap-0.5 w-full">
               {selectedWps.length === 0
                 ? <span className="text-muted-foreground">Select…</span>
