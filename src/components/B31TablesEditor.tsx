@@ -245,17 +245,12 @@ function MirrorTable({
    * Word-like widths: once the user has saved widths, they are the single source
    * of truth (a drag moves only the two adjacent borders, so no other column
    * shifts). Fit columns are protected by `minWidths` during the drag instead of
-   * being overridden here, and the total is capped at the 18cm text column so the
-   * last column can never spill into the right margin.
+   * being overridden here. There is no upper cap: the last column's grip may
+   * take the table past the 18cm text column.
    */
   const effectiveWidths = useMemo(() => {
     if (hasSaved) {
       const widths = columns.map((c, i) => Math.max(24, colWidths[i]));
-      const total = widths.reduce((a, b) => a + b, 0);
-      if (total > MAX_TABLE_WIDTH_PX) {
-        const scale = MAX_TABLE_WIDTH_PX / total;
-        return widths.map((w) => Math.floor(w * scale));
-      }
       return widths;
     }
     return columns.map((c, i) => {
@@ -299,7 +294,7 @@ function MirrorTable({
   const fitCols = columns.map((c, i) => (c.fit ? i + 1 : 0)).filter(Boolean);
 
   const totalWidth = effectiveWidths.every((w) => typeof w === 'number')
-    ? Math.min(MAX_TABLE_WIDTH_PX, (effectiveWidths as number[]).reduce((a, b) => a + b, 0))
+    ? (effectiveWidths as number[]).reduce((a, b) => a + b, 0)
     : '100%';
 
 
@@ -317,7 +312,7 @@ function MirrorTable({
       style={{
         tableLayout: 'fixed',
         width: totalWidth,
-        maxWidth: '100%',
+        maxWidth: 'none',
         borderCollapse: 'collapse',
       }}
     >

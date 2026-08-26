@@ -481,8 +481,7 @@ export default function LinkedActivitiesTable({
               className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 [&_tbody_tr:last-child]:border-b-0`}
               style={{
                 tableLayout: 'fixed',
-                width: sized ? `${Math.min(colWidths.reduce((s, w) => s + w, 0), BLOCK_WIDTH)}px` : '100%',
-                maxWidth: `${BLOCK_WIDTH}px`,
+                width: sized ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
                 borderCollapse: 'collapse',
               }}
             >

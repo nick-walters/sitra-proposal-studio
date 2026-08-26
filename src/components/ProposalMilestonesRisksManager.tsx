@@ -662,13 +662,12 @@ export function MilestonesEditor({
           <table
             ref={msTableRef}
             data-table-key="b31-milestones"
-            className={`${docTableStyles} ${docTableRules} w-full max-w-full`}
+            className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
               width: msSized
-                ? `${Math.min(msColWidths.reduce((s, w) => s + w, 0) + 76, DOC_BLOCK_WIDTH)}px`
+                ? `${msColWidths.reduce((s, w) => s + w, 0) + 76}px`
                 : '100%',
-              maxWidth: `${DOC_BLOCK_WIDTH}px`,
               borderCollapse: 'collapse',
             }}
           >
@@ -1061,13 +1060,12 @@ export function RisksEditor({
               <table
                 ref={riskTableRef}
                 data-table-key="b31-risks"
-                className={`${docTableStyles} ${docTableRules} w-full max-w-full`}
+                className={`${docTableStyles} ${docTableRules} w-full`}
                 style={{
                   tableLayout: 'fixed',
                   width: riskSized
-                    ? `${Math.min(riskColWidths.reduce((s, w) => s + w, 0) + 76, DOC_BLOCK_WIDTH)}px`
+                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 76}px`
                     : '100%',
-                  maxWidth: `${DOC_BLOCK_WIDTH}px`,
                   borderCollapse: 'collapse',
                 }}
               >

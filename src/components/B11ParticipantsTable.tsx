@@ -203,7 +203,6 @@ export function B11ParticipantsTable({ proposalId }: Props) {
           className="first-col-flush"
           style={{
             width: '100%',
-            maxWidth: '18cm',
             borderCollapse: 'collapse',
             tableLayout: colWidths.length === NUM_COLS ? 'fixed' : 'auto',
             fontFamily: baseFont,

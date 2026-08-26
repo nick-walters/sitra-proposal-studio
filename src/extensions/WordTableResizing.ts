@@ -8,15 +8,16 @@ import type { EditorView } from '@tiptap/pm/view';
  * Word-like column resizing for document tables.
  *
  * Rules (mirroring MS Word):
- * - The table is confined to the 18cm text column and spans it by default.
+ * - The table spans the 18cm text column by default, but is NOT confined to
+ *   it: the last column's grip may drag the table wider or narrower.
  * - Dragging an INTERNAL border only moves that border: the column to its left
  *   grows/shrinks and the column to its right compensates. Every other column
  *   keeps its exact position and width; the total table width is unchanged.
  * - Dragging the RIGHT border of the LAST column changes the total table width,
- *   so a table can be made narrower than 18cm (never wider).
+ *   with no upper bound: a small table may read better narrow, a dense one may
+ *   need more room than the text column. The printed output scales it back.
  */
 
-const MAX_TABLE_WIDTH_PX = (18 / 2.54) * 96; // 18cm at 96dpi
 const MIN_COL_WIDTH = 24;
 const HANDLE_ZONE = 6;
 
@@ -60,12 +61,6 @@ function measureColumnWidths(table: HTMLTableElement): number[] {
     cols.forEach((c) => widths.push(c.getBoundingClientRect().width));
   }
   return widths.map((w) => Math.max(MIN_COL_WIDTH, Math.round(w)));
-}
-
-function maxWidthFor(table: HTMLTableElement): number {
-  const parent = table.parentElement;
-  const available = parent ? parent.clientWidth : 0;
-  return Math.round(Math.min(MAX_TABLE_WIDTH_PX, available > 0 ? available : MAX_TABLE_WIDTH_PX));
 }
 
 /** Live DOM preview while dragging. */
@@ -123,7 +118,6 @@ export const WordTableResizing = Extension.create({
       startX: number;
       startWidths: number[];
       isLast: boolean;
-      maxWidth: number;
       widths: number[];
     } | null = null;
 
@@ -134,9 +128,7 @@ export const WordTableResizing = Extension.create({
       const widths = drag.startWidths.slice();
       const i = drag.colIndex;
       if (drag.isLast) {
-        const total = drag.startWidths.reduce((a, b) => a + b, 0);
-        const maxDelta = drag.maxWidth - total;
-        const clamped = Math.max(MIN_COL_WIDTH - widths[i], Math.min(delta, maxDelta));
+        const clamped = Math.max(MIN_COL_WIDTH - widths[i], delta);
         widths[i] = widths[i] + clamped;
       } else {
         const min = MIN_COL_WIDTH - widths[i];
@@ -264,7 +256,6 @@ export const WordTableResizing = Extension.create({
                 startX: event.clientX,
                 startWidths: widths,
                 isLast,
-                maxWidth: maxWidthFor(found.table),
                 widths,
               };
               // Freeze the current layout immediately so nothing shifts.
