@@ -177,8 +177,8 @@ function buildTransaction(state: EditorState, cfg: CaptionNumbering | null): Tra
  * An empty caption is otherwise a paragraph made entirely of the
  * non-editable label mark: it has no clickable text of its own, so the caret
  * cannot be placed after the label. The placeholder gives the field both a
- * visible target and a height, and it disappears while the caret is in the
- * caption — the same pattern as the milestone name and the module header.
+ * visible target and a height. It is keyed ONLY on the caption being empty —
+ * never on selection or focus — so it cannot linger hidden after a blur.
  */
 const CAPTION_PLACEHOLDER: Record<'table' | 'figure', string> = {
   table: 'Add a table caption…',
@@ -187,7 +187,6 @@ const CAPTION_PLACEHOLDER: Record<'table' | 'figure', string> = {
 
 function placeholderDecorations(state: EditorState): DecorationSet {
   const decos: Decoration[] = [];
-  const { from, to } = state.selection;
   state.doc.forEach((node, offset) => {
     const kind = isCaptionParagraph(node);
     if (!kind) return;
@@ -197,8 +196,6 @@ function placeholderDecorations(state: EditorState): DecorationSet {
     );
     const description = node.textContent.slice(consumed).trim();
     if (description) return;
-    const caretInside = from <= offset + node.nodeSize && to >= offset;
-    if (caretInside) return;
     decos.push(
       Decoration.node(offset, offset + node.nodeSize, {
         class: 'caption-empty',
