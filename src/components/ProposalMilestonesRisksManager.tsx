@@ -699,7 +699,7 @@ export function MilestonesEditor({
           tableKey="milestones"
           label="Table 3.1.d."
           defaultCaption="List of milestones"
-          canEdit={canEdit}
+          canEdit={false}
           className="mb-0"
         />
         {orderedMs.length === 0 ? (
@@ -1099,7 +1099,7 @@ export function RisksEditor({
           tableKey="risks"
           label="Table 3.1.e."
           defaultCaption="Critical risks for implementation"
-          canEdit={canEdit}
+          canEdit={false}
           className="mb-0"
         />
         {risks.length === 0 ? (
