@@ -445,11 +445,25 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
 
   // Explicit widths, not `1fr`: a cell whose content is a `block(width: 100%)`
   // measures as zero inside a fractional column, so the coloured bands would
-  // vanish entirely. 18cm = 510.24pt, less the participant and total columns
-  // and the 5pt gutters between every pair.
+  // vanish entirely. 18cm = 510.24pt, less the 5pt gutters between every pair.
+  // Where the author has resized the matrix in the editor (`effort-matrix`),
+  // those pixel widths are scaled proportionally onto the same 18 cm; where
+  // they have not, the editor's own default of a 72pt name column, a 40pt
+  // total column and equal work-package columns applies.
   const n = data.wps.length;
-  const wpWidth = Math.max(18, (510.24 - 72 - 40 - (n + 1) * 5) / n);
-  const cols = `(72pt, ${data.wps.map(() => `${wpWidth.toFixed(2)}pt`).join(', ')}, 40pt)`;
+  const gutters = (n + 1) * 5;
+  const usable = 510.24 - gutters;
+  const stored = data.columnWidths['effort-matrix'];
+  let widthsPt: number[];
+  if (stored && stored.length === n + 2 && stored.every((w) => w > 0)) {
+    const sum = stored.reduce((s, w) => s + w, 0);
+    widthsPt = stored.map((w) => (w / sum) * usable);
+  } else {
+    const wpWidth = Math.max(18, (usable - 72 - 40) / n);
+    widthsPt = [72, ...data.wps.map(() => wpWidth), 40];
+  }
+  const cols = `(${widthsPt.map((w) => `${w.toFixed(2)}pt`).join(', ')})`;
+
 
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
