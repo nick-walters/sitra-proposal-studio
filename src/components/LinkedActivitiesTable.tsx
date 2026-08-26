@@ -85,7 +85,7 @@ interface LinkedActivitiesTableProps {
 }
 
 /** Document table spec: TNR 11pt, tight cells, no vertical rules. */
-const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
+const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt] text-left [&_p]:!text-left";
 const cellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const firstCellStyles = `${cellStyles} !pl-0`;
