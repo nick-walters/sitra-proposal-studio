@@ -637,11 +637,13 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
     const value = stored[String(index)];
     return typeof value === 'string' && value.trim() ? value.trim() : fallback;
   });
-  const widths = data.columnWidths['b12-linked-activities'];
-  const cols =
-    widths && widths.length === 3
-      ? `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`
-      : '(37fr, 43fr, 20fr)';
+  const cols = storedCols(
+    data,
+    ['b12-linked-activities', 'b12.linked_activities'],
+    3,
+    '(37fr, 43fr, 20fr)',
+  );
+
 
   // The caption is code-side (the block board renders it from a default with a
   // position-derived label), so `table_captions` usually holds NO row for this
