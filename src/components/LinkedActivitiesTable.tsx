@@ -245,7 +245,7 @@ function SortableActivityRow({
 
         {/* Participant is the final content column; the trailing cell contains
             only the row action, as in other authored tables. */}
-        <td className={cellStyles}>
+        <td className={`${cellStyles} relative`}>
           <div data-scalar-field="" tabIndex={-1} className="flex min-w-0 items-center gap-1 outline-none">
             {selected ? (
               <ParticipantBubble
@@ -278,15 +278,15 @@ function SortableActivityRow({
         </td>
 
 
-        {/* Fixed delete column: identical position on every row whatever the
-            participant chip's width. */}
-        <td className="absolute left-full top-1/2 ml-1 -translate-y-1/2 p-0 text-center">
+          {/* Row actions live in the right margin, not in a document column. */}
           {canEdit && (
+            <div className="absolute left-full top-1/2 ml-1 -translate-y-1/2">
             <DeleteConfirmDialog
               itemLabel="this linked activity"
               tooltip="Delete this linked activity"
               onConfirm={() => onDelete(activity.id)}
             />
+            </div>
           )}
 
           <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
@@ -337,7 +337,6 @@ function SortableActivityRow({
               </ScrollArea>
             </DialogContent>
           </Dialog>
-        </td>
     </tr>
   );
 
