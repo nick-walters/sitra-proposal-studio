@@ -533,10 +533,11 @@ function FieldRow({
   const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
   const contentEditor = useRef<Editor | null>(null);
   const [rowTick, setRowTick] = useState(0);
-  // The page-like editing surface is now the standard for every text module
-  // in every Part B block. Case-study placeholder modules are not text
-  // modules: they render a live table, so they keep the plain module frame.
-  const isDocumentSurface = !isPlaceholder;
+  // The page-like surface is the standard for EVERY module in every Part B
+  // block, including the case-study placeholder module, whose live pilots
+  // table now sits on the same page as authored text rather than in a
+  // separate form-styled frame.
+  const isDocumentSurface = true;
 
   // The module's H3 header. On the page-styled surface it is not a form input
   // above the page: it is the first field ON the page, sharing its white
