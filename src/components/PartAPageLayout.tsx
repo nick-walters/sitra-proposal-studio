@@ -60,7 +60,7 @@ export function PartAPageLayout({
   save,
   fieldBar,
   formatting,
-  maxWidth = 'max-w-[21cm]',
+  maxWidth = 'max-w-[calc(21cm+3rem)]',
   spacing = 'space-y-6',
   padding = 'p-6',
   children,

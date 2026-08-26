@@ -624,7 +624,7 @@ function FieldRow({
         // and the symmetric negative margin lets it grow evenly past the
         // column instead of being squeezed to ~16 cm of text.
         isDocumentSurface
-          ? 'box-content w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)]'
+          ? 'w-full max-w-none'
           : 'space-y-2 p-3'
       } ${field.isVisible ? '' : 'opacity-50 print:hidden'}`}
     >
@@ -1453,10 +1453,15 @@ function CardBlock({
             the Guidelines button resolves from any of them. */}
         <CardContent
           data-guideline-key={card.templateKey ?? undefined}
-          className={contentHidden ? 'hidden' : `space-y-3 px-5 ${contentDimClass}`}
+          className={contentHidden ? 'hidden' : `space-y-3 px-0 ${contentDimClass}`}
         >
           {card.kind === 'references' ? (
-            <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
+            /* Paged for consistency with every other block. The export is
+               unchanged: references emit as per-page footnotes and this block
+               itself prints nothing. */
+            <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
+              <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
+            </div>
           ) : isMilestonesCard ? (
             /* The same page as a text module: white, 1.5 cm side margins,
                an 18 cm content column and 3 pt of air above and below. */
@@ -1477,37 +1482,45 @@ function CardBlock({
             </div>
 
           ) : isLinkedActivitiesCard ? (
-            <LinkedActivitiesTable
-              proposalId={proposalId}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-              controller={linkedActivities}
-              captionLabel={captionLabel}
-            />
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <LinkedActivitiesTable
+                proposalId={proposalId}
+                canEdit={canEdit}
+                isCoordinator={isCoordinator}
+                controller={linkedActivities}
+                captionLabel={captionLabel}
+              />
+            </div>
           ) : isPlaceholderCard ? (
-            <SourceFedBlock
-              proposalId={proposalId}
-              sourceKey={card.sourceKey}
-              kind={card.kind}
-            />
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <SourceFedBlock
+                proposalId={proposalId}
+                sourceKey={card.sourceKey}
+                kind={card.kind}
+              />
+            </div>
           ) : card.kind === 'figure' ? (
-            <CardFigureBlock
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <CardFigureBlock
               cardId={card.id}
               proposalId={proposalId}
               canEdit={canEdit}
               isCoordinator={isCoordinator}
               fullWidthOnly={figuresFullWidth}
               captionLabel={captionLabel ?? 'Figure.'}
-            />
+              />
+            </div>
           ) : (
             <>
               {/* B3.2 blocks are authored, but also mirror their A2 sources. */}
               {b32BlockHasMirrors(card.templateKey) && (
-                <B32BlockMirrors
-                  proposalId={proposalId}
-                  templateKey={card.templateKey}
-                  fields={orderedFields}
-                />
+                <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+                  <B32BlockMirrors
+                    proposalId={proposalId}
+                    templateKey={card.templateKey}
+                    fields={orderedFields}
+                  />
+                </div>
               )}
 
               <DndContext
@@ -2455,7 +2468,7 @@ function BoardInner({
       {/* 21 cm page column: a page-styled module is one full printed page
           wide (18 cm of text between two 1.5 cm margins), so the board that
           holds it — and the three toolbar tiers inside it — measure 21 cm. */}
-      <div className="mx-auto w-full max-w-[21cm] space-y-4 p-6">
+      <div className="mx-auto w-full max-w-[calc(21cm+3rem)] space-y-4 p-6">
 
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}
