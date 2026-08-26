@@ -141,7 +141,8 @@ export function emitWpList(data: B31TypstData): string[] {
     // others and the titles wrapped. First column flush (no left inset) and
     // tight padding, matching the board's own rendering of this table.
     table(
-      '(1fr, auto, auto, auto)',
+      storedCols(data, 'wp-list', 4, '(1fr, auto, auto, auto)'),
+
       [lit('Work package'), lit('WP leader'), lit('PMs'), lit('Duration')],
       rows,
       undefined,
@@ -242,7 +243,13 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
   return [
     caption(data, 'deliverables', 'Table 3.1.c.', 'List of deliverables'),
     table(
-      '(auto, 1fr, auto, auto, auto, auto, auto)',
+      storedCols(
+        data,
+        'b31-3-1-c-deliverables',
+        7,
+        '(auto, 1fr, auto, auto, auto, auto, auto)',
+      ),
+
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Diss.'), lit('Due')],
       rows,
     ),
@@ -279,18 +286,32 @@ function wpChipList(
 
 
 /**
- * Column widths and headers are taken from the EDITOR's own stored state
- * (`table_column_widths` / `table_column_headers`), so a preview reproduces
- * the table the author sees rather than a second, hardcoded layout. Stored
- * pixel widths become `fr` ratios, which Typst then fits to the 18 cm column.
+ * Column widths are taken from the EDITOR's own stored state
+ * (`table_column_widths`), so a preview reproduces the table the author sees
+ * rather than a second, hardcoded layout. Stored pixel widths become `fr`
+ * ratios, which Typst then fits to the 18 cm column.
+ *
+ * Several tables exist in two places (the B3.1 board and the older manager
+ * screen) under different keys, so `keys` is tried in order and the first
+ * stored row of the right shape wins. `fallback` is the EDITOR's own default
+ * proportions, used while a table has never been resized.
  */
-function storedCols(data: B31TypstData, key: string, count: number, fallback: string): string {
-  const widths = data.columnWidths[key];
-  if (widths && widths.length === count && widths.every((w) => w > 0)) {
-    return `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`;
+function storedCols(
+  data: B31TypstData,
+  keys: string | string[],
+  count: number,
+  fallback: string,
+): string {
+  for (const key of Array.isArray(keys) ? keys : [keys]) {
+    const widths = data.columnWidths[key];
+    if (widths && widths.length === count && widths.every((w) => w > 0)) {
+      const min = Math.min(...widths);
+      return `(${widths.map((w) => `${(w / min).toFixed(3)}fr`).join(', ')})`;
+    }
   }
   return fallback;
 }
+
 
 function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
   const stored = data.columnHeaders[key] || {};
@@ -331,7 +352,7 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   return [
     `he-caption(${typstString('Table 3.1.d.')}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
-      storedCols(data, 'b31-milestones-v2', 4, '(32fr, 34fr, 22fr, 12fr)'),
+      storedCols(data, ['b31-3-1-d-milestones', 'b31-milestones-v2'], 4, '(32fr, 34fr, 22fr, 12fr)'),
       headers.map((h) => lit(h)),
       rows,
       undefined,
@@ -363,7 +384,7 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
   return [
     caption(data, 'risks', 'Table 3.1.e.', RISKS_CAPTION),
     table(
-      storedCols(data, 'b31-risks', 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
+      storedCols(data, ['b31-3-1-e-risks', 'b31-risks'], 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
       headers.map((h) => lit(h)),
       rows,
       undefined,
@@ -424,11 +445,25 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
 
   // Explicit widths, not `1fr`: a cell whose content is a `block(width: 100%)`
   // measures as zero inside a fractional column, so the coloured bands would
-  // vanish entirely. 18cm = 510.24pt, less the participant and total columns
-  // and the 5pt gutters between every pair.
+  // vanish entirely. 18cm = 510.24pt, less the 5pt gutters between every pair.
+  // Where the author has resized the matrix in the editor (`effort-matrix`),
+  // those pixel widths are scaled proportionally onto the same 18 cm; where
+  // they have not, the editor's own default of a 72pt name column, a 40pt
+  // total column and equal work-package columns applies.
   const n = data.wps.length;
-  const wpWidth = Math.max(18, (510.24 - 72 - 40 - (n + 1) * 5) / n);
-  const cols = `(72pt, ${data.wps.map(() => `${wpWidth.toFixed(2)}pt`).join(', ')}, 40pt)`;
+  const gutters = (n + 1) * 5;
+  const usable = 510.24 - gutters;
+  const stored = data.columnWidths['effort-matrix'];
+  let widthsPt: number[];
+  if (stored && stored.length === n + 2 && stored.every((w) => w > 0)) {
+    const sum = stored.reduce((s, w) => s + w, 0);
+    widthsPt = stored.map((w) => (w / sum) * usable);
+  } else {
+    const wpWidth = Math.max(18, (usable - 72 - 40) / n);
+    widthsPt = [72, ...data.wps.map(() => wpWidth), 40];
+  }
+  const cols = `(${widthsPt.map((w) => `${w.toFixed(2)}pt`).join(', ')})`;
+
 
   return [
     caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
@@ -529,7 +564,8 @@ export function emitSubcontracting(
   ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${storedCols(data, 'subcontracting', 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+
   ];
 }
 
@@ -550,7 +586,10 @@ export function emitMergedJustification(
   ]);
   return [
     caption(data, tableKey, label, defaultCaption),
-    `he-cell-table((auto, auto, 1fr), (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    // `tableKey` is the same key the editor's own resizable table stores under
+    // (`purchase-costs`, `equipment`, `other-direct-costs`, …).
+    `he-cell-table(${storedCols(data, tableKey, 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+
   ];
 }
 
@@ -598,11 +637,13 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
     const value = stored[String(index)];
     return typeof value === 'string' && value.trim() ? value.trim() : fallback;
   });
-  const widths = data.columnWidths['b12-linked-activities'];
-  const cols =
-    widths && widths.length === 3
-      ? `(${widths.map((w) => `${Math.round(w)}fr`).join(', ')})`
-      : '(37fr, 43fr, 20fr)';
+  const cols = storedCols(
+    data,
+    ['b12-linked-activities', 'b12.linked_activities'],
+    3,
+    '(37fr, 43fr, 20fr)',
+  );
+
 
   // The caption is code-side (the block board renders it from a default with a
   // position-derived label), so `table_captions` usually holds NO row for this

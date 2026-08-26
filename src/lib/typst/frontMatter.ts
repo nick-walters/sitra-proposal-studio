@@ -262,7 +262,12 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
     return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.organisationType || '—')}), t(${typstString(p.country || '—')}))`;
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
-  const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');
+  // Ratios, not rounded pixels: `Math.round` on a dragged width (e.g. 61.4px
+  // beside 61.6px) quantised neighbouring columns to the same `fr` and lost
+  // small drags. Dividing by the narrowest column keeps the exact proportions.
+  const minShare = Math.min(...shares.map((w) => Math.max(1, w)));
+  const cols = shares.map((w) => `${(Math.max(1, w) / minShare).toFixed(3)}fr`).join(', ');
+
   out.push(`he-table((${cols},), (${header.join(', ')},), (${rows.join(', ')},))`);
   // 6pt of clear space under the table before the abbreviation legend, and the
   // same again after it, so the front matter does not run into what follows.
