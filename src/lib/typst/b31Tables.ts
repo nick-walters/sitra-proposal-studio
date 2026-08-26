@@ -534,13 +534,18 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
   // table. Emitting only on a stored override therefore dropped it entirely:
   // fall back to the same default the editor shows, and take the letter from
   // the running caption counter so editor and preview agree.
-  const numbering = ctx.captionNumbering;
   const out: string[] = [];
+  const numbering = ctx.captionNumbering;
   if (numbering) {
     const label = `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
       numbering.tableIndex++,
     )}.`;
     out.push(caption(data, 'b12.linked_activities', label, LINKED_ACTIVITIES_CAPTION));
+  } else {
+    // This relational B1.2 emitter must never lose its code-side caption merely
+    // because section metadata was unavailable while a standalone preview was
+    // assembled. B1.2 has one generated linked-activities table.
+    out.push(caption(data, 'b12.linked_activities', 'Table 1.2.a.', LINKED_ACTIVITIES_CAPTION));
   }
   out.push(
     table(

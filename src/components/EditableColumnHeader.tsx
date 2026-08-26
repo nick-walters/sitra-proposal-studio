@@ -35,10 +35,14 @@ export function EditableColumnHeader({
       suppressContentEditableWarning
       spellCheck={false}
       title="Click to rename this column"
-      // A global base rule sets Arial on every [contenteditable="true"] (for
-      // form inputs); an inline style is the only thing that beats it, so the
-      // header keeps the table's Times New Roman 11pt bold.
-      style={{ fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit' }}
+      // A global base rule sets Arial on every [contenteditable="true"]. Do not
+      // inherit here: an ancestor outside the document table may itself be
+      // Arial. The authored-table header specification is explicit.
+      style={{
+        fontFamily: '"Times New Roman", Times, serif',
+        fontSize: '11pt',
+        fontWeight: 700,
+      }}
       className="inline-block min-w-[1ch] outline-none focus:bg-primary/5"
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
