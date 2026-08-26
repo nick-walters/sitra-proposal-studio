@@ -57,6 +57,9 @@ export interface LazyRichFieldProps {
   documentSurface?: boolean;
   /** Hide the placeholder while the caret is in the field. */
   placeholderHideOnFocus?: boolean;
+  /** Start position of the placeholder, used when a badge floats at the
+   *  start of the first line and the hint must begin after it. */
+  placeholderIndent?: string;
   /** Bare text presentation when the field already sits inside a table cell. */
   cellSurface?: boolean;
 }
@@ -114,6 +117,7 @@ export function LazyRichField({
   autoFocus = false,
   documentSurface = false,
   placeholderHideOnFocus = false,
+  placeholderIndent,
   cellSurface = false,
 }: LazyRichFieldProps) {
 
@@ -320,6 +324,7 @@ export function LazyRichField({
           placeholder={placeholder}
           documentSurface={documentSurface}
           placeholderHideOnFocus={placeholderHideOnFocus}
+          placeholderIndent={placeholderIndent}
           cellSurface={cellSurface}
         />
 
@@ -328,6 +333,7 @@ export function LazyRichField({
           {placeholder && isHtmlBlank(staticHtml) && (
             <span
               aria-hidden
+              style={placeholderIndent ? { left: placeholderIndent } : undefined}
               className={cn(
                 'pointer-events-none absolute select-none text-muted-foreground',
                 documentSurface

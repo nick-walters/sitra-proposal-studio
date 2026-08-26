@@ -149,7 +149,9 @@ const RISK_LINE1_GRID =
    TNR 11pt, bold header with a 1.5px black rule, 1px light rules between
    rows and none under the last, no vertical rules, tight padding, flush
    outer edges. The 18 cm text column in CSS pixels caps every table. */
-const DOC_BLOCK_WIDTH = 768;
+/* 18 cm in CSS pixels (18 / 2.54 * 96). The 21 cm page is 794 px; using that
+   figure here was what pushed these tables past the margin. */
+const DOC_BLOCK_WIDTH = 680;
 /** The page's content column: 21 cm page less 1.5 cm of margin each side. */
 const DOC_TEXT_COLUMN = '18cm';
 /** Empty rich cells keep one line of height so the caret can be placed. */
@@ -194,6 +196,7 @@ function MilestoneBadge({ number }: { number: number | null | undefined }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: '#000', color: '#fff', fontFamily: "'Times New Roman', Times, serif",
       fontSize: '11pt', fontWeight: 700, lineHeight: '17px', height: '17px', padding: '0 6px',
+      position: 'relative', top: '2px',
       clipPath: 'polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%)',
       minWidth: 38,
     }}>
@@ -663,7 +666,9 @@ export function MilestonesEditor({
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
-      tableKey: 'b31-milestones',
+      // Key bumped: widths saved before the column set changed described a
+      // different table and could not be reconciled, so they are discarded.
+      tableKey: 'b31-milestones-v2',
       canResize: canEdit,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
@@ -711,7 +716,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones"
+            data-table-key="b31-milestones-v2"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
@@ -774,6 +779,10 @@ export function MilestonesEditor({
                         proposalId={proposalId}
                         staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
                         placeholder="Milestone name"
+                        // The badge floats at the start of the line; the hint
+                        // is absolutely positioned, so it must be pushed past
+                        // the badge by hand to read as following text.
+                        placeholderIndent="calc(38px + 0.25rem)"
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                       />
                     </td>
