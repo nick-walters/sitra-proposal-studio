@@ -1129,8 +1129,10 @@ export function RisksEditor({
 }
 
 
-// ── Sortable rows for the risks table: scalars, then mitigation full-width ──
-// Risks carry no printed number, so the first cell holds only the grip.
+// ── Sortable row for the risks table: one <tr> per risk ──
+// Risks carry no printed number. The drag grip is not a column: it is
+// absolutely positioned in the page's left margin, so the description column
+// starts flush at the inner edge of the text column.
 function SortableRiskRow({
   risk, wps, canEdit, onUpdate, onSetWps, onDelete, proposalId,
 }: {
@@ -1146,98 +1148,88 @@ function SortableRiskRow({
     id: risk.id,
     disabled: !canEdit,
   });
-  // Both rows of the pair carry the same transform so a dragged risk moves whole.
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <Fragment>
-      {/* Scalar line: grip, description, likelihood, severity, WP(s), delete.
-          The rule sits under the mitigation row, so it falls between risks. */}
-      <tr ref={setNodeRef} style={style} id={`risk-row-${risk.id}`} className="!border-b-0">
-        <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
-          {canEdit && (
-            <button
-              type="button"
-              className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
-              {...attributes}
-              {...listeners}
-              aria-label="Drag to reorder"
-            >
-              <GripVertical className="h-4 w-4 text-[#2563EB]" />
-            </button>
-          )}
-        </td>
-        <td className={`${docCellStyles} break-words`}>
-          <DebouncedRichField
-            value={risk.title || ''}
-            className={LEFT_ALIGNED_CELL_CLASS}
-            cellSurface
-            disabled={!canEdit}
-            minHeight="0"
-            proposalId={proposalId}
-            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-            onChange={(html) => onUpdate({ title: html })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <RiskLevelSelect
-            value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
-            disabled={!canEdit}
-            cellSurface
-            onChange={(v) => onUpdate({ likelihood: v })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <RiskLevelSelect
-            value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
-            disabled={!canEdit}
-            cellSurface
-            onChange={(v) => onUpdate({ severity: v })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <WPMultiSelect
-            allWps={wps}
-            selectedIds={risk.wp_ids}
-            disabled={!canEdit}
-            cellSurface
-            onChange={onSetWps}
-          />
-        </td>
-        {/* Row action in its own cell: a bare div in a <tr> is not laid out as
-            a cell and would disappear. */}
-        <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
-          <Button
-            size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
-            disabled={!canEdit}
-            onClick={onDelete}
+    <tr ref={setNodeRef} style={style} id={`risk-row-${risk.id}`}>
+      <td className={`${docFirstCellStyles} relative break-words`}>
+        {canEdit && (
+          <button
+            type="button"
+            className="absolute right-full top-1/2 mr-1 -translate-y-1/2 cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
           >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </td>
-      </tr>
-      {/* Mitigation & adaptation measures: its own full-width row beneath. */}
-      <tr style={style}>
-        <td data-noresize="" className={docFirstCellStyles} />
-        <td className={`${docCellStyles} break-words`} colSpan={5}>
-          <DebouncedRichField
-            value={risk.mitigation || ''}
-            className={LEFT_ALIGNED_CELL_CLASS}
-            cellSurface
-            disabled={!canEdit}
-            minHeight="0"
-            proposalId={proposalId}
-            staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-            placeholder="Mitigation & adaptation measures"
-            onChange={(html) => onUpdate({ mitigation: html })}
-          />
-        </td>
-      </tr>
-    </Fragment>
+            <GripVertical className="h-4 w-4 text-[#2563EB]" />
+          </button>
+        )}
+        <DebouncedRichField
+          value={risk.title || ''}
+          className={LEFT_ALIGNED_CELL_CLASS}
+          cellSurface
+          disabled={!canEdit}
+          minHeight="0"
+          proposalId={proposalId}
+          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ title: html })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <RiskLevelSelect
+          value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          cellSurface
+          onChange={(v) => onUpdate({ likelihood: v })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <RiskLevelSelect
+          value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          cellSurface
+          onChange={(v) => onUpdate({ severity: v })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <WPMultiSelect
+          allWps={wps}
+          selectedIds={risk.wp_ids}
+          disabled={!canEdit}
+          cellSurface
+          onChange={onSetWps}
+        />
+      </td>
+      <td className={`${docCellStyles} break-words`}>
+        <DebouncedRichField
+          value={risk.mitigation || ''}
+          className={LEFT_ALIGNED_CELL_CLASS}
+          cellSurface
+          disabled={!canEdit}
+          minHeight="0"
+          proposalId={proposalId}
+          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+          placeholder="Mitigation & adaptation measures"
+          onChange={(html) => onUpdate({ mitigation: html })}
+        />
+      </td>
+      {/* Row action in its own cell: a bare div in a <tr> is not laid out as
+          a cell and would disappear. */}
+      <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
+        <Button
+          size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
+          disabled={!canEdit}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </td>
+    </tr>
   );
+
 }
 
 
