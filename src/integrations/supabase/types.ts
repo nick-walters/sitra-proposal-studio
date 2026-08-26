@@ -7176,12 +7176,10 @@ export type Database = {
         Args: { p_template_type_id: string }
         Returns: string
       }
-      migrate_b12_to_cards:
-        | { Args: { p_proposal_id: string }; Returns: Json }
-        | {
-            Args: { p_confirm_overwrite: boolean; p_proposal_id: string }
-            Returns: Json
-          }
+      migrate_b12_to_cards: {
+        Args: { p_confirm_overwrite: boolean; p_proposal_id: string }
+        Returns: Json
+      }
       move_child_to_wp: {
         Args: {
           p_expected_version?: number
