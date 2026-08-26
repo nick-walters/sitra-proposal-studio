@@ -240,8 +240,8 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
     't("Short name")',
     't("Participant legal name | ") + emph(t("English name, if different"))',
     't("")',
-    't("Type")',
     't("Lead roles")',
+    't("Type")',
     't("Country")',
   ];
   const rows = fm.participants.map((p) => {
@@ -254,12 +254,13 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
     const logo = p.logoPath
       ? `align(center, image(${typstString(p.logoPath)}, height: 8mm, fit: "contain"))`
       : 't("—")';
-    const roles = p.roles.length ? p.roles.map(bubble).join(' + t(" ") + ') : 't("—")';
-    return `(${short}, ${name}, ${logo}, t(${typstString(p.organisationType || '—')}), ${roles}, t(${typstString(p.country || '—')}))`;
+    const roles = p.roles.length ? p.roles.map(bubble).join(' + t(" ") + ') : 't("")';
+    return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.organisationType || '—')}), t(${typstString(p.country || '—')}))`;
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
   const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');
   out.push(`he-table((${cols},), (${header.join(', ')},), (${rows.join(', ')},))`);
+  out.push('text(size: 8pt, t("HES: Higher or secondary education establishment; RES: Research organisation; SME: Small or medium-sized enterprise; LE: Large enterprise; PUB: Public body; INT: International organisation; OTH: Other."))');
   return out;
 }
 

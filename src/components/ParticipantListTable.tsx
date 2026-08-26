@@ -75,8 +75,8 @@ export function ParticipantListTable({
               <th style={{ width: '12%' }}>Short name</th>
               <th style={{ width: '40%' }}>Legal name</th>
               <th style={{ width: '8%' }} aria-label="Logo" />
-              <th style={{ width: '8%' }}>Type</th>
               <th style={{ width: '15%' }}>Lead roles</th>
+              <th style={{ width: '8%' }}>Type</th>
               <th style={{ width: '20%' }}>Country</th>
             </tr>
           </thead>
@@ -208,15 +208,12 @@ export function ParticipantListTable({
                           </Tooltip>
                         ))}
                         
-                        {participant.participantNumber !== 1 && wpLead.length === 0 && caseLead.length === 0 && (
-                          <span>—</span>
-                        )}
                       </span>
                     </p>
                   </td>
 
                   <td>
-                    <p>{participant.organisationCategory || '—'}</p>
+                    <p className="font-normal">{participant.organisationCategory || '—'}</p>
                   </td>
                   
                   {/* Country */}
@@ -227,6 +224,13 @@ export function ParticipantListTable({
               );
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={7} className="text-[8pt] font-normal">
+                HES: Higher or secondary education establishment; RES: Research organisation; SME: Small or medium-sized enterprise; LE: Large enterprise; PUB: Public body; INT: International organisation; OTH: Other.
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </TooltipProvider>

@@ -336,11 +336,6 @@ function ParticipantCard({
             )}
           </div>
 
-          {/* Horizon Europe legal entity type abbreviation. */}
-          <div className="w-12 shrink-0 text-sm font-bold">
-            {participant.organisationCategory || '—'}
-          </div>
-          
           {/* Roles/Leadership badges */}
           <div className="w-28 shrink-0 flex flex-col gap-0.5 items-start">
             {participant.participantNumber === 1 && (
@@ -400,6 +395,11 @@ function ParticipantCard({
 
               })
             )}
+          </div>
+
+          {/* Horizon Europe legal entity type abbreviation. */}
+          <div className="w-12 shrink-0 text-sm font-normal">
+            {participant.organisationCategory || '—'}
           </div>
           
           {/* Country - searchable dropdown */}
@@ -743,8 +743,8 @@ export function ParticipantListView({
                     <div className="w-24 text-left"># / Short</div>
                     <div className="flex-1 min-w-0 text-left">Organisation</div>
                     <div className="w-10 text-left">Logo</div>
-                    <div className="w-12 text-left">Type</div>
                     <div className="w-28 text-left">Lead roles</div>
+                    <div className="w-12 text-left">Type</div>
                     <div className="text-left" style={{ width: '140px' }}>Country</div>
                     <div className="w-10" />
                   </div>
