@@ -547,11 +547,24 @@ export function buildSectionTypstBody(
   // chains this converter builds would spill out as literal text.
   const body = out.map((expr) => `#{\n${expr}\n}`).join('\n\n');
   return {
-    source: `${buildTypstPreamble(options.meta || {})}\n${body}\n`,
+    source: body,
     unsupported: Array.from(ctx.unsupported).sort(),
     blockCount: tree.cards.length,
   };
 }
+
+/** One section, compiled on its own: the preamble plus that section's body. */
+export function buildSectionTypstDocument(
+  tree: SectionBlockTree,
+  options: BuildTypstOptions = {},
+): BuiltTypstDocument {
+  const built = buildSectionTypstBody(tree, options);
+  return {
+    ...built,
+    source: `${buildTypstPreamble(options.meta || {})}\n${built.source}\n`,
+  };
+}
+
 
 /**
  * Derives the numbered H1/H2 pair for a section. Nothing here is stored: the
