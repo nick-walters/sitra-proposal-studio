@@ -532,7 +532,13 @@ function costCells(
     );
     // Every line plus the participant's own subtotal row.
     const span = lines.length + 1;
-    cells.push(`table.cell(rowspan: ${span}, ${participantChip(bucket.participant)})`);
+    // The merged participant cell is TOP aligned: `he-cell-table` centres
+    // cells on the horizon, which over a tall rowspan floated the badge into
+    // the middle of the participant's block instead of sitting on its first
+    // line, as it does in the editor.
+    cells.push(
+      `table.cell(rowspan: ${span}, align: left + top, ${participantChip(bucket.participant)})`,
+    );
     for (const line of lines) {
       cells.push(
         lit(formatCurrency(line.item.amount)),
