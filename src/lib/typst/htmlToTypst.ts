@@ -223,8 +223,19 @@ function convertCaption(el: Element, ctx: ConvertContext): string {
   const label = derivedLabel || storedLabel;
   const clone = el.cloneNode(true) as Element;
   clone.querySelectorAll('[data-caption-label]').forEach((n) => n.remove());
+  // Captions are italic as a whole (`he-caption` emphasises them). Stored
+  // captions usually wrap their text in <em>, which in Typst would TOGGLE the
+  // emphasis back to upright — so unwrap those marks here and let the helper
+  // supply the single, authoritative italic.
+  clone.querySelectorAll('em, i').forEach((n) => {
+    const parent = n.parentNode;
+    if (!parent) return;
+    while (n.firstChild) parent.insertBefore(n.firstChild, n);
+    parent.removeChild(n);
+  });
   const rest = convertInlineChildren(clone, ctx);
   const helper = isFigure ? 'he-figure-caption' : 'he-caption';
+
   return `${helper}(${typstString(label)}, ${rest})`;
 }
 
