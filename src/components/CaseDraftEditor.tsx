@@ -867,7 +867,9 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           const guideline = sub.guideline || '';
 
           return (
-            <Card key={sub.id} id={`case-subsection-${sub.key}`}>
+            // Keyed by case AND subsection: switching pilots must build fresh
+            // fields rather than rebind a live editor to another case's row.
+            <Card key={`${caseId}:${sub.id}`} id={`case-subsection-${sub.key}`}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />

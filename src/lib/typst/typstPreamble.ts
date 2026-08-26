@@ -217,7 +217,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// contain U+2605, so a literal star is silently dropped by the PDF compiler.
 /// Keeping this as a vector also matches the Lucide filled-star icon used by
 /// the editor and avoids loading another font solely for one glyph.
-#let chip-star(colour: black, size: 7pt) = box(
+#let chip-star(colour, size: 7pt) = box(
   baseline: 1.5pt,
   width: size,
   height: size,
