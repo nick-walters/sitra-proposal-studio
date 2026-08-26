@@ -24,8 +24,9 @@ describe('CaptionAutoNumber', () => {
       { sectionNumber: '1.1', tableOffset: 1, figureOffset: 0 },
     );
 
-    expect(html).toContain('data-caption-label');
-    expect(html).toContain('Table 1.1.b. ');
+    expect(html).not.toContain('data-caption-label');
+    expect(html).not.toContain('Table 1.1.b. ');
+    expect(html).toContain('Starting &amp; target technology readiness levels');
   });
 
   it('inserts a derived label into a migrated empty-label caption', () => {
@@ -46,8 +47,9 @@ describe('CaptionAutoNumber', () => {
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
 
-    expect(editor.getText()).toBe('Table 1.1.a. TRL progression');
-    expect(editor.getHTML()).toContain('data-caption-label');
+    expect(editor.getText()).toBe('TRL progression');
+    expect(editor.getHTML()).not.toContain('data-caption-label');
+    expect(editor.view.dom.querySelector('[data-caption-label]')?.textContent).toBe('Table 1.1.a. ');
     editor.destroy();
   });
 
@@ -68,13 +70,15 @@ describe('CaptionAutoNumber', () => {
     editor.view.dispatch(
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
-    expect(editor.getText()).toBe('Table 2.1.a. Impact summary canvas');
+    expect(editor.getText()).toBe('Impact summary canvas');
+    expect(editor.view.dom.querySelector('[data-caption-label]')?.textContent).toBe('Table 2.1.a. ');
 
     tableOffset = 2;
     editor.view.dispatch(
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
-    expect(editor.getText()).toBe('Table 2.1.c. Impact summary canvas');
+    expect(editor.getText()).toBe('Impact summary canvas');
+    expect(editor.view.dom.querySelector('[data-caption-label]')?.textContent).toBe('Table 2.1.c. ');
     editor.destroy();
   });
 
@@ -106,8 +110,32 @@ describe('CaptionAutoNumber', () => {
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
 
-    expect(editor.getText()).toBe(expectedText);
-    expect(editor.getHTML()).toContain('data-caption-label');
+    expect(editor.getText()).toBe(expectedText.replace(/^Table \d+\.\d+\.[a-z]\. /, ''));
+    expect(editor.getHTML()).not.toContain('data-caption-label');
+    expect(editor.view.dom.querySelector('[data-caption-label]')?.textContent).toBe(
+      expectedText.match(/^Table \d+\.\d+\.[a-z]\. /)?.[0],
+    );
+    editor.destroy();
+  });
+
+  it('accepts text in a caption whose authored description is empty', () => {
+    const editor = new Editor({
+      extensions: [
+        StarterKit.configure({ paragraph: false }),
+        CaptionParagraph,
+        CaptionLabel,
+        CaptionAutoNumber.configure({
+          getConfig: () => ({ sectionNumber: '1.1', tableOffset: 1, figureOffset: 0 }),
+        }),
+      ],
+      content: '<p class="document-table-caption"></p>',
+    });
+
+    editor.commands.setTextSelection(1);
+    expect(editor.commands.insertContent('New caption')).toBe(true);
+    expect(editor.getText()).toBe('New caption');
+    expect(editor.getHTML()).not.toContain('Table 1.1.b.');
+    expect(editor.view.dom.querySelector('[data-caption-label]')?.textContent).toBe('Table 1.1.b. ');
     editor.destroy();
   });
 });

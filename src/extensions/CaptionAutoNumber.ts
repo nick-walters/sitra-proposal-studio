@@ -22,12 +22,9 @@ export interface CaptionNumbering {
 const LABEL_PATTERN = /^\s*(Figure|Table)\s+\d+(?:\.\d+)*\.[a-z]+\.[ \u00A0]?/i;
 
 /**
- * Materialise derived labels before TipTap parses a field for the first time.
- *
- * Most captions already carry a populated captionLabel mark. Migrated module
- * captions can instead contain only the canonical paragraph class and their
- * description. Seeding those labels here makes the first editor paint
- * deterministic; CaptionAutoNumber continues to own subsequent renumbering.
+ * Remove stored/legacy labels before TipTap parses a field. Labels are derived
+ * from document position and rendered as widgets, so caption paragraphs contain
+ * only authored description text (or are genuinely empty).
  */
 export function materializeCaptionLabels(
   html: string,
@@ -37,15 +34,8 @@ export function materializeCaptionLabels(
 
   const holder = document.createElement('div');
   holder.innerHTML = html;
-  const section = cfg.sectionNumber.replace(/^[A-Za-z]+/, '');
-  let tableIdx = cfg.tableOffset;
-  let figureIdx = cfg.figureOffset;
-
   Array.from(holder.children).forEach((element) => {
-    if (element.matches('div[data-cases-table-node]')) {
-      tableIdx += 1;
-      return;
-    }
+    if (element.matches('div[data-cases-table-node]')) return;
     if (!(element instanceof HTMLParagraphElement)) return;
 
     const cls = element.className || '';
@@ -62,24 +52,17 @@ export function materializeCaptionLabels(
             : null;
     if (!kind) return;
 
-    const index = kind === 'figure' ? figureIdx++ : tableIdx++;
-    const desired = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
     const existingLabel = element.querySelector('[data-caption-label]');
     if (existingLabel) {
-      existingLabel.textContent = desired;
-      return;
+      existingLabel.remove();
+    } else if (match) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const firstText = walker.nextNode();
+      if (firstText) firstText.textContent = (firstText.textContent ?? '').slice(match[0].length);
     }
-
-    if (match) {
-      const firstText = element.firstChild;
-      if (firstText?.nodeType === Node.TEXT_NODE) {
-        firstText.textContent = (firstText.textContent ?? '').slice(match[0].length);
-      }
-    }
-    const label = document.createElement('span');
-    label.setAttribute('data-caption-label', '');
-    label.textContent = desired;
-    element.prepend(label);
+    element.querySelectorAll('span, strong, em').forEach((node) => {
+      if (!(node.textContent ?? '').length && !node.children.length) node.remove();
+    });
   });
 
   return holder.innerHTML;
@@ -119,57 +102,39 @@ function markedPrefixLength(para: PMNode): number {
   return len;
 }
 
+/** Remove label text from documents that enter through a non-HTML path. */
 function buildTransaction(state: EditorState, cfg: CaptionNumbering | null): Transaction | null {
   if (!cfg || !cfg.sectionNumber) return null;
-  const markType = state.schema.marks.captionLabel;
-  if (!markType) return null;
-  const section = cfg.sectionNumber.replace(/^[A-Za-z]+/, '');
-
-  let tableIdx = cfg.tableOffset;
-  let figureIdx = cfg.figureOffset;
-
-  const edits: { from: number; to: number; text: string }[] = [];
+  const edits: { from: number; to: number }[] = [];
 
   state.doc.forEach((node, offset) => {
     if (node.type.name === 'casesTable') {
       // The caption lives inside the node view; it still burns a slot.
-      tableIdx += 1;
       return;
     }
     const kind = isCaptionParagraph(node);
     if (!kind) return;
 
-    const index = kind === 'figure' ? figureIdx++ : tableIdx++;
-    const desired = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
-
     const text = node.textContent;
     const m = LABEL_PATTERN.exec(text);
     const consume = Math.max(m ? m[0].length : 0, markedPrefixLength(node));
-    if (text.slice(0, consume) === desired) return;
-
-    const from = offset + 1;
-    edits.push({ from, to: from + consume, text: desired });
+    if (consume > 0) edits.push({ from: offset + 1, to: offset + 1 + consume });
   });
 
   if (!edits.length) return null;
 
   const tr = state.tr;
   // Apply back-to-front so earlier positions stay valid.
-  for (const edit of edits.reverse()) {
-    const node = state.schema.text(edit.text, [markType.create()]);
-    if (edit.to > edit.from) tr.replaceWith(edit.from, edit.to, node);
-    else tr.insert(edit.from, node);
-  }
+  for (const edit of edits.reverse()) tr.delete(edit.from, edit.to);
   tr.setMeta('addToHistory', false);
   tr.setMeta('captionAutoNumber', true);
   return tr;
 }
 
 /**
- * Keeps every table and figure caption label in the document equal to the
- * label its position implies. The label text carries the `captionLabel` mark,
- * which renders it non-editable and blocks typing inside it — only the
- * caption text after the label can be edited.
+ * Keeps every table and figure caption label equal to the label its position
+ * implies. The label is a view-only widget; authored document content remains
+ * entirely editable and unmarked.
  */
 /**
  * Grey prompt shown inside a caption whose description is still empty.
@@ -185,11 +150,30 @@ const CAPTION_PLACEHOLDER: Record<'table' | 'figure', string> = {
   figure: 'Add a figure caption…',
 };
 
-function placeholderDecorations(state: EditorState): DecorationSet {
+function captionDecorations(state: EditorState, cfg: CaptionNumbering | null): DecorationSet {
   const decos: Decoration[] = [];
+  const section = cfg?.sectionNumber.replace(/^[A-Za-z]+/, '') ?? '';
+  let tableIdx = cfg?.tableOffset ?? 0;
+  let figureIdx = cfg?.figureOffset ?? 0;
   state.doc.forEach((node, offset) => {
+    if (node.type.name === 'casesTable') {
+      tableIdx += 1;
+      return;
+    }
     const kind = isCaptionParagraph(node);
     if (!kind) return;
+    const index = kind === 'figure' ? figureIdx++ : tableIdx++;
+    if (section) {
+      const label = `${kind === 'figure' ? 'Figure' : 'Table'} ${section}.${captionLetter(index)}. `;
+      decos.push(Decoration.widget(offset + 1, () => {
+        const span = document.createElement('span');
+        span.className = 'caption-label';
+        span.setAttribute('data-caption-label', '');
+        span.setAttribute('contenteditable', 'false');
+        span.textContent = label;
+        return span;
+      }, { side: -1, key: `caption-label-${offset}-${label}`, ignoreSelection: true }));
+    }
     const consumed = Math.max(
       LABEL_PATTERN.exec(node.textContent)?.[0].length ?? 0,
       markedPrefixLength(node),
@@ -264,7 +248,7 @@ export const CaptionAutoNumber = Extension.create<{
         key: new PluginKey('captionPlaceholder'),
         props: {
           decorations(state) {
-            return placeholderDecorations(state);
+            return captionDecorations(state, getConfig());
           },
         },
       }),
