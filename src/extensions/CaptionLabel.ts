@@ -36,49 +36,84 @@ export const CaptionLabel = Mark.create({
       new Plugin({
         key: new PluginKey('captionLabelGuard'),
 
+        props: {
+          /**
+           * Typing at the very end of the label — the only caret position an
+           * EMPTY caption has — must be allowed, and the typed text must NOT
+           * inherit the label mark (otherwise it would become part of the
+           * non-editable label and be eaten by renumbering). The insertion is
+           * therefore performed here with the label mark stripped.
+           */
+          handleTextInput(view, from, to, text) {
+            const { state } = view;
+            const $from = state.doc.resolve(from);
+            const marks = $from.marks();
+            if (!marks.some((m) => m.type === markType)) return false;
+            // Strictly inside the label (marked text still follows) stays blocked.
+            const after = $from.nodeAfter;
+            if (after?.isText && after.marks.some((m) => m.type === markType)) return true;
+
+            const kept = marks.filter((m) => m.type !== markType);
+            const tr = state.tr.replaceWith(from, to, state.schema.text(text, kept));
+            tr.setStoredMarks(kept);
+            view.dispatch(tr);
+            return true;
+          },
+
+          /**
+           * A click anywhere on the label — including the empty caption, whose
+           * whole visible content is the non-editable label plus the grey
+           * placeholder — drops the caret at the first editable position, just
+           * after the label, instead of leaving no selection at all.
+           */
+          handleClick(view, pos) {
+            const { state } = view;
+            const $pos = state.doc.resolve(pos);
+            if (!$pos.parent.isTextblock) return false;
+            let len = 0;
+            let stop = false;
+            $pos.parent.forEach((child) => {
+              if (stop) return;
+              if (child.isText && child.marks.some((m) => m.type === markType)) {
+                len += child.nodeSize;
+              } else {
+                stop = true;
+              }
+            });
+            if (!len) return false;
+            const end = $pos.start() + len;
+            if (pos >= end) return false;
+            view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end)));
+            return true;
+          },
+        },
+
+
         // Prevent any text input at positions covered by this mark
         filterTransaction(tr, state) {
           // Allow non-doc-changing transactions
           if (!tr.docChanged) return true;
 
-          // Check each step — if it inserts text at a position inside a captionLabel mark, block it
+          // Block only insertions STRICTLY INSIDE the label run: a position
+          // whose following text still carries the mark. The boundary right
+          // after the label is the caption's editable caret position and must
+          // stay writable, empty caption or not.
           let dominated = false;
-          tr.steps.forEach((step, i) => {
+          tr.steps.forEach((step) => {
             const stepMap = step.getMap();
-            stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
-              // If this step added content, check if the insertion point had captionLabel
-              if (newEnd > newStart) {
-                // Resolve in the old doc
-                if (oldStart < state.doc.content.size) {
-                  const $pos = state.doc.resolve(Math.min(oldStart, state.doc.content.size - 1));
-                  const marks = $pos.marks();
-                  if (marks.some(m => m.type === markType)) {
-                    dominated = true;
-                  }
-                  // Also check the position just before (for typing at mark boundary)
-                  if (oldStart > 0) {
-                    const $before = state.doc.resolve(oldStart);
-                    // Check marks at oldStart - if cursor is right after the last char of the mark
-                    const nodeAfter = $before.nodeAfter;
-                    if (!nodeAfter) {
-                      const marksAt = $before.marks();
-                      if (marksAt.some(m => m.type === markType)) {
-                        dominated = true;
-                      }
-                    }
-                  }
-                }
+            stepMap.forEach((oldStart, _oldEnd, newStart, newEnd) => {
+              if (newEnd <= newStart) return;
+              if (oldStart >= state.doc.content.size) return;
+              const $pos = state.doc.resolve(oldStart);
+              const after = $pos.nodeAfter;
+              if (after?.isText && after.marks.some((m) => m.type === markType)) {
+                dominated = true;
               }
             });
           });
 
-          // Allow renumbering and non-history (programmatic) edits through
-          if (dominated && !tr.getMeta('addToHistory') === false && !tr.getMeta('blockReorder')) {
-            // Only block user-initiated typing, not programmatic changes
-          }
-          // Actually, we should only block if the transaction is a plain user input
-          // Programmatic updates (renumbering) set addToHistory: false or blockReorder
           if (dominated) {
+            // Programmatic updates (renumbering) set addToHistory: false or blockReorder
             const isProgram = tr.getMeta('addToHistory') === false || tr.getMeta('blockReorder');
             if (!isProgram) return false;
           }

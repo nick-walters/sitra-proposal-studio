@@ -312,6 +312,23 @@ function storedCols(
   return fallback;
 }
 
+/**
+ * Columns for the grouped cost tables (3.1.g / h). The participant column
+ * carries a badge, which is a `box` and therefore neither wraps nor shrinks:
+ * scaling it to the editor's stored fraction pushed the pill out of its cell
+ * and over the cost column. That column is therefore always `auto` — sized to
+ * the widest badge — while the remaining two keep the authored proportions.
+ */
+function costCols(data: B31TypstData, key: string): string {
+  const widths = data.columnWidths[key];
+  if (widths && widths.length === 3 && widths.slice(1).every((w) => w > 0)) {
+    const [, cost, just] = widths;
+    const min = Math.min(cost, just);
+    return `(auto, ${(cost / min).toFixed(3)}fr, ${(just / min).toFixed(3)}fr)`;
+  }
+  return '(auto, auto, 1fr)';
+}
+
 
 function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
   const stored = data.columnHeaders[key] || {};
@@ -532,7 +549,13 @@ function costCells(
     );
     // Every line plus the participant's own subtotal row.
     const span = lines.length + 1;
-    cells.push(`table.cell(rowspan: ${span}, ${participantChip(bucket.participant)})`);
+    // The merged participant cell is TOP aligned: `he-cell-table` centres
+    // cells on the horizon, which over a tall rowspan floated the badge into
+    // the middle of the participant's block instead of sitting on its first
+    // line, as it does in the editor.
+    cells.push(
+      `table.cell(rowspan: ${span}, align: left + top, ${participantChip(bucket.participant)})`,
+    );
     for (const line of lines) {
       cells.push(
         lit(formatCurrency(line.item.amount)),
@@ -564,7 +587,7 @@ export function emitSubcontracting(
   ]);
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
-    `he-cell-table(${storedCols(data, 'subcontracting', 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${costCols(data, 'subcontracting')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
 
   ];
 }
@@ -588,7 +611,7 @@ export function emitMergedJustification(
     caption(data, tableKey, label, defaultCaption),
     // `tableKey` is the same key the editor's own resizable table stores under
     // (`purchase-costs`, `equipment`, `other-direct-costs`, …).
-    `he-cell-table(${storedCols(data, tableKey, 3, '(auto, auto, 1fr)')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
+    `he-cell-table(${costCols(data, tableKey)}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
 
   ];
 }
