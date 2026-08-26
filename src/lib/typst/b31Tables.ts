@@ -160,7 +160,7 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
-      participantChip(byId.get(wp.lead_participant_id || '')) + ` + t(" ") + ` + bold(lit(wpDuration(wp))),
+      participantChip(byId.get(wp.lead_participant_id || '')) + ${CHIP_GAP} + bold(lit(wpDuration(wp))),
     ]);
     rows.push([sep]);
     if (htmlToPlainText(wp.objectives || '').trim()) {
@@ -176,16 +176,16 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         .filter((c) => c !== EMPTY);
       const months =
         task.start_month != null || task.end_month != null
-          ? ` + t(" ") + ` +
+          ? ${CHIP_GAP} +
             bold(lit(`${monthLabel(task.start_month)}–${monthLabel(task.end_month)}`))
           : '';
       const head =
         taskChip(wp.number, task.number, wp.color) +
-        ` + t(" ") + ` +
+        ${CHIP_GAP} +
         bold(lit(task.title || '')) +
         ` + linebreak() + ` +
         participantChip(byId.get(task.lead_participant_id || '')) +
-        (partners.length ? ` + t(" ") + ` + partners.join(' + t(" ") + ') : '') +
+        (partners.length ? ${CHIP_GAP} + partners.join('${CHIP_GAP}') : '') +
         months;
       rows.push([sep]);
       rows.push([head]);
@@ -249,7 +249,7 @@ function wpChipList(numbers: number[], colours: string[], allCount: number): str
   if (allCount > 0 && numbers.length === allCount) {
     return `chip-pill(${typstString('All WPs')}, black, filled: true)`;
   }
-  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join(' + t(" ") + ');
+  const chips = numbers.map((n, i) => wpChip(n, colours[i] || '#666666')).join('${CHIP_GAP}');
   // A narrow WP column wraps the chips over several lines; the default 0pt
   // leading would let their outsets touch, so this paragraph opens the pitch.
   return `par(leading: 4pt, spacing: 0pt, ${chips})`;
