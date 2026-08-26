@@ -45,6 +45,8 @@ import {
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { emitCasesTable, type CasesTypstData } from './casesData';
+import type { AuthoredFigureBlock } from './authoredFigures';
+
 import { countCaptionSlots, captionKind, captionLetter } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
