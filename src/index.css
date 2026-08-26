@@ -1912,3 +1912,11 @@ body.table-col-resizing * {
   overflow-wrap: break-word;
   word-break: normal;
 }
+
+/* ── No hyphenation, platform-wide ───────────────────────────────────────── */
+/* Long words wrap or overflow; they are never split with a hyphen. Mirrors
+   the Typst preamble's `hyphenate: false`, so editor and export agree. */
+* {
+  hyphens: none;
+  -webkit-hyphens: none;
+}

@@ -158,6 +158,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   font: "${TYPST_SERIF}",
   size: 11pt,
   lang: "en",
+  // No hyphenation anywhere. Typst's default is hyphenate: auto, which turns
+  // itself ON whenever a paragraph is justified — so justified body text and
+  // narrow table columns were splitting words. A root-level false covers
+  // every nested context (tables, captions, footnotes, front matter), since
+  // nested "set text" calls only override the fields they name.
+  hyphenate: false,
   top-edge: ${TYPST_TOP_EDGE},
   bottom-edge: ${TYPST_BOTTOM_EDGE},
 )
@@ -315,8 +321,8 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// which is what the board's own tables use — 3.1.a is emitted tight so the
 /// editor and the preview allocate the same width to each column.
 #let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = {
-  // Table content is LEFT ALIGNED: the document sets `justify: true`
-  // globally, which stretches short cell lines. Tables opt out locally.
+  // Table content is LEFT ALIGNED: the document sets justify globally,
+  // which stretches short cell lines. Tables opt out locally.
   set par(justify: false)
   block(
   width: he-table-width,
@@ -354,8 +360,8 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// cell can span rows (\`table.cell(rowspan: n, …)\`). \`nrows\` is the grid row
 /// count, header included, so the last row keeps no rule under it.
 #let he-cell-table(cols, cells, nrows, aligns: none) = {
-  // Table content is LEFT ALIGNED: the document sets `justify: true`
-  // globally, which stretches short cell lines. Tables opt out locally.
+  // Table content is LEFT ALIGNED: the document sets justify globally,
+  // which stretches short cell lines. Tables opt out locally.
   set par(justify: false)
   block(
   width: he-table-width,
@@ -388,8 +394,8 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// padding, no vertical rules, a 1.5px-equivalent header rule, 1px-equivalent
 /// body separators and no rule below the final row.
 #let he-authored-table(cols, cells, nrows) = {
-  // Table content is LEFT ALIGNED: the document sets `justify: true`
-  // globally, which stretches short cell lines. Tables opt out locally.
+  // Table content is LEFT ALIGNED: the document sets justify globally,
+  // which stretches short cell lines. Tables opt out locally.
   set par(justify: false)
   block(
   width: he-table-width,
@@ -422,8 +428,8 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// gutter, not a ruled table. Cell padding lives INSIDE the coloured block so
 /// the fill hugs the figure exactly as the board draws it.
 #let he-grid(cols, cells) = {
-  // Table content is LEFT ALIGNED: the document sets `justify: true`
-  // globally, which stretches short cell lines. Tables opt out locally.
+  // Table content is LEFT ALIGNED: the document sets justify globally,
+  // which stretches short cell lines. Tables opt out locally.
   set par(justify: false)
   block(
   width: he-table-width,
