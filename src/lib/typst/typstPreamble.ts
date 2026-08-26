@@ -687,14 +687,40 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   text(size: 9pt, style: "italic", fill: rgb("#52525b"), what),
 )
 
+/// Footer section label. Sections of the full Part B document each emit
+/// \`#metadata("Part B1.2. …") <part-marker>\` at their start; the label for a
+/// page is the last marker on that page or before it. With no markers (a
+/// single-section compile) the default below is used on every page.
+#let part-label-default = ${typstString(meta.partLabel || 'Part B')}
+#let part-label-for(loc) = {
+  let markers = query(<part-marker>)
+  if markers.len() == 0 { return part-label-default }
+  let page-no = loc.page()
+  let label = markers.first().value
+  for m in markers {
+    if m.location().page() <= page-no { label = m.value }
+  }
+  label
+}
+
+/// Diagonal "CONFIDENTIAL DRAFT" wash. A visual deterrent only: it is pale
+/// enough that the text under it stays easy to read.
+#let draft-watermark = rotate(-30deg, text(
+  font: "${TYPST_DISPLAY}",
+  size: 58pt,
+  fill: rgb("#c81e3220"),
+  t("CONFIDENTIAL DRAFT"),
+))
+
 // Page setup comes LAST: the header/footer closures below reference \`t\` and
 // \`chip-acronym\`, which must already be in scope.
 #set page(
   paper: "a4",
   margin: (x: 15mm, top: 15mm, bottom: 15mm),
   header: ${headerSource(meta)},
-  footer: ${footerSource(meta)},
+  footer: ${footerSource(meta)},${meta.watermark ? '\n  background: align(center + horizon, draft-watermark),' : ''}
 )
+
 `;
 }
 
