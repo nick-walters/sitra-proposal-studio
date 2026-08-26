@@ -307,7 +307,7 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
         .select('id, number, title, due_month, means_of_verification, order_index')
         .eq('proposal_id', proposalId)
         .order('number'),
-      supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id'),
+      supabase.from('proposal_milestone_wps').select('milestone_id, wp_draft_id, is_primary'),
       supabase
         .from('proposal_risks')
         .select('id, number, title, likelihood, severity, mitigation, order_index, created_at')
@@ -327,6 +327,12 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   const milestones: TypstMilestone[] = ((milestoneRows as any[]) || [])
     .map((m: any) => {
       const linked = linkedWps((milestoneWpRows as any[]) || [], 'milestone_id', m.id);
+      // The editor draws a star on the milestone's primary WP chip; the
+      // caption explains that symbol, so the preview must draw it too.
+      const primaryLink = ((milestoneWpRows as any[]) || []).find(
+        (r: any) => r.milestone_id === m.id && r.is_primary,
+      );
+      const primaryWp = primaryLink ? wpById.get(primaryLink.wp_draft_id) : undefined;
       return {
         id: m.id,
         number: m.number,
@@ -335,6 +341,7 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
         means_of_verification: m.means_of_verification,
         wpNumbers: linked.map((w) => w.number),
         wpColors: linked.map((w) => w.color),
+        primaryWpNumber: primaryWp ? primaryWp.number : null,
       };
     })
     // Same display order as the mirror: due month, then first linked WP, then id.
