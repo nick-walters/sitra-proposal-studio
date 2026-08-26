@@ -312,6 +312,23 @@ function storedCols(
   return fallback;
 }
 
+/**
+ * Columns for the grouped cost tables (3.1.g / h). The participant column
+ * carries a badge, which is a `box` and therefore neither wraps nor shrinks:
+ * scaling it to the editor's stored fraction pushed the pill out of its cell
+ * and over the cost column. That column is therefore always `auto` — sized to
+ * the widest badge — while the remaining two keep the authored proportions.
+ */
+function costCols(data: B31TypstData, key: string): string {
+  const widths = data.columnWidths[key];
+  if (widths && widths.length === 3 && widths.slice(1).every((w) => w > 0)) {
+    const [, cost, just] = widths;
+    const min = Math.min(cost, just);
+    return `(auto, ${(cost / min).toFixed(3)}fr, ${(just / min).toFixed(3)}fr)`;
+  }
+  return '(auto, auto, 1fr)';
+}
+
 
 function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
   const stored = data.columnHeaders[key] || {};
