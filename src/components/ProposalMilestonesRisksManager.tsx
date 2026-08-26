@@ -1067,7 +1067,7 @@ export function RisksEditor({
   const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)', 'Mitigation & adaptation measures'];
   const RISK_COL_PCT = ['28%', '7%', '7%', '22%', '36%'];
 
-  const { colWidths: riskColWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
+  const { colWidths: riskRawWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
       proposalId,
       tableKey: 'b31-risks',
@@ -1075,6 +1075,7 @@ export function RisksEditor({
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: RISK_COL_PCT.length,
     });
+  const riskColWidths = useMemo(() => fitToTextColumn(riskRawWidths), [riskRawWidths]);
   const riskSized = riskColWidths.length === RISK_COL_PCT.length;
   const { headers: riskHeaders, setHeader: setRiskHeader } = useColumnHeaders(
     proposalId,
