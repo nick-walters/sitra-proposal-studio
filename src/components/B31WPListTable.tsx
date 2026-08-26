@@ -10,6 +10,10 @@ const cellStyles =
   "px-[3pt] py-[0.75pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 /** First column sits flush with the table edge — no left indent. */
 const firstCellStyles = `${cellStyles} !pl-0`;
+/** Last column sits flush with the right table edge. */
+const lastCellStyles = `${cellStyles} !pr-0`;
+/** The three metadata columns hug their content and never wrap. */
+const tightCellStyles = `${cellStyles} whitespace-nowrap w-px`;
 
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
