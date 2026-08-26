@@ -460,8 +460,9 @@ export function MilestonesEditor({
   projectDuration?: number;
   /** Lets the block header host the "Add" button, as other blocks do. */
   onRegisterAdd?: (add: () => void) => void;
-  /** Lets the block header host the "Reorder" button beside "Add". */
-  onRegisterReorder?: (reorder: () => void) => void;
+  /** Lets the block header host the "Reorder" control. Null withdraws it. */
+  onRegisterReorder?: (reorder: (() => void) | null) => void;
+
 }) {
 
   const qc = useQueryClient();
