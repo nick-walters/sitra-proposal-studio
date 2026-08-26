@@ -297,17 +297,19 @@ function SortableActivityRow({
           </div>
         </td>
 
-
-          {/* Row actions live in the right margin, not in a document column. */}
+        {/* Row actions live in their own narrow column so they are always
+            visible; a bare <div> child of <tr> is not laid out as a cell and
+            could only be positioned against the drag transform. */}
+        <td data-noresize="" className={`${cellStyles} !px-0 w-[28px] text-right`}>
           {canEdit && (
-            <div className="absolute left-full top-1/2 ml-1 -translate-y-1/2">
             <DeleteConfirmDialog
               itemLabel="this linked activity"
               tooltip="Delete this linked activity"
               onConfirm={() => onDelete(activity.id)}
             />
-            </div>
           )}
+        </td>
+
 
           <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
             <DialogContent className="max-w-xl">
