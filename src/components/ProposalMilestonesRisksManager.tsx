@@ -863,10 +863,14 @@ export function MilestonesEditor({
 export function RisksEditor({
   proposalId,
   canEdit,
+  onRegisterAdd,
 }: {
   proposalId: string;
   canEdit: boolean;
+  /** Lets the block header host the "Add" button, as other blocks do. */
+  onRegisterAdd?: (add: () => void) => void;
 }) {
+
   const qc = useQueryClient();
   const { reportConflict, dialog: conflictDialog } = useVersionConflict();
   const { data: wps = [] } = useWpRows(proposalId);
