@@ -203,6 +203,7 @@ ${s}.${TABLE_CAPTION_CLASS} {
   line-height: ${TABLE_LINE_HEIGHT};
   font-style: italic;
   text-align: left;
+  color: #000;
   margin: 3pt 0 1pt 0;
   padding: 0;
 }
