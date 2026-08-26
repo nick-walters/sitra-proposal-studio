@@ -59,9 +59,9 @@ export const TYPST_LEADING = '0pt';
 /** 3pt before and after; adjacent paragraph margins collapse, as in CSS. */
 export const TYPST_PAR_SPACING = '3pt';
 
-/** Reference footnotes: 8pt type at exactly 0.85 line spacing. */
+/** Reference footnotes: 8pt type at exactly 0.9 line spacing. */
 export const FOOTNOTE_SIZE_PT = 8;
-export const FOOTNOTE_LEADING_RATIO = 0.85;
+export const FOOTNOTE_LEADING_RATIO = 0.9;
 /** Typst leading is ADDED to the 1em line box, so 0.85 needs -1.2pt at 8pt. */
 export const FOOTNOTE_LEADING_DELTA_PT = Number(
   ((FOOTNOTE_LEADING_RATIO - 1) * FOOTNOTE_SIZE_PT).toFixed(3),
