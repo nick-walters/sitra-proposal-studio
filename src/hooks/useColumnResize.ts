@@ -15,7 +15,7 @@ export function useColumnResize(options: {
   minWidth?: number;
   /** Per-column minimum widths (e.g. measured badge widths). Falls back to minWidth. */
   minWidths?: number[];
-  /** Hard cap on the total table width (e.g. the 18cm text column in px). */
+  /** Legacy: no longer caps a drag. Kept so callers need no change. */
   maxTotalWidth?: number;
   /** Current number of physical columns. Stale arrays from an older layout are discarded. */
   expectedColumnCount?: number;
@@ -115,8 +115,9 @@ export function useColumnResize(options: {
 
       // Word-like semantics:
       // - internal border: only the two adjacent columns change; total width constant
-      // - last column's right border: total table width changes (never wider than
-      //   the available text column, i.e. 18cm)
+      // - last column's right border: total table width changes, with NO upper
+      //   cap: a table may be dragged wider than the 18 cm text column (Typst
+      //   scales it proportionally back into the printed column).
       const isLast = colIdx >= startWidths.length - 1;
       if (!isLast && startWidths.length > 1) {
         const minDelta = minOf(colIdx) - startWidths[colIdx];
@@ -125,12 +126,8 @@ export function useColumnResize(options: {
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
         newWidths[colIdx + 1] = startWidths[colIdx + 1] - clampedDelta;
       } else {
-        const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
-        const cap = Math.min(containerWidth, maxTotalWidth ?? Infinity);
-        const total = startWidths.reduce((a, b) => a + b, 0);
         const minDelta = minOf(colIdx) - startWidths[colIdx];
-        const maxDelta = cap - total;
-        const clampedDelta = Math.min(Math.max(delta, minDelta), Math.max(0, maxDelta));
+        const clampedDelta = Math.max(delta, minDelta);
         newWidths[colIdx] = startWidths[colIdx] + clampedDelta;
       }
 

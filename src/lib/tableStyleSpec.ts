@@ -41,7 +41,9 @@ export const TABLE_CELL_PADDING = `${TABLE_CELL_PADDING_Y} ${TABLE_CELL_PADDING_
 export const TABLE_HEADER_BORDER = '1.5px solid #000000';
 export const TABLE_BODY_BORDER = '1px solid #e5e7eb';
 
-export const TABLE_MAX_WIDTH = '18cm';
+/* No cap: the last column's grip may take a table past the 18 cm text
+   column; the printed output scales it back proportionally. */
+export const TABLE_MAX_WIDTH = 'none';
 export const TABLE_LAYOUT = 'fixed';
 export const TABLE_WIDTH = '100%';
 

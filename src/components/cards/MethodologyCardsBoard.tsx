@@ -2422,11 +2422,10 @@ function BoardInner({
           setHistoryOpen(false);
         }}
       />
-      {/* 18 cm content column: the card's own px-5 padding (20 px each side)
-          sits inside 720 px, leaving exactly 680 px ≈ 18 cm of content — the
-          same physical width the PDF and DOCX use. The container adds p-6
-          (24 px each side) on top, hence 768 px. */}
-      <div className="mx-auto w-full max-w-[768px] space-y-4 p-6">
+      {/* 21 cm page column: a page-styled module is one full printed page
+          wide (18 cm of text between two 1.5 cm margins), so the board that
+          holds it — and the three toolbar tiers inside it — measure 21 cm. */}
+      <div className="mx-auto w-full max-w-[21cm] space-y-4 p-6">
 
         {/* Page title and description scroll away normally: they sit ABOVE the
             floating toolbars and the description spans the full page width. */}

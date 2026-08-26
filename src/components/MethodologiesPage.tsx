@@ -343,7 +343,7 @@ export default function MethodologiesPage({
   return (
     <MethodologyEditorFocusProvider>
       <OutsideClickClear onClear={() => setFocusedId(null)} />
-      <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
+      <div className="mx-auto w-full max-w-[21cm] space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-foreground">Methodologies</h1>

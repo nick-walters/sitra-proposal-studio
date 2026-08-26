@@ -32,7 +32,7 @@ interface PartAPageLayoutProps {
   fieldBar?: Omit<EditorFieldBarProps, 'hasFocusedField'>;
   /** Bottom formatting tier configuration. */
   formatting?: EditorToolbarsFormattingProps;
-  /** Container max-width class. Default 'max-w-7xl'. */
+  /** Container max-width class. Default 'max-w-[21cm]' (one printed page). */
   maxWidth?: string;
   /** Content spacing class. Default 'space-y-6' */
   spacing?: string;
@@ -60,7 +60,7 @@ export function PartAPageLayout({
   save,
   fieldBar,
   formatting,
-  maxWidth = 'max-w-7xl',
+  maxWidth = 'max-w-[21cm]',
   spacing = 'space-y-6',
   padding = 'p-6',
   children,
