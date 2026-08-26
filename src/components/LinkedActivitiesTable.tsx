@@ -88,12 +88,8 @@ const cellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const firstCellStyles = `${cellStyles} !pl-0`;
 
-/**
- * Controls embedded in cells read as document text until hovered or focused:
- * transparent border and background, revealing the affordance on interaction.
- */
-const CELL_CONTROL =
-  "[&_button]:rounded-none [&_button]:border-0 [&_button]:bg-transparent [&_button]:p-0 [&_button]:shadow-none [&_button]:ring-0 [&_input]:rounded-none [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:shadow-none [&_input]:ring-0";
+
+
 
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
