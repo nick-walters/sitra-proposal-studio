@@ -1164,6 +1164,13 @@ function CardBlock({
   const canAddModule =
     canEdit && !isPlaceholderCard && !isRelationalCard && card.kind !== 'figure';
 
+  /* The milestones and risks editors own their insert, but the button belongs
+     in the block header alongside every other "Add" — so each hands its add
+     action up here on mount. */
+  const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
+  const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
+
+
   // Dragging also collapses (kept from before); the user's own collapse
   // preference is independent of it and persists across page loads.
   const contentHidden = collapsed || userCollapsed;
