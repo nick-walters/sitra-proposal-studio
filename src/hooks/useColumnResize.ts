@@ -90,11 +90,11 @@ export function useColumnResize(options: {
       if (!table) return [];
       // Prefer first tbody row (always has every column) over thead which may
       // contain colSpan headers that don't map 1:1 to columns.
-      const bodyCells = table.querySelectorAll('tbody tr:first-child > td');
+      const bodyCells = table.querySelectorAll('tbody tr:first-child > td:not([data-noresize])');
       if (bodyCells.length > 0) {
         return Array.from(bodyCells).map(cell => (cell as HTMLElement).offsetWidth);
       }
-      const headerCells = table.querySelectorAll('thead th');
+      const headerCells = table.querySelectorAll('thead th:not([data-noresize])');
       return Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth);
     };
     const measuredWidths = measureFromDom();
