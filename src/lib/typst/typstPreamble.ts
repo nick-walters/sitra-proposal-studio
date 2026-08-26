@@ -158,6 +158,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   font: "${TYPST_SERIF}",
   size: 11pt,
   lang: "en",
+  // No hyphenation anywhere. Typst's default is hyphenate: auto, which turns
+  // itself ON whenever a paragraph is justified — so justified body text and
+  // narrow table columns were splitting words. A root-level false covers
+  // every nested context (tables, captions, footnotes, front matter), since
+  // nested "set text" calls only override the fields they name.
+  hyphenate: false,
   top-edge: ${TYPST_TOP_EDGE},
   bottom-edge: ${TYPST_BOTTOM_EDGE},
 )
