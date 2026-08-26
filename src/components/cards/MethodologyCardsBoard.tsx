@@ -1373,22 +1373,12 @@ function CardBlock({
                 </Button>
               </Tip>
             ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
-              <div className="flex items-center">
-                {isMilestonesCard && relationalReorder && (
-                  <Tip label="Manually reorder milestones that share the same due month">
-                    <Button variant="ghost" size="sm" onClick={() => relationalReorder()}>
-                      <ArrowUpDown className="mr-1 h-3.5 w-3.5" />
-                      Reorder
-                    </Button>
-                  </Tip>
-                )}
-                <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
-                  <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Add
-                  </Button>
-                </Tip>
-              </div>
+              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
+                <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </Tip>
             ) : canAddModule ? (
 
               <Tip label="Add module to this block">
