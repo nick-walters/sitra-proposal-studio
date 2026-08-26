@@ -1338,11 +1338,13 @@ function RisksGuidelinesInline() {
 }
 
 
-// ── WP multi-select (used by risks — UNCHANGED) ─────────────────
+// ── WP multi-select (used by risks) ─────────────────────────────
 function WPMultiSelect({
-  allWps, selectedIds, onChange, disabled,
+  allWps, selectedIds, onChange, disabled, cellSurface,
 }: {
   allWps: WPRow[]; selectedIds: string[]; onChange: (ids: string[]) => void; disabled?: boolean;
+  /** Reads as cell text inside a document table until hovered or focused. */
+  cellSurface?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string[] | null>(null);
@@ -1366,16 +1368,29 @@ function WPMultiSelect({
   return (
     <Popover open={open} onOpenChange={commit}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-1.5 whitespace-normal" disabled={disabled}>
-          <span className="flex flex-wrap gap-0.5 w-full">
-            {selectedWps.length === 0
-              ? <span className="text-muted-foreground">Select…</span>
-              : isAllWPsSelected(selectedWps.length, ordered.length)
-                ? <AllWPsBubble />
-                : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
-          </span>
-        </Button>
+        {cellSurface ? (
+          <button type="button" className={SUBTLE_CONTROL} disabled={disabled}>
+            <span className="flex flex-wrap gap-0.5 items-center w-full">
+              {selectedWps.length === 0
+                ? <span className="text-muted-foreground italic">Select WP(s)…</span>
+                : isAllWPsSelected(selectedWps.length, ordered.length)
+                  ? <AllWPsBubble />
+                  : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+            </span>
+          </button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-auto min-h-8 w-full justify-start font-normal py-1 px-1.5 whitespace-normal" disabled={disabled}>
+            <span className="flex flex-wrap gap-0.5 w-full">
+              {selectedWps.length === 0
+                ? <span className="text-muted-foreground">Select…</span>
+                : isAllWPsSelected(selectedWps.length, ordered.length)
+                  ? <AllWPsBubble />
+                  : selectedWps.map(wp => <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />)}
+            </span>
+          </Button>
+        )}
       </PopoverTrigger>
+
       <PopoverContent className="w-56 p-2" align="start">
         <div className="space-y-1 max-h-72 overflow-y-auto">
           {ordered.map(wp => (
