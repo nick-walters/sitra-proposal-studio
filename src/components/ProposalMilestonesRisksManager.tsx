@@ -660,7 +660,7 @@ export function MilestonesEditor({
      month columns are sized to their controls. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   const MS_COL_PCT = ['32%', '34%', '22%', '12%'];
-  const { colWidths: msColWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
+  const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
       tableKey: 'b31-milestones',
@@ -668,6 +668,7 @@ export function MilestonesEditor({
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
+  const msColWidths = useMemo(() => fitToTextColumn(msRawWidths), [msRawWidths]);
   const msSized = msColWidths.length === MS_COL_PCT.length;
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
     proposalId,
