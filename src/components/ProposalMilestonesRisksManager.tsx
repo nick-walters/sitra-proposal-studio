@@ -1024,11 +1024,14 @@ export function RisksEditor({
 
   usePageSearchSource('risks', 'Critical risks', searchFields);
 
-  /* Document table geometry. Four content columns are resizable; the grip and
-     the editor-only delete cell are excluded via data-noresize, so the saved
-     array always has exactly four entries. */
-  const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)'];
-  const RISK_COL_PCT = ['46%', '9%', '9%', '36%'];
+  /* Document table geometry. Five content columns are resizable; the
+     editor-only delete cell is excluded via data-noresize. The drag grip is
+     not a column at all — it sits in the page's left margin — so the first
+     real column starts flush at the text column's inner edge. The two long
+     text columns (description and mitigation) take the bulk of the width. */
+  const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)', 'Mitigation & adaptation measures'];
+  const RISK_COL_PCT = ['28%', '7%', '7%', '22%', '36%'];
+
   const { colWidths: riskColWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
       proposalId,
