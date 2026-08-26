@@ -59,7 +59,35 @@ export const CaptionLabel = Mark.create({
             view.dispatch(tr);
             return true;
           },
+
+          /**
+           * A click anywhere on the label — including the empty caption, whose
+           * whole visible content is the non-editable label plus the grey
+           * placeholder — drops the caret at the first editable position, just
+           * after the label, instead of leaving no selection at all.
+           */
+          handleClick(view, pos) {
+            const { state } = view;
+            const $pos = state.doc.resolve(pos);
+            if (!$pos.parent.isTextblock) return false;
+            let len = 0;
+            let stop = false;
+            $pos.parent.forEach((child) => {
+              if (stop) return;
+              if (child.isText && child.marks.some((m) => m.type === markType)) {
+                len += child.nodeSize;
+              } else {
+                stop = true;
+              }
+            });
+            if (!len) return false;
+            const end = $pos.start() + len;
+            if (pos >= end) return false;
+            view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end)));
+            return true;
+          },
         },
+
 
         // Prevent any text input at positions covered by this mark
         filterTransaction(tr, state) {
