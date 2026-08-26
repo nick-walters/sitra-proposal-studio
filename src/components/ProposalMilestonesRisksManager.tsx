@@ -653,140 +653,159 @@ export function MilestonesEditor({
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
-        <div className="space-y-1">
-          {/* Column labels for the second line — same fixed grid as every row,
-              indented to align with the milestone name above. */}
-          {orderedMs.length > 0 && (
-            <div className="grid grid-cols-[48px_1fr] gap-x-2 px-1 pb-1 border-b">
-              <div />
-              <div className={cn(MILESTONE_LINE1_GRID, 'text-xs font-medium text-muted-foreground')}>
-                <div>Milestone name</div>
-                <div>WP(s)</div>
-                <div>Due month</div>
-                <div />
-              </div>
-            </div>
-          )}
-          {orderedMs.length === 0 && (
-            <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
-          )}
-          {orderedMs.map((m) => {
-            const selectedWps = m.wp_ids
-              .map(id => wpsById.get(id))
-              .filter((w): w is WPRow => !!w)
-              .sort((a, b) => a.number - b.number);
-            return (
-              <div
-                key={m.id}
-                id={`milestone-row-${m.id}`}
-                className="grid grid-cols-[48px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1"
-              >
-                {/* ── Line 1: MS chip + name + WP(s) + due month + delete ── */}
-                <span className="flex-none whitespace-nowrap pt-0.5 w-[48px]">
-                  <MilestoneBadge number={m.number} />
-                </span>
-
-                <div className={MILESTONE_LINE1_GRID}>
-                  <div className="min-w-0">
-                    <DebouncedRichField
-                      value={m.title || ''}
-                      className={LEFT_ALIGNED_CELL_CLASS}
-                      disabled={!canEdit}
-                      minHeight="30px"
-                      proposalId={proposalId}
-                      staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                      onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+        {orderedMs.length === 0 ? (
+          <div className="py-4 text-center text-muted-foreground italic">No milestones yet.</div>
+        ) : (
+          /* A single <tbody> holds every row: the resize hook measures
+             `tbody tr:first-child`, so one tbody per milestone would have it
+             measure the wrong row. */
+          <table
+            ref={msTableRef}
+            data-table-key="b31-milestones"
+            className={`${docTableStyles} ${docTableRules} w-full max-w-full`}
+            style={{
+              tableLayout: 'fixed',
+              width: msSized
+                ? `${Math.min(msColWidths.reduce((s, w) => s + w, 0) + 76, DOC_BLOCK_WIDTH)}px`
+                : '100%',
+              maxWidth: `${DOC_BLOCK_WIDTH}px`,
+              borderCollapse: 'collapse',
+            }}
+          >
+            <colgroup>
+              <col style={{ width: '48px' }} />
+              {MS_COL_PCT.map((pct, i) => (
+                <col key={i} style={{ width: msSized ? `${msColWidths[i]}px` : pct }} />
+              ))}
+              {/* Editor-only action column; never part of the document table. */}
+              <col style={{ width: '28px' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th data-noresize="" className={`${docFirstCellStyles} align-bottom font-bold`} />
+                {msHeaders.map((h, i) => (
+                  <th key={i} className={`${docCellStyles} relative align-bottom font-bold`}>
+                    <EditableColumnHeader
+                      value={h}
+                      canEdit={canEdit}
+                      onCommit={(next) => setMsHeader(i, next)}
                     />
-                  </div>
-                  <div>
-                    <MilestoneWpDialog
-                      wps={wps}
-                      selectedWpIds={m.wp_ids}
-                      primaryWpId={m.primary_wp_id}
-                      disabled={!canEdit}
-                      onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
-                      renderTrigger={(open) => (
-                        <button
-                          type="button"
-                          onClick={open}
+                    {canEdit && i < MS_COL_PCT.length - 1 && (
+                      <ColumnResizer onMouseDown={msResizeStart(i)} />
+                    )}
+                  </th>
+                ))}
+                <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
+              </tr>
+            </thead>
+            <tbody>
+              {orderedMs.map((m) => {
+                const selectedWps = m.wp_ids
+                  .map(id => wpsById.get(id))
+                  .filter((w): w is WPRow => !!w)
+                  .sort((a, b) => a.number - b.number);
+                return (
+                  <>
+                    {/* Scalar line: chip, name, WP(s), due month, delete. */}
+                    <tr key={`${m.id}-a`} id={`milestone-row-${m.id}`} className="!border-b-0">
+                      <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
+                        <MilestoneBadge number={m.number} />
+                      </td>
+                      <td className={`${docCellStyles} break-words`}>
+                        <DebouncedRichField
+                          value={m.title || ''}
+                          className={LEFT_ALIGNED_CELL_CLASS}
                           disabled={!canEdit}
-                          className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {selectedWps.length === 0 ? (
-                            <span className="text-muted-foreground italic">Select WP(s)…</span>
-                          ) : (
-                            <span className="flex flex-wrap gap-0.5 items-center">
-                              {isAllWPsSelected(selectedWps.length, wps.length) ? (
-                                <>
-                                  <AllWPsBubble />
-                                  {/* "All WPs" hides which WP is starred as
-                                      primary for the Gantt, so the primary is
-                                      shown alongside it — editor only, never
-                                      mirrored into the preview or export. */}
-                                  {selectedWps
-                                    .filter((wp) => wp.id === m.primary_wp_id)
-                                    .map((wp) => (
+                          minHeight="0"
+                          proposalId={proposalId}
+                          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                        />
+                      </td>
+                      <td className={docCellStyles}>
+                        <MilestoneWpDialog
+                          wps={wps}
+                          selectedWpIds={m.wp_ids}
+                          primaryWpId={m.primary_wp_id}
+                          disabled={!canEdit}
+                          onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
+                          renderTrigger={(open) => (
+                            <button type="button" onClick={open} disabled={!canEdit} className={SUBTLE_CONTROL}>
+                              {selectedWps.length === 0 ? (
+                                <span className="text-muted-foreground italic">Select WP(s)…</span>
+                              ) : (
+                                <span className="flex flex-wrap gap-0.5 items-center">
+                                  {isAllWPsSelected(selectedWps.length, wps.length) ? (
+                                    <>
+                                      <AllWPsBubble />
+                                      {/* "All WPs" hides which WP is starred as
+                                          primary for the Gantt, so the primary is
+                                          shown alongside it — editor only. */}
+                                      {selectedWps
+                                        .filter((wp) => wp.id === m.primary_wp_id)
+                                        .map((wp) => (
+                                          <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} showStar />
+                                        ))}
+                                    </>
+                                  ) : (
+                                    selectedWps.map(wp => (
                                       <WPBubble
                                         key={wp.id}
                                         wpNumber={wp.number}
                                         wpColor={wp.color}
-                                        showStar
+                                        showStar={wp.id === m.primary_wp_id}
                                       />
-                                    ))}
-                                </>
-                              ) : (
-                                selectedWps.map(wp => (
-                                  <WPBubble
-                                    key={wp.id}
-                                    wpNumber={wp.number}
-                                    wpColor={wp.color}
-                                    showStar={wp.id === m.primary_wp_id}
-                                  />
-                                ))
+                                    ))
+                                  )}
+                                </span>
                               )}
-                            </span>
+                            </button>
                           )}
-                        </button>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <SingleMonthPicker
-                      value={m.due_month}
-                      projectDuration={duration}
-                      readOnly={!canEdit}
-                      label=""
-                      onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
-                    />
-                  </div>
-                  <div className="flex justify-center">
-                    <Button
-                      size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700"
-                      disabled={!canEdit}
-                      onClick={() => deleteMilestone.mutate(m.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* ── Line 2: means of verification, aligned with the name above ── */}
-                <div className="col-start-2">
-                  <DebouncedRichField
-                    value={m.means_of_verification || ''}
-                    className={LEFT_ALIGNED_CELL_CLASS}
-                    disabled={!canEdit}
-                    minHeight="30px"
-                    proposalId={proposalId}
-                    staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-                    placeholder="Means of verification"
-                    onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                        />
+                      </td>
+                      <td className={docCellStyles}>
+                        <SingleMonthPicker
+                          value={m.due_month}
+                          projectDuration={duration}
+                          readOnly={!canEdit}
+                          label=""
+                          onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
+                        />
+                      </td>
+                      {/* Row action in its own cell: a bare div in a <tr> is not
+                          laid out as a cell and would disappear. */}
+                      <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
+                        <Button
+                          size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
+                          disabled={!canEdit}
+                          onClick={() => deleteMilestone.mutate(m.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                    {/* Means of verification: its own full-width row beneath. */}
+                    <tr key={`${m.id}-b`}>
+                      <td data-noresize="" className={docFirstCellStyles} />
+                      <td className={`${docCellStyles} break-words`} colSpan={4}>
+                        <DebouncedRichField
+                          value={m.means_of_verification || ''}
+                          className={LEFT_ALIGNED_CELL_CLASS}
+                          disabled={!canEdit}
+                          minHeight="0"
+                          proposalId={proposalId}
+                          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+                          placeholder="Means of verification"
+                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
+                        />
+                      </td>
+                    </tr>
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
 
         {canEdit && (
           <div className="flex items-center justify-end gap-2 pt-3">
