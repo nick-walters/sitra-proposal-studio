@@ -62,7 +62,7 @@ export const TYPST_PAR_SPACING = '3pt';
 /** Reference footnotes: 8pt type at exactly 0.9 line spacing. */
 export const FOOTNOTE_SIZE_PT = 8;
 export const FOOTNOTE_LEADING_RATIO = 0.9;
-/** Typst leading is ADDED to the 1em line box, so 0.85 needs -1.2pt at 8pt. */
+/** Typst leading is ADDED to the 1em line box, so 0.9 needs -0.8pt at 8pt. */
 export const FOOTNOTE_LEADING_DELTA_PT = Number(
   ((FOOTNOTE_LEADING_RATIO - 1) * FOOTNOTE_SIZE_PT).toFixed(3),
 );
