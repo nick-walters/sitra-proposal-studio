@@ -517,6 +517,16 @@ function FieldRow({
     : null;
   const mirroredHtml = useRef(initialHtml.current);
   if (lockedView !== null) mirroredHtml.current = lockedView;
+  // Card fields can mount before their asynchronously loaded/template-seeded
+  // content arrives. Keep an untouched editor's source in step with that
+  // authoritative prop; otherwise it remains permanently initialised from the
+  // first empty render, so CaptionAutoNumber has no caption paragraph to walk.
+  // Once the user has focused the field, the live editor owns the draft and a
+  // query refresh must not replace it.
+  if (!touchedRef.current && lockedView === null) {
+    mirroredHtml.current = field.contentHtml ?? '';
+    contentRef.current = field.contentHtml ?? '';
+  }
   const contentViewHtml = lockedView ?? mirroredHtml.current;
 
   // B2.1 impact summary: the six-column table is stored as two stacked

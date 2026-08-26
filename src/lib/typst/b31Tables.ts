@@ -512,7 +512,7 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
 
   const out = [
     table(
-      '(auto, 1fr, auto)',
+      '(37fr, 43fr, 20fr)',
       [
         lit('Project'),
         lit('How the project will be linked'),

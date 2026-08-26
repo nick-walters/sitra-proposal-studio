@@ -84,7 +84,7 @@ interface LinkedActivitiesTableProps {
 /** Document table spec: TNR 11pt, tight cells, no vertical rules. */
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles =
-  "px-[6pt] py-[2pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+  "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const firstCellStyles = `${cellStyles} !pl-0`;
 
 /**
@@ -97,7 +97,7 @@ const CELL_CONTROL =
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['3%', '13%', '14%', '10%', '42%', '14%', '4%'];
+const DEFAULT_COL_PCT = ['37%', '43%', '20%'];
 
 const NONE = '__none__';
 
@@ -139,50 +139,42 @@ function SortableActivityRow({
        row so the sortable unit is a real table row. */
     <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
 
-        <td className={firstCellStyles}>
+        <td className={`${firstCellStyles} relative break-words`}>
           {canEdit ? (
             <Tip label="Drag to reorder this activity">
               <button
                 type="button"
-                className="cursor-grab touch-none text-[#2563EB]"
+                className="absolute right-full top-1/2 mr-1 -translate-y-1/2 cursor-grab touch-none text-blue-600"
                 {...attributes}
                 {...listeners}
               >
                 <GripVertical className="h-4 w-4" />
               </button>
             </Tip>
-          ) : (
-            <span />
-          )}
-        </td>
-
-        {/* Acronym — single-line rich text, title-field controls only
-            (undo, redo, font colour). Legacy plain strings upgrade on read. */}
-        <td className={`${cellStyles} break-words`}>
-          {canEdit ? (
-            <LazyRichField
-              singleLine
-              proposalId={proposalId}
-              value={ensureRichHtml(activity.acronym)}
-              placeholder="Acronym"
-              minHeight="24px"
-              className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
-              cellSurface
-              staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-              onChange={(html) => onUpdate(activity.id, { acronym: html })}
-            />
-          ) : (
-            <span
-              className="[&_p]:m-0 [&_p]:inline"
-              dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
-            />
-          )}
-        </td>
-
-        {/* Instrument */}
-        <td className={`${cellStyles} break-words`}>
-          {canEdit ? (
-            <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${CELL_CONTROL}`}>
+          ) : null}
+          <div className="flex min-w-0 items-center gap-1">
+            <div className="min-w-0 flex-1">
+              {canEdit ? (
+                <LazyRichField
+                  singleLine
+                  proposalId={proposalId}
+                  value={ensureRichHtml(activity.acronym)}
+                  placeholder="Acronym"
+                  minHeight="24px"
+                  className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
+                  cellSurface
+                  staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+                  onChange={(html) => onUpdate(activity.id, { acronym: html })}
+                />
+              ) : (
+                <span
+                  className="[&_p]:m-0 [&_p]:inline"
+                  dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
+                />
+              )}
+            </div>
+            {canEdit ? (
+              <div data-scalar-field="" className={`flex min-w-0 flex-1 items-center gap-1 ${CELL_CONTROL}`}>
               <Select
                 value={activity.instrumentCode ?? NONE}
                 onValueChange={(v) =>
@@ -216,18 +208,12 @@ function SortableActivityRow({
                   aria-label="Custom funding instrument"
                 />
               )}
-            </div>
-          ) : (
-            <span>
-              {getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}
-            </span>
-          )}
-        </td>
-
-        {/* Duration */}
-        <td className={`${cellStyles} break-words`}>
-          {canEdit ? (
-            <div data-scalar-field="" className={`min-w-0 ${CELL_CONTROL}`}>
+              </div>
+            ) : (
+              <span>{getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}</span>
+            )}
+            {canEdit ? (
+              <div data-scalar-field="" className={`min-w-0 flex-1 ${CELL_CONTROL}`}>
               <YearRangePicker
                 startYear={activity.durationStart}
                 endYear={activity.durationEnd}
@@ -236,14 +222,15 @@ function SortableActivityRow({
                 }
                 className="h-auto w-full justify-start font-['Times_New_Roman',Times,serif] text-[11pt]"
               />
-            </div>
-          ) : (
-            <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
-          )}
+              </div>
+            ) : (
+              <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
+            )}
+          </div>
         </td>
 
         {/* How the project will be linked — a normal cell on the same row. */}
-        <td className={`${cellStyles} !align-top break-words`}>
+        <td className={`${cellStyles} break-words`}>
           <MethodologyRichEditor
             proposalId={proposalId}
             value={activity.linkDescriptionHtml ?? ''}
@@ -258,7 +245,7 @@ function SortableActivityRow({
 
         {/* Participant is the final content column; the trailing cell contains
             only the row action, as in other authored tables. */}
-        <td className={cellStyles}>
+        <td className={`${cellStyles} relative`}>
           <div data-scalar-field="" tabIndex={-1} className="flex min-w-0 items-center gap-1 outline-none">
             {selected ? (
               <ParticipantBubble
@@ -291,15 +278,15 @@ function SortableActivityRow({
         </td>
 
 
-        {/* Fixed delete column: identical position on every row whatever the
-            participant chip's width. */}
-        <td className={`${cellStyles} text-center`}>
+          {/* Row actions live in the right margin, not in a document column. */}
           {canEdit && (
+            <div className="absolute left-full top-1/2 ml-1 -translate-y-1/2">
             <DeleteConfirmDialog
               itemLabel="this linked activity"
               tooltip="Delete this linked activity"
               onConfirm={() => onDelete(activity.id)}
             />
+            </div>
           )}
 
           <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
@@ -350,7 +337,6 @@ function SortableActivityRow({
               </ScrollArea>
             </DialogContent>
           </Dialog>
-        </td>
     </tr>
   );
 
@@ -467,9 +453,14 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['', 'Project acronym', 'Funding instrument', 'Duration', 'How the project will be linked', 'Participant responsible', ''].map(
+                  {['Project', 'How the project will be linked', 'Participant responsible'].map(
                     (h, i) => (
-                      <th key={i} className={`${i === 0 ? firstCellStyles : cellStyles} relative align-bottom font-bold`}>
+                      <th
+                        key={i}
+                        className={`${
+                          i === 0 ? firstCellStyles : cellStyles
+                        } relative align-bottom font-bold`}
+                      >
                         {h}
                         {canResize && i < DEFAULT_COL_PCT.length - 1 && (
                           <ColumnResizer onMouseDown={handleColResizeStart(i)} />
