@@ -254,13 +254,19 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
     const logo = p.logoPath
       ? `align(center, image(${typstString(p.logoPath)}, height: 8mm, fit: "contain"))`
       : 't("—")';
-    const roles = p.roles.length ? p.roles.map(bubble).join(' + t(" ") + ') : 't("")';
+    // Wrapped badge rows need the widened pitch of `chip-run`, or the second
+    // line of chips prints over the first.
+    const roles = p.roles.length
+      ? `chip-run(${p.roles.map(bubble).join(' + t(" ") + ')})`
+      : 't("")';
     return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.organisationType || '—')}), t(${typstString(p.country || '—')}))`;
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
   const cols = shares.map((w) => `${Math.max(1, Math.round(w))}fr`).join(', ');
   out.push(`he-table((${cols},), (${header.join(', ')},), (${rows.join(', ')},))`);
-  out.push('text(size: 8pt, t("HES: Higher or secondary education establishment; RES: Research organisation; SME: Small or medium-sized enterprise; LE: Large enterprise; PUB: Public body; INT: International organisation; OTH: Other."))');
+  // 6pt of clear space under the table before the abbreviation legend, and the
+  // same again after it, so the front matter does not run into what follows.
+  out.push('block(above: 6pt, below: 6pt, text(size: 8pt, t("HES: Higher or secondary education establishment; RES: Research organisation; SME: Small or medium-sized enterprise; LE: Large enterprise; PUB: Public body; INT: International organisation; OTH: Other.")))');
   return out;
 }
 
