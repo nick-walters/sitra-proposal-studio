@@ -249,7 +249,9 @@ function SortableActivityRow({
         </td>
 
 
-        {/* How the project will be linked — a normal cell on the same row. */}
+        {/* How the project will be linked — a normal cell on the same row.
+            No min-height: the field hugs its own text so the cell's
+            vertical-align: middle centres placeholder and content alike. */}
         <td className={`${cellStyles} break-words`}>
           <MethodologyRichEditor
             proposalId={proposalId}
@@ -257,11 +259,12 @@ function SortableActivityRow({
             onChange={(html) => onUpdate(activity.id, { linkDescriptionHtml: html })}
             canEdit={canEdit}
             isCoordinator={isCoordinator}
-            minHeight="1.5rem"
+            minHeight="0"
             placeholder="How the project will be linked"
             cellSurface
           />
         </td>
+
 
         {/* Participant is the final content column; the trailing cell contains
             only the row action, as in other authored tables. */}
