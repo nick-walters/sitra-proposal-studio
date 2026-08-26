@@ -377,7 +377,7 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
   return [
     caption(data, 'risks', 'Table 3.1.e.', RISKS_CAPTION),
     table(
-      storedCols(data, 'b31-risks', 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
+      storedCols(data, ['b31-3-1-e-risks', 'b31-risks'], 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
       headers.map((h) => lit(h)),
       rows,
       undefined,
