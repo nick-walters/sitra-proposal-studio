@@ -316,13 +316,27 @@ export function CardFigureBlock({
           {!missingAsset && (
             <div className="flex flex-wrap gap-2">
               <Tip label="Change the figure shown in this block">
-                <Button size="sm" variant="outline" onClick={() => setManagerOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setControlsOpen(false);
+                    setManagerOpen(true);
+                  }}
+                >
                   <Pencil className="mr-1 h-3.5 w-3.5" />
                   Change figure
                 </Button>
               </Tip>
               <Tip label="Remove the figure from this block (the figure itself is kept)">
-                <Button size="sm" variant="outline" onClick={() => setRemoveOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setControlsOpen(false);
+                    setRemoveOpen(true);
+                  }}
+                >
                   <Unlink className="mr-1 h-3.5 w-3.5" />
                   Remove the figure from this block
                 </Button>
