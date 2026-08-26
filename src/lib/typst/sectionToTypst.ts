@@ -291,7 +291,60 @@ function emitSourceFed(
   }
 }
 
+/**
+ * One authored figure block: the bitmap at its chosen width, followed by its
+ * numbered caption. Image and caption are one unbreakable, sticky unit, so a
+ * figure never splits across pages and never leaves its caption behind.
+ */
+function emitAuthoredFigure(
+  placed: AuthoredFigureBlock | null,
+  ctx: ConvertContext,
+  fallbackLabel: string,
+  title: string,
+): string[] {
+  if (!placed || placed.status !== 'ok' || !placed.assetPath) {
+    // Every non-ok state is silent in the document: an empty or broken figure
+    // block is a drafting state, and printing a red note into a proposal
+    // preview is worse than leaving the space out. The board carries the
+    // explanation.
+    if (placed && placed.status === 'unreadable') {
+      ctx.unsupported.add(`figure block “${title || 'untitled'}” (image could not be read)`);
+    }
+    return [];
+  }
+
+  const label = placed.label || fallbackLabel;
+  const caption = placed.caption
+    ? `${label ? `he-figure-caption(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
+    : label
+      ? `he-figure-caption(${typstString(label)}, ${typstString('')})`
+      : '';
+  const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
+    placed.groupWithAbove ? 'true' : 'false'
+  })`;
+  // `group_with_below` binds the figure to the paragraph AFTER it: the caption
+  // block is already sticky-adjacent to the image, so the flag adds stickiness
+  // to the caption instead of the image.
+  const captionBlock = caption
+    ? placed.groupWithBelow
+      ? `block(sticky: true, ${caption})`
+      : caption
+    : '';
+  const unit = [image, captionBlock].filter(Boolean).join('\n');
+
+  const out: string[] = [];
+  if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
+  if (placed.pageBreakMode === 'float_top') {
+    out.push(`he-figure-float([\n${unit}\n])`);
+  } else {
+    out.push(image);
+    if (captionBlock) out.push(captionBlock);
+  }
+  return out;
+}
+
 export function buildSectionTypstDocument(
+
   tree: SectionBlockTree,
   options: BuildTypstOptions = {},
 ): BuiltTypstDocument {
