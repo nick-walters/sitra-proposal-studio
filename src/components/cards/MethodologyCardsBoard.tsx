@@ -1312,6 +1312,20 @@ function CardBlock({
               leaves its column empty instead of pulling the rest out of line.
               Controls stay at full opacity when the block is hidden — only the
               block's content dims. */}
+          {/* "Reorder" is a milestones-only action, so it sits OUTSIDE the
+              fixed control grid, to the left of the visibility button, rather
+              than sharing the add column and overlapping it. */}
+          {isMilestonesCard && canEdit && relationalReorder && (
+            <div className="ml-auto shrink-0">
+              <Tip label="Manually reorder milestones that share the same due month">
+                <Button variant="ghost" size="sm" onClick={() => relationalReorder()}>
+                  <ArrowUpDown className="mr-1 h-3.5 w-3.5" />
+                  Reorder
+                </Button>
+              </Tip>
+            </div>
+          )}
+
           <div className="ml-auto grid shrink-0 grid-cols-[40px_88px_88px_40px] items-center justify-items-center gap-1 opacity-100">
 
             {/* Column 1 — visibility */}
