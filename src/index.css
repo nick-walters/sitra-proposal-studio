@@ -1935,3 +1935,15 @@ body.table-col-resizing * {
   min-width: 100%;
   margin-inline: auto;
 }
+
+
+/* --- Empty table/figure captions: grey prompt so they can be clicked into ---
+   An empty caption is only its non-editable label, which leaves nothing to
+   put the caret in. The decoration in CaptionAutoNumber adds this prompt
+   while the caption has no description and the caret is elsewhere. */
+.ProseMirror p.caption-empty::after {
+  content: attr(data-caption-placeholder);
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+  pointer-events: none;
+}
