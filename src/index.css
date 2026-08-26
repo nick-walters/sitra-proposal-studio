@@ -1825,13 +1825,6 @@ body.table-col-resizing * {
   max-width: 18cm;
 }
 
-/* The same page for non-text blocks (figures, relational tables, source-fed
-   mirrors). Its content column is 18 cm too, but children are not clamped:
-   a table may be dragged wider than the text column. */
-.doc-surface-block {
-  width: 100%;
-}
-
 .doc-surface-field {
   background: #ffffff;
   border: 0;
@@ -1926,4 +1919,11 @@ body.table-col-resizing * {
 * {
   hyphens: none;
   -webkit-hyphens: none;
+}
+
+/* Relational blocks (milestones, risks) on the page surface. The 18 cm text
+   column still governs the default layout, but a table the author has widened
+   past it must not be clipped — see the unbounded last-column resize. */
+.doc-surface-block > * {
+  max-width: none;
 }

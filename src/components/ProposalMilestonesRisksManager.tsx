@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, useCallback, createContext, useContext, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, createContext, useContext, type CSSProperties } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -430,12 +430,16 @@ export function MilestonesEditor({
   proposalId,
   canEdit,
   projectDuration,
+  onRegisterAdd,
 }: {
   proposalId: string;
   canEdit: boolean;
   /** Omitted inside the B3.1 block, where the duration is read here. */
   projectDuration?: number;
+  /** Lets the block header host the "Add" button, as other blocks do. */
+  onRegisterAdd?: (add: () => void) => void;
 }) {
+
   const qc = useQueryClient();
   const { data: fetchedDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
@@ -628,11 +632,13 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
-  /* Document table geometry. Three content columns are resizable; the MS chip
-     and the editor-only delete cell are excluded via data-noresize, so the
-     saved array always has exactly three entries. */
-  const MS_HEADERS = ['Milestone name', 'WP(s)', 'Due month'];
-  const MS_COL_PCT = ['50%', '32%', '18%'];
+  /* Document table geometry. Four content columns are resizable; the
+     editor-only delete cell is excluded via data-noresize, so the saved array
+     always has exactly four entries. The two long-text columns (name and
+     means of verification) take the bulk of the 18 cm column; the WP and due
+     month columns are sized to their controls. */
+  const MS_HEADERS = ['Milestone name', 'Means of verification', 'WP(s)', 'Due month'];
+  const MS_COL_PCT = ['32%', '34%', '22%', '12%'];
   const { colWidths: msColWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
@@ -648,6 +654,11 @@ export function MilestonesEditor({
     MS_HEADERS,
   );
 
+  // The block header owns the "Add" button, so the add action is handed up.
+  useEffect(() => {
+    onRegisterAdd?.(() => addMilestone.mutate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterAdd, proposalId]);
 
 
   return (
@@ -658,7 +669,8 @@ export function MilestonesEditor({
         ) : (
           /* A single <tbody> holds every row: the resize hook measures
              `tbody tr:first-child`, so one tbody per milestone would have it
-             measure the wrong row. */
+             measure the wrong row. One <tr> per milestone — every column,
+             means of verification included, sits side by side. */
           <table
             ref={msTableRef}
             data-table-key="b31-milestones"
@@ -666,13 +678,12 @@ export function MilestonesEditor({
             style={{
               tableLayout: 'fixed',
               width: msSized
-                ? `${msColWidths.reduce((s, w) => s + w, 0) + 76}px`
+                ? `${msColWidths.reduce((s, w) => s + w, 0) + 28}px`
                 : '100%',
               borderCollapse: 'collapse',
             }}
           >
             <colgroup>
-              <col style={{ width: '48px' }} />
               {MS_COL_PCT.map((pct, i) => (
                 <col key={i} style={{ width: msSized ? `${msColWidths[i]}px` : pct }} />
               ))}
@@ -681,9 +692,11 @@ export function MilestonesEditor({
             </colgroup>
             <thead>
               <tr>
-                <th data-noresize="" className={`${docFirstCellStyles} align-bottom font-bold`} />
                 {msHeaders.map((h, i) => (
-                  <th key={i} className={`${docCellStyles} relative align-bottom font-bold`}>
+                  <th
+                    key={i}
+                    className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                  >
                     <EditableColumnHeader
                       value={h}
                       canEdit={canEdit}
@@ -704,105 +717,104 @@ export function MilestonesEditor({
                   .filter((w): w is WPRow => !!w)
                   .sort((a, b) => a.number - b.number);
                 return (
-                  <Fragment key={m.id}>
-                    {/* Scalar line: chip, name, WP(s), due month, delete. */}
-                    <tr id={`milestone-row-${m.id}`} className="!border-b-0">
-                      <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
-                        <MilestoneBadge number={m.number} />
-                      </td>
-                      <td className={`${docCellStyles} break-words`}>
-                        <DebouncedRichField
-                          value={m.title || ''}
-                          className={LEFT_ALIGNED_CELL_CLASS}
-                          cellSurface
-                          disabled={!canEdit}
-                          minHeight="0"
-                          proposalId={proposalId}
-                          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
-                        />
-                      </td>
-                      <td className={docCellStyles}>
-                        <MilestoneWpDialog
-                          wps={wps}
-                          selectedWpIds={m.wp_ids}
-                          primaryWpId={m.primary_wp_id}
-                          disabled={!canEdit}
-                          onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
-                          renderTrigger={(open) => (
-                            <button type="button" onClick={open} disabled={!canEdit} className={SUBTLE_CONTROL}>
-                              {selectedWps.length === 0 ? (
-                                <span className="text-muted-foreground italic">Select WP(s)…</span>
-                              ) : (
-                                <span className="flex flex-wrap gap-0.5 items-center">
-                                  {isAllWPsSelected(selectedWps.length, wps.length) ? (
-                                    <>
-                                      <AllWPsBubble />
-                                      {/* "All WPs" hides which WP is starred as
-                                          primary for the Gantt, so the primary is
-                                          shown alongside it — editor only. */}
-                                      {selectedWps
-                                        .filter((wp) => wp.id === m.primary_wp_id)
-                                        .map((wp) => (
-                                          <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} showStar />
-                                        ))}
-                                    </>
-                                  ) : (
-                                    selectedWps.map(wp => (
-                                      <WPBubble
-                                        key={wp.id}
-                                        wpNumber={wp.number}
-                                        wpColor={wp.color}
-                                        showStar={wp.id === m.primary_wp_id}
-                                      />
-                                    ))
-                                  )}
-                                </span>
-                              )}
-                            </button>
-                          )}
-                        />
-                      </td>
-                      <td className={docCellStyles}>
-                        <SingleMonthPicker
-                          value={m.due_month}
-                          projectDuration={duration}
-                          readOnly={!canEdit}
-                          label=""
-                          cellSurface
-                          onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
-                        />
-                      </td>
-                      {/* Row action in its own cell: a bare div in a <tr> is not
-                          laid out as a cell and would disappear. */}
-                      <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
-                        <Button
-                          size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
-                          disabled={!canEdit}
-                          onClick={() => deleteMilestone.mutate(m.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                    {/* Means of verification: its own full-width row beneath. */}
-                    <tr>
-                      <td data-noresize="" className={docFirstCellStyles} />
-                      <td className={`${docCellStyles} break-words`} colSpan={4}>
-                        <DebouncedRichField
-                          value={m.means_of_verification || ''}
-                          className={LEFT_ALIGNED_CELL_CLASS}
-                          cellSurface
-                          disabled={!canEdit}
-                          minHeight="0"
-                          proposalId={proposalId}
-                          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-                          placeholder="Means of verification"
-                          onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
-                        />
-                      </td>
-                    </tr>
-                  </Fragment>
+                  <tr key={m.id} id={`milestone-row-${m.id}`}>
+                    {/* The MS badge lives at the start of the name cell, so the
+                        badge and the name share one column. */}
+                    <td className={`${docFirstCellStyles} break-words`}>
+                      <div className="flex items-start gap-1">
+                        <span className="shrink-0 whitespace-nowrap">
+                          <MilestoneBadge number={m.number} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <DebouncedRichField
+                            value={m.title || ''}
+                            className={LEFT_ALIGNED_CELL_CLASS}
+                            cellSurface
+                            disabled={!canEdit}
+                            minHeight="0"
+                            proposalId={proposalId}
+                            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+                            onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className={`${docCellStyles} break-words`}>
+                      <DebouncedRichField
+                        value={m.means_of_verification || ''}
+                        className={LEFT_ALIGNED_CELL_CLASS}
+                        cellSurface
+                        disabled={!canEdit}
+                        minHeight="0"
+                        proposalId={proposalId}
+                        staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+                        placeholder="Means of verification"
+                        onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
+                      />
+                    </td>
+                    <td className={docCellStyles}>
+                      <MilestoneWpDialog
+                        wps={wps}
+                        selectedWpIds={m.wp_ids}
+                        primaryWpId={m.primary_wp_id}
+                        disabled={!canEdit}
+                        onSave={(wpIds, primaryWpId) => setMsWps.mutate({ id: m.id, wpIds, primaryWpId })}
+                        renderTrigger={(open) => (
+                          <button type="button" onClick={open} disabled={!canEdit} className={SUBTLE_CONTROL}>
+                            {selectedWps.length === 0 ? (
+                              <span className="text-muted-foreground italic">Select WP(s)…</span>
+                            ) : (
+                              <span className="flex flex-wrap gap-0.5 items-center">
+                                {isAllWPsSelected(selectedWps.length, wps.length) ? (
+                                  <>
+                                    <AllWPsBubble />
+                                    {/* "All WPs" hides which WP is starred as
+                                        primary for the Gantt, so the primary is
+                                        shown alongside it — editor only. */}
+                                    {selectedWps
+                                      .filter((wp) => wp.id === m.primary_wp_id)
+                                      .map((wp) => (
+                                        <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} showStar />
+                                      ))}
+                                  </>
+                                ) : (
+                                  selectedWps.map(wp => (
+                                    <WPBubble
+                                      key={wp.id}
+                                      wpNumber={wp.number}
+                                      wpColor={wp.color}
+                                      showStar={wp.id === m.primary_wp_id}
+                                    />
+                                  ))
+                                )}
+                              </span>
+                            )}
+                          </button>
+                        )}
+                      />
+                    </td>
+                    <td className={docCellStyles}>
+                      <SingleMonthPicker
+                        value={m.due_month}
+                        projectDuration={duration}
+                        readOnly={!canEdit}
+                        label=""
+                        cellSurface
+                        onChange={(month) => updateMilestone.mutate({ id: m.id, patch: { due_month: month } })}
+                      />
+                    </td>
+                    {/* Row action in its own cell: a bare div in a <tr> is not
+                        laid out as a cell and would disappear. */}
+                    <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
+                      <Button
+                        size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
+                        disabled={!canEdit}
+                        onClick={() => deleteMilestone.mutate(m.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
@@ -824,11 +836,9 @@ export function MilestonesEditor({
               </TooltipTrigger>
               <TooltipContent>Manually reorder milestones that share the same due month</TooltipContent>
             </Tooltip>
-            <Button size="sm" onClick={() => addMilestone.mutate()}>
-              <Plus className="h-4 w-4 mr-1" /> Add milestone
-            </Button>
           </div>
         )}
+
 
         <MsSameMonthReorderDialog
           open={msReorderOpen}
@@ -853,10 +863,14 @@ export function MilestonesEditor({
 export function RisksEditor({
   proposalId,
   canEdit,
+  onRegisterAdd,
 }: {
   proposalId: string;
   canEdit: boolean;
+  /** Lets the block header host the "Add" button, as other blocks do. */
+  onRegisterAdd?: (add: () => void) => void;
 }) {
+
   const qc = useQueryClient();
   const { reportConflict, dialog: conflictDialog } = useVersionConflict();
   const { data: wps = [] } = useWpRows(proposalId);
@@ -1022,11 +1036,14 @@ export function RisksEditor({
 
   usePageSearchSource('risks', 'Critical risks', searchFields);
 
-  /* Document table geometry. Four content columns are resizable; the grip and
-     the editor-only delete cell are excluded via data-noresize, so the saved
-     array always has exactly four entries. */
-  const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)'];
-  const RISK_COL_PCT = ['46%', '9%', '9%', '36%'];
+  /* Document table geometry. Five content columns are resizable; the
+     editor-only delete cell is excluded via data-noresize. The drag grip is
+     not a column at all — it sits in the page's left margin — so the first
+     real column starts flush at the text column's inner edge. The two long
+     text columns (description and mitigation) take the bulk of the width. */
+  const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)', 'Mitigation & adaptation measures'];
+  const RISK_COL_PCT = ['28%', '7%', '7%', '22%', '36%'];
+
   const { colWidths: riskColWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
       proposalId,
@@ -1041,6 +1058,13 @@ export function RisksEditor({
     'b31-risks',
     RISK_HEADERS,
   );
+
+  // The block header owns the "Add" button, so the add action is handed up.
+  useEffect(() => {
+    onRegisterAdd?.(() => addRisk.mutate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterAdd, proposalId]);
+
 
   return (
     <TooltipProvider>
@@ -1064,13 +1088,12 @@ export function RisksEditor({
                 style={{
                   tableLayout: 'fixed',
                   width: riskSized
-                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 76}px`
+                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 28}px`
                     : '100%',
                   borderCollapse: 'collapse',
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '48px' }} />
                   {RISK_COL_PCT.map((pct, i) => (
                     <col key={i} style={{ width: riskSized ? `${riskColWidths[i]}px` : pct }} />
                   ))}
@@ -1079,9 +1102,11 @@ export function RisksEditor({
                 </colgroup>
                 <thead>
                   <tr>
-                    <th data-noresize="" className={`${docFirstCellStyles} align-bottom font-bold`} />
                     {riskHeaders.map((h, i) => (
-                      <th key={i} className={`${docCellStyles} relative align-bottom font-bold`}>
+                      <th
+                        key={i}
+                        className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                      >
                         <EditableColumnHeader
                           value={h}
                           canEdit={canEdit}
@@ -1095,6 +1120,7 @@ export function RisksEditor({
                     <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
                   </tr>
                 </thead>
+
                 <tbody>
                   {risks.map((r) => (
                     <SortableRiskRow
@@ -1114,13 +1140,7 @@ export function RisksEditor({
           </DndContext>
         )}
 
-        {canEdit && (
-          <div className="flex items-center justify-end gap-2 pt-3">
-            <Button size="sm" onClick={() => addRisk.mutate()}>
-              <Plus className="h-4 w-4 mr-1" /> Add risk
-            </Button>
-          </div>
-        )}
+
         {conflictDialog}
       </div>
     </TooltipProvider>
@@ -1128,8 +1148,10 @@ export function RisksEditor({
 }
 
 
-// ── Sortable rows for the risks table: scalars, then mitigation full-width ──
-// Risks carry no printed number, so the first cell holds only the grip.
+// ── Sortable row for the risks table: one <tr> per risk ──
+// Risks carry no printed number. The drag grip is not a column: it is
+// absolutely positioned in the page's left margin, so the description column
+// starts flush at the inner edge of the text column.
 function SortableRiskRow({
   risk, wps, canEdit, onUpdate, onSetWps, onDelete, proposalId,
 }: {
@@ -1145,98 +1167,88 @@ function SortableRiskRow({
     id: risk.id,
     disabled: !canEdit,
   });
-  // Both rows of the pair carry the same transform so a dragged risk moves whole.
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <Fragment>
-      {/* Scalar line: grip, description, likelihood, severity, WP(s), delete.
-          The rule sits under the mitigation row, so it falls between risks. */}
-      <tr ref={setNodeRef} style={style} id={`risk-row-${risk.id}`} className="!border-b-0">
-        <td data-noresize="" className={`${docFirstCellStyles} whitespace-nowrap`}>
-          {canEdit && (
-            <button
-              type="button"
-              className="cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
-              {...attributes}
-              {...listeners}
-              aria-label="Drag to reorder"
-            >
-              <GripVertical className="h-4 w-4 text-[#2563EB]" />
-            </button>
-          )}
-        </td>
-        <td className={`${docCellStyles} break-words`}>
-          <DebouncedRichField
-            value={risk.title || ''}
-            className={LEFT_ALIGNED_CELL_CLASS}
-            cellSurface
-            disabled={!canEdit}
-            minHeight="0"
-            proposalId={proposalId}
-            staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
-            onChange={(html) => onUpdate({ title: html })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <RiskLevelSelect
-            value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
-            disabled={!canEdit}
-            cellSurface
-            onChange={(v) => onUpdate({ likelihood: v })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <RiskLevelSelect
-            value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
-            disabled={!canEdit}
-            cellSurface
-            onChange={(v) => onUpdate({ severity: v })}
-          />
-        </td>
-        <td className={docCellStyles}>
-          <WPMultiSelect
-            allWps={wps}
-            selectedIds={risk.wp_ids}
-            disabled={!canEdit}
-            cellSurface
-            onChange={onSetWps}
-          />
-        </td>
-        {/* Row action in its own cell: a bare div in a <tr> is not laid out as
-            a cell and would disappear. */}
-        <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
-          <Button
-            size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
-            disabled={!canEdit}
-            onClick={onDelete}
+    <tr ref={setNodeRef} style={style} id={`risk-row-${risk.id}`}>
+      <td className={`${docFirstCellStyles} relative break-words`}>
+        {canEdit && (
+          <button
+            type="button"
+            className="absolute right-full top-1/2 mr-1 -translate-y-1/2 cursor-grab active:cursor-grabbing inline-flex items-center justify-center"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
           >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </td>
-      </tr>
-      {/* Mitigation & adaptation measures: its own full-width row beneath. */}
-      <tr style={style}>
-        <td data-noresize="" className={docFirstCellStyles} />
-        <td className={`${docCellStyles} break-words`} colSpan={5}>
-          <DebouncedRichField
-            value={risk.mitigation || ''}
-            className={LEFT_ALIGNED_CELL_CLASS}
-            cellSurface
-            disabled={!canEdit}
-            minHeight="0"
-            proposalId={proposalId}
-            staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
-            placeholder="Mitigation & adaptation measures"
-            onChange={(html) => onUpdate({ mitigation: html })}
-          />
-        </td>
-      </tr>
-    </Fragment>
+            <GripVertical className="h-4 w-4 text-[#2563EB]" />
+          </button>
+        )}
+        <DebouncedRichField
+          value={risk.title || ''}
+          className={LEFT_ALIGNED_CELL_CLASS}
+          cellSurface
+          disabled={!canEdit}
+          minHeight="0"
+          proposalId={proposalId}
+          staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
+          onChange={(html) => onUpdate({ title: html })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <RiskLevelSelect
+          value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          cellSurface
+          onChange={(v) => onUpdate({ likelihood: v })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <RiskLevelSelect
+          value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
+          disabled={!canEdit}
+          cellSurface
+          onChange={(v) => onUpdate({ severity: v })}
+        />
+      </td>
+      <td className={docCellStyles}>
+        <WPMultiSelect
+          allWps={wps}
+          selectedIds={risk.wp_ids}
+          disabled={!canEdit}
+          cellSurface
+          onChange={onSetWps}
+        />
+      </td>
+      <td className={`${docCellStyles} break-words`}>
+        <DebouncedRichField
+          value={risk.mitigation || ''}
+          className={LEFT_ALIGNED_CELL_CLASS}
+          cellSurface
+          disabled={!canEdit}
+          minHeight="0"
+          proposalId={proposalId}
+          staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
+          placeholder="Mitigation & adaptation measures"
+          onChange={(html) => onUpdate({ mitigation: html })}
+        />
+      </td>
+      {/* Row action in its own cell: a bare div in a <tr> is not laid out as
+          a cell and would disappear. */}
+      <td data-noresize="" className={`${docCellStyles} !px-0 w-[28px] text-right`}>
+        <Button
+          size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
+          disabled={!canEdit}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </td>
+    </tr>
   );
+
 }
 
 

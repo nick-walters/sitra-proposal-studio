@@ -533,11 +533,10 @@ function FieldRow({
   const isImpactSummary = cardTemplateKey === IMPACT_SUMMARY_KEY;
   const contentEditor = useRef<Editor | null>(null);
   const [rowTick, setRowTick] = useState(0);
-  // The page-like surface is the standard for EVERY module in every Part B
-  // block, including the case-study placeholder module, whose live pilots
-  // table now sits on the same page as authored text rather than in a
-  // separate form-styled frame.
-  const isDocumentSurface = true;
+  // The page-like editing surface is now the standard for every text module
+  // in every Part B block. Case-study placeholder modules are not text
+  // modules: they render a live table, so they keep the plain module frame.
+  const isDocumentSurface = !isPlaceholder;
 
   // The module's H3 header. On the page-styled surface it is not a form input
   // above the page: it is the first field ON the page, sharing its white
@@ -646,9 +645,16 @@ function FieldRow({
 
 
         {isPlaceholder ? (
-          // The pilots table itself moved onto the page below; the toolbar row
-          // keeps only the drag grip.
-          <span className="flex-1" aria-hidden="true" />
+          <div className={collapsed ? 'hidden' : 'min-w-0 flex-1'}>
+            <RefDataProvider proposalId={proposalId}>
+              <CasesTableLiveView
+                proposalId={proposalId}
+                caseTypeId={field.placeholderCaseTypeId ?? null}
+                letterIndex={caseLetterIndex ?? 0}
+                sectionNumber={captionSectionNumber}
+              />
+            </RefDataProvider>
+          </div>
         ) : (
           <>
             {headerField && !isDocumentSurface ? (
@@ -759,25 +765,6 @@ function FieldRow({
         )}
       </div>
 
-      {isPlaceholder && (
-        <div
-          className={
-            collapsed
-              ? 'hidden'
-              : 'doc-surface-block bg-white px-[1.5cm] py-[3pt]'
-          }
-        >
-          <RefDataProvider proposalId={proposalId}>
-            <CasesTableLiveView
-              proposalId={proposalId}
-              caseTypeId={field.placeholderCaseTypeId ?? null}
-              letterIndex={caseLetterIndex ?? 0}
-              sectionNumber={captionSectionNumber}
-            />
-          </RefDataProvider>
-        </div>
-      )}
-
       {!isPlaceholder && (
         <div
           className={
@@ -871,27 +858,9 @@ function FieldRow({
   );
 }
 
-/**
- * The document page used by non-text blocks — figures, the relational tables
- * (linked activities, milestones, risks) and the source-fed mirrors. Same
- * geometry as a text module: 21 cm wide, 1.5 cm side margins, an 18 cm
- * content column, white and without chrome. The symmetric negative margin
- * lets the page bleed out to the block's own edges, exactly as module pages
- * do. Unlike `.doc-surface-page` it does not clamp its children to 18 cm, so
- * a table dragged wider than the text column still grows.
- */
-function DocPageFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="doc-surface-block box-content w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)] bg-white px-[1.5cm] py-[3pt]">
-      {children}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
 /* ------------------------------------------------------------------ */
-
 
 interface CardBlockProps {
   card: ProposalCard;
@@ -1195,6 +1164,13 @@ function CardBlock({
   const canAddModule =
     canEdit && !isPlaceholderCard && !isRelationalCard && card.kind !== 'figure';
 
+  /* The milestones and risks editors own their insert, but the button belongs
+     in the block header alongside every other "Add" — so each hands its add
+     action up here on mount. */
+  const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
+  const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
+
+
   // Dragging also collapses (kept from before); the user's own collapse
   // preference is independent of it and persists across page loads.
   const contentHidden = collapsed || userCollapsed;
@@ -1378,7 +1354,15 @@ function CardBlock({
                   Add
                 </Button>
               </Tip>
+            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
+              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
+                <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </Tip>
             ) : canAddModule ? (
+
               <Tip label="Add module to this block">
                 <Button variant="ghost" size="sm" onClick={() => onAddField(card)}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
@@ -1474,55 +1458,57 @@ function CardBlock({
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isMilestonesCard ? (
-            <DocPageFrame>
-              <MilestonesEditor proposalId={proposalId} canEdit={canEdit} />
-            </DocPageFrame>
+            /* The same page as a text module: white, 1.5 cm side margins,
+               an 18 cm content column and 3 pt of air above and below. */
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <MilestonesEditor
+                proposalId={proposalId}
+                canEdit={canEdit}
+                onRegisterAdd={registerRelationalAdd}
+              />
+            </div>
           ) : isRisksCard ? (
-            <DocPageFrame>
-              <RisksEditor proposalId={proposalId} canEdit={canEdit} />
-            </DocPageFrame>
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <RisksEditor
+                proposalId={proposalId}
+                canEdit={canEdit}
+                onRegisterAdd={registerRelationalAdd}
+              />
+            </div>
+
           ) : isLinkedActivitiesCard ? (
-            <DocPageFrame>
-              <LinkedActivitiesTable
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                controller={linkedActivities}
-                captionLabel={captionLabel}
-              />
-            </DocPageFrame>
+            <LinkedActivitiesTable
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+              controller={linkedActivities}
+              captionLabel={captionLabel}
+            />
           ) : isPlaceholderCard ? (
-            <DocPageFrame>
-              <SourceFedBlock
-                proposalId={proposalId}
-                sourceKey={card.sourceKey}
-                kind={card.kind}
-              />
-            </DocPageFrame>
+            <SourceFedBlock
+              proposalId={proposalId}
+              sourceKey={card.sourceKey}
+              kind={card.kind}
+            />
           ) : card.kind === 'figure' ? (
-            <DocPageFrame>
-              <CardFigureBlock
-                cardId={card.id}
-                proposalId={proposalId}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                fullWidthOnly={figuresFullWidth}
-                captionLabel={captionLabel ?? 'Figure.'}
-              />
-            </DocPageFrame>
+            <CardFigureBlock
+              cardId={card.id}
+              proposalId={proposalId}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+              fullWidthOnly={figuresFullWidth}
+              captionLabel={captionLabel ?? 'Figure.'}
+            />
           ) : (
             <>
               {/* B3.2 blocks are authored, but also mirror their A2 sources. */}
               {b32BlockHasMirrors(card.templateKey) && (
-                <DocPageFrame>
-                  <B32BlockMirrors
-                    proposalId={proposalId}
-                    templateKey={card.templateKey}
-                    fields={orderedFields}
-                  />
-                </DocPageFrame>
+                <B32BlockMirrors
+                  proposalId={proposalId}
+                  templateKey={card.templateKey}
+                  fields={orderedFields}
+                />
               )}
-
 
               <DndContext
                 sensors={fieldSensors}
