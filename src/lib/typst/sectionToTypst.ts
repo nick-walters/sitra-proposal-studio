@@ -45,6 +45,8 @@ import {
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { emitCasesTable, type CasesTypstData } from './casesData';
+import type { AuthoredFigureBlock } from './authoredFigures';
+
 import { countCaptionSlots, captionKind, captionLetter } from '@/lib/cards/captionSlots';
 import {
   citationHtml,
@@ -229,6 +231,13 @@ export interface BuildTypstOptions {
   frontMatter?: TypstFrontMatter | null;
   /** B1.2 cases ("pilots") rows, for the `casesTable` atom nodes. */
   casesData?: CasesTypstData | null;
+  /**
+   * Authored figure blocks: their resolved bitmaps (already in the compiler's
+   * virtual filesystem) plus their per-block layout settings, keyed by card id.
+   */
+  authoredFigures?: Map<string, AuthoredFigureBlock> | null;
+
+
 
 }
 
@@ -282,7 +291,60 @@ function emitSourceFed(
   }
 }
 
+/**
+ * One authored figure block: the bitmap at its chosen width, followed by its
+ * numbered caption. Image and caption are one unbreakable, sticky unit, so a
+ * figure never splits across pages and never leaves its caption behind.
+ */
+function emitAuthoredFigure(
+  placed: AuthoredFigureBlock | null,
+  ctx: ConvertContext,
+  fallbackLabel: string,
+  title: string,
+): string[] {
+  if (!placed || placed.status !== 'ok' || !placed.assetPath) {
+    // Every non-ok state is silent in the document: an empty or broken figure
+    // block is a drafting state, and printing a red note into a proposal
+    // preview is worse than leaving the space out. The board carries the
+    // explanation.
+    if (placed && placed.status === 'unreadable') {
+      ctx.unsupported.add(`figure block “${title || 'untitled'}” (image could not be read)`);
+    }
+    return [];
+  }
+
+  const label = placed.label || fallbackLabel;
+  const caption = placed.caption
+    ? `${label ? `he-figure-caption(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
+    : label
+      ? `he-figure-caption(${typstString(label)}, ${typstString('')})`
+      : '';
+  const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
+    placed.groupWithAbove ? 'true' : 'false'
+  })`;
+  // `group_with_below` binds the figure to the paragraph AFTER it: the caption
+  // block is already sticky-adjacent to the image, so the flag adds stickiness
+  // to the caption instead of the image.
+  const captionBlock = caption
+    ? placed.groupWithBelow
+      ? `block(sticky: true, ${caption})`
+      : caption
+    : '';
+  const unit = [image, captionBlock].filter(Boolean).join('\n');
+
+  const out: string[] = [];
+  if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
+  if (placed.pageBreakMode === 'float_top') {
+    out.push(`he-figure-float([\n${unit}\n])`);
+  } else {
+    out.push(image);
+    if (captionBlock) out.push(captionBlock);
+  }
+  return out;
+}
+
 export function buildSectionTypstDocument(
+
   tree: SectionBlockTree,
   options: BuildTypstOptions = {},
 ): BuiltTypstDocument {
@@ -401,11 +463,20 @@ export function buildSectionTypstDocument(
     }
 
     if (card.kind === 'figure') {
-      if (ctx.captionNumbering) ctx.captionNumbering.figureIndex += 1;
-      ctx.unsupported.add('figure block');
-      out.push(placeholder(`[figure block “${titleText(card.title) || 'untitled'}” — not rendered in this step]`));
+      // The figure keeps its slot in the section's caption sequence whether or
+      // not a bitmap could be resolved, so a broken figure never renumbers the
+      // ones after it.
+      const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+      const placed = options.authoredFigures?.get(card.id) ?? null;
+      const fallbackLabel =
+        ctx.captionNumbering && slot != null
+          ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+          : '';
+      out.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
       continue;
     }
+
+
 
     for (const field of tree.fieldsByCard[card.id] || []) {
       // The B1.2 pilots table is NOT stored as HTML at all: on the block board

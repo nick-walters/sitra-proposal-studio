@@ -511,6 +511,25 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   image(path, width: 100%),
 )
 
+/// Authored figure (an upload, an AI image or a rasterised canvas), scaled to
+/// a percentage of the text column and centred in it.
+/// Unbreakable and sticky, so the image is never split and never separated
+/// from the caption that follows it. \`tight\` collapses the space above when
+/// the block is grouped with the paragraph above it.
+#let he-figure-image(path, pct, tight: false) = block(
+  width: he-table-width,
+  above: if tight { 0pt } else { 6pt },
+  below: 0pt,
+  breakable: false,
+  sticky: true,
+  align(center, image(path, width: pct * 1%)),
+)
+
+/// A figure pinned to the top of the page it lands on (page-break mode
+/// "float_top"). The caption travels inside the same float.
+#let he-figure-float(body) = place(top, float: true, clearance: 8pt, body)
+
+
 // ── headings ───────────────────────────────────────────────────────────────
 /// Part heading ("1. Excellence") and section heading ("1.2. Methodology").
 /// Arial Black at 13pt / 12pt with 9-6 and 6-6 point spacing, matching the
