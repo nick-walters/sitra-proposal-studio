@@ -430,12 +430,16 @@ export function MilestonesEditor({
   proposalId,
   canEdit,
   projectDuration,
+  onRegisterAdd,
 }: {
   proposalId: string;
   canEdit: boolean;
   /** Omitted inside the B3.1 block, where the duration is read here. */
   projectDuration?: number;
+  /** Lets the block header host the "Add" button, as other blocks do. */
+  onRegisterAdd?: (add: () => void) => void;
 }) {
+
   const qc = useQueryClient();
   const { data: fetchedDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
