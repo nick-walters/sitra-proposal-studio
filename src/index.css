@@ -1866,14 +1866,27 @@ body.table-col-resizing * {
 
 /* The header is an inline H4: its field is only as wide as the words in it,
    never the whole text column. The minimum keeps an empty field — showing the
-   grey "Header" placeholder — comfortably clickable. */
-.doc-surface-heading-inline,
-.doc-surface-heading-inline .ProseMirror,
-.doc-surface-heading-inline .document-content {
+   grey "Header" placeholder — comfortably clickable.
+
+   Only the OUTER field is shrink-to-fit. Applying `max-content` to the inner
+   ProseMirror as well made the browser round the fractional advance width of
+   bold italic Times down to a whole pixel twice over, so the measured box came
+   out narrower than the text it was measured from and the final word wrapped.
+   The inner surface now fills its parent, and a 2px right buffer absorbs the
+   remaining sub-pixel rounding. */
+.doc-surface-heading-inline {
   width: max-content;
   min-width: 8rem;
   max-width: 100%;
+  padding-right: 2px;
 }
+
+.doc-surface-heading-inline .ProseMirror,
+.doc-surface-heading-inline .document-content {
+  width: 100%;
+  max-width: 100%;
+}
+
 
 .doc-surface-field.is-active {
   border-left-color: hsl(var(--primary));
