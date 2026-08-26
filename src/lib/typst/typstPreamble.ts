@@ -689,7 +689,8 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 // entry and the same negative gap BETWEEN entries (each entry is its own
 // block, so \`leading\` never applies across them — measured entry-to-entry
 // pitch was 12.0pt, i.e. 1.50, before this).
-#set footnote.entry(indent: 0pt, gap: ${FOOTNOTE_LEADING_DELTA_PT}pt, clearance: 6pt)
+// No separator: Typst's default rule above the footnote block is removed.
+#set footnote.entry(indent: 0pt, gap: ${FOOTNOTE_LEADING_DELTA_PT}pt, clearance: 6pt, separator: none)
 #show footnote.entry: it => {
   set text(size: ${FOOTNOTE_SIZE_PT}pt, top-edge: ${TYPST_TOP_EDGE}, bottom-edge: ${TYPST_BOTTOM_EDGE})
   set par(justify: false, leading: ${FOOTNOTE_LEADING_DELTA_PT}pt, spacing: 0pt)
