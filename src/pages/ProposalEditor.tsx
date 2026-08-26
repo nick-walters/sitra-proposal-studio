@@ -935,6 +935,11 @@ export function ProposalEditor() {
           return (
             <div className="flex-1 overflow-y-auto">
               <CaseDraftEditor
+                // Remount on every case switch. Without this the subtree —
+                // including any mounted TipTap editor still holding the
+                // PREVIOUS pilot's text — was reused, and the next keystroke
+                // wrote that text into the newly selected pilot's field.
+                key={caseSection.caseId}
                 caseId={caseSection.caseId}
                 proposalId={id || ''}
                 canEdit={canEdit}
