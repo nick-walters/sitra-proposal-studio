@@ -769,7 +769,7 @@ export function MilestonesEditor({
                         className={LEFT_ALIGNED_CELL_CLASS}
                         cellSurface
                         disabled={!canEdit}
-                        minHeight="0"
+                        minHeight={CELL_MIN_HEIGHT}
                         proposalId={proposalId}
                         staticExtensions={WP_SHORT_NARRATIVE_FIELD_EXTENSIONS}
                         placeholder="Means of verification"
