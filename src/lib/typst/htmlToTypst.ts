@@ -364,28 +364,63 @@ function convertCell(cell: Element, ctx: ConvertContext, header: boolean): strin
   return `table.cell(${args.length ? `${args.join(', ')}, ` : ''}${inner})`;
 }
 
-/** Column widths from `<colgroup>` first, then per-cell `colwidth`. */
-function columnWidths(table: Element, colCount: number): number[] | null {
-  const cols = Array.from(table.querySelectorAll('colgroup > col'));
-  const fromColgroup = cols
-    .map((c) => Number(c.getAttribute('width') || (c as HTMLElement).style?.width?.replace('px', '') || 0))
-    .filter((n) => Number.isFinite(n));
-  if (fromColgroup.length === colCount && fromColgroup.every((n) => n > 0)) return fromColgroup;
+/**
+ * The editor's own text column: 18 cm at 96 CSS px per inch. An authored table
+ * fills that width on the block board, so a column the author never dragged
+ * takes an equal share of whatever the dragged columns leave over — exactly
+ * what `table-layout: fixed` does on screen.
+ */
+const EDITOR_TABLE_PX = Math.round((18 / 2.54) * 96);
+/** TipTap's own per-column floor, so a filler column is never absurdly thin. */
+const MIN_COL_PX = 25;
 
-  const widths: number[] = [];
-  const firstRow = table.querySelector('tr');
-  if (firstRow) {
-    Array.from(firstRow.children).forEach((cell) => {
-      const raw = cell.getAttribute('colwidth');
-      const parts = (raw || '').split(',').map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
-      const span = Number(cell.getAttribute('colspan') || '1');
-      if (parts.length === span) widths.push(...parts);
-      else for (let i = 0; i < span; i += 1) widths.push(0);
+/**
+ * Column widths in editor pixels, from `<colgroup>` first and then per-cell
+ * `colwidth`. TipTap only writes a width for columns that have been RESIZED
+ * (the rest carry `min-width` alone), so a partially resized table is
+ * completed here with the remaining width shared equally — the same geometry
+ * the editor lays out — instead of collapsing to equal columns throughout.
+ */
+function columnWidths(table: Element, colCount: number): number[] | null {
+  const explicit: Array<number | null> = Array.from({ length: colCount }, () => null);
+
+  const cols = Array.from(table.querySelectorAll('colgroup > col'));
+  if (cols.length === colCount) {
+    cols.forEach((c, i) => {
+      // `min-width` is TipTap's placeholder for "not resized" — only an actual
+      // `width` is an authored measurement.
+      const raw = c.getAttribute('width') || (c as HTMLElement).style?.width || '';
+      const value = Number(String(raw).replace('px', '').trim());
+      if (Number.isFinite(value) && value > 0) explicit[i] = value;
     });
   }
-  if (widths.length === colCount && widths.every((n) => n > 0)) return widths;
-  return null;
+
+  if (explicit.every((w) => w == null)) {
+    const firstRow = table.querySelector('tr');
+    if (firstRow) {
+      let index = 0;
+      Array.from(firstRow.children).forEach((cell) => {
+        const parts = (cell.getAttribute('colwidth') || '')
+          .split(',')
+          .map((n) => Number(n));
+        const span = Number(cell.getAttribute('colspan') || '1');
+        for (let i = 0; i < span; i += 1, index += 1) {
+          const value = parts[i];
+          if (index < colCount && Number.isFinite(value) && value > 0) explicit[index] = value;
+        }
+      });
+    }
+  }
+
+  if (explicit.every((w) => w == null)) return null;
+  if (explicit.every((w) => w != null)) return explicit as number[];
+
+  const known = explicit.reduce<number>((sum, w) => sum + (w || 0), 0);
+  const missing = explicit.filter((w) => w == null).length;
+  const filler = Math.max(MIN_COL_PX, (EDITOR_TABLE_PX - known) / missing);
+  return explicit.map((w) => (w == null ? filler : w));
 }
+
 
 function convertTable(el: Element, ctx: ConvertContext): string {
   const rows = Array.from(el.querySelectorAll('tr'));
