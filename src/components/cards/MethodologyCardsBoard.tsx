@@ -779,8 +779,8 @@ function FieldRow({
                 // The page itself: white, 1.5 cm side margins running to the
                 // module's edge, and 3 pt of air above and below the text —
                 // the same spacing a body paragraph carries, no more.
-                ? 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
-                : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''}`
+                ? `doc-surface-page bg-white px-[1.5cm] py-[3pt] ${fieldDimClass}`
+                : `flex items-start gap-2 ${canEdit ? 'ml-[20px]' : ''} ${fieldDimClass}`
           }
         >
           {isDocumentSurface && headerField}
