@@ -80,6 +80,9 @@ export const CROSS_REF_RICH_TEXT_CONFIG = {
     // must survive, or the caret can be placed inside a badge and typing is
     // absorbed into it.
     'contenteditable', 'data-badge',
+    // Derived caption labels ("Table 1.1.a. ") are styled off this attribute;
+    // without it a caption renders as unmarked body text.
+    'data-caption-label',
   ],
 
 };
