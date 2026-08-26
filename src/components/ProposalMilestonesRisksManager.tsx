@@ -140,6 +140,28 @@ const MILESTONE_LINE1_GRID =
 const RISK_LINE1_GRID =
   'grid grid-cols-[minmax(8rem,2fr)_3rem_3rem_minmax(6rem,17.5rem)_1.75rem] items-start gap-x-2';
 
+/* ── Document table spec, shared with the linked activities table ──
+   TNR 11pt, bold header with a 1.5px black rule, 1px light rules between
+   rows and none under the last, no vertical rules, tight padding, flush
+   outer edges. The 18 cm text column in CSS pixels caps every table. */
+const DOC_BLOCK_WIDTH = 768;
+const docTableStyles =
+  "font-['Times_New_Roman',Times,serif] text-[11pt] text-left bg-white [&_p]:!text-left";
+const docTableRules =
+  '[&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 ' +
+  '[&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 ' +
+  '[&_tbody_tr:last-child]:border-b-0';
+const docCellStyles =
+  "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/* Controls read as cell text until hovered or focused. Editable surfaces must
+   name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
+const SUBTLE_CONTROL =
+  "w-full bg-transparent border border-transparent rounded-[2px] px-1 py-0 text-left " +
+  "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight " +
+  'hover:border-input focus:border-input focus:outline-none focus-visible:outline-none ' +
+  'disabled:opacity-70 disabled:cursor-not-allowed';
+
 
 
 
