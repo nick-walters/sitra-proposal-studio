@@ -34,15 +34,8 @@ export function materializeCaptionLabels(
 
   const holder = document.createElement('div');
   holder.innerHTML = html;
-  const section = cfg.sectionNumber.replace(/^[A-Za-z]+/, '');
-  let tableIdx = cfg.tableOffset;
-  let figureIdx = cfg.figureOffset;
-
   Array.from(holder.children).forEach((element) => {
-    if (element.matches('div[data-cases-table-node]')) {
-      tableIdx += 1;
-      return;
-    }
+    if (element.matches('div[data-cases-table-node]')) return;
     if (!(element instanceof HTMLParagraphElement)) return;
 
     const cls = element.className || '';
@@ -59,14 +52,10 @@ export function materializeCaptionLabels(
             : null;
     if (!kind) return;
 
-    if (kind === 'figure') figureIdx++;
-    else tableIdx++;
     const existingLabel = element.querySelector('[data-caption-label]');
     if (existingLabel) {
       existingLabel.remove();
-    }
-
-    if (match) {
+    } else if (match) {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const firstText = walker.nextNode();
       if (firstText) firstText.textContent = (firstText.textContent ?? '').slice(match[0].length);
