@@ -325,7 +325,7 @@ export function LazyRichField({
 
       ) : (
         <div className="relative">
-          {placeholder && !staticHtml.trim() && (
+          {placeholder && isHtmlBlank(staticHtml) && (
             <span
               aria-hidden
               className={cn(
