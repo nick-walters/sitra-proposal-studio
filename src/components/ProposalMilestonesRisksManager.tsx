@@ -436,10 +436,6 @@ export function MilestonesEditor({
   /** Omitted inside the B3.1 block, where the duration is read here. */
   projectDuration?: number;
 }) {
-  useEffect(() => {
-    console.info('[B3.1 milestones] MilestonesEditor render path active');
-  }, []);
-
   const qc = useQueryClient();
   const { data: fetchedDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
