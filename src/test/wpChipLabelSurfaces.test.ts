@@ -80,7 +80,7 @@ function exportLabel(html: string): string {
   const container = document.createElement('div');
   container.innerHTML = html;
   resolveRefBadgesInDom(container, clientSnapshot());
-  return (container.textContent || '').trim();
+  return (container.textContent || '').replace(/\u00a0/g, ' ').trim();
 }
 
 /** Backup edge function surface. */
