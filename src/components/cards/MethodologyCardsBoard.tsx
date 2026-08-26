@@ -759,6 +759,25 @@ function FieldRow({
         )}
       </div>
 
+      {isPlaceholder && (
+        <div
+          className={
+            collapsed
+              ? 'hidden'
+              : 'doc-surface-block bg-white px-[1.5cm] py-[3pt]'
+          }
+        >
+          <RefDataProvider proposalId={proposalId}>
+            <CasesTableLiveView
+              proposalId={proposalId}
+              caseTypeId={field.placeholderCaseTypeId ?? null}
+              letterIndex={caseLetterIndex ?? 0}
+              sectionNumber={captionSectionNumber}
+            />
+          </RefDataProvider>
+        </div>
+      )}
+
       {!isPlaceholder && (
         <div
           className={
