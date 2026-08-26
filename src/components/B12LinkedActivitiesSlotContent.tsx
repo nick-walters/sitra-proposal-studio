@@ -175,17 +175,17 @@ export function B12LinkedActivitiesSlotContent({
               : undefined;
             return (
               <tr key={a.id}>
-                <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
+                <td className="align-middle cell-pl-0 py-0 leading-tight text-[11pt]">
                   {projectLabel(a)}
                 </td>
-                <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
+                <td className="align-middle cell-pl-0 py-0 leading-tight text-[11pt]">
                   <div
                     dangerouslySetInnerHTML={{
                       __html: sanitizeEditorHtml((a.linkDescriptionHtml ?? '').toString()),
                     }}
                   />
                 </td>
-                <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
+                <td className="align-middle cell-pl-0 py-0 leading-tight text-[11pt]">
                   {participant ? (
                     <ParticipantBubble
                       shortName={

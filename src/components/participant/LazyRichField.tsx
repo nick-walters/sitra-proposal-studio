@@ -319,7 +319,7 @@ export function LazyRichField({
                 documentSurface
                   ? 'left-0 top-0 font-document text-[11pt] italic'
                   : cellSurface
-                    ? 'left-0 top-1/2 -translate-y-1/2 font-document text-[11pt] italic'
+                    ? 'inset-y-0 left-0 flex items-center font-document text-[11pt] italic leading-tight'
                     : 'left-2.5 top-1.5 text-sm italic',
               )}
             >
