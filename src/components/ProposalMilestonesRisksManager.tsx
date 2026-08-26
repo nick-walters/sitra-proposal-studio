@@ -1069,13 +1069,12 @@ export function RisksEditor({
                 style={{
                   tableLayout: 'fixed',
                   width: riskSized
-                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 76}px`
+                    ? `${riskColWidths.reduce((s, w) => s + w, 0) + 28}px`
                     : '100%',
                   borderCollapse: 'collapse',
                 }}
               >
                 <colgroup>
-                  <col style={{ width: '48px' }} />
                   {RISK_COL_PCT.map((pct, i) => (
                     <col key={i} style={{ width: riskSized ? `${riskColWidths[i]}px` : pct }} />
                   ))}
@@ -1084,9 +1083,11 @@ export function RisksEditor({
                 </colgroup>
                 <thead>
                   <tr>
-                    <th data-noresize="" className={`${docFirstCellStyles} align-bottom font-bold`} />
                     {riskHeaders.map((h, i) => (
-                      <th key={i} className={`${docCellStyles} relative align-bottom font-bold`}>
+                      <th
+                        key={i}
+                        className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                      >
                         <EditableColumnHeader
                           value={h}
                           canEdit={canEdit}
@@ -1100,6 +1101,7 @@ export function RisksEditor({
                     <th data-noresize="" className={`${docCellStyles} !px-0 !border-0`} />
                   </tr>
                 </thead>
+
                 <tbody>
                   {risks.map((r) => (
                     <SortableRiskRow
