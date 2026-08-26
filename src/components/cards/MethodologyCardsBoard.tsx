@@ -1458,9 +1458,24 @@ function CardBlock({
           {card.kind === 'references' ? (
             <ReferencesBlock proposalId={proposalId} sectionId={card.sectionId} />
           ) : isMilestonesCard ? (
-            <MilestonesEditor proposalId={proposalId} canEdit={canEdit} />
+            /* The same page as a text module: white, 1.5 cm side margins,
+               an 18 cm content column and 3 pt of air above and below. */
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <MilestonesEditor
+                proposalId={proposalId}
+                canEdit={canEdit}
+                onRegisterAdd={registerRelationalAdd}
+              />
+            </div>
           ) : isRisksCard ? (
-            <RisksEditor proposalId={proposalId} canEdit={canEdit} />
+            <div className="doc-surface-page doc-surface-block bg-white px-[1.5cm] py-[3pt]">
+              <RisksEditor
+                proposalId={proposalId}
+                canEdit={canEdit}
+                onRegisterAdd={registerRelationalAdd}
+              />
+            </div>
+
           ) : isLinkedActivitiesCard ? (
             <LinkedActivitiesTable
               proposalId={proposalId}
