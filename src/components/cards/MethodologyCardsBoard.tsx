@@ -1167,9 +1167,13 @@ function CardBlock({
      action up here on mount. */
   const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
   const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
-  // Milestones also hand up a "Reorder" action, shown beside "Add".
+  // Milestones also hand up a "Reorder" action; null withdraws the control.
   const [relationalReorder, setRelationalReorder] = useState<(() => void) | null>(null);
-  const registerRelationalReorder = useCallback((fn: () => void) => setRelationalReorder(() => fn), []);
+  const registerRelationalReorder = useCallback(
+    (fn: (() => void) | null) => setRelationalReorder(() => fn),
+    [],
+  );
+
 
 
   // Dragging also collapses (kept from before); the user's own collapse
@@ -1301,44 +1305,168 @@ function CardBlock({
           </div>
 
 
-          {/* The Pert and Gantt blocks carry no add / restore / delete, so
-              their own Edit and Download controls take those columns and
-              match the rest of the block chrome. */}
-          {/* Fixed control columns: visibility | add | restore | delete.
-              Every block reserves all four, so a block that lacks a control
-              leaves its column empty instead of pulling the rest out of line.
-              Controls stay at full opacity when the block is hidden — only the
-              block's content dims. */}
-          {/* "Reorder" is a milestones-only action, so it sits OUTSIDE the
-              fixed control grid, to the left of the visibility button, rather
-              than sharing the add column and overlapping it. */}
-          {isMilestonesCard && canEdit && relationalReorder && (
-            <div className="ml-auto shrink-0">
-              <Tip label="Manually reorder milestones that share the same due month">
-                <Button variant="ghost" size="sm" onClick={() => relationalReorder()}>
-                  <ArrowUpDown className="mr-1 h-3.5 w-3.5" />
-                  Reorder
+          {/* Fixed control columns, read right to left:
+                delete | visibility | restore | add | block-specific.
+              Every block reserves all six columns, so a block that lacks a
+              control leaves its column empty instead of pulling the rest out
+              of line. Spacing, button size and icon size match the module
+              control row exactly. Icons only — each control's tooltip text is
+              also its aria-label. Controls stay at full opacity when the block
+              is hidden; only the block's content dims. */}
+          <div className="ml-auto grid shrink-0 grid-cols-[28px_28px_28px_28px_28px_28px] items-center justify-items-center gap-1 opacity-100">
+
+            {/* Column 1 — block-specific: download (Pert and Gantt charts) */}
+            {isPertCard || isGanttCard ? (
+              <Tip label={`Download the ${isPertCard ? 'Pert' : 'Gantt'} chart as a PNG`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={`Download the ${isPertCard ? 'Pert' : 'Gantt'} chart as a PNG`}
+                  onClick={() => downloadFigurePng(isPertCard ? 'pert' : 'gantt')}
+                >
+                  <Download className="h-3.5 w-3.5" />
                 </Button>
               </Tip>
-            </div>
-          )}
+            ) : (
+              <span aria-hidden="true" />
+            )}
 
-          <div className="ml-auto grid shrink-0 grid-cols-[40px_88px_88px_40px] items-center justify-items-center gap-1 opacity-100">
+            {/* Column 2 — block-specific: edit (Pert) or reorder (milestones) */}
+            {isPertCard ? (
+              <Tip label="Edit the Pert chart in the figures manager">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Edit the Pert chart in the figures manager"
+                  onClick={onEditPert}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </Tip>
+            ) : isMilestonesCard && canEdit && relationalReorder ? (
+              <Tip label="Manually reorder milestones that share the same due month">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Manually reorder milestones that share the same due month"
+                  onClick={() => relationalReorder()}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
+            )}
 
-            {/* Column 1 — visibility */}
+            {/* Column 3 — add */}
+            {isLinkedActivitiesCard && canEdit ? (
+              <Tip label="Add activity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Add activity"
+                  onClick={() =>
+                    linkedActivities
+                      .addActivity()
+                      .catch(() => toast.error('Could not add the activity'))
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
+              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={isMilestonesCard ? 'Add milestone' : 'Add risk'}
+                  onClick={() => relationalAdd()}
+                >
+                  <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : canAddModule ? (
+              <Tip label="Add module to this block">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label="Add module to this block"
+                  onClick={() => onAddField(card)}
+                >
+                  <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+
+            {/* Column 4 — restore, shown only when the bin holds something */}
+            {isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
+              <Tip
+                label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
+                  onClick={() => setActivityBinOpen(true)}
+                >
+                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalBinEntries.length > 0 ? (
+              <Tip
+                label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
+                  onClick={() => setRelationalBinOpen(true)}
+                >
+                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : !isRelationalCard && canEdit && binCount > 0 ? (
+              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={`Restore deleted module (${binCount} in the recycle bin)`}
+                  onClick={() => onOpenBin(card)}
+                >
+                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                </Button>
+              </Tip>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+
+            {/* Column 5 — visibility */}
             {canEdit && card.isHideable ? (
               <Tip label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
+                  className="h-7 w-7"
                   aria-pressed={!card.isVisible}
+                  aria-label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}
                   onClick={() => onToggleVisible(card)}
                 >
                   {card.isVisible ? (
-                    <Eye className="h-4 w-4 text-emerald-600" strokeWidth={2.5} />
+                    <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                   ) : (
-                    <EyeOff className="h-4 w-4 text-destructive" strokeWidth={2.5} />
+                    <EyeOff className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
                   )}
                 </Button>
               </Tip>
@@ -1346,96 +1474,18 @@ function CardBlock({
               <span aria-hidden="true" />
             )}
 
-            {/* Column 2 — add (or "Edit" on the Pert block) */}
-            {isPertCard ? (
-              <Tip label="Edit the Pert chart in the figures manager">
-                <Button variant="ghost" size="sm" onClick={onEditPert}>
-                  <Pencil className="mr-1 h-3.5 w-3.5" />
-                  Edit
-                </Button>
-              </Tip>
-            ) : isLinkedActivitiesCard && canEdit ? (
-              <Tip label="Add activity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    linkedActivities
-                      .addActivity()
-                      .catch(() => toast.error('Could not add the activity'))
-                  }
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </Tip>
-            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalAdd ? (
-              <Tip label={isMilestonesCard ? 'Add milestone' : 'Add risk'}>
-                <Button variant="ghost" size="sm" onClick={() => relationalAdd()}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </Tip>
-            ) : canAddModule ? (
-
-              <Tip label="Add module to this block">
-                <Button variant="ghost" size="sm" onClick={() => onAddField(card)}>
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-
-            {/* Column 3 — restore (or "Download" on the Pert and Gantt blocks) */}
-            {isPertCard || isGanttCard ? (
-              <Tip label={`Download the ${isPertCard ? 'Pert' : 'Gantt'} chart as a PNG`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => downloadFigurePng(isPertCard ? 'pert' : 'gantt')}
-                >
-                  <Download className="mr-1 h-3.5 w-3.5" />
-                  Download
-                </Button>
-              </Tip>
-            ) : isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
-              <Tip
-                label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
-              >
-                <Button variant="ghost" size="sm" onClick={() => setActivityBinOpen(true)}>
-                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                  Restore
-                </Button>
-              </Tip>
-            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalBinEntries.length > 0 ? (
-              <Tip
-                label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
-              >
-                <Button variant="ghost" size="sm" onClick={() => setRelationalBinOpen(true)}>
-                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                  Restore
-                </Button>
-              </Tip>
-            ) : !isRelationalCard && canEdit && binCount > 0 ? (
-              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
-                <Button variant="ghost" size="sm" onClick={() => onOpenBin(card)}>
-                  <Recycle className="mr-1 h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                  Restore
-                </Button>
-              </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-
-            {/* Column 4 — delete */}
+            {/* Column 6 — delete */}
             {canEdit && card.isDeletable ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete block">
-                    <Button variant="ghost" size="icon" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      aria-label="Delete block"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </Tip>
                 </AlertDialogTrigger>
@@ -1459,6 +1509,7 @@ function CardBlock({
             )}
 
           </div>
+
         </CardHeader>
 
         {/* Hidden, not unmounted: editors keep their state and no unmount-time
