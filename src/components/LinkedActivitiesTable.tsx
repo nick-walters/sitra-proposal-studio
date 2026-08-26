@@ -86,9 +86,6 @@ const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const firstCellStyles = `${cellStyles} !pl-0`;
-const projectAcronymCellStyles = `${firstCellStyles} !pr-0`;
-const projectInstrumentCellStyles = `${cellStyles} !px-0`;
-const projectDurationCellStyles = `${cellStyles} !pl-0`;
 
 /**
  * Controls embedded in cells read as document text until hovered or focused:
@@ -100,7 +97,7 @@ const CELL_CONTROL =
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
 
-const DEFAULT_COL_PCT = ['13%', '14%', '10%', '42%', '17%', '4%'];
+const DEFAULT_COL_PCT = ['37%', '43%', '20%'];
 
 const NONE = '__none__';
 
@@ -142,7 +139,7 @@ function SortableActivityRow({
        row so the sortable unit is a real table row. */
     <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
 
-        <td className={`${projectAcronymCellStyles} relative break-words`}>
+        <td className={`${firstCellStyles} relative break-words`}>
           {canEdit ? (
             <Tip label="Drag to reorder this activity">
               <button
@@ -155,32 +152,29 @@ function SortableActivityRow({
               </button>
             </Tip>
           ) : null}
-          {/* Acronym — single-line rich text, title-field controls only
-              (undo, redo, font colour). Legacy plain strings upgrade on read. */}
-          {canEdit ? (
-            <LazyRichField
-              singleLine
-              proposalId={proposalId}
-              value={ensureRichHtml(activity.acronym)}
-              placeholder="Acronym"
-              minHeight="24px"
-              className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
-              cellSurface
-              staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-              onChange={(html) => onUpdate(activity.id, { acronym: html })}
-            />
-          ) : (
-            <span
-              className="[&_p]:m-0 [&_p]:inline"
-              dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
-            />
-          )}
-        </td>
-
-        {/* Instrument */}
-        <td className={`${projectInstrumentCellStyles} break-words`}>
-          {canEdit ? (
-            <div data-scalar-field="" className={`flex min-w-0 items-center gap-1 ${CELL_CONTROL}`}>
+          <div className="flex min-w-0 items-center gap-1">
+            <div className="min-w-0 flex-1">
+              {canEdit ? (
+                <LazyRichField
+                  singleLine
+                  proposalId={proposalId}
+                  value={ensureRichHtml(activity.acronym)}
+                  placeholder="Acronym"
+                  minHeight="24px"
+                  className="font-['Times_New_Roman',Times,serif] text-[11pt] [&_p]:m-0"
+                  cellSurface
+                  staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+                  onChange={(html) => onUpdate(activity.id, { acronym: html })}
+                />
+              ) : (
+                <span
+                  className="[&_p]:m-0 [&_p]:inline"
+                  dangerouslySetInnerHTML={{ __html: displayRichHtml(activity.acronym) || '—' }}
+                />
+              )}
+            </div>
+            {canEdit ? (
+              <div data-scalar-field="" className={`flex min-w-0 flex-1 items-center gap-1 ${CELL_CONTROL}`}>
               <Select
                 value={activity.instrumentCode ?? NONE}
                 onValueChange={(v) =>
@@ -214,18 +208,12 @@ function SortableActivityRow({
                   aria-label="Custom funding instrument"
                 />
               )}
-            </div>
-          ) : (
-            <span>
-              {getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}
-            </span>
-          )}
-        </td>
-
-        {/* Duration */}
-        <td className={`${projectDurationCellStyles} break-words`}>
-          {canEdit ? (
-            <div data-scalar-field="" className={`min-w-0 ${CELL_CONTROL}`}>
+              </div>
+            ) : (
+              <span>{getInstrumentAbbreviation(activity.instrumentCode, activity.instrumentCustom) || '—'}</span>
+            )}
+            {canEdit ? (
+              <div data-scalar-field="" className={`min-w-0 flex-1 ${CELL_CONTROL}`}>
               <YearRangePicker
                 startYear={activity.durationStart}
                 endYear={activity.durationEnd}
@@ -234,10 +222,11 @@ function SortableActivityRow({
                 }
                 className="h-auto w-full justify-start font-['Times_New_Roman',Times,serif] text-[11pt]"
               />
-            </div>
-          ) : (
-            <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
-          )}
+              </div>
+            ) : (
+              <span>{formatYearRange(activity.durationStart, activity.durationEnd) ?? '—'}</span>
+            )}
+          </div>
         </td>
 
         {/* How the project will be linked — a normal cell on the same row. */}
@@ -291,7 +280,7 @@ function SortableActivityRow({
 
         {/* Fixed delete column: identical position on every row whatever the
             participant chip's width. */}
-        <td className={`${cellStyles} text-center`}>
+        <td className="absolute left-full top-1/2 ml-1 -translate-y-1/2 p-0 text-center">
           {canEdit && (
             <DeleteConfirmDialog
               itemLabel="this linked activity"
@@ -465,18 +454,12 @@ export default function LinkedActivitiesTable({
               </colgroup>
               <thead>
                 <tr>
-                  {['Project acronym', 'Funding instrument', 'Duration', 'How the project will be linked', 'Participant responsible', ''].map(
+                  {['Project', 'How the project will be linked', 'Participant responsible'].map(
                     (h, i) => (
                       <th
                         key={i}
                         className={`${
-                          i === 0
-                            ? projectAcronymCellStyles
-                            : i === 1
-                              ? projectInstrumentCellStyles
-                              : i === 2
-                                ? projectDurationCellStyles
-                                : cellStyles
+                          i === 0 ? firstCellStyles : cellStyles
                         } relative align-bottom font-bold`}
                       >
                         {h}

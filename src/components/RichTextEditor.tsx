@@ -2057,6 +2057,11 @@ StarterKit.configure({
     editor.view.dispatch(
       editor.state.tr.setMeta('addToHistory', false).setMeta('captionNumberingRefresh', true),
     );
+    // The refresh can add a derived captionLabel mark without emitting a user
+    // update. Cache the resulting labelled document so the external-content
+    // synchroniser below cannot immediately replace it with stale, unlabelled
+    // template HTML from the asynchronous field load.
+    lastSetContentRef.current = normalizePartBLoadedContent(editor.getHTML());
   }, [editor, captionNumberingKey]);
 
   useEffect(() => {
@@ -2081,7 +2086,7 @@ StarterKit.configure({
     if (storage) storage.enabled = false;
     editor.commands.setContent(nextContent, { emitUpdate: false });
     if (storage) storage.enabled = wasEnabled;
-  }, [editor, content, isReady]);
+  }, [editor, content, isReady, captionNumberingKey]);
 
 
   // Sync track changes enabled state — use direct storage assignment to avoid
