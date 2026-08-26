@@ -356,9 +356,6 @@ function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
 /* Field row                                                           */
 /* ------------------------------------------------------------------ */
 
-/** Blocks whose modules are fixed by the template and cannot be deleted. */
-const UNDELETABLE_MODULE_CARD_KEYS = new Set(['b11.maturity']);
-
 interface FieldRowProps {
   field: CardField;
   proposalId: string;
@@ -731,7 +728,7 @@ function FieldRow({
               </Tip>
             )}
 
-            {canEdit && !UNDELETABLE_MODULE_CARD_KEYS.has(cardTemplateKey ?? '') && (
+            {canEdit && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete module">
