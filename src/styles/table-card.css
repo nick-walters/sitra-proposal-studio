@@ -143,3 +143,45 @@
 .source-fed-readonly .ProseMirror {
   caret-color: transparent !important;
 }
+
+/* ── Flush outer edges ───────────────────────────────────────────────────── */
+/* Content in the leftmost and rightmost columns sits flush with the table's
+   outer edges, so a table reads as part of the 18 cm text column rather than
+   as an indented island. Applies to authored tables, the editor's own tables,
+   the print participant list and every React-rendered board table (which all
+   carry a `data-table-key`). */
+.card-table > * > tr > :first-child,
+.he-table > * > tr > :first-child,
+.ProseMirror table > * > tr > :first-child,
+.print-export-container .print-table > * > tr > :first-child,
+table[data-table-key] > * > tr > :first-child {
+  padding-left: 0 !important;
+}
+
+.card-table > * > tr > :last-child,
+.he-table > * > tr > :last-child,
+.ProseMirror table > * > tr > :last-child,
+.print-export-container .print-table > * > tr > :last-child,
+table[data-table-key] > * > tr > :last-child {
+  padding-right: 0 !important;
+}
+
+/* Board tables share the authored-table cell padding (≈0.3pt in Word terms:
+   0.75pt vertical, 3pt horizontal). */
+table[data-table-key] > * > tr > th,
+table[data-table-key] > * > tr > td {
+  padding: var(--card-table-pad-y, 1px) var(--card-table-pad-x, 4px);
+}
+
+/* ── Caption colour ──────────────────────────────────────────────────────── */
+/* Captions are black, never the app's dark-grey foreground token. */
+.document-table-caption,
+.figure-caption,
+.figure-caption-row,
+.ProseMirror p.document-table-caption,
+.ProseMirror p.figure-caption,
+.document-table-caption .caption-label,
+.figure-caption .caption-label,
+.figure-caption-row .caption-label {
+  color: #000 !important;
+}
