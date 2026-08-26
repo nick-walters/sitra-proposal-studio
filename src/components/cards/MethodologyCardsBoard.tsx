@@ -537,6 +537,12 @@ function FieldRow({
   // modules: they render a live table, so they keep the plain module frame.
   const isDocumentSurface = !isPlaceholder;
 
+  // A hidden module dims its CONTENT, exactly as a hidden block does. The dim
+  // cannot live on the module wrapper: dnd-kit writes an inline `opacity` there
+  // on every render, and an inline style beats a utility class — which is why
+  // the earlier `opacity-50` never took effect (computed opacity stayed 1).
+  const fieldDimClass = field.isVisible ? '' : 'opacity-60';
+
   // The module's H3 header. On the page-styled surface it is not a form input
   // above the page: it is the first field ON the page, sharing its white
   // background, its typography and its growth behaviour.
