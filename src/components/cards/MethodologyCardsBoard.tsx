@@ -32,6 +32,7 @@ import {
   Pencil,
   Plus,
   Recycle,
+  Settings2,
   RotateCcw,
   Trash2,
 } from 'lucide-react';
@@ -1167,12 +1168,16 @@ function CardBlock({
      action up here on mount. */
   const [relationalAdd, setRelationalAdd] = useState<(() => void) | null>(null);
   const registerRelationalAdd = useCallback((fn: () => void) => setRelationalAdd(() => fn), []);
-  // Milestones also hand up a "Reorder" action; null withdraws the control.
+  // Milestones also hand up a "Reorder" action; null greys the control out.
   const [relationalReorder, setRelationalReorder] = useState<(() => void) | null>(null);
   const registerRelationalReorder = useCallback(
     (fn: (() => void) | null) => setRelationalReorder(() => fn),
     [],
   );
+  /* A figure block's layout dialog opens from the block header, in line with
+     every other control, so the figure block hands its opener up here. */
+  const [figureControls, setFigureControls] = useState<(() => void) | null>(null);
+  const registerFigureControls = useCallback((fn: () => void) => setFigureControls(() => fn), []);
 
 
 
@@ -1216,7 +1221,10 @@ function CardBlock({
   return (
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
       <Card>
-        <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 px-5 py-3">
+        {/* Right padding is 13px, not the card's usual 20px: the module control
+            row sits 7px further right, and matching it puts the block's control
+            grid in exact vertical line with every module's. */}
+        <CardHeader className="relative flex flex-row items-center gap-1.5 space-y-0 py-3 pl-5 pr-[13px]">
           {/* Left edge control stack: collapse chevron on top, drag grip
               beneath it, so both sit together at the block's left edge. */}
           <div className="-ml-3.5 flex shrink-0 flex-col items-center gap-0.5 self-start">
@@ -1332,7 +1340,10 @@ function CardBlock({
               <span aria-hidden="true" />
             )}
 
-            {/* Column 2 — block-specific: edit (Pert) or reorder (milestones) */}
+            {/* Column 2 — block-specific: edit (Pert), figure controls, or
+                reorder (milestones). Reorder is always present and simply
+                greys out when nothing can be reordered, so the control row
+                never shifts. */}
             {isPertCard ? (
               <Tip label="Edit the Pert chart in the figures manager">
                 <Button
@@ -1345,17 +1356,38 @@ function CardBlock({
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
               </Tip>
-            ) : isMilestonesCard && canEdit && relationalReorder ? (
-              <Tip label="Manually reorder milestones that share the same due month">
+            ) : card.kind === 'figure' && canEdit && figureControls ? (
+              <Tip label="Open this figure's layout controls">
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  aria-label="Manually reorder milestones that share the same due month"
-                  onClick={() => relationalReorder()}
+                  aria-label="Open this figure's layout controls"
+                  onClick={() => figureControls()}
                 >
-                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <Settings2 className="h-3.5 w-3.5" />
                 </Button>
+              </Tip>
+            ) : isMilestonesCard && canEdit ? (
+              <Tip
+                label={
+                  relationalReorder
+                    ? 'Manually reorder milestones that share the same due month'
+                    : 'No milestones share a due month, so there is nothing to reorder'
+                }
+              >
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={!relationalReorder}
+                    aria-label="Manually reorder milestones that share the same due month"
+                    onClick={() => relationalReorder?.()}
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                  </Button>
+                </span>
               </Tip>
             ) : (
               <span aria-hidden="true" />
@@ -1406,47 +1438,48 @@ function CardBlock({
               <span aria-hidden="true" />
             )}
 
-            {/* Column 4 — restore, shown only when the bin holds something */}
-            {isLinkedActivitiesCard && canEdit && linkedActivities.deletedActivities.length > 0 ? (
-              <Tip
-                label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label={`Restore deleted activity (${linkedActivities.deletedActivities.length} in the recycle bin)`}
-                  onClick={() => setActivityBinOpen(true)}
-                >
-                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                </Button>
-              </Tip>
-            ) : (isMilestonesCard || isRisksCard) && canEdit && relationalBinEntries.length > 0 ? (
-              <Tip
-                label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label={`Restore deleted ${isMilestonesCard ? 'milestone' : 'risk'} (${relationalBinEntries.length} in the recycle bin)`}
-                  onClick={() => setRelationalBinOpen(true)}
-                >
-                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                </Button>
-              </Tip>
-            ) : !isRelationalCard && canEdit && binCount > 0 ? (
-              <Tip label={`Restore deleted module (${binCount} in the recycle bin)`}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label={`Restore deleted module (${binCount} in the recycle bin)`}
-                  onClick={() => onOpenBin(card)}
-                >
-                  <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-                </Button>
-              </Tip>
+            {/* Column 4 — restore. Always present, greyed out when this
+                block's bin is empty, so the row never shifts. */}
+            {canEdit ? (
+              (() => {
+                const thing = isLinkedActivitiesCard
+                  ? 'activity'
+                  : isMilestonesCard
+                    ? 'milestone'
+                    : isRisksCard
+                      ? 'risk'
+                      : 'module';
+                const count = isLinkedActivitiesCard
+                  ? linkedActivities.deletedActivities.length
+                  : isMilestonesCard || isRisksCard
+                    ? relationalBinEntries.length
+                    : binCount;
+                const open = () => {
+                  if (isLinkedActivitiesCard) setActivityBinOpen(true);
+                  else if (isRelationalCard) setRelationalBinOpen(true);
+                  else onOpenBin(card);
+                };
+                const label =
+                  count > 0
+                    ? `Restore deleted ${thing} (${count} in the recycle bin)`
+                    : `Restore deleted ${thing} (the recycle bin is empty)`;
+                return (
+                  <Tip label={label}>
+                    <span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={count === 0}
+                        aria-label={label}
+                        onClick={open}
+                      >
+                        <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                      </Button>
+                    </span>
+                  </Tip>
+                );
+              })()
             ) : (
               <span aria-hidden="true" />
             )}
@@ -1575,6 +1608,7 @@ function CardBlock({
               isCoordinator={isCoordinator}
               fullWidthOnly={figuresFullWidth}
               captionLabel={captionLabel ?? 'Figure.'}
+              onRegisterControls={registerFigureControls}
               />
             </div>
           ) : (

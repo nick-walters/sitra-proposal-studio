@@ -52,6 +52,8 @@ interface CardFigureBlockProps {
   fullWidthOnly?: boolean;
   /** "Figure 1.2.a." — assigned by the board from document order. */
   captionLabel: string;
+  /** Hands the layout dialog's opener up to the block header's control row. */
+  onRegisterControls?: (open: () => void) => void;
 }
 
 /**
@@ -68,6 +70,7 @@ export function CardFigureBlock({
   isCoordinator,
   fullWidthOnly = false,
   captionLabel,
+  onRegisterControls,
 }: CardFigureBlockProps) {
   const { figureBlock, isLoading, save } = useCardFigure(cardId);
   const { data: figures = [] } = useProposalFigures(proposalId);
@@ -95,6 +98,10 @@ export function CardFigureBlock({
     }
   }, [figureBlock?.figureId]);
 
+  useEffect(() => {
+    onRegisterControls?.(() => setControlsOpen(true));
+  }, [onRegisterControls]);
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading the figure…</p>;
   if (!figureBlock) {
     return <p className="text-sm italic text-muted-foreground">This figure block has no placement data.</p>;
@@ -112,21 +119,9 @@ export function CardFigureBlock({
 
   return (
     <div className="space-y-3">
-      {canEdit && (
-        <div className="flex items-center justify-end">
-          <Tip label="Open this figure's layout controls">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7"
-              aria-label="Open this figure's layout controls"
-              onClick={() => setControlsOpen(true)}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-            </Button>
-          </Tip>
-        </div>
-      )}
+      {/* The opener lives in the block header, in line with the other
+          controls — see onRegisterControls above. */}
+
 
       <div
         className={cn(
