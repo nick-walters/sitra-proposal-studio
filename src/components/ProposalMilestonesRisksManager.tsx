@@ -1059,6 +1059,13 @@ export function RisksEditor({
     RISK_HEADERS,
   );
 
+  // The block header owns the "Add" button, so the add action is handed up.
+  useEffect(() => {
+    onRegisterAdd?.(() => addRisk.mutate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterAdd, proposalId]);
+
+
   return (
     <TooltipProvider>
       <div className="compact-ref-badges [&_.ProseMirror]:!text-left [&_.ProseMirror_*]:!text-left">
