@@ -154,10 +154,23 @@ export function LazyRichField({
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
   }, []);
 
+  // The stored value, used to recognise a write that carries no user text.
+  const storedValueRef = useRef(value);
+  storedValueRef.current = value;
+
   // Title fields flatten whatever the editor produces, so a paste can never
   // leave a second paragraph behind in a one-line field.
   const emitChange = useCallback(
-    (html: string) => onChange(singleLine ? collapseToSingleLineHtml(html) : html),
+    (html: string) => {
+      const next = singleLine ? collapseToSingleLineHtml(html) : html;
+      // A freshly mounted editor normalises an empty field to "<p></p>" and
+      // emits it. That is not an edit: persisting it wrote a row (bumping its
+      // version, so the user's very next save was rejected as a conflict) and
+      // left markup behind that suppressed the placeholder. Blank in, blank
+      // out ⇒ nothing to save.
+      if (isHtmlBlank(next) && isHtmlBlank(storedValueRef.current)) return;
+      onChange(next);
+    },
     [onChange, singleLine],
   );
 
