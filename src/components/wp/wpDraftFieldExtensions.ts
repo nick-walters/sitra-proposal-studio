@@ -19,6 +19,8 @@ import { ParticipantReferenceNode } from '@/extensions/ParticipantReferenceNode'
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { CaptionLabel } from '@/extensions/CaptionLabel';
+import { ParagraphClassStatic } from '@/extensions/ParagraphClassStatic';
 import {
   FieldCapabilities,
   TITLE_FIELD_CAPABILITIES,
@@ -41,6 +43,9 @@ const REFERENCE_NODES: Extensions = [
   InlineReferenceNode,
   AcronymReference,
   FigureTableReferenceMark,
+  // Authored table/figure captions must survive the static round trip.
+  CaptionLabel,
+  ParagraphClassStatic,
 ];
 
 /**
