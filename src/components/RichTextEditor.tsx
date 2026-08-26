@@ -808,11 +808,6 @@ export function FormattingToolbar({
         content: [
           {
             type: 'text',
-             marks: [{ type: 'captionLabel' }],
-            text: `${tableLabel}. `,
-          },
-          {
-            type: 'text',
             marks: [{ type: 'italic' }],
             text: ' ',
           },
@@ -1557,8 +1552,8 @@ export function useRichTextEditor({
   canEditCaptions?: boolean;
   /**
    * Position of this text box in its section's caption sequences. When given,
-   * table/figure caption labels are derived from position and kept
-   * non-editable; when omitted, caption labels are left exactly as stored.
+    * table/figure caption labels are derived from position and rendered as
+    * non-editable widgets; when omitted, captions are left exactly as stored.
    */
   captionNumbering?: CaptionNumbering | null;
   /**
