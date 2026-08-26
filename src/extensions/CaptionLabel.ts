@@ -13,21 +13,33 @@ export const CaptionLabel = Mark.create({
 
   excludes: '',
 
+  /**
+   * The caret position immediately after the label must NOT inherit the mark,
+   * otherwise everything typed there becomes part of the label and is eaten by
+   * renumbering (and the guards below reject it).
+   */
+  inclusive: false,
+
   parseHTML() {
     return [{ tag: 'span[data-caption-label]' }];
   },
 
   renderHTML() {
+    // Deliberately NOT contenteditable=false: an empty caption consists only
+    // of this span, so a non-editable span leaves the paragraph with no
+    // editable DOM position — the caret could be "placed" in ProseMirror terms
+    // while the browser refused every keystroke. The label is instead kept
+    // read-only by the transaction guards below.
     return [
       'span',
       {
         'data-caption-label': '',
-        contenteditable: 'false',
-        style: 'user-select: none; font-weight: bold; font-style: italic;',
+        style: 'font-weight: bold; font-style: italic;',
       },
       0,
     ];
   },
+
 
   addProseMirrorPlugins() {
     const markType = this.type;
