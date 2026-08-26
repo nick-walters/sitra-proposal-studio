@@ -119,7 +119,7 @@ export function emitWpList(data: B31TypstData): string[] {
   rows.push([bold(lit('Total')), lit(''), bold(lit(totalPm > 0 ? String(totalPm) : '—')), lit('')]);
 
   return [
-    caption(data, 'wp-list', 'Table 3.1.a.', 'List of work packages'),
+    caption(data, 'wp-list', 'Table 3.1.a.', 'List of work packages (PM = person month)'),
     // The three metadata columns shrink to their content and the work-package
     // column takes ALL the remaining width (`1fr`), so a WP pill keeps one
     // line; with four `auto` columns the pill column was squeezed by the
@@ -127,7 +127,7 @@ export function emitWpList(data: B31TypstData): string[] {
     // tight padding, matching the board's own rendering of this table.
     table(
       '(1fr, auto, auto, auto)',
-      [lit('Work package'), lit('WP leader'), lit('Person months'), lit('Duration')],
+      [lit('Work package'), lit('WP leader'), lit('PMs'), lit('Duration')],
       rows,
       undefined,
       true,

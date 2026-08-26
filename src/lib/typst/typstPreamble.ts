@@ -273,7 +273,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   above: 6pt,
   below: 1pt,
   sticky: true,
-  text(size: 11pt, strong(emph(t(label))) + t(" ") + emph(caption)),
+  text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
 
 /// Caption below a figure, same typography. Nothing is sticky here: the
@@ -283,7 +283,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   width: he-table-width,
   above: 3pt,
   below: 6pt,
-  text(size: 11pt, strong(emph(t(label))) + t(" ") + emph(caption)),
+  text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
 
 /// The Horizon Europe table: no vertical rules, a 1.5pt black rule under the
@@ -300,13 +300,16 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   below: 6pt,
   table(
     columns: cols,
-    inset: {
-      let px = if tight { 3pt } else { 5pt }
-      let py = if tight { 0.75pt } else { 2.5pt }
-      if first-flush {
-        (x, y) => (left: if x == 0 { 0pt } else { px }, right: px, top: py, bottom: py)
-      } else { (x: px, y: py) }
-    },
+    // Minimal padding everywhere (0.75pt / 3pt), with the leftmost column's
+    // left inset and the rightmost column's right inset dropped so content
+    // sits flush with the text column. \`first-flush\`/\`tight\` are retained
+    // for call-site compatibility but no longer change the geometry.
+    inset: (x, y) => (
+      left: if x == 0 { 0pt } else { 3pt },
+      right: if x == cols.len() - 1 { 0pt } else { 3pt },
+      top: 0.75pt,
+      bottom: 0.75pt,
+    ),
 
     align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
     stroke: (x, y) => (
@@ -331,7 +334,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   below: 6pt,
   table(
     columns: cols,
-    inset: he-inset,
+    inset: (x, y) => (
+      left: if x == 0 { 0pt } else { 3pt },
+      right: if x == cols.len() - 1 { 0pt } else { 3pt },
+      top: 0.75pt,
+      bottom: 0.75pt,
+    ),
     align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
     stroke: (x, y) => (
       left: none,
@@ -355,7 +363,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   below: 3pt,
   table(
     columns: cols,
-    inset: (x: 3pt, y: 0.75pt),
+    inset: (x, y) => (
+      left: if x == 0 { 0pt } else { 3pt },
+      right: if x == cols.len() - 1 { 0pt } else { 3pt },
+      top: 0.75pt,
+      bottom: 0.75pt,
+    ),
     align: left + horizon,
     stroke: (x, y) => (
       left: none,

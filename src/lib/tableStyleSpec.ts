@@ -177,6 +177,12 @@ ${s}${t} td {
   background: #fff;
   color: #000;
 }
+${s}${t} tr > :first-child {
+  padding-left: 0;
+}
+${s}${t} tr > :last-child {
+  padding-right: 0;
+}
 ${s}${t} tr:last-child > td,
 ${s}${t} tr:last-child > th {
   border-bottom: none;
@@ -197,6 +203,7 @@ ${s}.${TABLE_CAPTION_CLASS} {
   line-height: ${TABLE_LINE_HEIGHT};
   font-style: italic;
   text-align: left;
+  color: #000;
   margin: 3pt 0 1pt 0;
   padding: 0;
 }

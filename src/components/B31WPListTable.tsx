@@ -10,6 +10,10 @@ const cellStyles =
   "px-[3pt] py-[0.75pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 /** First column sits flush with the table edge — no left indent. */
 const firstCellStyles = `${cellStyles} !pl-0`;
+/** Last column sits flush with the right table edge. */
+const lastCellStyles = `${cellStyles} !pr-0`;
+/** The three metadata columns hug their content and never wrap. */
+const tightCellStyles = `${cellStyles} whitespace-nowrap w-px`;
 
 /** The 18 cm text column, in CSS pixels — the hard cap for every table. */
 const BLOCK_WIDTH = 768;
@@ -53,7 +57,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   if (wpData.length === 0) return null;
 
   const sized = colWidths.length === 4;
-  const headers = ['Work package', 'WP leader', 'Person months', 'Duration'];
+  const headers = ['Work package', 'WP leader', 'PMs', 'Duration'];
 
   return (
     <div className="w-full max-w-full">
@@ -61,7 +65,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.a"
         label="Table 3.1.a."
-        defaultCaption="List of work packages"
+        defaultCaption="List of work packages (PM = person month)"
         className="mb-0"
       />
       <table
@@ -69,26 +73,33 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
         data-table-key="wp-list"
         className={`${tableStyles} w-full max-w-full [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`}
         style={{
-          tableLayout: 'fixed',
+          // Unsized: columns 2–4 shrink to their content (`auto` layout plus
+          // `w-px`/`nowrap` cells) and the work-package column takes the rest.
+          tableLayout: sized ? 'fixed' : 'auto',
           width: sized ? `${Math.min(colWidths.reduce((s, w) => s + w, 0), BLOCK_WIDTH)}px` : '100%',
           maxWidth: `${BLOCK_WIDTH}px`,
           borderCollapse: 'collapse',
         }}
       >
-        <colgroup>
-          {(sized ? colWidths : [null, null, null, null]).map((w, i) => (
-            <col
-              key={i}
-              style={{ width: sized ? `${w}px` : ['52%', '22%', '13%', '13%'][i] }}
-            />
-          ))}
-        </colgroup>
+        {sized && (
+          <colgroup>
+            {colWidths.map((w, i) => (
+              <col key={i} style={{ width: `${w}px` }} />
+            ))}
+          </colgroup>
+        )}
         <thead>
           <tr>
             {headers.map((h, i) => (
               <th
                 key={h}
-                className={`${i === 0 ? firstCellStyles : cellStyles} relative font-bold`}
+                className={`${
+                  i === 0
+                    ? firstCellStyles
+                    : sized
+                      ? i === 3 ? lastCellStyles : cellStyles
+                      : i === 3 ? `${tightCellStyles} !pr-0` : tightCellStyles
+                } relative font-bold`}
               >
                 {h}
                 {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
@@ -116,7 +127,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     WP{wp.number}: {shortName}{shortName && title ? ' – ' : ''}{title}
                   </WPBubble>
                 </td>
-                <td className={`${cellStyles} break-words`}>
+                <td className={`${sized ? cellStyles : tightCellStyles} break-words`}>
                   {leader ? (
                     <ParticipantBubble
                       style={{ whiteSpace: 'normal', height: 'auto', maxWidth: '100%', padding: '1px 5px', lineHeight: 1.15 }}
@@ -125,8 +136,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     </ParticipantBubble>
                   ) : '—'}
                 </td>
-                <td className={cellStyles}>{displayPM || '—'}</td>
-                <td className={cellStyles}>{displayDuration || '—'}</td>
+                <td className={sized ? cellStyles : tightCellStyles}>{displayPM || '—'}</td>
+                <td className={`${sized ? cellStyles : tightCellStyles} !pr-0`}>{displayDuration || '—'}</td>
               </tr>
             );
           })}
@@ -135,9 +146,9 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             return (
               <tr>
                 <td className={`${firstCellStyles} font-bold`}>Total</td>
-                <td className={cellStyles} />
-                <td className={`${cellStyles} font-bold`}>{totalPM > 0 ? totalPM : '—'}</td>
-                <td className={cellStyles} />
+                <td className={sized ? cellStyles : tightCellStyles} />
+                <td className={`${sized ? cellStyles : tightCellStyles} font-bold`}>{totalPM > 0 ? totalPM : '—'}</td>
+                <td className={`${sized ? cellStyles : tightCellStyles} !pr-0`} />
               </tr>
             );
           })()}
