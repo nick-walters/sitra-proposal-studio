@@ -871,9 +871,27 @@ function FieldRow({
   );
 }
 
+/**
+ * The document page used by non-text blocks — figures, the relational tables
+ * (linked activities, milestones, risks) and the source-fed mirrors. Same
+ * geometry as a text module: 21 cm wide, 1.5 cm side margins, an 18 cm
+ * content column, white and without chrome. The symmetric negative margin
+ * lets the page bleed out to the block's own edges, exactly as module pages
+ * do. Unlike `.doc-surface-page` it does not clamp its children to 18 cm, so
+ * a table dragged wider than the text column still grows.
+ */
+function DocPageFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="doc-surface-block box-content w-[21cm] max-w-none mx-[calc((100%_-_21cm)/2)] bg-white px-[1.5cm] py-[3pt]">
+      {children}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
 /* ------------------------------------------------------------------ */
+
 
 interface CardBlockProps {
   card: ProposalCard;
