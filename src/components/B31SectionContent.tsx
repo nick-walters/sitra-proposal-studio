@@ -25,9 +25,9 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
   const {
     wpData, participants, pertFigure, ganttFigure,
     subcontractingByParticipant, equipmentByParticipant,
-    travelByParticipant, otherGoodsByParticipant, fstpByParticipant, internallyInvoicedByParticipant,
+    travelByParticipant, otherGoodsByParticipant,
     loading,
-  } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
+  } = useB31SectionData(proposalId);
 
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
@@ -57,13 +57,6 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
   if (includeOtherGoods)  purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoodsByParticipant });
   const includePurchase = purchaseBlocks.length > 0;
 
-  // Sub-block inclusion in 3.1.i
-  const includeFstp = toggles.other_direct_costs && toggles.fstp && fstpByParticipant.length > 0;
-  const includeInternallyInvoiced = toggles.other_direct_costs && toggles.internally_invoiced && internallyInvoicedByParticipant.length > 0;
-  const otherBlocks: MergedBlock[] = [];
-  if (includeFstp)                otherBlocks.push({ categoryLabel: 'FSTP', participants: fstpByParticipant });
-  if (includeInternallyInvoiced)  otherBlocks.push({ categoryLabel: 'Internally invoiced', participants: internallyInvoicedByParticipant });
-  const includeOther = otherBlocks.length > 0;
 
   const includeSubcontracting = subcontractingByParticipant.length > 0;
 
@@ -72,7 +65,6 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
   const nextLabel = () => `Table 3.1.${String.fromCharCode(103 + letterIdx++)}.`;
   const subLabel  = includeSubcontracting ? nextLabel() : undefined;
   const purchaseLabel = includePurchase ? nextLabel() : undefined;
-  const otherLabel = includeOther ? nextLabel() : undefined;
 
   return (
     <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[2px]">
@@ -150,17 +142,6 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
         />
       )}
 
-      {/* 3.1.i — Other direct cost categories (merged) */}
-      {includeOther && (
-        <B31MergedJustificationTable
-          blocks={otherBlocks}
-          participants={participants}
-          proposalId={proposalId}
-          tableKey="other-direct-costs"
-          tableLabel={otherLabel!}
-          defaultCaption="Other direct cost justifications"
-        />
-      )}
     </div>
   );
 }

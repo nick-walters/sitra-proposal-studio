@@ -24,7 +24,7 @@ export function useB31UnmetSourceBlocks(proposalId: string, enabled: boolean) {
     travelByParticipant,
     otherGoodsByParticipant,
     loading,
-  } = useB31SectionData(enabled ? proposalId : '', { includeAllEquipment: toggles.equipment_all });
+  } = useB31SectionData(enabled ? proposalId : '');
 
   return useMemo(() => {
     const unmet = new Set<string>();

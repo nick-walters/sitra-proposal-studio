@@ -239,8 +239,6 @@ export function useB31SectionData(proposalId: string) {
 
   const travelByParticipant = buildOptionalCategory('travel');
   const otherGoodsByParticipant = buildOptionalCategory('other_goods');
-  const fstpByParticipant = buildOptionalCategory('fstp');
-  const internallyInvoicedByParticipant = buildOptionalCategory('internally_invoiced');
 
   return {
     wpData: wpQuery.data || [],
@@ -251,8 +249,6 @@ export function useB31SectionData(proposalId: string) {
     equipmentByParticipant,
     travelByParticipant,
     otherGoodsByParticipant,
-    fstpByParticipant,
-    internallyInvoicedByParticipant,
     loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetRowsQuery.isLoading,
   };
 }

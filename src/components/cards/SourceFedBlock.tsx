@@ -108,7 +108,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     travelByParticipant,
     otherGoodsByParticipant,
     loading,
-  } = useB31SectionData(proposalId, { includeAllEquipment: toggles.equipment_all });
+  } = useB31SectionData(proposalId);
 
 
 

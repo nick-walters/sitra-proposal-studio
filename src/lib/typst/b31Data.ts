@@ -138,7 +138,6 @@ export interface B31TypstData {
   risks: TypstRisk[];
   subcontracting: TypstCostEntry[];
   purchaseBlocks: TypstCostBlock[];
-  otherBlocks: TypstCostBlock[];
   linkedActivities: TypstLinkedActivity[];
   pertFigure: TypstFigureMeta | null;
   ganttFigure: TypstFigureMeta | null;
@@ -161,8 +160,6 @@ const COST_CATEGORIES = [
   'equipment',
   'travel',
   'other_goods',
-  'fstp',
-  'internally_invoiced',
 ] as const;
 
 function groupCosts(
@@ -224,9 +221,8 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     supabase
       .from('proposals')
       .select(
-        'b31_show_purchase_costs, b31_show_other_direct_costs, b31_show_travel_justification, ' +
-          'b31_show_equipment_justification, b31_show_all_equipment_justification, b31_show_other_goods_justification, ' +
-          'b31_show_fstp_justification, b31_show_internally_invoiced_justification',
+        'b31_show_purchase_costs, b31_show_travel_justification, ' +
+          'b31_show_equipment_justification, b31_show_other_goods_justification',
       )
       .eq('id', proposalId)
       .maybeSingle(),
@@ -396,13 +392,9 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   const subcontracting = groupCosts(rows, justItems, 'subcontracting');
   const travel = groupCosts(rows, justItems, 'travel');
   const otherGoods = groupCosts(rows, justItems, 'other_goods');
-  const fstp = groupCosts(rows, justItems, 'fstp');
-  const internallyInvoiced = groupCosts(rows, justItems, 'internally_invoiced');
 
   const toggles: any = proposalRow || {};
-  const equipmentAll = !!toggles.b31_show_all_equipment_justification;
   const equipment = groupCosts(rows, justItems, 'equipment').filter((entry) => {
-    if (equipmentAll) return true;
     const row = rows.find((r) => r.participant_id === entry.participantId);
     const pmRate = row?.pm_rate != null ? Number(row.pm_rate) : 0;
     const totalPMs = pmTotals.get(entry.participantId) || 0;
@@ -428,17 +420,6 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoods });
   }
 
-  const otherBlocks: TypstCostBlock[] = [];
-  if (toggles.b31_show_other_direct_costs && toggles.b31_show_fstp_justification && fstp.length) {
-    otherBlocks.push({ categoryLabel: 'FSTP', participants: fstp });
-  }
-  if (
-    toggles.b31_show_other_direct_costs &&
-    toggles.b31_show_internally_invoiced_justification &&
-    internallyInvoiced.length
-  ) {
-    otherBlocks.push({ categoryLabel: 'Internally invoiced', participants: internallyInvoiced });
-  }
 
   const figures = (figureRows as any[]) || [];
   const pertFigureRow = figures.find((f) => f.figure_type === 'pert') || null;
@@ -481,7 +462,6 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     risks,
     subcontracting,
     purchaseBlocks,
-    otherBlocks,
     linkedActivities: ((activityRows as any[]) || []) as TypstLinkedActivity[],
     columnWidths,
     columnHeaders,
