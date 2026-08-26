@@ -1245,11 +1245,13 @@ function SortableRiskRow({
 
 // ── L/M/H badge dropdown (uses the same RiskBadge as Table 3.1.e) ──
 function RiskLevelSelect({
-  value, onChange, disabled,
+  value, onChange, disabled, cellSurface,
 }: {
   value: 'L' | 'M' | 'H' | null;
   onChange: (v: 'L' | 'M' | 'H' | null) => void;
   disabled?: boolean;
+  /** Reads as cell text inside a document table until hovered or focused. */
+  cellSurface?: boolean;
 }) {
   return (
     <Select
@@ -1257,11 +1259,17 @@ function RiskLevelSelect({
       onValueChange={(v) => onChange(v === '__none__' ? null : (v as 'L' | 'M' | 'H'))}
       disabled={disabled}
     >
-      <SelectTrigger hideArrow className="h-8 w-auto inline-flex px-1 border-0 bg-transparent focus:ring-0">
+      <SelectTrigger
+        hideArrow
+        className={cellSurface
+          ? `${SUBTLE_CONTROL} h-auto min-h-0 py-[1px] inline-flex justify-start focus:ring-0`
+          : 'h-8 w-auto inline-flex px-1 border-0 bg-transparent focus:ring-0'}
+      >
         <span className="inline-flex items-center">
           {value ? <RiskBadge level={value} /> : <span className="text-muted-foreground">—</span>}
         </span>
       </SelectTrigger>
+
       <SelectContent>
         <SelectItem value="__none__"><span className="text-muted-foreground">—</span></SelectItem>
         <SelectItem value="L"><RiskBadge level="L" /></SelectItem>
