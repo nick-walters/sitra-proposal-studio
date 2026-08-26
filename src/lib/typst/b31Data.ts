@@ -187,7 +187,10 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     { data: figureRows },
     { data: proposalRow },
     { data: captionRows },
+    { data: widthRows },
+    { data: headerRows },
     { data: activityRows },
+
   ] = await Promise.all([
     supabase
       .from('participants')
