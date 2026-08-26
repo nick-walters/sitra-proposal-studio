@@ -96,7 +96,14 @@ const BLOCK_WIDTH = 768;
 
 const DEFAULT_COL_PCT = ['37%', '43%', '20%'];
 
+/** Template defaults; a user's retyped wording overrides these per proposal. */
+const DEFAULT_HEADERS = ['Project', 'How the project will be linked', 'By whom'];
+
+const DEFAULT_CAPTION =
+  'How relevant research & innovation activities will be linked & whom will establish the link';
+
 const NONE = '__none__';
+
 
 interface RowProps {
   activity: LinkedActivity;
