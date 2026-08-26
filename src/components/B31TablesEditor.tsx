@@ -786,7 +786,7 @@ function B31RisksTableInner({ proposalId }: Props) {
         proposalId={proposalId}
         tableKey="table-3.1.e"
         label="Table 3.1.e."
-        defaultCaption="Staff effort in person months"
+        defaultCaption="Critical risks for implementation"
         className="mb-0"
         suffixSpacing={false}
         suffix={
