@@ -511,10 +511,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Type */}
-        <div>
+      {/* Type */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <Select
             value={deliverable.type || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
@@ -535,10 +535,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Dissemination */}
-        <div>
+      {/* Dissemination */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <Select
             value={deliverable.dissemination_level || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
@@ -559,10 +559,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Due month */}
-        <div>
+      {/* Due month */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <SingleMonthPicker
             value={deliverable.due_month}
             projectDuration={projectDuration}
@@ -570,10 +570,10 @@ function DeliverableRow({
             label=""
             onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
           />
-        </div>
+      </td>
 
-        {/* Related task */}
-        <div>
+      {/* Related task */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}
@@ -604,19 +604,16 @@ function DeliverableRow({
           />
         </div>
 
-        {/* Spacer column keeps the two control columns hard right */}
-        <div />
-
-        {/* Move — fixed column, empty when unavailable so rows stay aligned */}
-        <div className="flex justify-center">
+      {/* Controls: move and delete, hard right and as tight as the icons. */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
+        <div className="flex items-center justify-end gap-1">
           {!readOnly && onMove && otherWpDrafts.length > 0 && (
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 px-1.5 gap-1 text-xs" aria-label="Move deliverable to another WP">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
                       <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                      Move
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
@@ -632,10 +629,6 @@ function DeliverableRow({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
-
-        {/* Delete — fixed column */}
-        <div className="flex justify-center">
           {!readOnly && (
             <DeleteConfirmDialog
               itemLabel="this deliverable"
@@ -645,8 +638,8 @@ function DeliverableRow({
             />
           )}
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 
 }
