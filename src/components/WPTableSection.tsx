@@ -84,7 +84,11 @@ interface WPTableSectionProps {
   wpDraftId?: string | null;
   /** Keep the focused editor mounted while an insert dialog is open. */
   shouldStayMounted?: () => boolean;
+  /** Per-user collapse state, keyed exactly as Part B keys its blocks. */
+  collapsedKeys?: Set<string>;
+  onToggleCollapsed?: (key: string) => void;
 }
+
 
 /**
  * Blocks 2 and 3 of a WP draft: Objectives, and Tasks.
