@@ -18,7 +18,7 @@ import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Plus, ArrowRight, Crown, Eye, EyeOff, GripVertical, RotateCcw } from 'lucide-react';
+import { Plus, ArrowRight, ChevronDown, ChevronUp, Crown, Eye, EyeOff, GripVertical, Recycle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   DropdownMenu,
@@ -34,6 +34,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  wpDescriptionCollapseKey,
+  wpObjectivesCollapseKey,
+  wpTaskCollapseKey,
+} from '@/lib/wpCollapseKeys';
+
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
@@ -84,7 +91,11 @@ interface WPTableSectionProps {
   wpDraftId?: string | null;
   /** Keep the focused editor mounted while an insert dialog is open. */
   shouldStayMounted?: () => boolean;
+  /** Per-user collapse state, keyed exactly as Part B keys its blocks. */
+  collapsedKeys?: Set<string>;
+  onToggleCollapsed?: (key: string) => void;
 }
+
 
 /**
  * Blocks 2 and 3 of a WP draft: Objectives, and Tasks.
@@ -124,10 +135,16 @@ export function WPTableSection({
   proposalId,
   wpDraftId,
   shouldStayMounted,
+  collapsedKeys,
+  onToggleCollapsed,
 }: WPTableSectionProps) {
   const [binOpen, setBinOpen] = useState(false);
   const binCount = useWPBinCount(wpDraftId, ['wp_draft_task', 'wp_draft_intro']);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const isCollapsed = (key: string) => collapsedKeys?.has(key) ?? false;
+  const objectivesKey = wpObjectivesCollapseKey(wpDraftId);
+  const dowKey = wpDescriptionCollapseKey(wpDraftId);
+
 
   /** Adds a task and scrolls to it, as Part B does for a new module. */
   const handleAddTask = useCallback(async () => {
@@ -157,7 +174,7 @@ export function WPTableSection({
 
   return (
     <div className="space-y-4">
-      {/* ── BLOCK 2: Objectives. One field, no block controls. ── */}
+      {/* ── BLOCK 2: Objectives. One field, with the shared collapse control. ── */}
       <section
         data-guideline-key="drafts.wp.objectives"
         data-version-label="Objectives"
@@ -165,27 +182,45 @@ export function WPTableSection({
           wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
         }
       >
-        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
-          <p
-            className="select-none font-bold"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-          >
-            Objectives:
-          </p>
-          {wpDraftId && (
-            <LockedWPRichField
-              targetId={wpTargetId(wpDraftId, 'objectives')}
-              value={objectives || ''}
-              onChange={onObjectivesChange}
-              disabled={readOnly}
-              minHeight="60px"
-              proposalId={proposalId ?? ''}
-              staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
-              documentSurface
-              shouldStayMounted={shouldStayMounted}
+        {onToggleCollapsed && (
+          <div className="flex items-center gap-1 px-1">
+            <CollapseChevron
+              collapsed={isCollapsed(objectivesKey)}
+              onToggle={() => onToggleCollapsed(objectivesKey)}
             />
-          )}
-        </div>
+            {isCollapsed(objectivesKey) && (
+              <span
+                className="select-none font-bold"
+                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+              >
+                Objectives:
+              </span>
+            )}
+          </div>
+        )}
+        {!isCollapsed(objectivesKey) && (
+          <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+            <p
+              className="select-none font-bold"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            >
+              Objectives:
+            </p>
+            {wpDraftId && (
+              <LockedWPRichField
+                targetId={wpTargetId(wpDraftId, 'objectives')}
+                value={objectives || ''}
+                onChange={onObjectivesChange}
+                disabled={readOnly}
+                minHeight="60px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            )}
+          </div>
+        )}
       </section>
 
       {/* ── BLOCK 3: Description of work ──
@@ -194,12 +229,26 @@ export function WPTableSection({
           as a Part B block does. Modules are separated by the same hairline. */}
       <section className="rounded-md border border-border bg-card">
         <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+          {onToggleCollapsed && (
+            <CollapseChevron
+              collapsed={isCollapsed(dowKey)}
+              onToggle={() => onToggleCollapsed(dowKey)}
+            />
+          )}
+          {/* The heading starts on the 18 cm column's left edge, matching the
+              text below it: the header's own padding and the chevron column
+              are subtracted from the 1.5 cm margin. */}
           <p
             className="min-w-0 flex-1 select-none font-bold"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            style={{
+              fontFamily: "'Times New Roman', Times, serif",
+              fontSize: '11pt',
+              paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 40px)' : 'calc(1.5cm - 12px)',
+            }}
           >
             Description of work:
           </p>
+
           {!readOnly && (
             <div className="flex items-center gap-1">
               {/* Order: add, move to another WP, restore. */}
@@ -278,7 +327,7 @@ export function WPTableSection({
                     disabled={binCount === 0 || !wpDraftId}
                     onClick={() => setBinOpen(true)}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -288,6 +337,10 @@ export function WPTableSection({
             </div>
           )}
         </div>
+
+        {/* Everything below the header hides when the block is collapsed. */}
+        {!isCollapsed(dowKey) && (
+        <>
 
         {/* The single optional field before the first task: fixed in place, no
             drag grip — only visibility and delete. */}
@@ -383,6 +436,12 @@ export function WPTableSection({
                       proposalId={proposalId}
                       shouldStayMounted={shouldStayMounted}
                       dragHandleProps={readOnly ? undefined : dragHandleProps}
+                      collapsed={isCollapsed(wpTaskCollapseKey(task.id))}
+                      onToggleCollapsed={
+                        onToggleCollapsed
+                          ? () => onToggleCollapsed(wpTaskCollapseKey(task.id))
+                          : undefined
+                      }
                     />
                   )}
                 </SortableTaskModule>
@@ -394,6 +453,8 @@ export function WPTableSection({
           <p className="py-3 text-center text-sm italic text-muted-foreground">
             No tasks yet — use the add control above.
           </p>
+        )}
+        </>
         )}
       </section>
 
@@ -448,6 +509,8 @@ interface TaskModuleProps {
   proposalId?: string | null;
   shouldStayMounted?: () => boolean;
   dragHandleProps?: Record<string, unknown>;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 /** One task module: badge and title, leader and participants, duration, text. */
@@ -465,6 +528,8 @@ function TaskModule({
   proposalId,
   shouldStayMounted,
   dragHandleProps,
+  collapsed = false,
+  onToggleCollapsed,
 }: TaskModuleProps) {
   const isVisible = task.is_visible !== false;
   const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
@@ -479,9 +544,23 @@ function TaskModule({
       className={cn('space-y-1 bg-white py-2', !isVisible && 'opacity-50')}
       data-guideline-key="drafts.wp.task"
     >
-      {/* Row 1: badge, title, visibility, delete — inside the 18 cm column. */}
+      {/* Row 1: badge, title, visibility, delete — inside the 18 cm column.
+          The collapse chevron sits above the drag grip at the module's left
+          edge, exactly as it does on a Part B module. */}
       <div className="flex items-center gap-1.5 px-[1.5cm]">
+        {(onToggleCollapsed || dragHandleProps) && (
+          <div className="-ml-9 flex shrink-0 flex-col items-center gap-0.5 self-start">
+            {onToggleCollapsed && (
+              <CollapseChevron
+                collapsed={collapsed}
+                onToggle={onToggleCollapsed}
+                label="task"
+              />
+            )}
+          </div>
+        )}
         {dragHandleProps && (
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -555,6 +634,9 @@ function TaskModule({
         )}
       </div>
 
+      {/* Rows 2 and 3 fold away when the module is collapsed. */}
+      {!collapsed && (
+      <>
       {/* Row 2: leader, participants, duration */}
       <div className="flex flex-wrap items-center gap-2 px-[1.5cm]">
         <Select
@@ -630,6 +712,8 @@ function TaskModule({
             selectedIds={selectedParticipantIds}
             onChange={(ids) => onParticipantsChange(task.id, ids)}
             disabled={readOnly}
+            placeholder="Participants"
+            subtle
           />
         </div>
 
@@ -648,7 +732,10 @@ function TaskModule({
         data-version-label={`${formatTaskNumber(task.number)} description`}
         data-version-target={versionTargetAttr('wp_draft_task', task.id, 'description')}
       >
-        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+        <div
+          className="doc-surface-page bg-white px-[1.5cm] pb-[6pt] pt-0"
+          style={{ marginTop: '-2.67px' }}
+        >
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
@@ -662,6 +749,8 @@ function TaskModule({
           />
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -719,7 +808,7 @@ function TimingRangePicker({
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
           <button
-            className="h-6 cursor-pointer rounded-md border bg-background px-2 text-draft hover:opacity-80"
+            className="h-6 cursor-pointer rounded-md border-0 bg-transparent px-1 text-draft shadow-none hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             disabled={readOnly}
           >
             {task.start_month != null && task.end_month != null ? (

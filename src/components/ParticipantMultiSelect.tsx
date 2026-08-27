@@ -16,6 +16,12 @@ interface ParticipantMultiSelectProps {
   onChange: (ids: string[]) => void;
   disabled?: boolean;
   placeholder?: string;
+  /**
+   * Document surfaces (WP task modules) show no field chrome at rest: the
+   * control reads as text and only reveals its affordance on hover or focus,
+   * exactly as the task leader dropdown beside it does.
+   */
+  subtle?: boolean;
 }
 
 export function ParticipantMultiSelect({
@@ -24,7 +30,9 @@ export function ParticipantMultiSelect({
   onChange,
   disabled = false,
   placeholder = 'Select...',
+  subtle = false,
 }: ParticipantMultiSelectProps) {
+
   const [open, setOpen] = useState(false);
 
   const toggleParticipant = (participantId: string) => {
@@ -52,12 +60,14 @@ export function ParticipantMultiSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={subtle ? 'ghost' : 'outline'}
           role="combobox"
           aria-expanded={open}
           className={cn(
             "h-8 w-full justify-between px-2 font-normal",
-            !selectedIds.length && "text-muted-foreground"
+            !selectedIds.length && "text-muted-foreground",
+            subtle &&
+              "group h-6 border-0 bg-transparent px-1 shadow-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-1",
           )}
           disabled={disabled}
         >
@@ -72,8 +82,14 @@ export function ParticipantMultiSelect({
               ))
             )}
           </div>
-          <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
+          <ChevronsUpDown
+            className={cn(
+              'h-3 w-3 shrink-0 opacity-50',
+              subtle && 'opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50',
+            )}
+          />
         </Button>
+
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
         <div className="max-h-[200px] overflow-y-auto">

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, ArrowRight, RotateCcw } from 'lucide-react';
+import { Plus, ArrowRight, Recycle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -59,6 +59,9 @@ interface WPDeliverablesTableProps {
   proposalId?: string | null;
   /** Keep the focused editor mounted while the page toolbar has focus. */
   shouldStayMounted?: () => boolean;
+  /** Per-user collapse state, persisted by the page. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 const DELIVERABLE_TYPES = [
@@ -209,6 +212,8 @@ export function WPDeliverablesTable({
   allWpDrafts = [],
   proposalId,
   shouldStayMounted,
+  collapsed = false,
+  onToggleCollapsed,
 }: WPDeliverablesTableProps) {
   const qc = useQueryClient();
   const resolvedWpColor = wpColor || DEFAULT_WP_COLORS[(wpNumber - 1) % DEFAULT_WP_COLORS.length];
@@ -302,7 +307,20 @@ export function WPDeliverablesTable({
             reached through the Guidelines button with a field focused. */}
         <BlockControlRow
           className="px-1"
-          title="Deliverables"
+          collapsed={collapsed}
+          onToggleCollapsed={onToggleCollapsed}
+          title={
+            <span
+              style={{
+                fontFamily: "'Times New Roman', Times, serif",
+                fontSize: '11pt',
+                paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 36px)' : 'calc(1.5cm - 4px)',
+                display: 'inline-block',
+              }}
+            >
+              Deliverables
+            </span>
+          }
           trailing={
             !readOnly ? (
               <div className="flex items-center gap-1">
@@ -374,7 +392,7 @@ export function WPDeliverablesTable({
                       disabled={binCount === 0}
                       onClick={() => setBinOpen(true)}
                     >
-                      <RotateCcw className="h-3.5 w-3.5" />
+                      <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -390,6 +408,7 @@ export function WPDeliverablesTable({
             under the header, hairlines between rows, no vertical rules, and a
             hard 18 cm measure. Every field for a deliverable sits on ONE row;
             each column is as tight as its content, the title taking the rest. */}
+        {!collapsed && (
         <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
           {sorted.length === 0 ? (
             <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
@@ -435,6 +454,8 @@ export function WPDeliverablesTable({
             </table>
           )}
         </div>
+        )}
+
       </div>
 
 

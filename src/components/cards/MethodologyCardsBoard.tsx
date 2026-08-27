@@ -1196,7 +1196,18 @@ function CardBlock({
               'mirrored'    → header prints in the preview/export (B1.2),
               'editor_only' → header shows here for navigation only and is
                               never emitted to the preview, PDF or DOCX. */}
-          <div className="min-w-0 flex-1">
+          {/* The block title starts on the 18 cm column's left edge and reads
+              in the document face, so it lines up with the text beneath it:
+              the header's own padding and the control stack are subtracted
+              from the 1.5 cm page margin. */}
+          <div
+            className="min-w-0 flex-1"
+            style={{
+              paddingLeft: 'calc(1.5cm - 36px)',
+              fontFamily: "'Times New Roman', Times, serif",
+              fontSize: '11pt',
+            }}
+          >
             {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
