@@ -1959,3 +1959,13 @@ body.table-col-resizing * {
   pointer-events: none;
   display: inline;
 }
+
+/* The work package title pill sits on the WP's own colour, so its text must
+   be white regardless of what a parent surface (the page-styled document
+   face, a prose reset, or a dark theme) would otherwise impose. Inline
+   styles lost to those rules whenever the pill wrapped, so the colour is
+   declared here, once, and enforced. */
+.wp-title-pill,
+.wp-title-pill * {
+  color: #ffffff !important;
+}

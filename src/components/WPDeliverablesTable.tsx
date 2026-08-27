@@ -2,7 +2,15 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { BlockControlRow } from '@/components/cards/BlockControlRow';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+  WP_TITLE_INDENT,
+} from '@/lib/wpBlockChrome';
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 
 import { Button } from '@/components/ui/button';
@@ -302,27 +310,32 @@ export function WPDeliverablesTable({
 
   return (
     <TooltipProvider>
-      <div className="space-y-2" data-guideline-key="drafts.wp.deliverables">
+      <section className={WP_BLOCK_FRAME} data-guideline-key="drafts.wp.deliverables">
         {/* Block controls, right-aligned in the order add, move, restore —
-            exactly as the tasks block. Guidance is never printed here: it is
-            reached through the Guidelines button with a field focused. */}
-        <BlockControlRow
-          className="px-1"
-          collapsed={collapsed}
-          onToggleCollapsed={onToggleCollapsed}
-          title={
-            <span
-              style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '11pt',
-                paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 36px)' : 'calc(1.5cm - 4px)',
-                display: 'inline-block',
-              }}
-            >
-              Deliverables
-            </span>
-          }
-          trailing={
+            exactly as the tasks block. The heading wears the same frame,
+            face and weight as "Objectives:" and "Description of work:".
+            Guidance is never printed here: it is reached through the
+            Guidelines button with a field focused. */}
+        <div className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}>
+          {onToggleCollapsed && (
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={collapsed}
+                onToggle={onToggleCollapsed}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
+          )}
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
+            }}
+          >
+            Deliverables:
+          </p>
+          {
             !readOnly ? (
               <div className="flex items-center gap-1">
                 <Tooltip>
@@ -401,9 +414,9 @@ export function WPDeliverablesTable({
                   </TooltipContent>
                 </Tooltip>
               </div>
-            ) : undefined
+            ) : null
           }
-        />
+        </div>
 
         {/* One document table, styled exactly as milestones and risks: a rule
             under the header, hairlines between rows, no vertical rules, and a
@@ -457,7 +470,7 @@ export function WPDeliverablesTable({
         </div>
         )}
 
-      </div>
+      </section>
 
 
       <WPBinDialog

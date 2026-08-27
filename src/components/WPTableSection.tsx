@@ -40,6 +40,14 @@ import {
   wpObjectivesCollapseKey,
   wpTaskCollapseKey,
 } from '@/lib/wpCollapseKeys';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+  WP_TITLE_INDENT,
+} from '@/lib/wpBlockChrome';
 
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -144,6 +152,12 @@ export function WPTableSection({
   const isCollapsed = (key: string) => collapsedKeys?.has(key) ?? false;
   const objectivesKey = wpObjectivesCollapseKey(wpDraftId);
   const dowKey = wpDescriptionCollapseKey(wpDraftId);
+  /* Dragging folds every task for the duration of the drag, so the list stays
+     short enough to aim at — the same mechanism the Part B board uses for its
+     blocks. It is transient: nothing is written, so each task returns to its
+     own saved state as soon as the drag ends. */
+  const [isDraggingTask, setIsDraggingTask] = useState(false);
+
 
 
   /** Adds a task and scrolls to it, as Part B does for a new module. */
@@ -173,39 +187,40 @@ export function WPTableSection({
   const otherWps = allWpDrafts.filter((wp) => wp.id !== currentWpDraftId);
 
   return (
-    <div className="space-y-4">
-      {/* ── BLOCK 2: Objectives. One field, with the shared collapse control. ── */}
+    <div className="space-y-3">
+      {/* ── BLOCK 2: Objectives ──
+          The same frame, header row and control stack as every other block,
+          so the chevrons line up down the page. */}
       <section
+        className={WP_BLOCK_FRAME}
         data-guideline-key="drafts.wp.objectives"
         data-version-label="Objectives"
         data-version-target={
           wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
         }
       >
-        {onToggleCollapsed && (
-          <div className="flex items-center gap-1 px-1">
-            <CollapseChevron
-              collapsed={isCollapsed(objectivesKey)}
-              onToggle={() => onToggleCollapsed(objectivesKey)}
-            />
-            {isCollapsed(objectivesKey) && (
-              <span
-                className="select-none font-bold"
-                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-              >
-                Objectives:
-              </span>
-            )}
-          </div>
-        )}
+        <div className={cn(WP_BLOCK_HEADER, !isCollapsed(objectivesKey) && 'border-b border-border')}>
+          {onToggleCollapsed && (
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={isCollapsed(objectivesKey)}
+                onToggle={() => onToggleCollapsed(objectivesKey)}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
+          )}
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
+            }}
+          >
+            Objectives:
+          </p>
+        </div>
         {!isCollapsed(objectivesKey) && (
           <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
-            <p
-              className="select-none font-bold"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-            >
-              Objectives:
-            </p>
             {wpDraftId && (
               <LockedWPRichField
                 targetId={wpTargetId(wpDraftId, 'objectives')}
@@ -227,27 +242,30 @@ export function WPTableSection({
           One white block frame carries the heading, the block controls, the
           optional field before the first task and every task module, exactly
           as a Part B block does. Modules are separated by the same hairline. */}
-      <section className="rounded-md border border-border bg-card">
-        <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+      <section className={WP_BLOCK_FRAME}>
+        <div className={cn(WP_BLOCK_HEADER, 'border-b border-border')}>
           {onToggleCollapsed && (
-            <CollapseChevron
-              collapsed={isCollapsed(dowKey)}
-              onToggle={() => onToggleCollapsed(dowKey)}
-            />
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={isCollapsed(dowKey)}
+                onToggle={() => onToggleCollapsed(dowKey)}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
           )}
           {/* The heading starts on the 18 cm column's left edge, matching the
-              text below it: the header's own padding and the chevron column
+              text below it: the header's own padding and the control stack
               are subtracted from the 1.5 cm margin. */}
           <p
             className="min-w-0 flex-1 select-none font-bold"
             style={{
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: '11pt',
-              paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 40px)' : 'calc(1.5cm - 12px)',
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
             }}
           >
             Description of work:
           </p>
+
 
           {!readOnly && (
             <div className="flex items-center gap-1">
@@ -411,7 +429,9 @@ export function WPTableSection({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragStart={() => setIsDraggingTask(true)}
+          onDragCancel={() => setIsDraggingTask(false)}
+          onDragEnd={(event) => { setIsDraggingTask(false); handleDragEnd(event); }}
         >
           <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <div>
@@ -436,7 +456,7 @@ export function WPTableSection({
                       proposalId={proposalId}
                       shouldStayMounted={shouldStayMounted}
                       dragHandleProps={readOnly ? undefined : dragHandleProps}
-                      collapsed={isCollapsed(wpTaskCollapseKey(task.id))}
+                      collapsed={isDraggingTask || isCollapsed(wpTaskCollapseKey(task.id))}
                       onToggleCollapsed={
                         onToggleCollapsed
                           ? () => onToggleCollapsed(wpTaskCollapseKey(task.id))
@@ -545,35 +565,45 @@ function TaskModule({
       data-guideline-key="drafts.wp.task"
     >
       {/* Row 1: badge, title, visibility, delete — inside the 18 cm column.
-          The collapse chevron sits above the drag grip at the module's left
-          edge, exactly as it does on a Part B module. */}
-      <div className="flex items-center gap-1.5 px-[1.5cm]">
+          The chevron and grip share the block header's left control stack, so
+          a module's chevron sits in the same vertical line as its block's. */}
+      <div className="flex items-center gap-1.5 py-0 pl-5 pr-[13px]">
         {(onToggleCollapsed || dragHandleProps) && (
-          <div className="-ml-9 flex shrink-0 flex-col items-center gap-0.5 self-start">
+          <div className={WP_CONTROL_STACK}>
             {onToggleCollapsed && (
               <CollapseChevron
                 collapsed={collapsed}
                 onToggle={onToggleCollapsed}
                 label="task"
+                className={WP_CHEVRON_SIZE}
               />
+            )}
+            {dragHandleProps && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="shrink-0 cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
+                    {...dragHandleProps}
+                  >
+                    <GripVertical className="h-4 w-4 text-blue-500" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Drag to reorder this task</TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}
-        {dragHandleProps && (
+        {/* The badge starts on the 18 cm column's left edge: the row padding,
+            the control stack and the row gaps are subtracted from 1.5 cm. */}
+        <span
+          aria-hidden="true"
+          className="shrink-0"
+          style={{
+            width: onToggleCollapsed || dragHandleProps ? 'calc(1.5cm - 42px)' : 'calc(1.5cm - 26px)',
+          }}
+        />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="-ml-5 shrink-0 cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
-                {...dragHandleProps}
-              >
-                <GripVertical className="h-4 w-4 text-blue-500" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Drag to reorder this task</TooltipContent>
-          </Tooltip>
-        )}
         <span
           className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold"
           style={{
@@ -637,8 +667,12 @@ function TaskModule({
       {/* Rows 2 and 3 fold away when the module is collapsed. */}
       {!collapsed && (
       <>
-      {/* Row 2: leader, participants, duration */}
-      <div className="flex flex-wrap items-center gap-2 px-[1.5cm]">
+      {/* Row 2: leader, participants, duration. The air above and below this
+          row is 3 pt tighter on each side than the block's default rhythm. */}
+      <div
+        className="flex flex-wrap items-center gap-2 px-[1.5cm]"
+        style={{ marginTop: '-4px', marginBottom: '-4px' }}
+      >
         <Select
           value={task.lead_participant_id || ''}
           onValueChange={(value) =>
