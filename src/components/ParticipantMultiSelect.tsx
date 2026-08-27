@@ -67,7 +67,7 @@ export function ParticipantMultiSelect({
             "h-8 w-full justify-between px-2 font-normal",
             !selectedIds.length && "text-muted-foreground",
             subtle &&
-              "h-6 border-0 bg-transparent px-1 shadow-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-1",
+              "group h-6 border-0 bg-transparent px-1 shadow-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-1",
           )}
           disabled={disabled}
         >
@@ -85,7 +85,7 @@ export function ParticipantMultiSelect({
           <ChevronsUpDown
             className={cn(
               'h-3 w-3 shrink-0 opacity-50',
-              subtle && 'opacity-0 transition-opacity group-hover:opacity-50',
+              subtle && 'opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-50',
             )}
           />
         </Button>
