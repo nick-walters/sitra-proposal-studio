@@ -24,6 +24,11 @@ interface DeleteConfirmDialogProps {
   disabled?: boolean;
   /** Hover label and aria-label. Defaults to "Delete {itemLabel}". */
   tooltip?: string;
+  /**
+   * Body copy. Defaults to a plain confirmation — deletions that go to a
+   * recycle bin must NOT claim to be irreversible.
+   */
+  description?: string;
 }
 
 export function DeleteConfirmDialog({
@@ -34,6 +39,7 @@ export function DeleteConfirmDialog({
   buttonSize = 'icon',
   disabled = false,
   tooltip,
+  description,
 }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
 
