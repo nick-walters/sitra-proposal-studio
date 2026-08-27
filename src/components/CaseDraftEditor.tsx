@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { saveVersionedRow, saveCaseDraftSubsection } from '@/lib/versionedSave';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
+import { fetchCaseSubsections, rowsToSubsectionMap, entryBody, entryHeading } from '@/lib/caseSubsections';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -521,12 +522,8 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // Guarded PER KEY against the body this session loaded.
   const updateSubsectionContent = useCallback(
     async (key: string, value: string, heading?: string) => {
-      const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
-      const existing = current[key];
-      const existingHeading =
-        existing && typeof existing === 'object' ? existing.heading : undefined;
-      const nextHeading = heading || existingHeading || '';
+      const nextHeading = heading || entryHeading(subsectionContent[key]) || '';
       const expected = subsectionBaseline.current[key] ?? null;
 
       const res = await saveCaseDraftSubsection(caseId, key, safe, nextHeading, expected);
@@ -593,13 +590,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
    */
   const searchFieldsForPage = useCallback((): SearchableField[] => {
     if (!caseDraft) return [];
-    const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
+    const contentMap = subsectionContent;
     const editable = canEdit;
     return subsectionTemplates
       .map((sub): SearchableField | null => {
-        const raw = contentMap[sub.key];
-        const body =
-          typeof raw === 'string' ? raw : raw && typeof raw === 'object' ? String(raw.body ?? '') : '';
+        const body = entryBody(contentMap[sub.key]);
         if (!body) return null;
         return {
           id: `case_drafts:${caseId}:${sub.key}`,
@@ -873,12 +868,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </p>
         )}
         {subsectionTemplates.map((sub) => {
-          const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
-          const rawEntry = contentMap[sub.key];
-          const content =
-            typeof rawEntry === 'string'
-              ? rawEntry
-              : (rawEntry && typeof rawEntry === 'object' ? (rawEntry.body || '') : '');
+          const content = entryBody(subsectionContent[sub.key]);
           const guideline = sub.guideline || '';
 
           return (
