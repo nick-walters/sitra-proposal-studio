@@ -1833,14 +1833,14 @@ body.table-col-resizing * {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  /* The focus rule lives IN the left margin: the negative margin pulls the
-     rule and its gutter off the text column, so body text starts flush at
-     the 1.5 cm margin whether or not the field is focused. */
-  border-left: 2px solid transparent;
-  margin-left: -8px;
-  padding-left: 6px;
+  /* No left focus band: the caret already shows focus, and the band sat on
+     top of the lock boundary's left edge. No gutter either, so the field can
+     never overhang the lock boundary drawn by its wrapper. */
+  margin-left: 0;
+  padding-left: 0;
   padding-right: 0;
 }
+
 
 /* The module's H3 header as a field ON the page: same white surface and the
    same growth behaviour as the body, distinguished only by its weight. */
