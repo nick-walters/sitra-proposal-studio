@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -31,10 +31,10 @@ export function CollapseChevron({
           size="icon"
           aria-label={tip}
           aria-expanded={!collapsed}
-          className={cn('h-6 w-6 shrink-0', className)}
+          className={cn('h-7 w-7 shrink-0', className)}
           onClick={onToggle}
         >
-          {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>

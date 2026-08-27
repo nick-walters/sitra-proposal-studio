@@ -212,6 +212,8 @@ export function WPDeliverablesTable({
   allWpDrafts = [],
   proposalId,
   shouldStayMounted,
+  collapsed = false,
+  onToggleCollapsed,
 }: WPDeliverablesTableProps) {
   const qc = useQueryClient();
   const resolvedWpColor = wpColor || DEFAULT_WP_COLORS[(wpNumber - 1) % DEFAULT_WP_COLORS.length];
