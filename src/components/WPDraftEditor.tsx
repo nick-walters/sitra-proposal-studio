@@ -22,6 +22,7 @@ import {
   wpObjectivesCollapseKey,
   wpTaskCollapseKey,
 } from '@/lib/wpCollapseKeys';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { WP_BLOCK_FRAME, WP_DOC_FONT } from '@/lib/wpBlockChrome';
 import {
   MethodologyEditorFocusProvider,
@@ -993,6 +994,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
               })()}
             </div>
           </div>
+          )}
         </section>
 
 
