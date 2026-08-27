@@ -902,80 +902,79 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             Read-only projection of the WP manager row: the title is owned
             there, so it is displayed (and commentable) but never edited here.
             The leader is a badge only, and the duration is derived from the
-            earliest task start and the latest task end. */}
-        <div className="space-y-2 -mx-2">
-          {/* Full-width pill badge: WPX: Short Name – Title */}
-          <div
-            className="rounded-full flex items-baseline gap-0 max-w-[18cm]"
-            data-comment-target={`wp_draft:${wpDraft.id}:title`}
-            style={{
-              backgroundColor: effectiveColor,
-              color: '#FFFFFF',
-              border: `1.5px solid ${effectiveColor}`,
-              padding: '0px 6px',
-              lineHeight: 1,
-            }}
-          >
-            <span
-              className="min-w-0 font-bold"
+            earliest task start and the latest task end. It wears the same
+            block frame as every other block, and everything inside it sits
+            within the 18 cm text column. */}
+        <section className={WP_BLOCK_FRAME}>
+          <div className="space-y-2 px-[1.5cm] py-2">
+            {/* Full-width pill badge: WPX: Short Name – Title */}
+            <div
+              className="wp-title-pill flex w-full items-baseline gap-0 rounded-full"
+              data-comment-target={`wp_draft:${wpDraft.id}:title`}
               style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '11pt',
-                overflowWrap: 'anywhere',
-                lineHeight: 1.15,
-                /* Explicit: wrapping pills inherit the board's body colour
-                   otherwise, which reads black on the WP colour. */
-                color: '#FFFFFF',
+                backgroundColor: effectiveColor,
+                border: `1.5px solid ${effectiveColor}`,
+                padding: '0px 6px',
+                lineHeight: 1,
               }}
             >
-              WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
-              {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' – ' : ''}
-              {wpDraft.title?.trim() || ''}
-            </span>
-          </div>
+              <span
+                className="min-w-0 font-bold"
+                style={{
+                  ...WP_DOC_FONT,
+                  overflowWrap: 'anywhere',
+                  lineHeight: 1.15,
+                }}
+              >
+                WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
+                {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' – ' : ''}
+                {wpDraft.title?.trim() || ''}
+              </span>
+            </div>
 
-          {/* Metadata row: the leader badge and the derived duration carry no
-              headings — the badge and the month range read for themselves. */}
-          <div className="flex items-center justify-between px-2 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
+            {/* Metadata row: the leader badge and the derived duration carry no
+                headings — the badge and the month range read for themselves. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const leader = participants.find((p) => p.id === wpDraft.lead_participant_id);
+                  if (!leader) {
+                    return <span className="text-draft text-muted-foreground italic">Leader not set</span>;
+                  }
+                  return (
+                    <span
+                      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+                      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                    >
+                      <Crown className="w-3 h-3 mr-1 text-white fill-white" />
+                      {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+                    </span>
+                  );
+                })()}
+              </div>
+              {/* Auto-calculated duration from tasks (uses whichever tasks have durations) */}
               {(() => {
-                const leader = participants.find((p) => p.id === wpDraft.lead_participant_id);
-                if (!leader) {
-                  return <span className="text-draft text-muted-foreground italic">Leader not set</span>;
+                const tasks = wpDraft.tasks || [];
+                const taskStartMonths = tasks.filter(t => t.start_month != null).map(t => t.start_month!);
+                const taskEndMonths = tasks.filter(t => t.end_month != null).map(t => t.end_month!);
+                const allMonths = [...taskStartMonths, ...taskEndMonths];
+
+                if (allMonths.length > 0) {
+                  const startMonth = Math.min(...allMonths);
+                  const endMonth = Math.max(...allMonths);
+                  const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
+                  return (
+                    <span className="text-draft font-medium">
+                      {formatMonth(startMonth)}–{formatMonth(endMonth)}
+                    </span>
+                  );
                 }
-                return (
-                  <span
-                    className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-                    style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
-                  >
-                    <Crown className="w-3 h-3 mr-1 text-white fill-white" />
-                    {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
-                  </span>
-                );
+                return <span className="text-draft text-muted-foreground italic">—</span>;
               })()}
             </div>
-            {/* Auto-calculated duration from tasks (uses whichever tasks have durations) */}
-            {(() => {
-              const tasks = wpDraft.tasks || [];
-              const taskStartMonths = tasks.filter(t => t.start_month != null).map(t => t.start_month!);
-              const taskEndMonths = tasks.filter(t => t.end_month != null).map(t => t.end_month!);
-              const allMonths = [...taskStartMonths, ...taskEndMonths];
-
-              if (allMonths.length > 0) {
-                const startMonth = Math.min(...allMonths);
-                const endMonth = Math.max(...allMonths);
-                const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
-                return (
-                  <span className="text-draft font-medium">
-                    {formatMonth(startMonth)}–{formatMonth(endMonth)}
-                  </span>
-                );
-              }
-              return <span className="text-draft text-muted-foreground italic">—</span>;
-            })()}
           </div>
+        </section>
 
-        </div>
 
 
         {/* Version history for whichever WP field owns the toolbar. */}
