@@ -402,18 +402,6 @@ export function EditorFieldBar({
       />
 
       <FeatureButton
-        asDiv={!trackChanges?.onToggle}
-        leading={
-          <Switch checked={!!trackChanges?.enabled} className="pointer-events-none scale-75" />
-        }
-        primary="Track my"
-        tooltip="Track my changes while editing"
-        secondary="changes"
-        disabled={!trackChanges?.onToggle}
-        onClick={trackChanges?.onToggle}
-      />
-
-      <FeatureButton
         icon={<GitCompare className="h-3.5 w-3.5" />}
         primary="Review"
         tooltip="Review tracked changes"

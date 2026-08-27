@@ -70,6 +70,7 @@ import { smartTimestamp } from "@/lib/smartTimestamp";
 import { CollaborativeCursors } from "./CollaborativeCursors";
 import { BlockLockIndicator } from "./BlockLockIndicator";
 import { CaptionRefreshButton } from "./CaptionRefreshButton";
+import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
 import { TrackChangeBubbleMenu } from "./TrackChangeBubbleMenu";
 import { SearchReplaceDialog } from "./SearchReplaceDialog";
@@ -192,20 +193,21 @@ function DocumentEditorInner({
   // across all Part B sections, not the order they were added to the library).
   // Live content for the active section is folded in below once available.
   
-  // Track changes persistence hook — remember last setting per user, default ON
-  const [trackChangesEnabled, setTrackChangesEnabled] = useState(() => {
-    if (!user?.id) return true;
-    const stored = localStorage.getItem(`track-changes-${user.id}`);
-    return stored !== null ? stored === 'true' : true;
-  });
+  // TRACK CHANGES — the single platform-wide, per-user setting, stored on the
+  // user's profile. This editor used to keep its own localStorage flag; it now
+  // reads the shared one so the toggle means the same thing on every surface.
+  // The local state is only a fallback for hosts rendered outside a proposal.
+  const trackChangesSetting = useTrackChangesSetting();
+  const [localTrackChanges, setLocalTrackChanges] = useState(false);
+  const trackChangesEnabled = trackChangesSetting
+    ? trackChangesSetting.enabled
+    : localTrackChanges;
   const handleSetTrackChangesEnabled = useCallback((enabled: boolean) => {
-    setTrackChangesEnabled(enabled);
-    if (user?.id) {
-      localStorage.setItem(`track-changes-${user.id}`, String(enabled));
-    }
+    if (trackChangesSetting) trackChangesSetting.setEnabled(enabled);
+    else setLocalTrackChanges(enabled);
     // Return focus to editor after toggling
     setTimeout(() => editor?.commands.focus(), 50);
-  }, [user?.id]);
+  }, [trackChangesSetting]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
 
