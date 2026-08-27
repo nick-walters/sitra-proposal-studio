@@ -561,7 +561,8 @@ function DeliverableRow({
               </button>
             )}
           />
-        </div>
+      </td>
+
 
       {/* Controls: move and delete, hard right and as tight as the icons. */}
       <td className={`${docCellStyles} whitespace-nowrap`}>
