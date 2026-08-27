@@ -64,102 +64,14 @@ interface WPDraftEditorProps {
   projectDuration?: number;
 }
 
-const SITRA_TIPS = [
-  {
-    id: 'sitra-1',
-    title: 'Structure your WP clearly',
-    content: 'Each WP should have clear objectives, well-defined tasks, and measurable deliverables. Evaluators appreciate logical flow and clear dependencies.',
-  },
-  {
-    id: 'sitra-2',
-    title: 'Balance the workload',
-    content: 'Ensure effort is distributed appropriately among partners. Check that WP leaders have sufficient resources and expertise for their roles.',
-  },
-  {
-    id: 'sitra-3',
-    title: 'Consider timing carefully',
-    content: 'Plan task timing to avoid bottlenecks. Allow buffer for unexpected delays, especially for external dependencies and approval processes.',
-  },
-  {
-    id: 'sitra-methodology-1',
-    title: 'Be specific about your choices',
-    content: 'Explain WHY you chose these particular methods over alternatives. Evaluators want to see that you\'ve considered options and made informed decisions.',
-  },
-  {
-    id: 'sitra-methodology-2',
-    title: 'Reference state-of-the-art',
-    content: 'Show awareness of current best practices and explain how your approach builds on or improves existing methodologies.',
-  },
-  {
-    id: 'sitra-methodology-3',
-    title: 'Acknowledge limitations',
-    content: 'Being honest about methodological limitations and explaining your mitigation strategies demonstrates maturity and credibility.',
-  },
-  {
-    id: 'sitra-methodology-4',
-    title: 'Link to objectives',
-    content: 'Explicitly connect your methods to the objectives they support. Show evaluators that every methodological choice serves a purpose.',
-  },
-];
-
-const EC_GUIDELINES = [
-  {
-    id: 'ec-methodology',
-    title: 'Methodology',
-    content: 'Describe and explain the methodologies used in this WP, including the concepts, models and assumptions that underpin your work. Explain how they will enable you to deliver your project\'s objectives. Refer to any important challenges you may have identified in the chosen methodologies and how you intend to overcome them.',
-  },
-  {
-    id: 'ec-objectives',
-    title: 'Objectives',
-    content: 'State the objectives for this work package in a manner that is verifiable and measurable. They should be consistent with the overall project objectives.',
-  },
-  {
-    id: 'ec-tasks',
-    title: 'Tasks',
-    content: 'For each task, provide:\n• A description of the work\n• The partner(s) involved and the task leader\n• Start month and end month\n• Links to other tasks and work packages',
-  },
-  {
-    id: 'ec-deliverables',
-    title: 'Deliverables',
-    content: 'For each deliverable, provide:\n• A short name and description\n• The nature of the deliverable (Report, Demonstrator, Data management, etc.)\n• The dissemination level (Public, Sensitive, or Classified: EU-RES, EU-CON, EU-SEC)\n• The delivery date (project month)\n• The partner responsible',
-  },
-  {
-    id: 'ec-risks',
-    title: 'Critical risks',
-    content: 'Describe any critical risks relating to project implementation that the stated project objectives may not be achieved. Detail:\n• A description of the risk\n• The work package(s) involved\n• Proposed risk-mitigation measures',
-  },
-];
-
-// Which guidance belongs to which field, keyed by the `data-guideline-key`
-// marker on the field's container. Unknown/absent key = show everything.
-const GUIDELINE_SCOPES: Record<string, { ec: string[]; sitra: string[] }> = {
-  'wp.objectives': { ec: ['ec-objectives'], sitra: ['sitra-1', 'sitra-methodology-4'] },
-  'wp.methodology': {
-    ec: ['ec-methodology'],
-    sitra: ['sitra-methodology-1', 'sitra-methodology-2', 'sitra-methodology-3', 'sitra-methodology-4'],
-  },
-  'wp.tasks': { ec: ['ec-tasks'], sitra: ['sitra-1', 'sitra-2', 'sitra-3'] },
-  'wp.deliverables': { ec: ['ec-deliverables'], sitra: ['sitra-1', 'sitra-3'] },
-};
-
-/* WP drafts are not block-based, so they have no card of their own to hang
-   guidance off. The Commission guidance for Table 3.1.b (work package
-   descriptions) and Table 3.1.c (deliverables) is authored once against those
-   B3.1 blocks and reached from here by block key, so the author sees it where
-   the writing actually happens. Resolved against the proposal's template
-   version like every other guideline lookup. */
-const BLOCK_GUIDELINE_KEYS: Record<string, string> = {
-  'wp.methodology': 'b31.table_b',
-  'wp.tasks': 'b31.table_b',
-  'wp.deliverables': 'b31.table_c',
-};
-
-
+/* Guidance for WP draft fields is authored in the backend under Sections &
+   Guidelines → Drafts (section D1), keyed by `drafts.wp.*`. Nothing is
+   hardcoded here and nothing is borrowed from B3.1 any more. */
 const GUIDELINE_TITLES: Record<string, string> = {
-  'wp.objectives': 'Guidelines: WP objective',
-  'wp.methodology': 'Guidelines: methodology',
-  'wp.tasks': 'Guidelines: tasks',
-  'wp.deliverables': 'Guidelines: deliverables',
+  'drafts.wp.objectives': 'Guidelines: WP objectives',
+  'drafts.wp.intro': 'Guidelines: the field before the first task',
+  'drafts.wp.task': 'Guidelines: tasks',
+  'drafts.wp.deliverables': 'Guidelines: deliverables',
 };
 
 // Parse content to handle bullet points
