@@ -59,6 +59,9 @@ interface WPDeliverablesTableProps {
   proposalId?: string | null;
   /** Keep the focused editor mounted while the page toolbar has focus. */
   shouldStayMounted?: () => boolean;
+  /** Per-user collapse state, persisted by the page. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 const DELIVERABLE_TYPES = [
