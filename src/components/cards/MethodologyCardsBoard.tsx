@@ -131,6 +131,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import { useCardCollapse } from '@/hooks/useCardCollapse';
 import { useCardFigureSummaries } from '@/hooks/useCardFigureSummaries';
 import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
@@ -1135,6 +1137,11 @@ function CardBlock({
 
 
 
+  /* Per-user module folds, keyed by field id and stored exactly like the
+     Part A and WP draft keys, so a module stays folded for that user alone. */
+  const { collapsedKeys: moduleCollapsedKeys, setCollapsed: setModuleCollapsed } =
+    useKeyedCollapse(proposalId);
+
   // Dragging also collapses (kept from before); the user's own collapse
   // preference is independent of it and persists across page loads.
   const contentHidden = collapsed || userCollapsed;
@@ -1635,6 +1642,13 @@ function CardBlock({
                         onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
                         collapsed={contentHidden}
+                        moduleCollapsed={moduleCollapsedKeys.has(moduleCollapseKey(f.id))}
+                        onToggleModuleCollapsed={() =>
+                          setModuleCollapsed.mutate({
+                            keys: [moduleCollapseKey(f.id)],
+                            collapsed: !moduleCollapsedKeys.has(moduleCollapseKey(f.id)),
+                          })
+                        }
                         cardTemplateKey={card.templateKey}
 
                       />
