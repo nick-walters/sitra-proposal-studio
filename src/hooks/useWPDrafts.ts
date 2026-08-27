@@ -76,6 +76,9 @@ export interface WPDraft {
   lead_participant_id: string | null;
   objectives: string | null;
   description_before_tasks: string | null;
+  /** Hidden intro stays in the draft but is not mirrored into Part B. */
+  intro_visible?: boolean;
+
   color: string;
   theme_id: string | null;
   order_index: number;
