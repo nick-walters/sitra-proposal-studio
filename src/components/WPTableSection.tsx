@@ -34,6 +34,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  wpDescriptionCollapseKey,
+  wpObjectivesCollapseKey,
+  wpTaskCollapseKey,
+} from '@/lib/wpCollapseKeys';
+
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
