@@ -483,10 +483,9 @@ function DeliverableRow({
       </td>
 
       {/* The remaining cells keep the dropdowns they had, one per column. */}
-      <>
+      {/* Partner */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
 
-        {/* Partner */}
-        <div>
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
