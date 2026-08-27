@@ -16,6 +16,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { fetchCaseSubsectionsByCase, overlaySubsectionContent } from '@/lib/caseSubsections';
+
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -103,7 +105,7 @@ function subsectionsOf(row: any, templates: any[]): TypstCaseSubsection[] {
 
 /** Fetches every case, grouped by type, exactly as the NodeView shows them. */
 export async function fetchCasesTypstData(proposalId: string): Promise<CasesTypstData> {
-  const [casesRes, tplRes, partsRes, typesRes] = await Promise.all([
+  const [casesRes, tplRes, partsRes, typesRes, subsByCase] = await Promise.all([
     supabase
       .from('case_drafts')
       .select(
@@ -126,13 +128,16 @@ export async function fetchCasesTypstData(proposalId: string): Promise<CasesTyps
       .from('proposal_case_types')
       .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, caption_text')
       .eq('proposal_id', proposalId),
+    // Authoritative per-subsection rows; legacy jsonb stays as fallback.
+    fetchCaseSubsectionsByCase(proposalId),
   ]);
 
-  const cases = (casesRes.data || []) as any[];
+  const cases = overlaySubsectionContent((casesRes.data || []) as any[], subsByCase);
   const templates = (tplRes.data || []) as any[];
   const participants = (partsRes.data || []) as any[];
   const types = (typesRes.data || []) as any[];
   const typeById = new Map(types.map((t) => [t.id as string, t]));
+
 
   const project = (row: any): TypstCase => {
     const type = row.case_type_id ? typeById.get(row.case_type_id) : undefined;

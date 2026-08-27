@@ -2184,6 +2184,31 @@ async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participa
     KV("Lead participant", lead ? `P${lead.participant_number} ${lead.organisation_short_name ?? ""}` : "—"),
   ];
   if (cd.description) { children.push(H(HeadingLevel.HEADING_2, "Description")); children.push(...htmlToDocxChildren(cd.description)); }
+
+  // Subsections now live as rows in case_draft_subsections; the legacy columns
+  // and the subsection_content jsonb remain a read-only fallback.
+  const { data: subRows } = await _supabase
+    .from("case_draft_subsections")
+    .select("subsection_key, content_html, heading, order_index")
+    .eq("case_id", cd.id)
+    .order("order_index");
+  const { data: subTpls } = await _supabase
+    .from("case_subsection_templates")
+    .select("key, heading, order_index")
+    .eq("proposal_id", cd.proposal_id)
+    .order("order_index");
+  if (subRows && subRows.length) {
+    const headingFor = (key: string, stored: string) =>
+      stored || (subTpls ?? []).find((t: any) => t.key === key)?.heading || key;
+    for (const r of subRows) {
+      const body = r.content_html ?? "";
+      if (!String(body).trim()) continue;
+      children.push(H(HeadingLevel.HEADING_2, headingFor(r.subsection_key, r.heading)));
+      children.push(...htmlToDocxChildren(body));
+    }
+    return await packDocx(children);
+  }
+
   const sections: [string, string, string][] = [
     [cd.heading_background ?? "Background context", cd.background_context, cd.guideline_background],
     [cd.heading_stakeholders ?? "Key stakeholders", cd.key_stakeholders, cd.guideline_stakeholders],

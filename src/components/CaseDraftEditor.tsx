@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { saveVersionedRow, saveCaseDraftSubsection } from '@/lib/versionedSave';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
+import { fetchCaseSubsections, rowsToSubsectionMap, entryBody, entryHeading } from '@/lib/caseSubsections';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -386,6 +387,21 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     },
   });
 
+  /**
+   * Authoritative subsection rows. `case_drafts.subsection_content` remains as
+   * a READ-ONLY fallback for a case that has no rows yet (one release only).
+   */
+  const { data: subsectionRows } = useQuery({
+    queryKey: ['case-draft-subsections', caseId],
+    queryFn: () => fetchCaseSubsections(caseId),
+  });
+
+  const subsectionContent = useMemo<Record<string, any>>(() => {
+    if (subsectionRows && subsectionRows.length > 0) return rowsToSubsectionMap(subsectionRows);
+    return ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
+  }, [subsectionRows, caseDraft]);
+
+
   // Fetch case type flags (include_number / include_abbreviation / outline_color)
   const { data: caseTypeRow } = useQuery({
     queryKey: ['proposal-case-type', (caseDraft as any)?.case_type_id],
@@ -457,16 +473,16 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // independent pieces of text.
   const subsectionBaseline = useRef<Record<string, string>>({});
   useEffect(() => {
-    const stored = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
     const next: Record<string, string> = {};
-    for (const [k, v] of Object.entries(stored)) {
-      next[k] = typeof v === 'string' ? v : String(v?.body ?? '');
+    for (const [k, v] of Object.entries(subsectionContent)) {
+      next[k] = entryBody(v);
     }
     // Only seed keys we have not already saved in this session.
     for (const [k, v] of Object.entries(next)) {
       if (!(k in subsectionBaseline.current)) subsectionBaseline.current[k] = v;
     }
-  }, [caseDraft]);
+  }, [subsectionContent]);
+
   useEffect(() => { subsectionBaseline.current = {}; }, [caseId]);
 
   // Update mutation for the scalar columns — guarded by the row version.
@@ -483,6 +499,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       setLastSaved(new Date());
       setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
     },
@@ -491,6 +508,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         ? 'This case was changed elsewhere — your change was not saved.'
         : 'Failed to save changes');
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
     },
   });
 
@@ -506,12 +524,8 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // Guarded PER KEY against the body this session loaded.
   const updateSubsectionContent = useCallback(
     async (key: string, value: string, heading?: string) => {
-      const current = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
-      const existing = current[key];
-      const existingHeading =
-        existing && typeof existing === 'object' ? existing.heading : undefined;
-      const nextHeading = heading || existingHeading || '';
+      const nextHeading = heading || entryHeading(subsectionContent[key]) || '';
       const expected = subsectionBaseline.current[key] ?? null;
 
       const res = await saveCaseDraftSubsection(caseId, key, safe, nextHeading, expected);
@@ -520,6 +534,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         setSaveError('This subsection was changed elsewhere — your text was not saved.');
         subsectionBaseline.current[key] = res.value ?? '';
         queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
         return;
       }
       if (!res.ok) {
@@ -530,9 +545,10 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       setLastSaved(new Date());
       setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     },
-    [caseDraft, caseId, proposalId, queryClient, reportConflict],
+    [subsectionContent, caseId, proposalId, queryClient, reportConflict],
   );
 
   /**
@@ -578,13 +594,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
    */
   const searchFieldsForPage = useCallback((): SearchableField[] => {
     if (!caseDraft) return [];
-    const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
+    const contentMap = subsectionContent;
     const editable = canEdit;
     return subsectionTemplates
       .map((sub): SearchableField | null => {
-        const raw = contentMap[sub.key];
-        const body =
-          typeof raw === 'string' ? raw : raw && typeof raw === 'object' ? String(raw.body ?? '') : '';
+        const body = entryBody(contentMap[sub.key]);
         if (!body) return null;
         return {
           id: `case_drafts:${caseId}:${sub.key}`,
@@ -607,12 +621,13 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                 if (!res.ok) return { ok: false, conflict: false, error: res.error };
                 subsectionBaseline.current[sub.key] = next;
                 queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
                 return { ok: true };
               },
         };
       })
       .filter((f): f is SearchableField => f !== null);
-  }, [caseDraft, caseId, canEdit, subsectionTemplates, queryClient]);
+  }, [caseDraft, subsectionContent, caseId, canEdit, subsectionTemplates, queryClient]);
 
   usePageSearchSource('case-draft', 'Pilot draft', searchFieldsForPage);
   const pageSearch = usePageSearch();
@@ -858,12 +873,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </p>
         )}
         {subsectionTemplates.map((sub) => {
-          const contentMap = ((caseDraft as any).subsection_content as Record<string, any> | null) || {};
-          const rawEntry = contentMap[sub.key];
-          const content =
-            typeof rawEntry === 'string'
-              ? rawEntry
-              : (rawEntry && typeof rawEntry === 'object' ? (rawEntry.body || '') : '');
+          const content = entryBody(subsectionContent[sub.key]);
           const guideline = sub.guideline || '';
 
           return (
