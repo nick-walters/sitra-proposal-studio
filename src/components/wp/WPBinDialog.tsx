@@ -18,10 +18,36 @@ interface WPBinDialogProps {
   onClose: () => void;
   /** Parent WP draft whose binned children are listed. */
   wpDraftId: string;
-  targetType: 'wp_draft_task' | 'wp_draft_deliverable';
+  targetType: WPBinTargetType | WPBinTargetType[];
   title: string;
   /** Called after a successful restore so the page can refetch. */
   onRestored?: () => void;
+}
+
+export type WPBinTargetType = 'wp_draft_task' | 'wp_draft_deliverable' | 'wp_draft_intro';
+
+/** Live count of binned rows, so the restore control can grey out when empty. */
+export function useWPBinCount(
+  wpDraftId: string | null | undefined,
+  targetType: WPBinTargetType | WPBinTargetType[],
+) {
+  const types = Array.isArray(targetType) ? targetType : [targetType];
+  const { data = 0 } = useQuery({
+    queryKey: ['wp-bin-count', wpDraftId, types.join(',')],
+    enabled: Boolean(wpDraftId),
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase
+        .from('card_deletions')
+        .select('id', { count: 'exact', head: true })
+        .eq('parent_type', 'wp_draft')
+        .eq('parent_id', wpDraftId!)
+        .in('target_type', types)
+        .is('restored_at', null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  return data;
 }
 
 interface BinRow {
@@ -47,9 +73,10 @@ export function WPBinDialog({
   onRestored,
 }: WPBinDialogProps) {
   const qc = useQueryClient();
+  const types = Array.isArray(targetType) ? targetType : [targetType];
 
   const { data: rows = [], isLoading, refetch } = useQuery({
-    queryKey: ['wp-bin', wpDraftId, targetType],
+    queryKey: ['wp-bin', wpDraftId, types.join(',')],
     enabled: isOpen && Boolean(wpDraftId),
     queryFn: async (): Promise<BinRow[]> => {
       const { data, error } = await supabase
@@ -57,7 +84,7 @@ export function WPBinDialog({
         .select('id, deleted_at, payload')
         .eq('parent_type', 'wp_draft')
         .eq('parent_id', wpDraftId)
-        .eq('target_type', targetType)
+        .in('target_type', types)
         .is('restored_at', null)
         .order('deleted_at', { ascending: false });
       if (error) throw error;
@@ -76,6 +103,7 @@ export function WPBinDialog({
     }
     toast.success('Restored');
     await refetch();
+    qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     qc.invalidateQueries({ queryKey: ['wp-drafts'] });
     onRestored?.();
   };

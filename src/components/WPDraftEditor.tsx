@@ -234,6 +234,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     updateTask,
     deleteTask: rawDeleteTask,
     reorderTasks,
+    binIntroField,
     updateWPEffort,
     setTaskParticipants,
     moveTaskToWP,
@@ -1151,6 +1152,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           onIntroPresenceChange={(present) =>
             updateField('description_before_tasks', present ? '' : (null as never))
           }
+          onIntroDelete={binIntroField}
+          onTasksReorder={reorderTasks}
+          onRefetch={refetchDraft}
           tasks={wpDraft.tasks || []}
           participants={participants}
           onObjectivesChange={(value) => updateField('objectives', value)}

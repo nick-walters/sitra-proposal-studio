@@ -3,14 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { BlockControlRow } from '@/components/cards/BlockControlRow';
-import { WPBinDialog } from '@/components/wp/WPBinDialog';
+import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, ArrowRight } from 'lucide-react';
+import { Plus, ArrowRight, RotateCcw } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -279,6 +279,7 @@ export function WPDeliverablesTable({
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
   const [binOpen, setBinOpen] = useState(false);
+  const binCount = useWPBinCount(wpDraftId, 'wp_draft_deliverable');
 
   return (
     <TooltipProvider>
@@ -289,24 +290,42 @@ export function WPDeliverablesTable({
         <BlockControlRow
           className="px-1"
           title="Deliverables"
-          onRestore={!readOnly ? () => setBinOpen(true) : undefined}
-          restoreLabel="Restore a deleted deliverable"
           trailing={
             !readOnly ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    aria-label="Add deliverable"
-                    onClick={() => void onDeliverableAdd()}
-                  >
-                    <Plus className="h-3.5 w-3.5 text-blue-500" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Add deliverable</TooltipContent>
-              </Tooltip>
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      aria-label="Add deliverable"
+                      onClick={() => void onDeliverableAdd()}
+                    >
+                      <Plus className="h-3.5 w-3.5 text-blue-500" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add deliverable</TooltipContent>
+                </Tooltip>
+                {/* Restore stays in place and greys out when the bin is empty. */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      aria-label="Restore a deleted deliverable"
+                      disabled={binCount === 0}
+                      onClick={() => setBinOpen(true)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {binCount === 0 ? 'Nothing deleted recently' : 'Restore a deleted deliverable'}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             ) : undefined
           }
         />
@@ -592,6 +611,7 @@ function DeliverableRow({
           {!readOnly && (
             <DeleteConfirmDialog
               itemLabel="this deliverable"
+              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
               onConfirm={() => onDelete(deliverable.id)}
               buttonClassName="h-7 w-7 text-red-600 hover:text-red-700"
               iconSize="h-4 w-4"

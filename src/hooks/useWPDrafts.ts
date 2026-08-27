@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { stripWordHtml } from '@/lib/stripWordHtml';
@@ -6,6 +7,7 @@ import {
   saveVersionedRow,
   reorderVersionedRows,
   deleteAndResequence,
+  binTargetRow,
   moveChildToWpRpc,
   type ReorderItem,
 } from '@/lib/versionedSave';
@@ -94,6 +96,10 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
   const [wpDrafts, setWPDrafts] = useState<WPDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only the FIRST load shows the skeleton. Re-reads after a delete, restore
+  // or move used to flip `loading` back on, which unmounted the whole board
+  // and produced the full-page flash.
+  const hasLoadedRef = useRef(false);
 
   const fetchWPDrafts = useCallback(async () => {
     if (!proposalId) {
@@ -102,7 +108,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
       return;
     }
 
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     setError(null);
 
     try {
@@ -128,6 +134,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
         deliverables: (wp.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
       }));
 
+      hasLoadedRef.current = true;
       setWPDrafts(sortedData);
     } catch (err) {
       console.error('Error fetching WP drafts:', err);
@@ -270,6 +277,10 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  // Same rule as the list hook: the skeleton is for the first load only, so a
+  // delete or restore re-render never remounts the page.
+  const loadedIdRef = useRef<string | null>(null);
 
   const fetchWPDraft = useCallback(async () => {
     if (!wpId) {
@@ -278,7 +289,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       return;
     }
 
-    setLoading(true);
+    if (loadedIdRef.current !== wpId) setLoading(true);
     try {
       const { data, error } = await supabase
         .from('wp_drafts')
@@ -321,6 +332,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
         deliverables: sortedDeliverables,
       };
 
+      loadedIdRef.current = wpId;
       setWPDraft(sortedData);
     } catch (err) {
       console.error('Error fetching WP draft:', err);
@@ -463,7 +475,8 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     // Delete + renumber survivors in one transaction: a half-applied delete is
     // what used to leave gaps such as a T2.3 with no T2.2.
     const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
-    const res = await deleteAndResequence('wp_draft_tasks', taskId, known?.version ?? null);
+    // Binned, not destroyed: the row and its links are snapshotted for 90 days.
+    const res = await binTargetRow('wp_draft_task', taskId, known?.version ?? null);
     if (!res.ok) {
       toast.error(res.conflict
         ? 'This task changed elsewhere — it was not deleted. Reloading.'
@@ -471,9 +484,28 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       await fetchWPDraft();
       return false;
     }
+    qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     await fetchWPDraft();
     return true;
-  }, [wpDraft?.tasks, fetchWPDraft]);
+  }, [wpDraft?.tasks, fetchWPDraft, qc]);
+
+
+  /**
+   * Deletes the single optional field before the first task into the same bin
+   * as the tasks. The column is snapshotted and cleared server-side.
+   */
+  const binIntroField = useCallback(async () => {
+    if (!wpId) return false;
+    const res = await binTargetRow('wp_draft_intro', wpId, null);
+    if (!res.ok) {
+      toast.error(res.error || 'Failed to delete the field');
+      await fetchWPDraft();
+      return false;
+    }
+    qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
+    await fetchWPDraft();
+    return true;
+  }, [wpId, fetchWPDraft, qc]);
 
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
@@ -571,7 +603,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
     const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
-    const res = await deleteAndResequence('wp_draft_deliverables', deliverableId, known?.version ?? null);
+    const res = await binTargetRow('wp_draft_deliverable', deliverableId, known?.version ?? null);
     if (!res.ok) {
       toast.error(res.conflict
         ? 'This deliverable changed elsewhere — it was not deleted. Reloading.'
@@ -579,9 +611,10 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       await fetchWPDraft();
       return false;
     }
+    qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     await fetchWPDraft();
     return true;
-  }, [wpDraft?.deliverables, fetchWPDraft]);
+  }, [wpDraft?.deliverables, fetchWPDraft, qc]);
 
 
 
@@ -729,6 +762,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     updateTask,
     deleteTask,
     reorderTasks,
+    binIntroField,
     updateWPEffort,
     setTaskParticipants,
     moveTaskToWP,
