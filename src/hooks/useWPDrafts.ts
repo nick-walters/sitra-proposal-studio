@@ -455,19 +455,27 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteTask = useCallback(async (taskId: string) => {
     // Delete + renumber survivors in one transaction: a half-applied delete is
-    // what used to leave gaps such as a T2.3 with no T2.2.
+    // what used to leave gaps such as a T2.3 with no T2.2. `bin_target_row`
+    // wraps that same call and first snapshots the row (and its effort,
+    // participant and deliverable links) into the 90-day recycle bin.
     const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
-    const res = await deleteAndResequence('wp_draft_tasks', taskId, known?.version ?? null);
-    if (!res.ok) {
+    const { data, error } = await supabase.rpc('bin_target_row', {
+      p_target_type: 'wp_draft_task',
+      p_target_id: taskId,
+      p_expected_version: known?.version ?? undefined,
+    });
+    const res = (data || {}) as { ok?: boolean; conflict?: boolean; error?: string };
+    if (error || !res.ok) {
       toast.error(res.conflict
         ? 'This task changed elsewhere — it was not deleted. Reloading.'
-        : (res.error || 'Failed to delete task'));
+        : (error?.message || res.error || 'Failed to delete task'));
       await fetchWPDraft();
       return false;
     }
     await fetchWPDraft();
     return true;
   }, [wpDraft?.tasks, fetchWPDraft]);
+
 
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
