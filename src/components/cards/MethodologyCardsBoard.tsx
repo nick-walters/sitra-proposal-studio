@@ -1202,40 +1202,51 @@ function CardBlock({
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
               // upgraded to HTML on read by `ensureRichHtml`.
-              <LazyRichField
-                autoFocus
-                singleLine
-                proposalId={proposalId}
-                value={ensureRichHtml(titleDraft)}
-                minHeight="32px"
-                className={`[&_.ProseMirror]:font-bold [&_.ProseMirror]:underline [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
-                staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-                onChange={(html) => {
+              <LockBoundary
+                state={lockStateOf(titleLock)}
+                holder={titleLock.holder}
+                onFocusCapture={() => {
+                  if (titleLock.lockedByOther) return;
                   titleLock.onType();
-                  setTitleDraft(html);
-                  titleLock.push(html);
                 }}
-                onBlur={() => {
-                  commitTitle();
-                  titleLock.onBlur();
+                onPasteCapture={() => {
+                  if (titleLock.lockedByOther) return;
+                  titleLock.onType();
                 }}
-              />
+              >
+                <LazyRichField
+                  autoFocus
+                  singleLine
+                  proposalId={proposalId}
+                  value={ensureRichHtml(titleDraft)}
+                  minHeight="32px"
+                  className="[&_.ProseMirror]:font-bold [&_.ProseMirror]:underline [&_p]:m-0"
+                  staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+                  onChange={(html) => {
+                    titleLock.onType();
+                    setTitleDraft(html);
+                    titleLock.push(html);
+                  }}
+                  onBlur={() => {
+                    commitTitle();
+                    titleLock.onBlur();
+                  }}
+                />
+              </LockBoundary>
             ) : (
-              <div className="flex min-w-0 items-center gap-2">
+              <LockBoundary state={lockStateOf(titleLock)} holder={titleLock.holder}>
                 <h3
                   className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
                     displayedTitle ? '' : 'italic text-muted-foreground no-underline'
-                  } ${titleLock.lockedByOther ? 'rounded-md border-2 border-destructive px-1' : ''}`}
+                  } ${titleLock.lockedByOther ? 'px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
                   {...(displayedTitle
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
-                {titleLock.lockedByOther && titleLock.holder && (
-                  <LockHolderBadge holder={titleLock.holder} />
-                )}
-              </div>
+              </LockBoundary>
             )}
+
 
             {userCollapsed && (
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
