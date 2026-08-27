@@ -410,7 +410,6 @@ export function WPDeliverablesTable({
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Diss. level</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Due</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Task</th>
-                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`} />
                 </tr>
               </thead>
               <tbody>
@@ -426,10 +425,8 @@ export function WPDeliverablesTable({
                     projectDuration={projectDuration}
                     onUpdate={onDeliverableUpdate}
                     onDelete={onDeliverableDelete}
-                    onMove={onDeliverableMove}
                     onSaveTasks={saveDeliverableTasks}
                     readOnly={readOnly}
-                    otherWpDrafts={otherWpDrafts}
                     proposalId={proposalId}
                     shouldStayMounted={shouldStayMounted}
                   />
@@ -438,8 +435,8 @@ export function WPDeliverablesTable({
             </table>
           )}
         </div>
-        <DeliverablesDetailedGuidelinesInline />
       </div>
+
 
       <WPBinDialog
         isOpen={binOpen}
