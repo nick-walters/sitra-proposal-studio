@@ -25,6 +25,7 @@ import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
 import PartBDocumentView from "@/components/cards/PartBDocumentView";
 
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
+import { TrackChangesProvider } from "@/lib/trackChangesContext";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
@@ -1096,6 +1097,7 @@ export function ProposalEditor() {
   const StatusIcon = statusInfo.icon;
 
   return (
+    <TrackChangesProvider proposalId={id}>
     <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
@@ -1305,5 +1307,6 @@ export function ProposalEditor() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </TrackChangesProvider>
   );
 }
