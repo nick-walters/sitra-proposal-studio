@@ -386,6 +386,21 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     },
   });
 
+  /**
+   * Authoritative subsection rows. `case_drafts.subsection_content` remains as
+   * a READ-ONLY fallback for a case that has no rows yet (one release only).
+   */
+  const { data: subsectionRows } = useQuery({
+    queryKey: ['case-draft-subsections', caseId],
+    queryFn: () => fetchCaseSubsections(caseId),
+  });
+
+  const subsectionContent = useMemo<Record<string, any>>(() => {
+    if (subsectionRows && subsectionRows.length > 0) return rowsToSubsectionMap(subsectionRows);
+    return ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
+  }, [subsectionRows, caseDraft]);
+
+
   // Fetch case type flags (include_number / include_abbreviation / outline_color)
   const { data: caseTypeRow } = useQuery({
     queryKey: ['proposal-case-type', (caseDraft as any)?.case_type_id],
