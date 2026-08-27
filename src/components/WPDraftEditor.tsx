@@ -1005,14 +1005,14 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             </span>
           </div>
 
-          {/* Metadata row: WP leader badge (left) + derived duration (right) */}
+          {/* Metadata row: the leader badge and the derived duration carry no
+              headings — the badge and the month range read for themselves. */}
           <div className="flex items-center justify-between px-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-draft text-muted-foreground">WP Leader:</span>
               {(() => {
                 const leader = participants.find((p) => p.id === wpDraft.lead_participant_id);
                 if (!leader) {
-                  return <span className="text-draft text-muted-foreground italic">Not set</span>;
+                  return <span className="text-draft text-muted-foreground italic">Leader not set</span>;
                 }
                 return (
                   <span
@@ -1037,22 +1037,15 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 const endMonth = Math.max(...allMonths);
                 const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
-                  <div className="flex items-center gap-2">
-                    <span className="text-draft text-muted-foreground">Duration:</span>
-                    <span className="text-draft font-medium">
-                      {formatMonth(startMonth)}–{formatMonth(endMonth)}
-                    </span>
-                  </div>
+                  <span className="text-draft font-medium">
+                    {formatMonth(startMonth)}–{formatMonth(endMonth)}
+                  </span>
                 );
               }
-              return (
-                <div className="flex items-center gap-2">
-                  <span className="text-draft text-muted-foreground">Duration:</span>
-                  <span className="text-draft text-muted-foreground italic">—</span>
-                </div>
-              );
+              return <span className="text-draft text-muted-foreground italic">—</span>;
             })()}
           </div>
+
         </div>
 
 
