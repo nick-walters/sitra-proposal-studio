@@ -23,7 +23,13 @@ import {
   wpTaskCollapseKey,
 } from '@/lib/wpCollapseKeys';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
-import { WP_BLOCK_FRAME, WP_DOC_FONT } from '@/lib/wpBlockChrome';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+} from '@/lib/wpBlockChrome';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
