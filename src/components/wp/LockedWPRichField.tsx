@@ -63,6 +63,15 @@ export function LockedWPRichField({
 
   const viewHtml = lock.lockedByOther && lock.streamed != null ? lock.streamed : value;
 
+  // Entering the field is enough to take the lock. Waiting for the first
+  // keystroke left a field that looked occupied but held no lock row, so no
+  // other user saw a red border or an avatar, nothing was streamed, and the
+  // idle countdown (which only runs while a lock is held) never started.
+  const claimNow = useCallback(() => {
+    if (disabled || lock.lockedByOther) return;
+    lock.onType();
+  }, [disabled, lock]);
+
   return (
     <div className="flex items-start gap-2">
       <div
@@ -73,10 +82,9 @@ export function LockedWPRichField({
               ? 'ring-1 ring-emerald-600/60'
               : ''
         }`}
-        onKeyDownCapture={() => {
-          if (lock.lockedByOther) return;
-          lock.onType();
-        }}
+        onKeyDownCapture={claimNow}
+        onPasteCapture={claimNow}
+        onBeforeInputCapture={claimNow}
         onBlurCapture={(e) => {
           const next = e.relatedTarget as Node | null;
           if (next && e.currentTarget.contains(next)) return;
@@ -93,11 +101,13 @@ export function LockedWPRichField({
           minHeight={minHeight}
           documentSurface={documentSurface}
           shouldStayMounted={shouldStayMounted}
+          onFocus={claimNow}
         />
       </div>
       {lock.lockedByOther && lock.holder && <LockHolderBadge holder={lock.holder} />}
     </div>
   );
+
 }
 
 export default LockedWPRichField;

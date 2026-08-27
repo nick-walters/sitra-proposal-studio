@@ -1,14 +1,21 @@
+import { createPortal } from 'react-dom';
+
 /**
  * Small, corner-anchored timeout warning. Deliberately not a modal dialog so
  * the green-bordered field it refers to stays visible and editable — any
  * keystroke dismisses it (the lock manager clears the warning).
+ *
+ * Rendered through a portal on `document.body`: a `position: fixed` box is
+ * positioned against the nearest transformed or filtered ancestor, so inside a
+ * scrolling editor panel it can end up clipped or off screen.
  */
 export function LockTimeoutWarning({ secondsLeft }: { secondsLeft: number }) {
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-50 w-72 rounded-md border border-amber-500/60 bg-background p-3 text-[12px] shadow-lg"
+      className="fixed bottom-4 right-4 z-[100] w-72 rounded-md border border-amber-500/60 bg-background p-3 text-[12px] shadow-lg"
     >
       <p className="mb-1 font-bold">Timeout warning</p>
       <p className="text-muted-foreground">
@@ -17,7 +24,8 @@ export function LockTimeoutWarning({ secondsLeft }: { secondsLeft: number }) {
         will be removed from the field, and the field will become editable to other users. Your
         changes will be saved before another user is able to edit.
       </p>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
