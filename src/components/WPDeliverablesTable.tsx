@@ -94,12 +94,20 @@ const DISSEMINATION_LEVELS = [
   { value: 'EU-SEC', label: 'EU Secret', description: 'Classified with the mention of the classification level SECRET UE/EU SECRET' },
 ];
 
-// Fixed column track for the second line of every deliverable (and its header
-// labels), so partner / type / dissemination / due month / task / controls land
-// in the same horizontal position on every row — the same fixed-column approach
-// used for the block control rows on the cards board.
-const DELIVERABLE_META_GRID =
-  'grid grid-cols-[7rem_6rem_9rem_6.5rem_7.5rem_1fr_4.5rem_2.25rem] items-start gap-x-2 pl-2';
+/** The page's content column: 21 cm page less 1.5 cm of margin each side. */
+const DOC_TEXT_COLUMN = '18cm';
+/* Shared document-table look — identical to milestones and risks: a rule under
+   the header, hairlines between rows, no vertical rules, tight padding. */
+const docTableStyles =
+  "font-['Times_New_Roman',Times,serif] text-[11pt] text-left bg-white [&_p]:!text-left";
+const docTableRules =
+  '[&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 ' +
+  '[&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 ' +
+  '[&_tbody_tr:last-child]:border-b-0';
+const docCellStyles =
+  "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const docFirstCellStyles = `${docCellStyles} !pl-0`;
+
 
 
 // ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),
