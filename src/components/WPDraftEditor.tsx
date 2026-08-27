@@ -1206,6 +1206,11 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           wpColor={effectiveColor}
           objectives={wpDraft.objectives}
           descriptionBeforeTasks={wpDraft.description_before_tasks}
+          introVisible={wpDraft.intro_visible !== false}
+          onIntroVisibleChange={(visible) => updateField('intro_visible' as never, visible as never)}
+          onIntroPresenceChange={(present) =>
+            updateField('description_before_tasks', present ? '' : (null as never))
+          }
           tasks={wpDraft.tasks || []}
           participants={participants}
           onObjectivesChange={(value) => updateField('objectives', value)}
@@ -1214,18 +1219,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           onTaskAdd={addTask}
           onTaskDelete={deleteTask}
           onTaskParticipantsChange={setTaskParticipants}
-          onTaskReorder={reorderTasks}
           onTaskMove={moveTaskToWP}
           readOnly={readOnly}
           projectDuration={projectDuration}
-          hideToolbar={true}
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
           proposalId={proposalId}
           wpDraftId={wpDraft.id}
-          canManageCustomColors={isCoordinator}
           shouldStayMounted={shouldStayMounted}
         />
+
 
         {/* Deliverables */}
         <div data-guideline-key="wp.deliverables">
