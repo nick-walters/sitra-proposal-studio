@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * The one collapse control every board uses — Part B blocks, WP draft blocks
- * and task modules. Chevron up means "collapse me", chevron down means
- * "expand me", matching the page-wide Collapse all button in the toolbar.
+ * and task modules. Chevron down means "collapse me", chevron right means
+ * "expand me", matching Part B's block chrome exactly.
  * Collapse state is a per-user view preference only; it never touches the
  * document, its visibility, its numbering or any export.
  */
