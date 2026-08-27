@@ -173,39 +173,40 @@ export function WPTableSection({
   const otherWps = allWpDrafts.filter((wp) => wp.id !== currentWpDraftId);
 
   return (
-    <div className="space-y-4">
-      {/* ── BLOCK 2: Objectives. One field, with the shared collapse control. ── */}
+    <div className="space-y-3">
+      {/* ── BLOCK 2: Objectives ──
+          The same frame, header row and control stack as every other block,
+          so the chevrons line up down the page. */}
       <section
+        className={WP_BLOCK_FRAME}
         data-guideline-key="drafts.wp.objectives"
         data-version-label="Objectives"
         data-version-target={
           wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
         }
       >
-        {onToggleCollapsed && (
-          <div className="flex items-center gap-1 px-1">
-            <CollapseChevron
-              collapsed={isCollapsed(objectivesKey)}
-              onToggle={() => onToggleCollapsed(objectivesKey)}
-            />
-            {isCollapsed(objectivesKey) && (
-              <span
-                className="select-none font-bold"
-                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-              >
-                Objectives:
-              </span>
-            )}
-          </div>
-        )}
+        <div className={cn(WP_BLOCK_HEADER, !isCollapsed(objectivesKey) && 'border-b border-border')}>
+          {onToggleCollapsed && (
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={isCollapsed(objectivesKey)}
+                onToggle={() => onToggleCollapsed(objectivesKey)}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
+          )}
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
+            }}
+          >
+            Objectives:
+          </p>
+        </div>
         {!isCollapsed(objectivesKey) && (
           <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
-            <p
-              className="select-none font-bold"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-            >
-              Objectives:
-            </p>
             {wpDraftId && (
               <LockedWPRichField
                 targetId={wpTargetId(wpDraftId, 'objectives')}
@@ -227,27 +228,30 @@ export function WPTableSection({
           One white block frame carries the heading, the block controls, the
           optional field before the first task and every task module, exactly
           as a Part B block does. Modules are separated by the same hairline. */}
-      <section className="rounded-md border border-border bg-card">
-        <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+      <section className={WP_BLOCK_FRAME}>
+        <div className={cn(WP_BLOCK_HEADER, 'border-b border-border')}>
           {onToggleCollapsed && (
-            <CollapseChevron
-              collapsed={isCollapsed(dowKey)}
-              onToggle={() => onToggleCollapsed(dowKey)}
-            />
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={isCollapsed(dowKey)}
+                onToggle={() => onToggleCollapsed(dowKey)}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
           )}
           {/* The heading starts on the 18 cm column's left edge, matching the
-              text below it: the header's own padding and the chevron column
+              text below it: the header's own padding and the control stack
               are subtracted from the 1.5 cm margin. */}
           <p
             className="min-w-0 flex-1 select-none font-bold"
             style={{
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: '11pt',
-              paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 40px)' : 'calc(1.5cm - 12px)',
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
             }}
           >
             Description of work:
           </p>
+
 
           {!readOnly && (
             <div className="flex items-center gap-1">
