@@ -216,6 +216,15 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   // markers on the WP table / deliverables), falling back to the whole WP.
   const focusedGuidelineKey = useFocusedGuidelineKey();
   const versionTarget = useFocusedVersionTarget();
+
+  /* Per-user collapse state for the WP blocks and task modules. These are
+     projections, not `proposal_cards` rows, so they key on stable strings in
+     `ui_collapse_states` exactly as Part A cards do. */
+  const { collapsedKeys, setCollapsed } = useKeyedCollapse(proposalId);
+  const toggleCollapsed = useCallback(
+    (key: string) => setCollapsed.mutate({ keys: [key], collapsed: !collapsedKeys.has(key) }),
+    [collapsedKeys, setCollapsed],
+  );
   const [historyOpen, setHistoryOpen] = useState(false);
 
   /* Guidance for the focused field, authored against the Drafts section of
@@ -670,6 +679,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   const readOnly = !canEdit;
 
+  /* Collapse all acts on every block and every task module on this page. */
+  const allCollapseKeys = [
+    wpObjectivesCollapseKey(wpDraft.id),
+    wpDescriptionCollapseKey(wpDraft.id),
+    wpDeliverablesCollapseKey(wpDraft.id),
+    ...(wpDraft.tasks || []).map((t) => wpTaskCollapseKey(t.id)),
+  ];
+  const allWpCollapsed =
+    allCollapseKeys.length > 0 && allCollapseKeys.every((k) => collapsedKeys.has(k));
+
   const leadParticipant = participants.find(p => p.id === wpDraft.lead_participant_id);
 
   // Toolbar commands now run against the focused TipTap editor instead of
@@ -887,7 +906,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <div className="space-y-2 -mx-2">
           {/* Full-width pill badge: WPX: Short Name – Title */}
           <div
-            className="rounded-full flex items-baseline gap-0"
+            className="rounded-full flex items-baseline gap-0 max-w-[18cm]"
             data-comment-target={`wp_draft:${wpDraft.id}:title`}
             style={{
               backgroundColor: effectiveColor,
@@ -898,8 +917,13 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             }}
           >
             <span
-              className="font-bold whitespace-nowrap"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+              className="min-w-0 font-bold"
+              style={{
+                fontFamily: "'Times New Roman', Times, serif",
+                fontSize: '11pt',
+                overflowWrap: 'anywhere',
+                lineHeight: 1.15,
+              }}
             >
               WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
               {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' – ' : ''}
