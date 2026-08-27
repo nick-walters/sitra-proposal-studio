@@ -294,6 +294,9 @@ interface FieldRowProps {
   /** Bumped when authoritative content is reloaded, to remount the editor. */
   reloadNonce: number;
   collapsed: boolean;
+  /** The user's own fold state for this module, persisted per user. */
+  moduleCollapsed?: boolean;
+  onToggleModuleCollapsed?: () => void;
   /** 0-based caption letter for case-study placeholder tables. */
   caseLetterIndex?: number;
   /** Section caption sequences this text box starts from (derived, uneditable). */
@@ -320,6 +323,8 @@ function FieldRow({
   onFlushContent,
   reloadNonce,
   collapsed,
+  moduleCollapsed = false,
+  onToggleModuleCollapsed,
   caseLetterIndex,
   captionNumbering,
   captionSectionNumber,
@@ -564,23 +569,38 @@ function FieldRow({
       } ${field.isVisible ? '' : 'print:hidden'}`}
     >
       <div className={`flex items-center gap-1 ${isDocumentSurface ? 'px-3 pt-3' : ''}`}>
-        {canEdit && (
-          <Tip label="Drag to reorder this module">
-            <button
-              type="button"
-              className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4 text-blue-500" />
-            </button>
-          </Tip>
+        {/* Left edge control stack: the module's own collapse chevron above
+            its drag grip, in the same line as the block's chevron — WP drafts
+            and Part B modules now carry the identical control. */}
+        {(onToggleModuleCollapsed || canEdit) && (
+          <div className="flex shrink-0 flex-col items-center gap-0.5 self-start">
+            {onToggleModuleCollapsed && (
+              <CollapseChevron
+                collapsed={moduleCollapsed}
+                onToggle={onToggleModuleCollapsed}
+                label="module"
+                className="h-6 w-6"
+              />
+            )}
+            {canEdit && (
+              <Tip label="Drag to reorder this module">
+                <button
+                  type="button"
+                  className="shrink-0 cursor-grab touch-none rounded active:cursor-grabbing hover:bg-muted"
+                  {...attributes}
+                  {...listeners}
+                >
+                  <GripVertical className="h-4 w-4 text-blue-500" />
+                </button>
+              </Tip>
+            )}
+          </div>
         )}
 
 
 
         {isPlaceholder ? (
-          <div className={collapsed ? 'hidden' : 'min-w-0 flex-1'}>
+          <div className={collapsed || moduleCollapsed ? 'hidden' : 'min-w-0 flex-1'}>
             <RefDataProvider proposalId={proposalId}>
               <CasesTableLiveView
                 proposalId={proposalId}
@@ -703,7 +723,7 @@ function FieldRow({
       {!isPlaceholder && (
         <div
           className={
-            collapsed
+            collapsed || moduleCollapsed
               ? 'hidden'
               : isDocumentSurface
                 // The page itself: white, 1.5 cm side margins running to the
