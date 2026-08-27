@@ -172,7 +172,7 @@ const trackChangeAttributes = () => ({
   },
 });
 
-const TrackInsertionMark = Mark.create({
+export const TrackInsertionMark = Mark.create({
   name: 'trackInsertion',
   inclusive: false,
   excludes: 'trackDeletion',
@@ -183,7 +183,7 @@ const TrackInsertionMark = Mark.create({
   },
 });
 
-const TrackDeletionMark = Mark.create({
+export const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
   inclusive: false,
   excludes: 'trackInsertion',
@@ -193,6 +193,16 @@ const TrackDeletionMark = Mark.create({
     return ['span', mergeAttributes(HTMLAttributes, { 'data-track-deletion': '' }), 0];
   },
 });
+
+/**
+ * The two marks on their own, for the STATIC (unfocused) render schemas.
+ *
+ * Static rendering round-trips stored HTML through `generateJSON` →
+ * `generateHTML`; any mark missing from the schema is silently dropped on
+ * the way through. These marks therefore have to be present in every static
+ * extension set, or tracked changes are destroyed the moment a field blurs.
+ */
+export const TRACK_CHANGE_MARKS = [TrackInsertionMark, TrackDeletionMark];
 
 // ── Main extension ───────────────────────────────────────────────────────
 
