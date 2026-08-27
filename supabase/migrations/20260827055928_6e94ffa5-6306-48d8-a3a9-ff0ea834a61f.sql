@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.section_tracked_changes CASCADE;
