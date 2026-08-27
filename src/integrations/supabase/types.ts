@@ -4038,6 +4038,7 @@ export type Database = {
           other_links: Json | null
           phone_number: string | null
           postcode: string | null
+          track_changes_enabled: boolean
           updated_at: string
           website: string | null
         }
@@ -4064,6 +4065,7 @@ export type Database = {
           other_links?: Json | null
           phone_number?: string | null
           postcode?: string | null
+          track_changes_enabled?: boolean
           updated_at?: string
           website?: string | null
         }
@@ -4090,6 +4092,7 @@ export type Database = {
           other_links?: Json | null
           phone_number?: string | null
           postcode?: string | null
+          track_changes_enabled?: boolean
           updated_at?: string
           website?: string | null
         }
