@@ -147,91 +147,112 @@ export function WPTableSection({
         </div>
       </section>
 
-      {/* ── BLOCK 3: Tasks ── */}
-      <section className="space-y-2">
-        <BlockControlRow
-          className="px-1"
-          title="Tasks"
-          onRestore={!readOnly && wpDraftId ? () => setBinOpen(true) : undefined}
-          restoreLabel="Restore a deleted task"
-          trailing={
-            !readOnly ? (
-              <div className="flex items-center gap-1">
-                {/* Add: a task, or the single field before the first task. */}
+      {/* ── BLOCK 3: Description of work ──
+          One white block frame carries the heading, the block controls, the
+          optional field before the first task and every task module, exactly
+          as a Part B block does. Modules are separated by the same hairline. */}
+      <section className="rounded-md border border-border bg-card">
+        <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+          >
+            Description of work:
+          </p>
+          {!readOnly && (
+            <div className="flex items-center gap-1">
+              {/* Order: add, move to another WP, restore. */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Add">
+                        <Plus className="h-3.5 w-3.5 text-blue-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Add</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuItem onClick={() => void handleAddTask()}>Add task</DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={introPresent || !onIntroPresenceChange}
+                    onClick={() => onIntroPresenceChange?.(true)}
+                  >
+                    Add a field before the first task
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {onTaskMove && otherWps.length > 0 && tasks.length > 0 && (
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Add">
-                          <Plus className="h-3.5 w-3.5 text-blue-500" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          aria-label="Move a task to another work package"
+                        >
+                          <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
                         </Button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Add</TooltipContent>
+                    <TooltipContent>Move a task to another work package</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent align="end" className="w-64">
-                    <DropdownMenuItem onClick={() => void onTaskAdd()}>Add task</DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={introPresent || !onIntroPresenceChange}
-                      onClick={() => onIntroPresenceChange?.(true)}
-                    >
-                      Add a field before the first task
-                    </DropdownMenuItem>
+                    <DropdownMenuLabel>Move a task to another WP</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {tasks.map((task) => (
+                      <DropdownMenuSub key={task.id}>
+                        <DropdownMenuSubTrigger>
+                          {formatTaskNumber(task.number)}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {otherWps.map((wp) => (
+                            <DropdownMenuItem
+                              key={wp.id}
+                              onClick={() => void onTaskMove(task.id, wp.id)}
+                            >
+                              WP{wp.number}
+                              {wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
 
-                {/* Move a task to another WP. */}
-                {onTaskMove && otherWps.length > 0 && tasks.length > 0 && (
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            aria-label="Move a task to another work package"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>Move a task to another work package</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end" className="w-64">
-                      <DropdownMenuLabel>Move a task to another WP</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {tasks.map((task) => (
-                        <DropdownMenuSub key={task.id}>
-                          <DropdownMenuSubTrigger>
-                            {formatTaskNumber(task.number)}
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            {otherWps.map((wp) => (
-                              <DropdownMenuItem
-                                key={wp.id}
-                                onClick={() => void onTaskMove(task.id, wp.id)}
-                              >
-                                WP{wp.number}
-                                {wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            ) : undefined
-          }
-        />
+              {/* Restore stays visible and greys out when the bin is empty. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    aria-label="Restore a deleted task"
+                    disabled={binCount === 0 || !wpDraftId}
+                    onClick={() => setBinOpen(true)}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {binCount === 0 ? 'Nothing deleted recently' : 'Restore a deleted task'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+        </div>
 
         {/* The single optional field before the first task: fixed in place, no
             drag grip — only visibility and delete. */}
         {introPresent && (
           <div
-            className={cn('space-y-1', !introVisible && 'opacity-50')}
+            className={cn('border-b border-border py-2', !introVisible && 'opacity-50')}
             data-guideline-key="wp.methodology"
             data-version-label="Field before the first task"
             data-version-target={
@@ -240,7 +261,7 @@ export function WPTableSection({
                 : undefined
             }
           >
-            <div className="flex items-center justify-end gap-1 px-1">
+            <div className="flex items-center justify-end gap-1 px-[1.5cm]">
               {!readOnly && onIntroVisibleChange && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -263,10 +284,13 @@ export function WPTableSection({
                   </TooltipContent>
                 </Tooltip>
               )}
-              {!readOnly && onIntroPresenceChange && (
+              {!readOnly && (onIntroDelete || onIntroPresenceChange) && (
                 <DeleteConfirmDialog
                   itemLabel="this field"
-                  onConfirm={() => onIntroPresenceChange(false)}
+                  description="This field goes to the tasks bin, where it can be restored for 90 days."
+                  onConfirm={() =>
+                    onIntroDelete ? void onIntroDelete() : onIntroPresenceChange?.(false)
+                  }
                 />
               )}
             </div>
@@ -288,33 +312,49 @@ export function WPTableSection({
           </div>
         )}
 
-        {/* Task modules. Their order follows the server-maintained task
-            numbering, so there is no drag grip here. */}
-        <div className="space-y-3">
-          {tasks.map((task) => (
-            <div key={task.id} id={`wp-task-row-${task.id}`}>
-              <TaskModule
-                task={task}
-                wpNumber={wpNumber}
-                wpColor={wpColor}
-                participants={participants}
-                projectDuration={projectDuration}
-                onUpdate={onTaskUpdate}
-                onDelete={onTaskDelete}
-                onParticipantsChange={onTaskParticipantsChange}
-                readOnly={readOnly}
-                formatTaskNumber={formatTaskNumber}
-                proposalId={proposalId}
-                shouldStayMounted={shouldStayMounted}
-              />
+        {/* Task modules. Dragging is constrained to the task run and writes
+            through the server-side resequencing. */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <div>
+              {tasks.map((task, index) => (
+                <SortableTaskModule
+                  key={task.id}
+                  id={task.id}
+                  className={cn(index < tasks.length - 1 && 'border-b border-border')}
+                >
+                  {(dragHandleProps) => (
+                    <TaskModule
+                      task={task}
+                      wpNumber={wpNumber}
+                      wpColor={wpColor}
+                      participants={participants}
+                      projectDuration={projectDuration}
+                      onUpdate={onTaskUpdate}
+                      onDelete={onTaskDelete}
+                      onParticipantsChange={onTaskParticipantsChange}
+                      readOnly={readOnly}
+                      formatTaskNumber={formatTaskNumber}
+                      proposalId={proposalId}
+                      shouldStayMounted={shouldStayMounted}
+                      dragHandleProps={readOnly ? undefined : dragHandleProps}
+                    />
+                  )}
+                </SortableTaskModule>
+              ))}
             </div>
-          ))}
-          {tasks.length === 0 && (
-            <p className="py-2 text-center text-sm italic text-muted-foreground">
-              No tasks yet — use the add control above.
-            </p>
-          )}
-        </div>
+          </SortableContext>
+        </DndContext>
+        {tasks.length === 0 && (
+          <p className="py-3 text-center text-sm italic text-muted-foreground">
+            No tasks yet — use the add control above.
+          </p>
+        )}
       </section>
 
       {wpDraftId && (
@@ -322,11 +362,34 @@ export function WPTableSection({
           isOpen={binOpen}
           onClose={() => setBinOpen(false)}
           wpDraftId={wpDraftId}
-          targetType="wp_draft_task"
+          targetType={['wp_draft_task', 'wp_draft_intro']}
           title="Deleted tasks"
           onRestored={onRefetch}
         />
       )}
+    </div>
+  );
+}
+
+/** Sortable wrapper for one task module: the grip is passed to the module. */
+function SortableTaskModule({
+  id,
+  className,
+  children,
+}: {
+  id: string;
+  className?: string;
+  children: (dragHandleProps: Record<string, unknown>) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      id={`wp-task-row-${id}`}
+      className={cn(className, isDragging && 'relative z-10 bg-card shadow-md')}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      {children({ ...attributes, ...listeners })}
     </div>
   );
 }
