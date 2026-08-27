@@ -18,6 +18,7 @@ import { WPTableSection } from '@/components/WPTableSection';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import {
   wpDeliverablesCollapseKey,
+  wpHeaderCollapseKey,
   wpDescriptionCollapseKey,
   wpObjectivesCollapseKey,
   wpTaskCollapseKey,
