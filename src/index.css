@@ -1891,9 +1891,8 @@ body.table-col-resizing * {
 }
 
 
-.doc-surface-field.is-active {
-  border-left-color: hsl(var(--primary));
-}
+/* (The blue left focus band was removed: see .doc-surface-field above.) */
+
 
 .doc-surface-field .ProseMirror {
   background: transparent;
