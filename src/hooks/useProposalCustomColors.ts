@@ -76,7 +76,9 @@ async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
     pdescRes,
     pinfraRes,
     fstpRes,
+    caseSubRes,
   ] = await Promise.all([
+
     supabase.from('section_content').select('content').eq('proposal_id', proposalId),
     wpIdList.length
       ? supabase.from('wp_draft_tasks').select('description, b31_description').in('wp_draft_id', wpIdList)
