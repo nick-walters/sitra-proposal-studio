@@ -123,7 +123,7 @@ export function TemplateTypeWorkspace({
     queryFn: async () => {
       const { data } = await supabase
         .from('template_sections')
-        .select('id, section_number, title, order_index')
+        .select('id, section_number, title, order_index, part')
         .eq('template_type_id', typeId)
         .eq('is_active', true)
         .order('order_index');
@@ -142,18 +142,27 @@ export function TemplateTypeWorkspace({
   }, [blocks]);
 
   /* Leaf Part B subsections (B1.1, B3.2 …) — parents like B1 hold no blocks. */
-  const subsections = useMemo(
+  const partBSubsections = useMemo(
     () =>
       (sections as any[])
-        /* Leaf Part B subsections, then the Drafts sections (D1, D2) where a
-           coordinator authors guidance for WP and case draft fields. */
-        .filter((s) => /^(B\d+\.\d+|D\d+)$/.test(s.section_number ?? ''))
-        .sort((a, b) => {
-          const rank = (n: string) => (n.startsWith('D') ? 1 : 0);
-          const an = String(a.section_number), bn = String(b.section_number);
-          return rank(an) - rank(bn) || an.localeCompare(bn, undefined, { numeric: true });
-        }),
+        .filter((s) => s.part !== 'drafts' && /^B\d+\.\d+$/.test(s.section_number ?? ''))
+        .sort((a, b) =>
+          String(a.section_number).localeCompare(String(b.section_number), undefined, { numeric: true }),
+        ),
     [sections],
+  );
+
+  /* The Drafts group is not part of the Commission's Part B: it is authored
+     guidance for WP and case draft fields, so it sits in its own group below
+     Part B and carries no section numbers. */
+  const draftSections = useMemo(
+    () => (sections as any[]).filter((s) => s.part === 'drafts').sort((a, b) => a.order_index - b.order_index),
+    [sections],
+  );
+
+  const subsections = useMemo(
+    () => [...partBSubsections, ...draftSections],
+    [partBSubsections, draftSections],
   );
   const subsectionOrder = useMemo(
     () => subsections.map((s) => s.section_number as string),
@@ -318,13 +327,28 @@ export function TemplateTypeWorkspace({
         )}
       </div>
 
-      {subsections.map((section: any) => {
+      {subsections.map((section: any, i: number) => {
         const sectionNumber = section.section_number as string;
         const rows = grouped.get(sectionNumber) ?? [];
         const isOpen = !collapsed[sectionNumber];
+        const isDraft = section.part === 'drafts';
+        const firstDraft = isDraft && i === partBSubsections.length;
         return (
+          <div key={section.id} className="space-y-4">
+            {firstDraft && (
+              <div className="pt-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Drafts
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Guidance for the work package and case draft fields. These are not Commission
+                  sections and carry no section numbers.
+                </p>
+              </div>
+            )}
           <SubsectionPanel
-            key={section.id}
+            hideNumber={isDraft}
+            hideCriteria={isDraft}
             sectionNumber={sectionNumber}
             title={section.title ?? ''}
             sectionSourceId={section.id}
@@ -336,6 +360,7 @@ export function TemplateTypeWorkspace({
             onToggle={() => setCollapsed((c) => ({ ...c, [sectionNumber]: isOpen }))}
             onChanged={refresh}
           />
+          </div>
         );
       })}
 
@@ -419,7 +444,10 @@ export function TemplateTypeWorkspace({
 
 function SubsectionPanel({
   sectionNumber, title, sectionSourceId, templateTypeId, versionId, editable, blocks, open, onToggle, onChanged,
+  hideNumber = false, hideCriteria = false,
 }: {
+  hideNumber?: boolean;
+  hideCriteria?: boolean;
   sectionNumber: string;
   title: string;
   sectionSourceId: string | null;
@@ -467,13 +495,15 @@ function SubsectionPanel({
             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
           <CardTitle className="text-base">
-            {sectionNumber}{title ? ` ${title}` : ''}
+            {hideNumber ? (title || sectionNumber) : `${sectionNumber}${title ? ` ${title}` : ''}`}
           </CardTitle>
           <Badge variant="outline" className="ml-1">{blocks.length} blocks</Badge>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setCriteriaOpen(true)}>
-              <ClipboardCheck className="h-4 w-4 text-red-600" /> Edit criteria
-            </Button>
+            {!hideCriteria && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setCriteriaOpen(true)}>
+                <ClipboardCheck className="h-4 w-4 text-red-600" /> Edit criteria
+              </Button>
+            )}
             {editable && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setAddOpen(true)}>
                 <Plus className="h-4 w-4" /> Add block
