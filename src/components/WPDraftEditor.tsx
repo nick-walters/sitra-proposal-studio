@@ -958,13 +958,17 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>{guidelineScope ? GUIDELINE_TITLES[focusedGuidelineKey ?? ''] : `Guidelines for WP${wpDraft.number}: ${wpDraft.title || wpDraft.short_name || 'Work package'}`}</DialogTitle>
+              <DialogTitle>
+                {GUIDELINE_TITLES[focusedGuidelineKey ?? ''] ??
+                  `Guidelines for WP${wpDraft.number}: ${wpDraft.title || wpDraft.short_name || 'Work package'}`}
+              </DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
-                {/* Commission guidance authored against the matching B3.1
-                    block, shown here where the author writes it. */}
-                {blockGuidelines.length > 0 && (
+                {/* Everything shown here is authored in the backend under
+                    Sections & Guidelines → Drafts, against this proposal's own
+                    template version. */}
+                {officialGuidelines.length > 0 && (
                   <div className="rounded-lg border-2 border-blue-500 bg-blue-50/50 p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <BookOpen className="h-5 w-5 flex-shrink-0 text-blue-500" />
@@ -973,7 +977,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                       </span>
                     </div>
                     <div className="space-y-4">
-                      {blockGuidelines.map((g) => (
+                      {officialGuidelines.map((g) => (
                         <div key={g.id}>
                           {g.title && (
                             <h4 className="mb-2 font-semibold text-blue-600">{g.title}</h4>
@@ -988,52 +992,40 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                   </div>
                 )}
 
-                {/* Official EC Guidelines */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
-                  {visibleEcGuidelines.map((guideline) => (
-                    <div key={guideline.id} className="space-y-1">
-                      <h5 className="font-medium text-sm text-muted-foreground">{guideline.title}</h5>
-                      {parseGuidelineContent(guideline.content)}
+                {sitraTips.length > 0 && (
+                  <div className="rounded-lg border-2 border-gray-800 bg-gray-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0 text-gray-800" />
+                      <span className="text-sm font-bold text-gray-900">Sitra&rsquo;s tips</span>
                     </div>
-                  ))}
-                </div>
-
-
-                {/* Sitra's Tips Box - matching Part B style */}
-                <div
-                  className={cn(
-                    "rounded-lg border-2 p-4",
-                    "border-gray-800",
-                    "bg-gray-50/50"
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex-shrink-0 text-gray-800">
-                      <Lightbulb className="h-5 w-5" />
+                    <div className="space-y-4">
+                      {sitraTips.map((tip, index) => (
+                        <div key={tip.id}>
+                          {tip.title && (
+                            <h4 className="mb-2 font-semibold text-gray-900">{tip.title}</h4>
+                          )}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tip.content) }}
+                          />
+                          {index < sitraTips.length - 1 && (
+                            <div className="mt-4 border-t border-current/10" />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      Sitra's tips
-                    </span>
                   </div>
-                  
-                  <div className="space-y-4">
-                    {visibleSitraTips.map((tip, index) => (
-                      <div key={tip.id}>
-                        {tip.title && (
-                          <h4 className="font-semibold mb-2 text-gray-900">
-                            {tip.title}
-                          </h4>
-                        )}
-                        {parseGuidelineContent(tip.content)}
-                        {index < visibleSitraTips.length - 1 && (
-                          <div className="mt-4 border-t border-current/10" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
+
+                {blockGuidelines.length === 0 && (
+                  <p className="text-sm italic text-muted-foreground">
+                    {focusedGuidelineKey
+                      ? 'No guidance has been authored for this field yet.'
+                      : 'Place the cursor in a field to see the guidance for it.'}
+                  </p>
+                )}
               </div>
+
             </ScrollArea>
           </DialogContent>
         </Dialog>
