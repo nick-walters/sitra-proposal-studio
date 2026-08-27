@@ -18,6 +18,7 @@ import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { FieldCapabilities, A1_AI_STATEMENT_CAPABILITIES } from '@/lib/fieldCapabilities';
+import { TRACK_CHANGE_MARKS } from '@/extensions/TrackChanges';
 
 /**
  * A1 AI usage statement: baseline + bullets, numbered, alignment, line
@@ -50,5 +51,7 @@ export const A1_STATEMENT_FIELD_EXTENSIONS: Extensions = [
   InlineReferenceNode,
   AcronymReference,
   FigureTableReferenceMark,
+  // Tracked insertions/deletions must survive the static round trip.
+  ...TRACK_CHANGE_MARKS,
   FieldCapabilities.configure(A1_AI_STATEMENT_CAPABILITIES),
 ];
