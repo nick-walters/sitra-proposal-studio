@@ -1525,7 +1525,8 @@ export function useRichTextEditor({
   isReady = true,
   instanceKey,
   getReference,
-  trackChanges,
+  trackChanges: trackChangesProp,
+  disableTrackChanges = false,
   blockLocking,
   onBlockDeleteRequest,
   canEditCaptions = true,
@@ -1544,6 +1545,11 @@ export function useRichTextEditor({
     authorColor: string;
     onChangesUpdate?: (changes: any[]) => void;
   };
+  /**
+   * Opt out of the platform-wide setting (template admin and other surfaces
+   * that are not part of a proposal's authored text).
+   */
+  disableTrackChanges?: boolean;
   blockLocking?: {
     getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
     getCurrentUserId: () => string | null;
@@ -1562,6 +1568,33 @@ export function useRichTextEditor({
    */
   pairedTables?: boolean;
 }) {
+  /**
+   * TRACK CHANGES — one platform-wide setting per user.
+   *
+   * Every rich text field on the platform honours it: a host passes nothing
+   * and gets the user's own setting (`DocumentEditor` still passes an explicit
+   * config, and template admin opts out with `disableTrackChanges`).
+   *
+   * `forcedTracking` is the guard: a field holding another author's pending
+   * changes records this user's edit even when their setting is off, because
+   * an untracked edit over a pending deletion silently accepts it.
+   */
+  const globalTracking = useTrackChangesSetting();
+  const [forcedTracking, setForcedTracking] = useState(false);
+  const forcedTrackingRef = useRef(false);
+  const trackChanges = useMemo(() => {
+    if (trackChangesProp) {
+      return forcedTracking ? { ...trackChangesProp, enabled: true } : trackChangesProp;
+    }
+    if (disableTrackChanges || !globalTracking) return undefined;
+    return {
+      enabled: globalTracking.enabled || forcedTracking,
+      authorId: globalTracking.authorId,
+      authorName: globalTracking.authorName,
+      authorColor: globalTracking.authorColor,
+    };
+  }, [trackChangesProp, disableTrackChanges, globalTracking, forcedTracking]);
+
   const prepareNumberedContent = (html: string) =>
     materializeCaptionLabels(normalizePartBLoadedContent(html), captionNumbering ?? null);
   const preparedContent = prepareNumberedContent(content);
