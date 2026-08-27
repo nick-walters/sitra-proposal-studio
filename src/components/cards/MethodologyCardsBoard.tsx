@@ -759,11 +759,8 @@ function FieldRow({
               captionNumbering={captionNumbering ?? null}
               documentSurface={isDocumentSurface}
               pairedTables={isImpactSummary}
-              activeRingClass={
-                contentLock.isMine
-                  ? 'border-emerald-600 ring-1 ring-emerald-600/60'
-                  : 'border-primary ring-1 ring-primary/40'
-              }
+              activeRingClass={contentLock.isMine ? 'border-2 border-emerald-600' : ''}
+
             />
           </div>
           {contentLock.lockedByOther && contentLock.holder && (
