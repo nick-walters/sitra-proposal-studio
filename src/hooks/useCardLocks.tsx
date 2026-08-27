@@ -447,9 +447,10 @@ export function CardLockProvider({
       return () => {
         off();
       };
-    }, [targetId, active]);
+    }, [targetId, active, streamKey, enabled]);
     return value;
   };
+
 
   const value = useMemo<CardLockContextValue>(
     () => ({
