@@ -357,7 +357,7 @@ export function CasesTableLiveView({
         .order('number', { ascending: true });
       if (caseTypeId) casesQuery.eq('case_type_id', caseTypeId);
 
-      const [casesRes, tplRes, partsRes, typesRes] = await Promise.all([
+      const [casesRes, tplRes, partsRes, typesRes, subsByCase] = await Promise.all([
         casesQuery,
         supabase
           .from('case_subsection_templates')
@@ -373,9 +373,15 @@ export function CasesTableLiveView({
           .from('proposal_case_types')
           .select('id, include_number, include_abbreviation, outline_color, type_code, custom_type_name, caption_text')
           .eq('proposal_id', proposalId),
+        // Authoritative per-subsection rows; legacy jsonb stays as fallback.
+        fetchCaseSubsectionsByCase(proposalId),
       ]);
 
-      const cases = (casesRes.data || []) as CaseRow[];
+      const cases = overlaySubsectionContent(
+        (casesRes.data || []) as CaseRow[],
+        subsByCase,
+      ) as CaseRow[];
+
       const templates = (tplRes.data || []) as SubsectionTemplate[];
       const participants = (partsRes.data || []) as Participant[];
       const types = (typesRes.data || []) as CaseTypeRow[];
