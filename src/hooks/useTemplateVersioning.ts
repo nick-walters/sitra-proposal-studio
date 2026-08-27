@@ -72,7 +72,9 @@ export function useVersionBlocks(versionId: string | null) {
         .from('card_templates')
         .select('*')
         .eq('template_version_id', versionId!)
-        .eq('document', 'part_b')
+        /* Part B blocks and the Drafts surfaces (WP and case draft fields) are
+           authored in the same workspace, so both documents are loaded. */
+        .in('document', ['part_b', 'drafts'])
         .order('section_number')
         .order('order_index');
       if (error) throw error;

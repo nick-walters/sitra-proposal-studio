@@ -145,10 +145,14 @@ export function TemplateTypeWorkspace({
   const subsections = useMemo(
     () =>
       (sections as any[])
-        .filter((s) => /^B\d+\.\d+$/.test(s.section_number ?? ''))
-        .sort((a, b) =>
-          String(a.section_number).localeCompare(String(b.section_number), undefined, { numeric: true }),
-        ),
+        /* Leaf Part B subsections, then the Drafts sections (D1, D2) where a
+           coordinator authors guidance for WP and case draft fields. */
+        .filter((s) => /^(B\d+\.\d+|D\d+)$/.test(s.section_number ?? ''))
+        .sort((a, b) => {
+          const rank = (n: string) => (n.startsWith('D') ? 1 : 0);
+          const an = String(a.section_number), bn = String(b.section_number);
+          return rank(an) - rank(bn) || an.localeCompare(bn, undefined, { numeric: true });
+        }),
     [sections],
   );
   const subsectionOrder = useMemo(
