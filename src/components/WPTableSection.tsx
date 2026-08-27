@@ -152,6 +152,12 @@ export function WPTableSection({
   const isCollapsed = (key: string) => collapsedKeys?.has(key) ?? false;
   const objectivesKey = wpObjectivesCollapseKey(wpDraftId);
   const dowKey = wpDescriptionCollapseKey(wpDraftId);
+  /* Dragging folds every task for the duration of the drag, so the list stays
+     short enough to aim at — the same mechanism the Part B board uses for its
+     blocks. It is transient: nothing is written, so each task returns to its
+     own saved state as soon as the drag ends. */
+  const [isDraggingTask, setIsDraggingTask] = useState(false);
+
 
 
   /** Adds a task and scrolls to it, as Part B does for a new module. */
