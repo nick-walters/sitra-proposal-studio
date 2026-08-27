@@ -179,6 +179,34 @@ export interface EditorTopBarProps extends SaveStateButtonProps {
   trailing?: ReactNode;
 }
 
+/**
+ * The platform-wide "track my changes" switch. Reads and writes the user's
+ * own setting; disabled (and visibly off) outside a proposal surface.
+ */
+function TrackMyChangesButton() {
+  const setting = useTrackChangesSetting();
+  return (
+    <FeatureButton
+      asDiv={!setting}
+      leading={
+        <Switch
+          checked={!!setting?.enabled}
+          className="pointer-events-none scale-75"
+        />
+      }
+      primary="Track my"
+      secondary="changes"
+      tooltip={
+        setting?.enabled
+          ? 'Tracking is ON — your edits are recorded everywhere you type'
+          : 'Track my changes everywhere I edit'
+      }
+      disabled={!setting}
+      onClick={setting ? setting.toggle : undefined}
+    />
+  );
+}
+
 export function EditorTopBar({
   saving,
   lastSaved,
@@ -263,6 +291,12 @@ export function EditorTopBar({
           onClick={onRestoreBlock}
         />
       )}
+
+      {/* TRACK MY CHANGES — one platform-wide, per-user setting (stored on the
+          user's profile). It sits in the page-wide tier because it is not a
+          property of the focused field: it applies to everything this user
+          edits, on every surface. Recording only. */}
+      <TrackMyChangesButton />
 
       <FeatureButton
         icon={<MessageSquare className="h-3.5 w-3.5" />}
