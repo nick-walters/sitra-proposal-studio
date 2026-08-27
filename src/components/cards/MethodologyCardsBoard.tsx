@@ -482,9 +482,10 @@ function FieldRow({
         <div
           className={
             isDocumentSurface
-              ? 'doc-surface-heading doc-surface-heading-inline select-text border border-destructive ring-1 ring-destructive/40 [&_p]:m-0'
-              : 'h-7 flex-1 select-text truncate rounded-md border border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic ring-1 ring-destructive/40 [&_p]:m-0 [&_p]:inline'
+              ? 'doc-surface-heading doc-surface-heading-inline select-text border-2 border-destructive [&_p]:m-0'
+              : 'h-7 flex-1 select-text truncate rounded-md border-2 border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic [&_p]:m-0 [&_p]:inline'
           }
+
           aria-readonly="true"
           dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
         />
