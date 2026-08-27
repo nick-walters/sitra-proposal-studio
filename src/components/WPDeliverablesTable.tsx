@@ -89,6 +89,15 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/* Controls read as cell text until hovered or focused — the same treatment the
+   milestones and risks document tables use, so the editor matches the B3.1
+   mirror rather than looking like a form. */
+const SUBTLE_CONTROL =
+  "w-full bg-transparent border border-transparent rounded-[2px] px-0 py-0 text-left " +
+  "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight " +
+  'hover:border-input focus:border-input focus:outline-none focus-visible:outline-none ' +
+  'disabled:opacity-70 disabled:cursor-not-allowed';
+
 
 
 
