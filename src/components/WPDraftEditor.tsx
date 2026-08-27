@@ -240,7 +240,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     addDeliverable,
     updateDeliverable,
     deleteDeliverable: rawDeleteDeliverable,
-    reorderDeliverables,
     moveDeliverableToWP,
     refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
@@ -1183,7 +1182,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           onDeliverableUpdate={updateDeliverable}
           onDeliverableAdd={addDeliverable}
           onDeliverableDelete={deleteDeliverable}
-          onDeliverableReorder={reorderDeliverables}
           onDeliverableMove={moveDeliverableToWP}
           readOnly={readOnly}
           projectDuration={projectDuration}

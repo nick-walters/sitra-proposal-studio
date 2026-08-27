@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Package, Plus, GripVertical, ArrowRight, ArrowUpDown } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -28,23 +28,6 @@ import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 
 interface WPOption {
@@ -65,7 +48,6 @@ interface WPDeliverablesTableProps {
   onDeliverableUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
-  onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
   onDeliverableMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
@@ -208,7 +190,6 @@ export function WPDeliverablesTable({
   onDeliverableUpdate,
   onDeliverableAdd,
   onDeliverableDelete,
-  onDeliverableReorder,
   onDeliverableMove,
   readOnly = false,
   projectDuration = 36,
@@ -294,28 +275,6 @@ export function WPDeliverablesTable({
       toast.error('Failed to save task links: ' + (err.message || err));
     }
   };
-
-  // ── Same-month manual ordering: write order_index per group only ──
-  // The database trigger derives `number` from (due month, lowest linked task,
-  // order_index), so the client never writes numbers itself.
-  const persistGroupOrder = useCallback(async (newSorted: WPDraftDeliverable[]) => {
-    // Assign order_index within each due_month group as 0..k-1
-    const groups = new Map<string, WPDraftDeliverable[]>();
-    for (const d of newSorted) {
-      const key = String(d.due_month ?? '∅');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(d);
-    }
-    const updates: Array<{ id: string; order_index: number }> = [];
-    for (const group of groups.values()) {
-      group.forEach((d, i) => {
-        if (d.order_index !== i) updates.push({ id: d.id, order_index: i });
-      });
-    }
-    for (const u of updates) {
-      await onDeliverableUpdate(u.id, { order_index: u.order_index });
-    }
-  }, [onDeliverableUpdate]);
 
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
@@ -725,121 +684,6 @@ function DeliverableTaskDialog({
 }
 
 
-// ── Same-month reorder dialog ──
-function SameMonthReorderDialog({
-  open, onOpenChange, sorted, wpNumber, wpColor, onPersist,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  sorted: WPDraftDeliverable[];
-  wpNumber: number;
-  wpColor: string;
-  onPersist: (newSorted: WPDraftDeliverable[]) => Promise<void>;
-}) {
-  // local working copy
-  const [working, setWorking] = useState<WPDraftDeliverable[]>(sorted);
-  useEffect(() => { if (open) setWorking(sorted); }, [open, sorted]);
-
-  // group by due_month while preserving overall sort
-  const groups = useMemo(() => {
-    const map = new Map<string, { key: string; label: string; items: WPDraftDeliverable[] }>();
-    for (const d of working) {
-      const key = d.due_month == null ? '∅' : String(d.due_month);
-      const label = d.due_month == null ? 'No due month set' : `Month ${d.due_month}`;
-      if (!map.has(key)) map.set(key, { key, label, items: [] });
-      map.get(key)!.items.push(d);
-    }
-    return Array.from(map.values());
-  }, [working]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleDragEnd = (groupKey: string) => (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    setWorking(prev => {
-      // find indices within group
-      const g = prev.filter(d => (d.due_month == null ? '∅' : String(d.due_month)) === groupKey);
-      const oldIdx = g.findIndex(d => d.id === active.id);
-      const newIdx = g.findIndex(d => d.id === over.id);
-      if (oldIdx === -1 || newIdx === -1) return prev;
-      const reorderedGroup = arrayMove(g, oldIdx, newIdx);
-      // rebuild prev with reorderedGroup in place
-      const it = reorderedGroup[Symbol.iterator]();
-      return prev.map(d => {
-        const k = d.due_month == null ? '∅' : String(d.due_month);
-        return k === groupKey ? it.next().value! : d;
-      });
-    });
-  };
-
-  const onSave = async () => {
-    await onPersist(working);
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Reorder deliverables sharing a due month</DialogTitle>
-        </DialogHeader>
-        <p className="text-xs text-muted-foreground -mt-1">
-          Drag within a group to reorder. A deliverable can only move above or below other deliverables with the
-          same due month. D-numbers are recomputed automatically when you save.
-        </p>
-        <div className="space-y-4">
-          {groups.map(g => (
-            <div key={g.key} className="rounded border border-border/40">
-              <div className="px-2 py-1 text-xs font-semibold bg-muted/50">{g.label}</div>
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(g.key)}>
-                <SortableContext items={g.items.map(d => d.id)} strategy={verticalListSortingStrategy}>
-                  <div className="divide-y divide-border/40">
-                    {g.items.map(d => (
-                      <ReorderRow key={d.id} d={d} wpNumber={wpNumber} wpColor={wpColor} />
-                    ))}
-                    {g.items.length === 0 && (
-                      <div className="px-2 py-2 text-xs italic text-muted-foreground">No items.</div>
-                    )}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </div>
-          ))}
-          {groups.length === 0 && (
-            <div className="text-xs italic text-muted-foreground">No deliverables yet.</div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onSave}>Save order</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber: number; wpColor: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: d.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-2 py-1.5 bg-background">
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
-        aria-label="Reorder within month"
-      >
-        <GripVertical className="w-4 h-4 text-blue-500" />
-      </button>
-      <B31Pill variant="outline" color={wpColor}>D{wpNumber}.{d.number}</B31Pill>
-      <span className="text-sm truncate flex-1">{htmlToPlainText(d.title || '') || <span className="italic text-muted-foreground">Untitled</span>}</span>
-    </div>
-  );
-}
 
 // ── Short note rendered under the card title ──
 function DeliverablesShortNoteInline() {
