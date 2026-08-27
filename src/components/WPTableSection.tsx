@@ -129,11 +129,11 @@ export function WPTableSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-3 pb-3 pt-0">
-        {/* Objectives section. `data-guideline-key` lets the shared
+        {/* Objectives block. `data-guideline-key` lets the shared
             Guidelines control show this field's guidance only. */}
-        <div className="space-y-2" data-guideline-key="wp.objectives">
-          <label className="text-draft font-medium">Objective</label>
-          {/* Page-styled surface trial: 21 cm page (18 cm column + 1.5 cm
+        <div className="space-y-1 rounded-md border" data-guideline-key="wp.objectives">
+          <BlockControlRow className="px-2 pt-2" title="Objective" />
+          {/* Page-styled surface: 21 cm page (18 cm column + 1.5 cm
               margins), white, Times 11 pt justified, no field chrome. */}
           <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
             {wpDraftId ? (
@@ -161,26 +161,49 @@ export function WPTableSection({
               />
             )}
           </div>
-          <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
+          <p className="px-2 pb-2 text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
 
-        {/* Optional field before tasks */}
-        <div className="space-y-2" data-guideline-key="wp.methodology">
-          <label className="text-draft font-medium">Optional field before tasks</label>
-          <DebouncedRichField
-            value={descriptionBeforeTasks || ''}
-            onChange={onDescriptionBeforeTasksChange}
-            disabled={readOnly}
-            minHeight="60px"
-            proposalId={proposalId ?? ''}
-            staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-            shouldStayMounted={shouldStayMounted}
-          />
+        {/* Description of work — intro (optional field before tasks) */}
+        <div className="space-y-1 rounded-md border" data-guideline-key="wp.methodology">
+          <BlockControlRow className="px-2 pt-2" title="Description of work — intro" />
+          <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
+            {wpDraftId ? (
+              <LockedWPRichField
+                targetId={wpTargetId(wpDraftId, 'intro')}
+                value={descriptionBeforeTasks || ''}
+                onChange={onDescriptionBeforeTasksChange}
+                disabled={readOnly}
+                minHeight="60px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            ) : (
+              <DebouncedRichField
+                value={descriptionBeforeTasks || ''}
+                onChange={onDescriptionBeforeTasksChange}
+                disabled={readOnly}
+                minHeight="60px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Tasks list */}
+        {/* Task blocks */}
         <div className="space-y-2">
-          <label className="text-draft font-medium">Tasks</label>
+          <BlockControlRow
+            className="px-1"
+            title="Tasks"
+            onAdd={!readOnly && onTaskAdd ? onTaskAdd : undefined}
+            addLabel="Add task"
+          />
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
