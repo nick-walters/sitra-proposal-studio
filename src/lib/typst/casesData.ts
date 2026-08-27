@@ -16,6 +16,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { fetchCaseSubsectionsByCase, overlaySubsectionContent } from '@/lib/caseSubsections';
+
 import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
