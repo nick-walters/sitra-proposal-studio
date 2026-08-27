@@ -458,17 +458,21 @@ function DeliverableRow({
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
 
   return (
-    <div className="grid grid-cols-[52px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: number chip + full-width title ── */}
-      <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21, marginTop: 3 }}>
-        <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
-          <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
-        </svg>
-        <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
-          {number}
+    <tr data-version-target={`wp_draft_deliverable|${deliverable.id}|title`}>
+      {/* Number: the pennant chip, as tight as the chip itself. */}
+      <td className={`${docFirstCellStyles} whitespace-nowrap`}>
+        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21 }}>
+          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
+            <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
+          </svg>
+          <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+            {number}
+          </span>
         </span>
-      </span>
-      <div className="min-w-0">
+      </td>
+
+      {/* Title: takes every pixel the tight columns leave behind. */}
+      <td className={docCellStyles} style={{ width: '100%' }}>
         <DeliverableTitleCell
           value={deliverable.title || ''}
           disabled={readOnly}
@@ -476,10 +480,11 @@ function DeliverableRow({
           proposalId={proposalId}
           shouldStayMounted={shouldStayMounted}
         />
-      </div>
+      </td>
 
-      {/* ── Line 2: metadata fields in fixed columns, aligned with the title above ── */}
-      <div className={cn(DELIVERABLE_META_GRID, 'col-start-2')}>
+      {/* The remaining cells keep the dropdowns they had, one per column. */}
+      <>
+
         {/* Partner */}
         <div>
           <Select
