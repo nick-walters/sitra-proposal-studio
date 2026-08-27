@@ -429,7 +429,9 @@ export function WPTableSection({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragStart={() => setIsDraggingTask(true)}
+          onDragCancel={() => setIsDraggingTask(false)}
+          onDragEnd={(event) => { setIsDraggingTask(false); handleDragEnd(event); }}
         >
           <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <div>
@@ -454,7 +456,7 @@ export function WPTableSection({
                       proposalId={proposalId}
                       shouldStayMounted={shouldStayMounted}
                       dragHandleProps={readOnly ? undefined : dragHandleProps}
-                      collapsed={isCollapsed(wpTaskCollapseKey(task.id))}
+                      collapsed={isDraggingTask || isCollapsed(wpTaskCollapseKey(task.id))}
                       onToggleCollapsed={
                         onToggleCollapsed
                           ? () => onToggleCollapsed(wpTaskCollapseKey(task.id))
