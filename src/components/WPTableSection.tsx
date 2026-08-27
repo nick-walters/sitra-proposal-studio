@@ -667,8 +667,12 @@ function TaskModule({
       {/* Rows 2 and 3 fold away when the module is collapsed. */}
       {!collapsed && (
       <>
-      {/* Row 2: leader, participants, duration */}
-      <div className="flex flex-wrap items-center gap-2 px-[1.5cm]">
+      {/* Row 2: leader, participants, duration. The air above and below this
+          row is 3 pt tighter on each side than the block's default rhythm. */}
+      <div
+        className="flex flex-wrap items-center gap-2 px-[1.5cm]"
+        style={{ marginTop: '-4px', marginBottom: '-4px' }}
+      >
         <Select
           value={task.lead_participant_id || ''}
           onValueChange={(value) =>
