@@ -5,17 +5,28 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
 import { supabase } from '@/integrations/supabase/client';
-import { useCardFieldVersions } from '@/hooks/useCardFieldVersions';
+import { useTargetVersions, type VersionTargetType } from '@/hooks/useTargetVersions';
 import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import type { CardTextBox } from '@/types/cards';
 
 
 interface CardFieldHistoryDialogProps {
   proposalId: string;
+  /** Row id of the target. For a module this is the card field id. */
   fieldId: string;
-  textBox: CardTextBox;
+  /**
+   * Which text box of the target. Modules use 'header' or 'content'; other
+   * targets pass the column name (or subsection key) that holds the text.
+   */
+  textBox: CardTextBox | string;
+  /** Defaults to a module text box, so existing call sites are unchanged. */
+  targetType?: VersionTargetType;
+  /** Version of the underlying row, for conflict rejection on restore. */
+  expectedVersion?: number | null;
   /** Human label for the module the text box belongs to. */
   fieldLabel: string;
+  /** Overrides the default "Header/Content text box" wording. */
+  boxLabelOverride?: string;
   isOpen: boolean;
   canEdit: boolean;
   onClose: () => void;
@@ -23,20 +34,31 @@ interface CardFieldHistoryDialogProps {
   onReverted?: () => void;
 }
 
-/** Version history for a single text box of a module. */
+/** Version history for a single text box of a module or other target. */
 export function CardFieldHistoryDialog({
   proposalId,
   fieldId,
   textBox,
+  targetType = 'card_field',
+  expectedVersion,
   fieldLabel,
+  boxLabelOverride,
   isOpen,
   canEdit,
   onClose,
   onReverted,
 }: CardFieldHistoryDialogProps) {
-  const { versions, isLoading, revertToVersion } = useCardFieldVersions(fieldId, textBox, {
-    enabled: isOpen,
-  });
+  const { versions, isLoading, revertToVersion } = useTargetVersions(
+    { targetType, targetId: fieldId, textBox },
+    {
+      enabled: isOpen,
+      expectedVersion,
+      invalidateKeys:
+        targetType === 'card_field'
+          ? [['card-fields-batch'], ['card-fields']]
+          : [['wp-drafts'], ['case-drafts']],
+    },
+  );
 
   // Same trigger as the legacy section history: prune on open.
   useEffect(() => {
@@ -44,7 +66,9 @@ export function CardFieldHistoryDialog({
     void supabase.rpc('thin_card_field_versions', { p_proposal_id: proposalId }).then(() => undefined);
   }, [isOpen, proposalId]);
 
-  const boxLabel = textBox === 'header' ? 'Header text box' : 'Content text box';
+  const boxLabel =
+    boxLabelOverride ?? (textBox === 'header' ? 'Header text box' : 'Content text box');
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
