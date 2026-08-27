@@ -2,6 +2,26 @@
 // Use these instead of declaring tag/attr arrays inline at call sites,
 // so all rich-text rendering stays in lock-step.
 
+/**
+ * Track-changes metadata. An insertion or a deletion is a `<span>` carrying
+ * these attributes and nothing else — strip them and the change becomes
+ * ordinary text (an insertion) or, worse, silently accepted text (a
+ * deletion). They must therefore survive every sanitiser pass.
+ *
+ * Kept in exact parity with `ALLOWED_DATA_ATTRS` in
+ * `supabase/functions/_shared/sanitizeEditorHtml.ts`; see
+ * `src/test/trackChangeSanitiserParity.test.ts`.
+ */
+export const TRACK_CHANGE_ATTRS = [
+  'data-track-insertion',
+  'data-track-deletion',
+  'data-change-id',
+  'data-author-id',
+  'data-author-name',
+  'data-author-color',
+  'data-timestamp',
+] as const;
+
 export const INLINE_EMPHASIS_CONFIG = {
   ALLOWED_TAGS: ['em', 'strong'],
 };
@@ -17,8 +37,14 @@ export const RICH_TEXT_CONFIG = {
     'h1', 'h2', 'h3', 'h4', 'sub', 'sup',
     'table', 'thead', 'tbody', 'tr', 'th', 'td',
   ],
-  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
+  ALLOWED_ATTR: [
+    'class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan',
+    // Every preset below is derived from this one, so allowing the track
+    // attributes here carries them to every board and every static render.
+    ...TRACK_CHANGE_ATTRS,
+  ],
 };
+
 
 export const RICH_TEXT_WITH_DIV_CONFIG = {
   ALLOWED_TAGS: [...RICH_TEXT_CONFIG.ALLOWED_TAGS, 'div'],
