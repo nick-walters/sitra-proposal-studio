@@ -565,35 +565,38 @@ function TaskModule({
       data-guideline-key="drafts.wp.task"
     >
       {/* Row 1: badge, title, visibility, delete — inside the 18 cm column.
-          The collapse chevron sits above the drag grip at the module's left
-          edge, exactly as it does on a Part B module. */}
-      <div className="flex items-center gap-1.5 px-[1.5cm]">
+          The chevron and grip share the block header's left control stack, so
+          a module's chevron sits in the same vertical line as its block's. */}
+      <div className="flex items-center gap-1.5 py-0 pl-5 pr-[13px]">
         {(onToggleCollapsed || dragHandleProps) && (
-          <div className="-ml-9 flex shrink-0 flex-col items-center gap-0.5 self-start">
+          <div className={WP_CONTROL_STACK}>
             {onToggleCollapsed && (
               <CollapseChevron
                 collapsed={collapsed}
                 onToggle={onToggleCollapsed}
                 label="task"
+                className={WP_CHEVRON_SIZE}
               />
+            )}
+            {dragHandleProps && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="shrink-0 cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
+                    {...dragHandleProps}
+                  >
+                    <GripVertical className="h-4 w-4 text-blue-500" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Drag to reorder this task</TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}
-        {dragHandleProps && (
+        {/* The badge starts on the 18 cm column's left edge. */}
+        <span aria-hidden="true" className="shrink-0" style={{ width: WP_TITLE_INDENT }} />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="-ml-5 shrink-0 cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
-                {...dragHandleProps}
-              >
-                <GripVertical className="h-4 w-4 text-blue-500" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Drag to reorder this task</TooltipContent>
-          </Tooltip>
-        )}
         <span
           className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold"
           style={{
