@@ -204,6 +204,43 @@ export const TrackDeletionMark = Mark.create({
  */
 export const TRACK_CHANGE_MARKS = [TrackInsertionMark, TrackDeletionMark];
 
+/**
+ * Does this document hold PENDING tracked changes written by someone other
+ * than `currentUserId`?
+ *
+ * Used by the guard in `useRichTextEditor`: editing over another author's
+ * pending deletion with tracking off silently accepts it and destroys their
+ * work, so recording is forced on for that field. Returns the first foreign
+ * author found (for the message shown to the user), or null.
+ */
+export function findForeignPendingAuthor(
+  doc: any,
+  schema: any,
+  currentUserId: string,
+): { authorId: string; authorName: string } | null {
+  const iType = schema?.marks?.trackInsertion;
+  const dType = schema?.marks?.trackDeletion;
+  if (!iType && !dType) return null;
+
+  let found: { authorId: string; authorName: string } | null = null;
+  doc.descendants((node: any) => {
+    if (found) return false;
+    if (!node.isText) return;
+    for (const m of node.marks) {
+      if (m.type !== iType && m.type !== dType) continue;
+      const authorId = m.attrs?.authorId || '';
+      // An unattributed mark counts as foreign: it is certainly not a change
+      // this user can be shown to own.
+      if (authorId && currentUserId && authorId === currentUserId) continue;
+      found = { authorId, authorName: m.attrs?.authorName || 'another author' };
+      return false;
+    }
+  });
+  return found;
+}
+
+
+
 // ── Main extension ───────────────────────────────────────────────────────
 
 export const TrackChanges = Extension.create<TrackChangesOptions>({
