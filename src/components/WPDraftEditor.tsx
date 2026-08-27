@@ -250,6 +250,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     wpTemplateVersionId,
     proposalId,
   );
+  const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
+  const sitraTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
 
   
   // Dialog states for editor features
