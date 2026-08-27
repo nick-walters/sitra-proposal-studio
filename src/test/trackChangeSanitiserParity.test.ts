@@ -85,3 +85,22 @@ describe('track-changes static round trip', () => {
     expect(out).toContain('data-timestamp="2026-08-27T05:00:00.000Z"');
   });
 });
+
+describe('tracked changes in the Typst output', () => {
+  it('underlines an insertion and strikes a deletion, in the author colour', async () => {
+    const { htmlToTypstInline } = await import('@/lib/typst/htmlToTypst');
+    const ctx = { unsupported: new Set<string>() };
+    const ins = htmlToTypstInline(
+      '<span data-track-insertion="" data-author-color="#E91E63">added</span>',
+      ctx as never,
+    );
+    const del = htmlToTypstInline(
+      '<span data-track-deletion="" data-author-color="#E91E63">removed</span>',
+      ctx as never,
+    );
+    expect(ins).toContain('underline(');
+    expect(ins).toContain('#E91E63');
+    expect(del).toContain('strike(');
+    expect(del).toContain('#E91E63');
+  });
+});
