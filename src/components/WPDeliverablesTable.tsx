@@ -509,10 +509,10 @@ function DeliverableRow({
         />
       </td>
 
-      {/* The remaining cells keep the dropdowns they had, one per column. */}
+      {/* Every remaining control reads as cell text until hovered or focused,
+          so the row prints like its B3.1 mirror rather than like a form. */}
       {/* Partner */}
       <td className={`${docCellStyles} whitespace-nowrap`}>
-
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
@@ -520,14 +520,18 @@ function DeliverableRow({
           >
             <SelectTrigger
               hideArrow
-              className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
-              style={deliverable.responsible_participant_id ? {
-                backgroundColor: '#000', color: '#fff', height: '17px',
-                fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
-                borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
-              } : undefined}
+              className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 w-auto gap-0 inline-flex justify-start focus:ring-0')}
             >
-              <SelectValue placeholder="—" className="font-normal" />
+              {deliverable.responsible_participant_id ? (
+                <ParticipantBubble>
+                  {(() => {
+                    const p = participants.find(x => x.id === deliverable.responsible_participant_id);
+                    return p ? (p.organisation_short_name || p.organisation_name) : '—';
+                  })()}
+                </ParticipantBubble>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
@@ -547,7 +551,7 @@ function DeliverableRow({
             onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+            <SelectTrigger hideArrow className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 inline-flex justify-start focus:ring-0')}>
               <span>{deliverable.type || <span className="text-muted-foreground">—</span>}</span>
             </SelectTrigger>
             <SelectContent>
@@ -571,7 +575,7 @@ function DeliverableRow({
             onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+            <SelectTrigger hideArrow className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 inline-flex justify-start focus:ring-0')}>
               <span>{deliverable.dissemination_level || <span className="text-muted-foreground">—</span>}</span>
             </SelectTrigger>
             <SelectContent>
@@ -595,12 +599,23 @@ function DeliverableRow({
             projectDuration={projectDuration}
             readOnly={readOnly}
             label=""
+            cellSurface
             onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
           />
       </td>
 
-      {/* Related task */}
-      <td className={`${docCellStyles} whitespace-nowrap`}>
+      {/* Related task. Delete sits in the page's right margin, as on
+          milestones and risks, so the table keeps exactly its seven columns. */}
+      <td className={`${docCellStyles} whitespace-nowrap relative`}>
+          {!readOnly && (
+            <DeleteConfirmDialog
+              itemLabel="this deliverable"
+              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
+              onConfirm={() => onDelete(deliverable.id)}
+              buttonClassName="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
+              iconSize="h-4 w-4"
+            />
+          )}
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}
@@ -613,7 +628,7 @@ function DeliverableRow({
                 type="button"
                 onClick={open}
                 disabled={readOnly}
-                className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+                className={SUBTLE_CONTROL}
               >
                 {selectedTasks.length === 0 ? (
                   <span className="text-muted-foreground italic">Select task…</span>
@@ -630,46 +645,9 @@ function DeliverableRow({
             )}
           />
       </td>
-
-
-      {/* Controls: move and delete, hard right and as tight as the icons. */}
-      <td className={`${docCellStyles} whitespace-nowrap`}>
-        <div className="flex items-center justify-end gap-1">
-          {!readOnly && onMove && otherWpDrafts.length > 0 && (
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
-                      <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Move deliverable to another WP</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Move deliverable to another WP</DropdownMenuLabel>
-                {otherWpDrafts.map(wp => (
-                  <DropdownMenuItem key={wp.id} onClick={() => onMove(deliverable.id, wp.id)}>
-                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {!readOnly && (
-            <DeleteConfirmDialog
-              itemLabel="this deliverable"
-              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
-              onConfirm={() => onDelete(deliverable.id)}
-              buttonClassName="h-7 w-7 text-red-600 hover:text-red-700"
-              iconSize="h-4 w-4"
-            />
-          )}
-        </div>
-      </td>
     </tr>
   );
+
 
 }
 
