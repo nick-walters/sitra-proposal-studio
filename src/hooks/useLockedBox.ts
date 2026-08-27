@@ -86,8 +86,12 @@ export function lostTextPayload(typed: string, holderName: string | null): LostT
  * exactly when the holder is typing.
  */
 export function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
-  if (lockedByOther) return 'border-destructive ring-1 ring-destructive/40';
+  // Single shared treatment — see LockBoundary. Identical 2px boundary in both
+  // states; the focus-visible overrides stop shadcn's blue ring winning while
+  // the holder types.
+  if (lockedByOther) return 'border-2 border-destructive';
   if (isMine)
-    return 'border-emerald-600 ring-1 ring-emerald-600/40 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/60 focus-visible:ring-offset-0';
+    return 'border-2 border-emerald-600 focus-visible:border-emerald-600 focus-visible:ring-0 focus-visible:ring-offset-0';
   return '';
 }
+
