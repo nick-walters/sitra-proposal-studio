@@ -436,6 +436,12 @@ export function WPTableSection({
                       proposalId={proposalId}
                       shouldStayMounted={shouldStayMounted}
                       dragHandleProps={readOnly ? undefined : dragHandleProps}
+                      collapsed={isCollapsed(wpTaskCollapseKey(task.id))}
+                      onToggleCollapsed={
+                        onToggleCollapsed
+                          ? () => onToggleCollapsed(wpTaskCollapseKey(task.id))
+                          : undefined
+                      }
                     />
                   )}
                 </SortableTaskModule>
@@ -503,6 +509,8 @@ interface TaskModuleProps {
   proposalId?: string | null;
   shouldStayMounted?: () => boolean;
   dragHandleProps?: Record<string, unknown>;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 /** One task module: badge and title, leader and participants, duration, text. */
@@ -520,6 +528,8 @@ function TaskModule({
   proposalId,
   shouldStayMounted,
   dragHandleProps,
+  collapsed = false,
+  onToggleCollapsed,
 }: TaskModuleProps) {
   const isVisible = task.is_visible !== false;
   const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
