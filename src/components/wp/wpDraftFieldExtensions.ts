@@ -35,6 +35,7 @@ import {
   A3_JUSTIFICATION_CAPABILITIES,
 } from '@/lib/fieldCapabilities';
 import { CitationMark, CitationNode } from '@/components/CitationMark';
+import { TRACK_CHANGE_MARKS } from '@/extensions/TrackChanges';
 
 /**
  * Reference nodes shared by every WP-draft static schema. They resolve their
@@ -51,6 +52,8 @@ const REFERENCE_NODES: Extensions = [
   // Authored table/figure captions must survive the static round trip.
   CaptionLabel,
   ParagraphClassStatic,
+  // Tracked insertions/deletions must survive the static round trip.
+  ...TRACK_CHANGE_MARKS,
 ];
 
 /**

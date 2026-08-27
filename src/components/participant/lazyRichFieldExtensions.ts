@@ -12,6 +12,7 @@ import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { FieldCapabilities, A2_DESCRIPTION_CAPABILITIES } from '@/lib/fieldCapabilities';
+import { TRACK_CHANGE_MARKS } from '@/extensions/TrackChanges';
 
 /**
  * Schema used to render A2 participant-description fields as STATIC HTML
@@ -51,6 +52,9 @@ export const LAZY_RICH_FIELD_EXTENSIONS: Extensions = [
   InlineReferenceNode,
   AcronymReference,
   FigureTableReferenceMark,
+  // Tracked insertions/deletions are marks: absent from this schema they are
+  // dropped by the static round trip the moment the field blurs.
+  ...TRACK_CHANGE_MARKS,
   // Baseline + bullets, alignment, cross-reference.
   FieldCapabilities.configure(A2_DESCRIPTION_CAPABILITIES),
 ];

@@ -27,6 +27,7 @@ import {
 import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { ParagraphClassStatic } from '@/extensions/ParagraphClassStatic';
 import { CitationMark, CitationNode } from '@/components/CitationMark';
+import { TRACK_CHANGE_MARKS } from '@/extensions/TrackChanges';
 
 /**
  * Schema used to render case-draft narrative subsections as STATIC HTML
@@ -73,4 +74,6 @@ export const CASE_DRAFT_FIELD_EXTENSIONS: Extensions = [
   ParagraphClassStatic,
   CitationNode,
   CitationMark,
+  // Tracked insertions/deletions must survive the static round trip.
+  ...TRACK_CHANGE_MARKS,
 ];
