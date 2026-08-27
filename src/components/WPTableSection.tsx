@@ -18,6 +18,8 @@ import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { BlockControlRow } from '@/components/cards/BlockControlRow';
+
 import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
 import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
