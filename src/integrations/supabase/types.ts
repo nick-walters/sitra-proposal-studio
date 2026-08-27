@@ -467,7 +467,11 @@ export type Database = {
           deleted_at: string
           deleted_by: string | null
           id: string
+          links: Json | null
           parent_card_id: string | null
+          parent_id: string | null
+          parent_type: string | null
+          payload: Json | null
           proposal_id: string
           purge_after: string | null
           restored_at: string | null
@@ -480,7 +484,11 @@ export type Database = {
           deleted_at?: string
           deleted_by?: string | null
           id?: string
+          links?: Json | null
           parent_card_id?: string | null
+          parent_id?: string | null
+          parent_type?: string | null
+          payload?: Json | null
           proposal_id: string
           purge_after?: string | null
           restored_at?: string | null
@@ -493,7 +501,11 @@ export type Database = {
           deleted_at?: string
           deleted_by?: string | null
           id?: string
+          links?: Json | null
           parent_card_id?: string | null
+          parent_id?: string | null
+          parent_type?: string | null
+          payload?: Json | null
           proposal_id?: string
           purge_after?: string | null
           restored_at?: string | null
@@ -524,11 +536,13 @@ export type Database = {
           content_html: string | null
           created_at: string
           created_by: string | null
-          field_id: string
+          field_id: string | null
           heading: string | null
           id: string
           is_auto_save: boolean
           proposal_id: string
+          target_id: string
+          target_type: string
           text_box: string
           version_number: number
         }
@@ -536,11 +550,13 @@ export type Database = {
           content_html?: string | null
           created_at?: string
           created_by?: string | null
-          field_id: string
+          field_id?: string | null
           heading?: string | null
           id?: string
           is_auto_save?: boolean
           proposal_id: string
+          target_id: string
+          target_type?: string
           text_box?: string
           version_number: number
         }
@@ -548,11 +564,13 @@ export type Database = {
           content_html?: string | null
           created_at?: string
           created_by?: string | null
-          field_id?: string
+          field_id?: string | null
           heading?: string | null
           id?: string
           is_auto_save?: boolean
           proposal_id?: string
+          target_id?: string
+          target_type?: string
           text_box?: string
           version_number?: number
         }
@@ -6992,6 +7010,14 @@ export type Database = {
         Args: { p_expected_version?: number; p_id: string; p_table: string }
         Returns: Json
       }
+      bin_target_row: {
+        Args: {
+          p_expected_version?: number
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: Json
+      }
       caller_is_sitra_staff: { Args: never; Returns: boolean }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
@@ -7182,6 +7208,7 @@ export type Database = {
         Returns: undefined
       }
       restore_binned_row: { Args: { p_bin_id: string }; Returns: Json }
+      restore_binned_target: { Args: { p_deletion_id: string }; Returns: Json }
       restore_card: { Args: { p_card_id: string }; Returns: undefined }
       restore_card_field: { Args: { p_field_id: string }; Returns: Json }
       restore_excluded_tables: { Args: never; Returns: string[] }
@@ -7192,6 +7219,10 @@ export type Database = {
         Returns: Json
       }
       restore_scope_predicates: { Args: never; Returns: Json }
+      restore_target_version: {
+        Args: { p_expected_version?: number; p_version_id: string }
+        Returns: Json
+      }
       save_card_field_version: {
         Args: {
           p_field_id: string
@@ -7245,6 +7276,16 @@ export type Database = {
         Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: Json
       }
+      save_target_version: {
+        Args: {
+          p_is_auto_save?: boolean
+          p_target_id: string
+          p_target_type: string
+          p_text_box: string
+          p_value: string
+        }
+        Returns: number
+      }
       save_versioned_row: {
         Args: {
           p_expected_version: number
@@ -7290,6 +7331,12 @@ export type Database = {
         Args: { p_proposal_id: string }
         Returns: number
       }
+      thin_target_versions: { Args: { p_proposal_id: string }; Returns: number }
+      version_target_proposal: {
+        Args: { p_target_id: string; p_target_type: string }
+        Returns: string
+      }
+      version_target_table: { Args: { p_target_type: string }; Returns: string }
       versioned_row_proposal: {
         Args: { p_id: string; p_table: string }
         Returns: string
