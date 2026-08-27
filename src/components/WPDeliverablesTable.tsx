@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, ArrowRight, RotateCcw } from 'lucide-react';
+import { Plus, ArrowRight, Recycle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -302,7 +302,20 @@ export function WPDeliverablesTable({
             reached through the Guidelines button with a field focused. */}
         <BlockControlRow
           className="px-1"
-          title="Deliverables"
+          collapsed={collapsed}
+          onToggleCollapsed={onToggleCollapsed}
+          title={
+            <span
+              style={{
+                fontFamily: "'Times New Roman', Times, serif",
+                fontSize: '11pt',
+                paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 36px)' : 'calc(1.5cm - 4px)',
+                display: 'inline-block',
+              }}
+            >
+              Deliverables
+            </span>
+          }
           trailing={
             !readOnly ? (
               <div className="flex items-center gap-1">
@@ -374,7 +387,7 @@ export function WPDeliverablesTable({
                       disabled={binCount === 0}
                       onClick={() => setBinOpen(true)}
                     >
-                      <RotateCcw className="h-3.5 w-3.5" />
+                      <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
