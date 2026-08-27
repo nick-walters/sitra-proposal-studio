@@ -1,46 +1,33 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Target, Plus, GripVertical, ArrowRight, Crown } from 'lucide-react';
+import { Plus, ArrowRight, Crown, Eye, EyeOff } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
-import { LazyRichField } from '@/components/participant/LazyRichField';
-import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
 import { BlockControlRow } from '@/components/cards/BlockControlRow';
+import { WPBinDialog } from '@/components/wp/WPBinDialog';
+import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
 
 import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
-import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS, WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface WPOption {
   id: string;
@@ -54,298 +41,337 @@ interface WPTableSectionProps {
   wpColor?: string;
   objectives: string | null;
   descriptionBeforeTasks: string | null;
+  introVisible?: boolean;
+  onIntroVisibleChange?: (visible: boolean) => void;
   tasks: WPDraftTask[];
   participants: ParticipantSummary[];
   onObjectivesChange: (value: string) => void;
   onDescriptionBeforeTasksChange: (value: string) => void;
+  /** Creates or removes the single optional field before the first task. */
+  onIntroPresenceChange?: (present: boolean) => void;
   onTaskUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onTaskAdd: () => Promise<any>;
   onTaskDelete: (taskId: string) => Promise<boolean>;
   onTaskParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
-  onTaskReorder?: (newOrder: string[]) => Promise<boolean>;
   onTaskMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
-  hideToolbar?: boolean;
   allWpDrafts?: WPOption[];
   currentWpDraftId?: string;
   proposalId?: string | null;
-  /** WP draft row id — addresses this WP's lock targets. */
+  /** WP draft row id — addresses this WP's lock and version targets. */
   wpDraftId?: string | null;
-  canManageCustomColors?: boolean;
   /** Keep the focused editor mounted while an insert dialog is open. */
   shouldStayMounted?: () => boolean;
 }
 
+/**
+ * The Objectives and Tasks blocks of a WP draft.
+ *
+ * These are PROJECTIONS over `wp_drafts` and `wp_draft_tasks` — there are no
+ * card rows behind them. They wear the Part B block chrome (`BlockControlRow`)
+ * and the page-styled surface (`doc-surface-page`), and every rich field is
+ * lock-, stream- and version-aware through `LockedWPRichField` and the
+ * `data-version-target` marker the toolbar reads.
+ */
 export function WPTableSection({
   wpNumber,
   wpColor,
   objectives,
   descriptionBeforeTasks,
+  introVisible = true,
+  onIntroVisibleChange,
   tasks,
   participants,
   onObjectivesChange,
   onDescriptionBeforeTasksChange,
+  onIntroPresenceChange,
   onTaskUpdate,
   onTaskAdd,
   onTaskDelete,
   onTaskParticipantsChange,
-  onTaskReorder,
   onTaskMove,
   readOnly = false,
   projectDuration = 36,
-  hideToolbar = false,
   allWpDrafts = [],
   currentWpDraftId,
   proposalId,
   wpDraftId,
-  canManageCustomColors = false,
   shouldStayMounted,
 }: WPTableSectionProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
   const monthOptions = Array.from({ length: projectDuration }, (_, i) => i + 1);
+  const [binOpen, setBinOpen] = useState(false);
 
   const formatTaskNumber = (taskNum: number) => `T${wpNumber}.${taskNum}`;
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !onTaskReorder) return;
-
-    const oldIndex = tasks.findIndex((t) => t.id === active.id);
-    const newIndex = tasks.findIndex((t) => t.id === over.id);
-    const reordered = arrayMove(tasks, oldIndex, newIndex);
-    
-    onTaskReorder(reordered.map(t => t.id));
-  };
+  // The optional field before the first task exists when the column holds a
+  // string — an empty string is a present-but-empty field, null is "no field".
+  const introPresent = descriptionBeforeTasks !== null && descriptionBeforeTasks !== undefined;
+  const otherWps = allWpDrafts.filter((wp) => wp.id !== currentWpDraftId);
 
   return (
-    <Card>
-      <CardHeader className="py-2 px-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Target className="h-4 w-4" />
-          WP table (objective & tasks)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 px-3 pb-3 pt-0">
-        {/* Objectives block. `data-guideline-key` lets the shared
-            Guidelines control show this field's guidance only. */}
-        <div className="space-y-1 rounded-md border" data-guideline-key="wp.objectives">
-          <BlockControlRow className="px-2 pt-2" title="Objective" />
-          {/* Page-styled surface: 21 cm page (18 cm column + 1.5 cm
-              margins), white, Times 11 pt justified, no field chrome. */}
-          <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
-            {wpDraftId ? (
-              <LockedWPRichField
-                targetId={wpTargetId(wpDraftId, 'objectives')}
-                value={objectives || ''}
-                onChange={onObjectivesChange}
-                disabled={readOnly}
-                minHeight="80px"
-                proposalId={proposalId ?? ''}
-                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
-                documentSurface
-                shouldStayMounted={shouldStayMounted}
-              />
-            ) : (
-              <DebouncedRichField
-                value={objectives || ''}
-                onChange={onObjectivesChange}
-                disabled={readOnly}
-                minHeight="80px"
-                proposalId={proposalId ?? ''}
-                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
-                documentSurface
-                shouldStayMounted={shouldStayMounted}
-              />
-            )}
-          </div>
-          <p className="px-2 pb-2 text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
-        </div>
-
-        {/* Description of work — intro (optional field before tasks) */}
-        <div className="space-y-1 rounded-md border" data-guideline-key="wp.methodology">
-          <BlockControlRow className="px-2 pt-2" title="Description of work — intro" />
-          <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
-            {wpDraftId ? (
-              <LockedWPRichField
-                targetId={wpTargetId(wpDraftId, 'intro')}
-                value={descriptionBeforeTasks || ''}
-                onChange={onDescriptionBeforeTasksChange}
-                disabled={readOnly}
-                minHeight="60px"
-                proposalId={proposalId ?? ''}
-                staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-                documentSurface
-                shouldStayMounted={shouldStayMounted}
-              />
-            ) : (
-              <DebouncedRichField
-                value={descriptionBeforeTasks || ''}
-                onChange={onDescriptionBeforeTasksChange}
-                disabled={readOnly}
-                minHeight="60px"
-                proposalId={proposalId ?? ''}
-                staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-                documentSurface
-                shouldStayMounted={shouldStayMounted}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Task blocks */}
-        <div className="space-y-2">
-          <BlockControlRow
-            className="px-1"
-            title="Tasks"
-            onAdd={!readOnly && onTaskAdd ? onTaskAdd : undefined}
-            addLabel="Add task"
-          />
-
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+    <div className="space-y-4">
+      {/* ── BLOCK 2: Objectives. One field, no block controls. ── */}
+      <section
+        className="space-y-1"
+        data-guideline-key="wp.objectives"
+        data-version-label="Objectives"
+        data-version-target={
+          wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
+        }
+      >
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+          <p
+            className="select-none font-bold"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
           >
-            <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {tasks.map((task) => (
-                  <div key={task.id} id={`wp-task-row-${task.id}`}>
-                  <SortableTaskCard
-                    task={task}
-                    wpNumber={wpNumber}
-                    wpColor={wpColor}
-                    participants={participants}
-                    monthOptions={monthOptions}
-                    projectDuration={projectDuration}
-                    onUpdate={onTaskUpdate}
-                    onDelete={onTaskDelete}
-                    onParticipantsChange={onTaskParticipantsChange}
-                    onMove={onTaskMove}
-                    readOnly={readOnly}
-                    formatTaskNumber={formatTaskNumber}
-                    canReorder={!readOnly && !!onTaskReorder}
-                    hideToolbar={hideToolbar}
-                    allWpDrafts={allWpDrafts}
-                    currentWpDraftId={currentWpDraftId}
-                    proposalId={proposalId}
-                    canManageCustomColors={canManageCustomColors}
-                    shouldStayMounted={shouldStayMounted}
-                  />
-                  </div>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-          {!readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onTaskAdd}
-              className="mt-2"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Task
-            </Button>
+            Objectives:
+          </p>
+          {wpDraftId && (
+            <LockedWPRichField
+              targetId={wpTargetId(wpDraftId, 'objectives')}
+              value={objectives || ''}
+              onChange={onObjectivesChange}
+              disabled={readOnly}
+              minHeight="60px"
+              proposalId={proposalId ?? ''}
+              staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
+              documentSurface
+              shouldStayMounted={shouldStayMounted}
+            />
           )}
         </div>
-      </CardContent>
-    </Card>
+      </section>
+
+      {/* ── BLOCK 3: Tasks ── */}
+      <section className="space-y-2">
+        <BlockControlRow
+          className="px-1"
+          title="Tasks"
+          trailing={
+            !readOnly ? (
+              <div className="flex items-center gap-1">
+                {/* Add: task, or the single field before the first task. */}
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Add">
+                          <Plus className="h-3.5 w-3.5 text-blue-500" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Add</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuItem onClick={() => void onTaskAdd()}>Add task</DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={introPresent || !onIntroPresenceChange}
+                      onClick={() => onIntroPresenceChange?.(true)}
+                    >
+                      Add a field before the first task
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Move a task to another WP. */}
+                {onTaskMove && otherWps.length > 0 && tasks.length > 0 && (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            aria-label="Move a task to another work package"
+                          >
+                            <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Move a task to another work package</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuLabel>Move a task to another WP</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {tasks.map((task) => (
+                        <DropdownMenuSub key={task.id}>
+                          <DropdownMenuSubTrigger>
+                            {formatTaskNumber(task.number)}
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {otherWps.map((wp) => (
+                              <DropdownMenuItem
+                                key={wp.id}
+                                onClick={() => void onTaskMove(task.id, wp.id)}
+                              >
+                                WP{wp.number}
+                                {wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            ) : undefined
+          }
+          onRestore={!readOnly && wpDraftId ? () => setBinOpen(true) : undefined}
+          restoreLabel="Restore a deleted task"
+        />
+
+        {/* The single optional field before the first task: fixed in place,
+            no header, no grip — only visibility and delete. */}
+        {introPresent && (
+          <div
+            className={cn('space-y-1', !introVisible && 'opacity-50')}
+            data-guideline-key="wp.methodology"
+            data-version-label="Field before the first task"
+            data-version-target={
+              wpDraftId
+                ? versionTargetAttr('wp_draft', wpDraftId, 'description_before_tasks')
+                : undefined
+            }
+          >
+            <div className="flex items-center justify-end gap-1 px-1">
+              {!readOnly && onIntroVisibleChange && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-pressed={!introVisible}
+                      onClick={() => onIntroVisibleChange(!introVisible)}
+                    >
+                      {introVisible ? (
+                        <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                      ) : (
+                        <EyeOff className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {introVisible ? 'Hide this field from Part B' : 'Show this field in Part B'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {!readOnly && onIntroPresenceChange && (
+                <DeleteConfirmDialog
+                  itemLabel="this field"
+                  onConfirm={async () => { onIntroPresenceChange(false); }}
+                />
+              )}
+            </div>
+            <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+              {wpDraftId && (
+                <LockedWPRichField
+                  targetId={wpTargetId(wpDraftId, 'intro')}
+                  value={descriptionBeforeTasks || ''}
+                  onChange={onDescriptionBeforeTasksChange}
+                  disabled={readOnly}
+                  minHeight="60px"
+                  proposalId={proposalId ?? ''}
+                  staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+                  documentSurface
+                  shouldStayMounted={shouldStayMounted}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Task modules. Their order is derived server-side from the task
+            number, so there is no drag grip here. */}
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <div key={task.id} id={`wp-task-row-${task.id}`}>
+              <TaskModule
+                task={task}
+                wpNumber={wpNumber}
+                wpColor={wpColor}
+                participants={participants}
+                projectDuration={projectDuration}
+                onUpdate={onTaskUpdate}
+                onDelete={onTaskDelete}
+                onParticipantsChange={onTaskParticipantsChange}
+                readOnly={readOnly}
+                formatTaskNumber={formatTaskNumber}
+                proposalId={proposalId}
+                shouldStayMounted={shouldStayMounted}
+              />
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <p className="py-2 text-center text-sm italic text-muted-foreground">
+              No tasks yet — use the add control above.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {wpDraftId && (
+        <WPBinDialog
+          isOpen={binOpen}
+          onClose={() => setBinOpen(false)}
+          wpDraftId={wpDraftId}
+          targetType="wp_draft_task"
+          title="Deleted tasks"
+        />
+      )}
+      {/* monthOptions is retained for the timing picker's month range. */}
+      <span className="hidden">{monthOptions.length}</span>
+    </div>
   );
 }
 
-interface SortableTaskCardProps {
+interface TaskModuleProps {
   task: WPDraftTask;
   wpNumber: number;
   wpColor?: string;
   participants: ParticipantSummary[];
-  monthOptions: number[];
   projectDuration: number;
   onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<boolean>;
   onParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
-  onMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly: boolean;
   formatTaskNumber: (num: number) => string;
-  canReorder: boolean;
-  hideToolbar?: boolean;
-  allWpDrafts?: WPOption[];
-  currentWpDraftId?: string;
   proposalId?: string | null;
-  canManageCustomColors?: boolean;
   shouldStayMounted?: () => boolean;
 }
 
-function SortableTaskCard({
+/** One task module: badge and title, leader and participants, duration, text. */
+function TaskModule({
   task,
   wpNumber,
   wpColor,
   participants,
-  monthOptions,
   projectDuration,
   onUpdate,
   onDelete,
   onParticipantsChange,
-  onMove,
   readOnly,
   formatTaskNumber,
-  canReorder,
-  hideToolbar = false,
-  allWpDrafts = [],
-  currentWpDraftId,
   proposalId,
-  canManageCustomColors = false,
   shouldStayMounted,
-}: SortableTaskCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id, disabled: !canReorder });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  // Persistence is debounced by DebouncedRichField (800 ms, matching the
-  // cards board), which also flushes on blur, unmount and navigation away.
-  const handleDescriptionChange = (value: string) => {
-    onUpdate(task.id, { description: value });
-  };
-
-
-
-  const selectedParticipantIds = (task.participants?.map(p => p.participant_id) || []).filter(id => id !== task.lead_participant_id);
-  const availableParticipants = task.lead_participant_id ? participants.filter(p => p.id !== task.lead_participant_id) : participants;
+}: TaskModuleProps) {
+  const isVisible = task.is_visible !== false;
+  const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
+    (id) => id !== task.lead_participant_id,
+  );
+  const availableParticipants = task.lead_participant_id
+    ? participants.filter((p) => p.id !== task.lead_participant_id)
+    : participants;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
-    >
-      {/* Row 1: Drag handle, Task number badge, Title, Delete */}
-      <div className="flex items-center gap-1.5">
-        {canReorder && (
-          <button
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
-          >
-            <GripVertical className="w-4 h-4 text-blue-500" />
-          </button>
-        )}
+    <div className={cn('space-y-1', !isVisible && 'opacity-50')} data-guideline-key="wp.tasks">
+      {/* Row 1: badge, title, visibility, delete */}
+      <div className="flex items-center gap-1.5 px-1">
         <span
-          className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0"
+          className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold"
           style={{
             backgroundColor: '#ffffff',
             border: `1.5px solid ${wpColor || '#73C92D'}`,
@@ -359,92 +385,118 @@ function SortableTaskCard({
         >
           {formatTaskNumber(task.number)}
         </span>
-        <DebouncedInput
-          value={task.title || ''}
-          onDebouncedChange={(val) => { onUpdate(task.id, { title: val }); }}
-          debounceMs={800}
-          placeholder="Task title..."
-          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60 shadow-none focus-visible:ring-0"
-          style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-          disabled={readOnly}
-        />
-        {!readOnly && (
-          <DeleteConfirmDialog
-            itemLabel="this task"
-            onConfirm={() => onDelete(task.id)}
+        <div
+          className="min-w-0 flex-1"
+          data-version-label={`${formatTaskNumber(task.number)} title`}
+          data-version-target={versionTargetAttr('wp_draft_task', task.id, 'title')}
+        >
+          <DebouncedInput
+            value={task.title || ''}
+            onDebouncedChange={(val) => { void onUpdate(task.id, { title: val }); }}
+            debounceMs={800}
+            placeholder="Task title…"
+            className="h-6 w-full border-0 bg-transparent px-1 font-bold text-foreground shadow-none outline-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            disabled={readOnly}
           />
+        </div>
+        {!readOnly && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                aria-pressed={!isVisible}
+                onClick={() => void onUpdate(task.id, { is_visible: !isVisible } as Partial<WPDraftTask>)}
+              >
+                {isVisible ? (
+                  <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isVisible ? 'Hide this task from Part B' : 'Show this task in Part B'}
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {!readOnly && (
+          <DeleteConfirmDialog itemLabel="this task" onConfirm={() => onDelete(task.id)} />
         )}
       </div>
 
-      {/* Row 2: Leader, Participants, Timing */}
-      <div className="flex items-center gap-1.5 mt-1.5 ml-5">
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-draft text-muted-foreground flex-shrink-0">Task Leader:</span>
-          <Select
-            value={task.lead_participant_id || ''}
-            onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value === '__clear__' ? null : value || null })}
-            disabled={readOnly}
+      {/* Row 2: leader, participants, duration — no headings */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <Select
+          value={task.lead_participant_id || ''}
+          onValueChange={(value) =>
+            onUpdate(task.id, {
+              lead_participant_id: value === '__clear__' ? null : value || null,
+            })
+          }
+          disabled={readOnly}
+        >
+          <SelectTrigger
+            className={cn(
+              'h-auto w-auto gap-0 border-0 bg-transparent p-0 text-draft shadow-none',
+              task.lead_participant_id ? 'font-bold' : 'font-normal',
+            )}
           >
-            {/* The black pill lives on an INNER span, never on the trigger
-                itself. Styling the trigger meant the pill inherited the
-                trigger's own box (fixed 17px height around a taller 11pt
-                Times line box, clipped by the base `[&>span]:line-clamp-1`
-                overflow rule); where the row landed on a fractional pixel the
-                rounded corners rasterised a stray 1px strip of black along the
-                top edge. The inner span owns its own overflow and background
-                clip, so nothing paints outside the rounded shape. */}
-            <SelectTrigger
-              className={cn(
-                "h-auto border-0 bg-transparent shadow-none p-0 w-auto gap-0 text-draft",
-                task.lead_participant_id ? "font-bold" : "font-normal",
-              )}
-            >
-              {task.lead_participant_id ? (
+            {task.lead_participant_id ? (
+              <span
+                className="relative inline-flex items-center overflow-hidden whitespace-nowrap"
+                style={{
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                  height: '17px',
+                  lineHeight: '17px',
+                  fontFamily: "'Times New Roman', Times, serif",
+                  fontSize: '11pt',
+                  borderRadius: '9999px',
+                  paddingLeft: '18px',
+                  paddingRight: '6px',
+                  backgroundClip: 'padding-box',
+                }}
+              >
+                <Crown
+                  className="absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 fill-white text-white"
+                  style={{ zIndex: 1 }}
+                />
+                <SelectValue placeholder="Select" className="font-normal" />
+              </span>
+            ) : (
+              <SelectValue placeholder="Task leader" className="font-normal" />
+            )}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__clear__">
+              <span className="italic text-muted-foreground">Clear selection</span>
+            </SelectItem>
+            {participants.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
                 <span
-                  className="relative inline-flex items-center overflow-hidden whitespace-nowrap"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full font-bold"
                   style={{
                     backgroundColor: '#000000',
                     color: '#ffffff',
-                    height: '17px',
-                    lineHeight: '17px',
                     fontFamily: "'Times New Roman', Times, serif",
                     fontSize: '11pt',
-                    borderRadius: '9999px',
-                    paddingLeft: '18px',
-                    paddingRight: '6px',
-                    backgroundClip: 'padding-box',
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    padding: '0px 5px',
+                    height: '17px',
                   }}
                 >
-                  <Crown
-                    className="w-3 h-3 text-white fill-white absolute left-1.5 top-1/2 -translate-y-1/2"
-                    style={{ zIndex: 1 }}
-                  />
-                  <SelectValue placeholder="Select" className="font-normal" />
+                  {p.organisation_short_name || p.organisation_name}
                 </span>
-              ) : (
-                <SelectValue placeholder="Select" className="font-normal" />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__clear__">
-                <span className="text-muted-foreground italic">Clear selection</span>
               </SelectItem>
-              {participants.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  <span
-                    className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                    style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                  >
-                    {p.organisation_short_name || p.organisation_name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center gap-1 flex-1 min-w-0">
-          <span className="text-draft text-muted-foreground flex-shrink-0">Participants:</span>
+        <div className="min-w-0 flex-1">
           <ParticipantMultiSelect
             participants={availableParticipants}
             selectedIds={selectedParticipantIds}
@@ -453,47 +505,26 @@ function SortableTaskCard({
           />
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <TimingRangePicker
             task={task}
             projectDuration={projectDuration}
             readOnly={readOnly}
             onUpdate={onUpdate}
           />
-
-          {/* Move to another WP */}
-          {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" aria-label="Forward" title="Forward">
-                  <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
-                {allWpDrafts
-                  .filter(wp => wp.id !== currentWpDraftId)
-                  .map(wp => (
-                    <DropdownMenuItem
-                      key={wp.id}
-                      onClick={() => onMove(task.id, wp.id)}
-                    >
-                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
 
-      {/* Row 3: Description editor */}
-      <div className="mt-2 ml-5" data-guideline-key="wp.tasks">
-        <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
+      {/* Row 3: description, on the page surface */}
+      <div
+        data-version-label={`${formatTaskNumber(task.number)} description`}
+        data-version-target={versionTargetAttr('wp_draft_task', task.id, 'description')}
+      >
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
-            onChange={handleDescriptionChange}
+            onChange={(value) => { void onUpdate(task.id, { description: value }); }}
             disabled={readOnly}
             minHeight="60px"
             proposalId={proposalId ?? ''}
@@ -553,31 +584,34 @@ function TimingRangePicker({
     }
   };
 
-  const fmt = (m: number | null) => m != null ? `M${String(m).padStart(2, '0')}` : null;
+  const fmt = (m: number | null) => (m != null ? `M${String(m).padStart(2, '0')}` : null);
 
   return (
     <>
-      <span className="text-draft text-muted-foreground">Timing:</span>
+      <span className="text-draft text-muted-foreground">Duration:</span>
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-draft h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
+          <button
+            className="h-6 cursor-pointer rounded-md border bg-background px-2 text-draft hover:opacity-80"
+            disabled={readOnly}
+          >
             {task.start_month != null && task.end_month != null ? (
               <>{fmt(task.start_month)}–{fmt(task.end_month)}</>
             ) : task.start_month != null ? (
-              <>{fmt(task.start_month)}–<span className="text-muted-foreground italic">M??</span></>
+              <>{fmt(task.start_month)}–<span className="italic text-muted-foreground">M??</span></>
             ) : (
-              <span className="text-muted-foreground italic font-normal">Select</span>
+              <span className="font-normal italic text-muted-foreground">Select</span>
             )}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-2" align="end">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-draft text-muted-foreground font-medium">
-              {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-draft font-medium text-muted-foreground">
+              {selecting === 'end' ? 'Select end month' : 'Select start month'}
             </span>
             {(task.start_month != null || task.end_month != null) && (
               <button
-                className="text-draft text-muted-foreground hover:text-foreground italic cursor-pointer"
+                className="cursor-pointer text-draft italic text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   setLocalStart(null);
                   setLocalEnd(null);
@@ -590,17 +624,19 @@ function TimingRangePicker({
             )}
           </div>
           <div className="grid grid-cols-6 gap-0.5">
-            {months.map(m => {
+            {months.map((m) => {
               const isStart = m === localStart;
               const isEnd = m === localEnd;
-              const isInRange = localStart != null && localEnd != null && m >= localStart && m <= localEnd;
-              const isPartialRange = selecting === 'end' && localStart != null && localEnd == null && m >= localStart;
+              const isInRange =
+                localStart != null && localEnd != null && m >= localStart && m <= localEnd;
+              const isPartialRange =
+                selecting === 'end' && localStart != null && localEnd == null && m >= localStart;
               return (
                 <button
                   key={m}
                   className={cn(
-                    'px-1 py-0.5 text-draft rounded cursor-pointer text-center',
-                    (isStart || isEnd) && 'bg-primary text-primary-foreground font-bold',
+                    'cursor-pointer rounded px-1 py-0.5 text-center text-draft',
+                    (isStart || isEnd) && 'bg-primary font-bold text-primary-foreground',
                     !isStart && !isEnd && isInRange && 'bg-primary/20',
                     !isStart && !isEnd && !isInRange && isPartialRange && 'bg-primary/10',
                     !isStart && !isEnd && !isInRange && !isPartialRange && 'hover:bg-accent',
@@ -617,3 +653,5 @@ function TimingRangePicker({
     </>
   );
 }
+
+export { WP_TITLE_FIELD_EXTENSIONS };
