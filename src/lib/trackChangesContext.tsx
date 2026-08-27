@@ -92,8 +92,9 @@ export function TrackChangesProvider({
 
   const value = useMemo<TrackChangesSetting>(() => {
     const enabled = !!data?.enabled;
+    const resolved = userId ? getUserName?.(userId) : '';
     const authorName =
-      getUserName?.(userId) ||
+      (resolved && resolved !== 'Unknown' ? resolved : '') ||
       data?.fullName ||
       (user?.user_metadata as any)?.full_name ||
       user?.email?.split('@')[0] ||
