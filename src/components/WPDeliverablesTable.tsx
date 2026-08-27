@@ -408,6 +408,7 @@ export function WPDeliverablesTable({
             under the header, hairlines between rows, no vertical rules, and a
             hard 18 cm measure. Every field for a deliverable sits on ONE row;
             each column is as tight as its content, the title taking the rest. */}
+        {!collapsed && (
         <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
           {sorted.length === 0 ? (
             <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
