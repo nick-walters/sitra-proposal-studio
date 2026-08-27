@@ -460,10 +460,8 @@ interface DeliverableRowProps {
   projectDuration: number;
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
-  onMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   onSaveTasks: (deliverableId: string, taskIds: string[]) => Promise<void>;
   readOnly: boolean;
-  otherWpDrafts: WPOption[];
   proposalId?: string | null;
   shouldStayMounted?: () => boolean;
 }
@@ -478,10 +476,8 @@ function DeliverableRow({
   projectDuration,
   onUpdate,
   onDelete,
-  onMove,
   onSaveTasks,
   readOnly,
-  otherWpDrafts,
   proposalId,
   shouldStayMounted,
 }: DeliverableRowProps) {
