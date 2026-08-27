@@ -1209,7 +1209,7 @@ function CardBlock({
                 <h3
                   className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
                     displayedTitle ? '' : 'italic text-muted-foreground no-underline'
-                  } ${titleLock.lockedByOther ? 'rounded border border-destructive px-1' : ''}`}
+                  } ${titleLock.lockedByOther ? 'rounded-md border-2 border-destructive px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
                   {...(displayedTitle
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
