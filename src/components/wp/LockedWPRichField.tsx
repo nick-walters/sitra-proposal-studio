@@ -3,7 +3,7 @@ import type { Extensions } from '@tiptap/core';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { useLockedBox, lostTextPayload } from '@/hooks/useLockedBox';
-import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
+import { LockBoundary, lockStateOf } from '@/components/cards/LockBoundary';
 import { reportLostTextPayload } from '@/lib/lostTextBus';
 
 /**
