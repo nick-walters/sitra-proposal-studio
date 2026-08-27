@@ -64,3 +64,24 @@ describe('track-changes sanitiser parity', () => {
     expect(out).toContain('Nick Walters');
   });
 });
+
+describe('track-changes static round trip', () => {
+  it('keeps both marks and their metadata through generateJSON → generateHTML', async () => {
+    const { generateHTML, generateJSON } = await import('@tiptap/core');
+    const { LAZY_RICH_FIELD_EXTENSIONS } = await import(
+      '@/components/participant/lazyRichFieldExtensions'
+    );
+    const html =
+      '<p><span data-track-insertion="" data-change-id="c1" data-author-id="u1" ' +
+      'data-author-name="Nick Walters" data-author-color="#E91E63" ' +
+      'data-timestamp="2026-08-27T05:00:00.000Z">added</span></p>';
+    const out = generateHTML(
+      generateJSON(html, LAZY_RICH_FIELD_EXTENSIONS),
+      LAZY_RICH_FIELD_EXTENSIONS,
+    );
+    expect(out).toContain('data-track-insertion');
+    expect(out).toContain('data-change-id="c1"');
+    expect(out).toContain('data-author-name="Nick Walters"');
+    expect(out).toContain('data-timestamp="2026-08-27T05:00:00.000Z"');
+  });
+});
