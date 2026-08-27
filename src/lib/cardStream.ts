@@ -156,20 +156,28 @@ export function sendSnapshot(sectionId: string, targetId: string, html: string) 
 
 export function requestSnapshot(sectionId: string, targetId: string) {
   const entry = streams.get(sectionId);
-  if (!entry) return;
+  if (!entry) {
+    // The provider's channel is acquired in a PARENT effect, which runs after
+    // this one. Ask again on the next tick rather than losing the request.
+    setTimeout(() => {
+      const late = streams.get(sectionId);
+      if (!late) return;
+      void late.channel.send({ type: 'broadcast', event: 'snapshot-request', payload: { targetId } });
+    }, 0);
+    return;
+  }
   void entry.channel.send({ type: 'broadcast', event: 'snapshot-request', payload: { targetId } });
 }
 
 export function onStreamContent(sectionId: string, listener: ContentListener) {
-  const entry = streams.get(sectionId);
-  if (!entry) return () => undefined;
-  entry.contentListeners.add(listener);
-  return () => entry.contentListeners.delete(listener);
+  const set = setsFor(sectionId).contentListeners;
+  set.add(listener);
+  return () => set.delete(listener);
 }
 
 export function onSnapshotRequest(sectionId: string, listener: SnapshotRequestListener) {
-  const entry = streams.get(sectionId);
-  if (!entry) return () => undefined;
-  entry.requestListeners.add(listener);
-  return () => entry.requestListeners.delete(listener);
+  const set = setsFor(sectionId).requestListeners;
+  set.add(listener);
+  return () => set.delete(listener);
 }
+
