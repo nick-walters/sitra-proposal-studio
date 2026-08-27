@@ -240,20 +240,13 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   // Guidelines are keyed to the focused field (see `data-guideline-key`
   // markers on the WP table / deliverables), falling back to the whole WP.
   const focusedGuidelineKey = useFocusedGuidelineKey();
-  const guidelineScope = GUIDELINE_SCOPES[focusedGuidelineKey ?? ''] ?? null;
-  const visibleEcGuidelines = guidelineScope
-    ? EC_GUIDELINES.filter((g) => guidelineScope.ec.includes(g.id))
-    : EC_GUIDELINES;
-  const visibleSitraTips = guidelineScope
-    ? SITRA_TIPS.filter((t) => guidelineScope.sitra.includes(t.id))
-    : SITRA_TIPS;
 
-  /* The B3.1 block guidance that belongs on this field, taken from the
-     proposal's own template version. */
+  /* Guidance for the focused field, authored against the Drafts section of
+     the proposal's own template version. */
   const { data: wpTemplateVersionId } = useProposalTemplateVersion(proposalId);
   const { data: blockGuidelines = [] } = useCardGuidelines(
-    BLOCK_GUIDELINE_KEYS[focusedGuidelineKey ?? ''] ?? null,
-    'part_b',
+    focusedGuidelineKey && focusedGuidelineKey.startsWith('drafts.') ? focusedGuidelineKey : null,
+    'drafts',
     wpTemplateVersionId,
     proposalId,
   );
