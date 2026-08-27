@@ -18,7 +18,7 @@ import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Plus, ArrowRight, Crown, Eye, EyeOff, GripVertical, RotateCcw } from 'lucide-react';
+import { Plus, ArrowRight, ChevronDown, ChevronUp, Crown, Eye, EyeOff, GripVertical, Recycle } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   DropdownMenu,
@@ -278,7 +278,7 @@ export function WPTableSection({
                     disabled={binCount === 0 || !wpDraftId}
                     onClick={() => setBinOpen(true)}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
