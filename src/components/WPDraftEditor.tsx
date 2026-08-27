@@ -15,6 +15,13 @@ import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types'
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
+import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
+import {
+  wpDeliverablesCollapseKey,
+  wpDescriptionCollapseKey,
+  wpObjectivesCollapseKey,
+  wpTaskCollapseKey,
+} from '@/lib/wpCollapseKeys';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
@@ -756,7 +763,20 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving, lastSaved, onSaveNow: () => {} }}
-          topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
+          topBar={{
+            onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            /* Collapse all folds every WP block AND every task module for this
+               user only; the preference persists exactly as it does on Part B. */
+            collapseAll: {
+              allCollapsed: allWpCollapsed,
+              disabled: setCollapsed.isPending || allCollapseKeys.length === 0,
+              onToggle: () =>
+                setCollapsed.mutate({
+                  keys: allCollapseKeys,
+                  collapsed: !allWpCollapsed,
+                }),
+            },
+          }}
           fieldBar={{
             onOpenGuidelines: () => setGuidelinesDialogOpen(true),
             /* The toolbar reads the nearest `data-version-target` marker, so
@@ -1053,6 +1073,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           proposalId={proposalId}
           wpDraftId={wpDraft.id}
           shouldStayMounted={shouldStayMounted}
+          collapsedKeys={collapsedKeys}
+          onToggleCollapsed={toggleCollapsed}
         />
 
 
@@ -1074,6 +1096,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           allWpDrafts={wpDrafts}
           proposalId={proposalId}
           shouldStayMounted={shouldStayMounted}
+          collapsed={collapsedKeys.has(wpDeliverablesCollapseKey(wpDraft.id))}
+          onToggleCollapsed={() => toggleCollapsed(wpDeliverablesCollapseKey(wpDraft.id))}
         />
         </div>
 
