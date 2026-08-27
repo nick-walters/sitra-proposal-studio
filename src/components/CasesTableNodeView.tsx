@@ -14,6 +14,8 @@ import { CROSS_REF_RICH_TEXT_CONFIG } from '@/lib/sanitizePresets';
 import { renderRefBadges } from '@/lib/renderRefBadges';
 import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { stripWordHtml } from '@/lib/stripWordHtml';
+import { fetchCaseSubsectionsByCase, overlaySubsectionContent } from '@/lib/caseSubsections';
+
 import { ParticipantBubble } from './B31Pill';
 // DECLARED EXCEPTION: the cases table keeps its own layout, but takes the font
 // and size tokens from the shared spec so it stays consistent.
