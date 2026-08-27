@@ -167,7 +167,7 @@ export function WPTableSection({
 
   return (
     <div className="space-y-4">
-      {/* ── BLOCK 2: Objectives. One field, no block controls. ── */}
+      {/* ── BLOCK 2: Objectives. One field, with the shared collapse control. ── */}
       <section
         data-guideline-key="drafts.wp.objectives"
         data-version-label="Objectives"
@@ -175,27 +175,45 @@ export function WPTableSection({
           wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
         }
       >
-        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
-          <p
-            className="select-none font-bold"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-          >
-            Objectives:
-          </p>
-          {wpDraftId && (
-            <LockedWPRichField
-              targetId={wpTargetId(wpDraftId, 'objectives')}
-              value={objectives || ''}
-              onChange={onObjectivesChange}
-              disabled={readOnly}
-              minHeight="60px"
-              proposalId={proposalId ?? ''}
-              staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
-              documentSurface
-              shouldStayMounted={shouldStayMounted}
+        {onToggleCollapsed && (
+          <div className="flex items-center gap-1 px-1">
+            <CollapseChevron
+              collapsed={isCollapsed(objectivesKey)}
+              onToggle={() => onToggleCollapsed(objectivesKey)}
             />
-          )}
-        </div>
+            {isCollapsed(objectivesKey) && (
+              <span
+                className="select-none font-bold"
+                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+              >
+                Objectives:
+              </span>
+            )}
+          </div>
+        )}
+        {!isCollapsed(objectivesKey) && (
+          <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+            <p
+              className="select-none font-bold"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            >
+              Objectives:
+            </p>
+            {wpDraftId && (
+              <LockedWPRichField
+                targetId={wpTargetId(wpDraftId, 'objectives')}
+                value={objectives || ''}
+                onChange={onObjectivesChange}
+                disabled={readOnly}
+                minHeight="60px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            )}
+          </div>
+        )}
       </section>
 
       {/* ── BLOCK 3: Description of work ──
@@ -204,12 +222,26 @@ export function WPTableSection({
           as a Part B block does. Modules are separated by the same hairline. */}
       <section className="rounded-md border border-border bg-card">
         <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+          {onToggleCollapsed && (
+            <CollapseChevron
+              collapsed={isCollapsed(dowKey)}
+              onToggle={() => onToggleCollapsed(dowKey)}
+            />
+          )}
+          {/* The heading starts on the 18 cm column's left edge, matching the
+              text below it: the header's own padding and the chevron column
+              are subtracted from the 1.5 cm margin. */}
           <p
             className="min-w-0 flex-1 select-none font-bold"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            style={{
+              fontFamily: "'Times New Roman', Times, serif",
+              fontSize: '11pt',
+              paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 40px)' : 'calc(1.5cm - 12px)',
+            }}
           >
             Description of work:
           </p>
+
           {!readOnly && (
             <div className="flex items-center gap-1">
               {/* Order: add, move to another WP, restore. */}
