@@ -14,6 +14,35 @@ import {
 
 
 /** Options shared by both WP hooks. */
+/**
+ * Text boxes that carry version history, per target. Every successful save of
+ * one of these writes a snapshot through the generic target versioning added in
+ * prompt 87, which is what the toolbar's version history reads.
+ */
+const VERSIONED_BOXES: Record<string, readonly string[]> = {
+  wp_draft: ['objectives', 'description_before_tasks'],
+  wp_draft_task: ['title', 'description'],
+  wp_draft_deliverable: ['title'],
+};
+
+function snapshotTargetBoxes(
+  targetType: 'wp_draft' | 'wp_draft_task' | 'wp_draft_deliverable',
+  targetId: string,
+  updates: Record<string, unknown>,
+) {
+  for (const box of VERSIONED_BOXES[targetType]) {
+    const value = updates[box];
+    if (typeof value !== 'string') continue;
+    void supabase.rpc('save_target_version', {
+      p_target_type: targetType,
+      p_target_id: targetId,
+      p_text_box: box,
+      p_value: value,
+      p_is_auto_save: true,
+    });
+  }
+}
+
 export interface WPDraftHookOptions {
   /**
    * Called when a save is rejected because the row moved on. Receives the text
@@ -370,6 +399,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       }
       if (!res.ok) throw new Error(res.error || 'save failed');
 
+      snapshotTargetBoxes('wp_draft', wpId, { [field]: cleanValue });
       setWPDraft(prev => prev ? { ...prev, [field]: value, version: res.version ?? prev.version } : null);
       setLastSaved(new Date());
       return true;
@@ -464,6 +494,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       console.error('Error updating task:', res.error);
       return false;
     }
+    snapshotTargetBoxes('wp_draft_task', taskId, updates as Record<string, unknown>);
     setWPDraft(prev => prev ? {
       ...prev,
       tasks: prev.tasks?.map(t => t.id === taskId ? { ...t, ...updates, version: res.version ?? t.version } : t),
@@ -593,6 +624,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       console.error('Error updating deliverable:', res.error);
       return false;
     }
+    snapshotTargetBoxes('wp_draft_deliverable', deliverableId, updates as Record<string, unknown>);
     setWPDraft(prev => prev ? {
       ...prev,
       deliverables: prev.deliverables?.map(d =>

@@ -54,6 +54,8 @@ import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { useCardGuidelines } from '@/hooks/useCardGuidelines';
 import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
 import DOMPurify from 'dompurify';
+import { useFocusedVersionTarget } from '@/hooks/useFocusedVersionTarget';
+import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 
 
 interface WPDraftEditorProps {
@@ -64,102 +66,14 @@ interface WPDraftEditorProps {
   projectDuration?: number;
 }
 
-const SITRA_TIPS = [
-  {
-    id: 'sitra-1',
-    title: 'Structure your WP clearly',
-    content: 'Each WP should have clear objectives, well-defined tasks, and measurable deliverables. Evaluators appreciate logical flow and clear dependencies.',
-  },
-  {
-    id: 'sitra-2',
-    title: 'Balance the workload',
-    content: 'Ensure effort is distributed appropriately among partners. Check that WP leaders have sufficient resources and expertise for their roles.',
-  },
-  {
-    id: 'sitra-3',
-    title: 'Consider timing carefully',
-    content: 'Plan task timing to avoid bottlenecks. Allow buffer for unexpected delays, especially for external dependencies and approval processes.',
-  },
-  {
-    id: 'sitra-methodology-1',
-    title: 'Be specific about your choices',
-    content: 'Explain WHY you chose these particular methods over alternatives. Evaluators want to see that you\'ve considered options and made informed decisions.',
-  },
-  {
-    id: 'sitra-methodology-2',
-    title: 'Reference state-of-the-art',
-    content: 'Show awareness of current best practices and explain how your approach builds on or improves existing methodologies.',
-  },
-  {
-    id: 'sitra-methodology-3',
-    title: 'Acknowledge limitations',
-    content: 'Being honest about methodological limitations and explaining your mitigation strategies demonstrates maturity and credibility.',
-  },
-  {
-    id: 'sitra-methodology-4',
-    title: 'Link to objectives',
-    content: 'Explicitly connect your methods to the objectives they support. Show evaluators that every methodological choice serves a purpose.',
-  },
-];
-
-const EC_GUIDELINES = [
-  {
-    id: 'ec-methodology',
-    title: 'Methodology',
-    content: 'Describe and explain the methodologies used in this WP, including the concepts, models and assumptions that underpin your work. Explain how they will enable you to deliver your project\'s objectives. Refer to any important challenges you may have identified in the chosen methodologies and how you intend to overcome them.',
-  },
-  {
-    id: 'ec-objectives',
-    title: 'Objectives',
-    content: 'State the objectives for this work package in a manner that is verifiable and measurable. They should be consistent with the overall project objectives.',
-  },
-  {
-    id: 'ec-tasks',
-    title: 'Tasks',
-    content: 'For each task, provide:\n• A description of the work\n• The partner(s) involved and the task leader\n• Start month and end month\n• Links to other tasks and work packages',
-  },
-  {
-    id: 'ec-deliverables',
-    title: 'Deliverables',
-    content: 'For each deliverable, provide:\n• A short name and description\n• The nature of the deliverable (Report, Demonstrator, Data management, etc.)\n• The dissemination level (Public, Sensitive, or Classified: EU-RES, EU-CON, EU-SEC)\n• The delivery date (project month)\n• The partner responsible',
-  },
-  {
-    id: 'ec-risks',
-    title: 'Critical risks',
-    content: 'Describe any critical risks relating to project implementation that the stated project objectives may not be achieved. Detail:\n• A description of the risk\n• The work package(s) involved\n• Proposed risk-mitigation measures',
-  },
-];
-
-// Which guidance belongs to which field, keyed by the `data-guideline-key`
-// marker on the field's container. Unknown/absent key = show everything.
-const GUIDELINE_SCOPES: Record<string, { ec: string[]; sitra: string[] }> = {
-  'wp.objectives': { ec: ['ec-objectives'], sitra: ['sitra-1', 'sitra-methodology-4'] },
-  'wp.methodology': {
-    ec: ['ec-methodology'],
-    sitra: ['sitra-methodology-1', 'sitra-methodology-2', 'sitra-methodology-3', 'sitra-methodology-4'],
-  },
-  'wp.tasks': { ec: ['ec-tasks'], sitra: ['sitra-1', 'sitra-2', 'sitra-3'] },
-  'wp.deliverables': { ec: ['ec-deliverables'], sitra: ['sitra-1', 'sitra-3'] },
-};
-
-/* WP drafts are not block-based, so they have no card of their own to hang
-   guidance off. The Commission guidance for Table 3.1.b (work package
-   descriptions) and Table 3.1.c (deliverables) is authored once against those
-   B3.1 blocks and reached from here by block key, so the author sees it where
-   the writing actually happens. Resolved against the proposal's template
-   version like every other guideline lookup. */
-const BLOCK_GUIDELINE_KEYS: Record<string, string> = {
-  'wp.methodology': 'b31.table_b',
-  'wp.tasks': 'b31.table_b',
-  'wp.deliverables': 'b31.table_c',
-};
-
-
+/* Guidance for WP draft fields is authored in the backend under Sections &
+   Guidelines → Drafts (section D1), keyed by `drafts.wp.*`. Nothing is
+   hardcoded here and nothing is borrowed from B3.1 any more. */
 const GUIDELINE_TITLES: Record<string, string> = {
-  'wp.objectives': 'Guidelines: WP objective',
-  'wp.methodology': 'Guidelines: methodology',
-  'wp.tasks': 'Guidelines: tasks',
-  'wp.deliverables': 'Guidelines: deliverables',
+  'drafts.wp.objectives': 'Guidelines: WP objectives',
+  'drafts.wp.intro': 'Guidelines: the field before the first task',
+  'drafts.wp.task': 'Guidelines: tasks',
+  'drafts.wp.deliverables': 'Guidelines: deliverables',
 };
 
 // Parse content to handle bullet points
@@ -328,23 +242,20 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   // Guidelines are keyed to the focused field (see `data-guideline-key`
   // markers on the WP table / deliverables), falling back to the whole WP.
   const focusedGuidelineKey = useFocusedGuidelineKey();
-  const guidelineScope = GUIDELINE_SCOPES[focusedGuidelineKey ?? ''] ?? null;
-  const visibleEcGuidelines = guidelineScope
-    ? EC_GUIDELINES.filter((g) => guidelineScope.ec.includes(g.id))
-    : EC_GUIDELINES;
-  const visibleSitraTips = guidelineScope
-    ? SITRA_TIPS.filter((t) => guidelineScope.sitra.includes(t.id))
-    : SITRA_TIPS;
+  const versionTarget = useFocusedVersionTarget();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  /* The B3.1 block guidance that belongs on this field, taken from the
-     proposal's own template version. */
+  /* Guidance for the focused field, authored against the Drafts section of
+     the proposal's own template version. */
   const { data: wpTemplateVersionId } = useProposalTemplateVersion(proposalId);
   const { data: blockGuidelines = [] } = useCardGuidelines(
-    BLOCK_GUIDELINE_KEYS[focusedGuidelineKey ?? ''] ?? null,
-    'part_b',
+    focusedGuidelineKey && focusedGuidelineKey.startsWith('drafts.') ? focusedGuidelineKey : null,
+    'drafts',
     wpTemplateVersionId,
     proposalId,
   );
+  const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
+  const sitraTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
 
   
   // Dialog states for editor features
@@ -880,7 +791,12 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           proposalId={proposalId}
           save={{ saving, lastSaved, onSaveNow: () => {} }}
           topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
-          fieldBar={{ onOpenGuidelines: () => setGuidelinesDialogOpen(true) }}
+          fieldBar={{
+            onOpenGuidelines: () => setGuidelinesDialogOpen(true),
+            /* The toolbar reads the nearest `data-version-target` marker, so
+               history works on every WP field without threading a target. */
+            onOpenVersionHistory: versionTarget ? () => setHistoryOpen(true) : undefined,
+          }}
           formatting={{
             proposalId,
             canManageCustomColors: isCoordinator,
@@ -1005,14 +921,14 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             </span>
           </div>
 
-          {/* Metadata row: WP leader badge (left) + derived duration (right) */}
+          {/* Metadata row: the leader badge and the derived duration carry no
+              headings — the badge and the month range read for themselves. */}
           <div className="flex items-center justify-between px-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-draft text-muted-foreground">WP Leader:</span>
               {(() => {
                 const leader = participants.find((p) => p.id === wpDraft.lead_participant_id);
                 if (!leader) {
-                  return <span className="text-draft text-muted-foreground italic">Not set</span>;
+                  return <span className="text-draft text-muted-foreground italic">Leader not set</span>;
                 }
                 return (
                   <span
@@ -1037,36 +953,48 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 const endMonth = Math.max(...allMonths);
                 const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
-                  <div className="flex items-center gap-2">
-                    <span className="text-draft text-muted-foreground">Duration:</span>
-                    <span className="text-draft font-medium">
-                      {formatMonth(startMonth)}–{formatMonth(endMonth)}
-                    </span>
-                  </div>
+                  <span className="text-draft font-medium">
+                    {formatMonth(startMonth)}–{formatMonth(endMonth)}
+                  </span>
                 );
               }
-              return (
-                <div className="flex items-center gap-2">
-                  <span className="text-draft text-muted-foreground">Duration:</span>
-                  <span className="text-draft text-muted-foreground italic">—</span>
-                </div>
-              );
+              return <span className="text-draft text-muted-foreground italic">—</span>;
             })()}
           </div>
+
         </div>
 
+
+        {/* Version history for whichever WP field owns the toolbar. */}
+        {versionTarget && (
+          <CardFieldHistoryDialog
+            proposalId={proposalId}
+            fieldId={versionTarget.targetId}
+            textBox={versionTarget.textBox}
+            targetType={versionTarget.targetType}
+            fieldLabel={versionTarget.label}
+            boxLabelOverride={versionTarget.label}
+            isOpen={historyOpen}
+            canEdit={canEdit}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
 
         {/* Guidelines Dialog */}
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>{guidelineScope ? GUIDELINE_TITLES[focusedGuidelineKey ?? ''] : `Guidelines for WP${wpDraft.number}: ${wpDraft.title || wpDraft.short_name || 'Work package'}`}</DialogTitle>
+              <DialogTitle>
+                {GUIDELINE_TITLES[focusedGuidelineKey ?? ''] ??
+                  `Guidelines for WP${wpDraft.number}: ${wpDraft.title || wpDraft.short_name || 'Work package'}`}
+              </DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
-                {/* Commission guidance authored against the matching B3.1
-                    block, shown here where the author writes it. */}
-                {blockGuidelines.length > 0 && (
+                {/* Everything shown here is authored in the backend under
+                    Sections & Guidelines → Drafts, against this proposal's own
+                    template version. */}
+                {officialGuidelines.length > 0 && (
                   <div className="rounded-lg border-2 border-blue-500 bg-blue-50/50 p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <BookOpen className="h-5 w-5 flex-shrink-0 text-blue-500" />
@@ -1075,7 +1003,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                       </span>
                     </div>
                     <div className="space-y-4">
-                      {blockGuidelines.map((g) => (
+                      {officialGuidelines.map((g) => (
                         <div key={g.id}>
                           {g.title && (
                             <h4 className="mb-2 font-semibold text-blue-600">{g.title}</h4>
@@ -1090,52 +1018,40 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                   </div>
                 )}
 
-                {/* Official EC Guidelines */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
-                  {visibleEcGuidelines.map((guideline) => (
-                    <div key={guideline.id} className="space-y-1">
-                      <h5 className="font-medium text-sm text-muted-foreground">{guideline.title}</h5>
-                      {parseGuidelineContent(guideline.content)}
+                {sitraTips.length > 0 && (
+                  <div className="rounded-lg border-2 border-gray-800 bg-gray-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0 text-gray-800" />
+                      <span className="text-sm font-bold text-gray-900">Sitra&rsquo;s tips</span>
                     </div>
-                  ))}
-                </div>
-
-
-                {/* Sitra's Tips Box - matching Part B style */}
-                <div
-                  className={cn(
-                    "rounded-lg border-2 p-4",
-                    "border-gray-800",
-                    "bg-gray-50/50"
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex-shrink-0 text-gray-800">
-                      <Lightbulb className="h-5 w-5" />
+                    <div className="space-y-4">
+                      {sitraTips.map((tip, index) => (
+                        <div key={tip.id}>
+                          {tip.title && (
+                            <h4 className="mb-2 font-semibold text-gray-900">{tip.title}</h4>
+                          )}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tip.content) }}
+                          />
+                          {index < sitraTips.length - 1 && (
+                            <div className="mt-4 border-t border-current/10" />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-sm font-bold text-gray-900">
-                      Sitra's tips
-                    </span>
                   </div>
-                  
-                  <div className="space-y-4">
-                    {visibleSitraTips.map((tip, index) => (
-                      <div key={tip.id}>
-                        {tip.title && (
-                          <h4 className="font-semibold mb-2 text-gray-900">
-                            {tip.title}
-                          </h4>
-                        )}
-                        {parseGuidelineContent(tip.content)}
-                        {index < visibleSitraTips.length - 1 && (
-                          <div className="mt-4 border-t border-current/10" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
+
+                {blockGuidelines.length === 0 && (
+                  <p className="text-sm italic text-muted-foreground">
+                    {focusedGuidelineKey
+                      ? 'No guidance has been authored for this field yet.'
+                      : 'Place the cursor in a field to see the guidance for it.'}
+                  </p>
+                )}
               </div>
+
             </ScrollArea>
           </DialogContent>
         </Dialog>

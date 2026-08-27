@@ -145,10 +145,14 @@ export function TemplateTypeWorkspace({
   const subsections = useMemo(
     () =>
       (sections as any[])
-        .filter((s) => /^B\d+\.\d+$/.test(s.section_number ?? ''))
-        .sort((a, b) =>
-          String(a.section_number).localeCompare(String(b.section_number), undefined, { numeric: true }),
-        ),
+        /* Leaf Part B subsections, then the Drafts sections (D1, D2) where a
+           coordinator authors guidance for WP and case draft fields. */
+        .filter((s) => /^(B\d+\.\d+|D\d+)$/.test(s.section_number ?? ''))
+        .sort((a, b) => {
+          const rank = (n: string) => (n.startsWith('D') ? 1 : 0);
+          const an = String(a.section_number), bn = String(b.section_number);
+          return rank(an) - rank(bn) || an.localeCompare(bn, undefined, { numeric: true });
+        }),
     [sections],
   );
   const subsectionOrder = useMemo(
@@ -1089,7 +1093,8 @@ function AddBlockDialog({
       template_type_id: templateTypeId,
       section_source_id: sectionSourceId,
       section_number: sectionNumber,
-      document: 'part_b',
+      /* D-sections hold the WP and case draft fields, not Part B blocks. */
+      document: sectionNumber.startsWith('D') ? 'drafts' : 'part_b',
       key: key.trim(),
       kind,
       default_title: title.trim() || null,

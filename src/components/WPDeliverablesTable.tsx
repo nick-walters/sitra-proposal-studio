@@ -18,6 +18,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { WPDraftDeliverable, WPDraftTask } from '@/hooks/useWPDrafts';
@@ -89,6 +93,15 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/* Controls read as cell text until hovered or focused — the same treatment the
+   milestones and risks document tables use, so the editor matches the B3.1
+   mirror rather than looking like a form. */
+const SUBTLE_CONTROL =
+  "w-full bg-transparent border border-transparent rounded-[2px] px-0 py-0 text-left " +
+  "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight " +
+  'hover:border-input focus:border-input focus:outline-none focus-visible:outline-none ' +
+  'disabled:opacity-70 disabled:cursor-not-allowed';
+
 
 
 
@@ -283,10 +296,10 @@ export function WPDeliverablesTable({
 
   return (
     <TooltipProvider>
-      <div className="space-y-2" data-guideline-key="wp.deliverables">
-        {/* Block controls: restore from the 90-day bin, and a single blue plus
-            that only ever adds a deliverable. There is no reorder control —
-            numbering is derived server-side from due month and linked task. */}
+      <div className="space-y-2" data-guideline-key="drafts.wp.deliverables">
+        {/* Block controls, right-aligned in the order add, move, restore —
+            exactly as the tasks block. Guidance is never printed here: it is
+            reached through the Guidelines button with a field focused. */}
         <BlockControlRow
           className="px-1"
           title="Deliverables"
@@ -307,6 +320,49 @@ export function WPDeliverablesTable({
                   </TooltipTrigger>
                   <TooltipContent>Add deliverable</TooltipContent>
                 </Tooltip>
+
+                {onDeliverableMove && otherWpDrafts.length > 0 && sorted.length > 0 && (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            aria-label="Move a deliverable to another work package"
+                          >
+                            <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Move a deliverable to another work package</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuLabel>Move a deliverable to another WP</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {sorted.map((d) => (
+                        <DropdownMenuSub key={d.id}>
+                          <DropdownMenuSubTrigger>
+                            D{wpNumber}.{d.number}
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {otherWpDrafts.map((wp) => (
+                              <DropdownMenuItem
+                                key={wp.id}
+                                onClick={() => void onDeliverableMove(d.id, wp.id)}
+                              >
+                                WP{wp.number}
+                                {wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 {/* Restore stays in place and greys out when the bin is empty. */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -335,10 +391,10 @@ export function WPDeliverablesTable({
             hard 18 cm measure. Every field for a deliverable sits on ONE row;
             each column is as tight as its content, the title taking the rest. */}
         <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
-          <DeliverablesShortNoteInline />
           {sorted.length === 0 ? (
             <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
           ) : (
+
             <table
               className={`${docTableStyles} ${docTableRules}`}
               style={{ tableLayout: 'auto', width: DOC_TEXT_COLUMN, borderCollapse: 'collapse' }}
@@ -354,7 +410,6 @@ export function WPDeliverablesTable({
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Diss. level</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Due</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Task</th>
-                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`} />
                 </tr>
               </thead>
               <tbody>
@@ -370,10 +425,8 @@ export function WPDeliverablesTable({
                     projectDuration={projectDuration}
                     onUpdate={onDeliverableUpdate}
                     onDelete={onDeliverableDelete}
-                    onMove={onDeliverableMove}
                     onSaveTasks={saveDeliverableTasks}
                     readOnly={readOnly}
-                    otherWpDrafts={otherWpDrafts}
                     proposalId={proposalId}
                     shouldStayMounted={shouldStayMounted}
                   />
@@ -382,8 +435,8 @@ export function WPDeliverablesTable({
             </table>
           )}
         </div>
-        <DeliverablesDetailedGuidelinesInline />
       </div>
+
 
       <WPBinDialog
         isOpen={binOpen}
@@ -407,10 +460,8 @@ interface DeliverableRowProps {
   projectDuration: number;
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
-  onMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   onSaveTasks: (deliverableId: string, taskIds: string[]) => Promise<void>;
   readOnly: boolean;
-  otherWpDrafts: WPOption[];
   proposalId?: string | null;
   shouldStayMounted?: () => boolean;
 }
@@ -425,10 +476,8 @@ function DeliverableRow({
   projectDuration,
   onUpdate,
   onDelete,
-  onMove,
   onSaveTasks,
   readOnly,
-  otherWpDrafts,
   proposalId,
   shouldStayMounted,
 }: DeliverableRowProps) {
@@ -460,10 +509,10 @@ function DeliverableRow({
         />
       </td>
 
-      {/* The remaining cells keep the dropdowns they had, one per column. */}
+      {/* Every remaining control reads as cell text until hovered or focused,
+          so the row prints like its B3.1 mirror rather than like a form. */}
       {/* Partner */}
       <td className={`${docCellStyles} whitespace-nowrap`}>
-
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
@@ -471,14 +520,18 @@ function DeliverableRow({
           >
             <SelectTrigger
               hideArrow
-              className={cn('h-auto border-0 shadow-none p-0 w-auto gap-0', deliverable.responsible_participant_id ? 'font-bold' : 'font-normal')}
-              style={deliverable.responsible_participant_id ? {
-                backgroundColor: '#000', color: '#fff', height: '17px',
-                fontFamily: 'Times New Roman, serif', fontSize: '11pt', lineHeight: '17px',
-                borderRadius: '9999px', paddingLeft: '6px', paddingRight: '6px',
-              } : undefined}
+              className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 w-auto gap-0 inline-flex justify-start focus:ring-0')}
             >
-              <SelectValue placeholder="—" className="font-normal" />
+              {deliverable.responsible_participant_id ? (
+                <ParticipantBubble>
+                  {(() => {
+                    const p = participants.find(x => x.id === deliverable.responsible_participant_id);
+                    return p ? (p.organisation_short_name || p.organisation_name) : '—';
+                  })()}
+                </ParticipantBubble>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__"><span className="text-muted-foreground italic">Clear selection</span></SelectItem>
@@ -498,7 +551,7 @@ function DeliverableRow({
             onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+            <SelectTrigger hideArrow className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 inline-flex justify-start focus:ring-0')}>
               <span>{deliverable.type || <span className="text-muted-foreground">—</span>}</span>
             </SelectTrigger>
             <SelectContent>
@@ -522,7 +575,7 @@ function DeliverableRow({
             onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-7 w-full text-sm px-1.5">
+            <SelectTrigger hideArrow className={cn(SUBTLE_CONTROL, 'h-auto min-h-0 inline-flex justify-start focus:ring-0')}>
               <span>{deliverable.dissemination_level || <span className="text-muted-foreground">—</span>}</span>
             </SelectTrigger>
             <SelectContent>
@@ -546,12 +599,23 @@ function DeliverableRow({
             projectDuration={projectDuration}
             readOnly={readOnly}
             label=""
+            cellSurface
             onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
           />
       </td>
 
-      {/* Related task */}
-      <td className={`${docCellStyles} whitespace-nowrap`}>
+      {/* Related task. Delete sits in the page's right margin, as on
+          milestones and risks, so the table keeps exactly its seven columns. */}
+      <td className={`${docCellStyles} whitespace-nowrap relative`}>
+          {!readOnly && (
+            <DeleteConfirmDialog
+              itemLabel="this deliverable"
+              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
+              onConfirm={() => onDelete(deliverable.id)}
+              buttonClassName="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
+              iconSize="h-4 w-4"
+            />
+          )}
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}
@@ -564,7 +628,7 @@ function DeliverableRow({
                 type="button"
                 onClick={open}
                 disabled={readOnly}
-                className="w-full min-h-7 px-1.5 py-1 border border-input rounded-md bg-background text-left hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+                className={SUBTLE_CONTROL}
               >
                 {selectedTasks.length === 0 ? (
                   <span className="text-muted-foreground italic">Select task…</span>
@@ -581,46 +645,9 @@ function DeliverableRow({
             )}
           />
       </td>
-
-
-      {/* Controls: move and delete, hard right and as tight as the icons. */}
-      <td className={`${docCellStyles} whitespace-nowrap`}>
-        <div className="flex items-center justify-end gap-1">
-          {!readOnly && onMove && otherWpDrafts.length > 0 && (
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
-                      <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Move deliverable to another WP</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Move deliverable to another WP</DropdownMenuLabel>
-                {otherWpDrafts.map(wp => (
-                  <DropdownMenuItem key={wp.id} onClick={() => onMove(deliverable.id, wp.id)}>
-                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {!readOnly && (
-            <DeleteConfirmDialog
-              itemLabel="this deliverable"
-              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
-              onConfirm={() => onDelete(deliverable.id)}
-              buttonClassName="h-7 w-7 text-red-600 hover:text-red-700"
-              iconSize="h-4 w-4"
-            />
-          )}
-        </div>
-      </td>
     </tr>
   );
+
 
 }
 
@@ -704,62 +731,5 @@ function DeliverableTaskDialog({
   );
 }
 
-
-
-// ── Short note rendered under the card title ──
-function DeliverablesShortNoteInline() {
-  return (
-    <div className="text-xs text-muted-foreground pt-1">
-      <p>
-        This list is mirrored to Table 3.1.c (List of deliverables). A deliverable is a report sent to the European
-        Commission to ensure effective monitoring of the project. Deliverables are automatically reordered by
-        delivery date and numbered &ldquo;D&lt;WP&gt;.&lt;n&gt;&rdquo; (e.g. the first deliverable in WP1 is D1.1).
-        Detailed guidelines are below the table.
-      </p>
-    </div>
-  );
-}
-
-// ── Detailed guidelines rendered below the deliverables table ──
-function DeliverablesDetailedGuidelinesInline() {
-  const CD = () => (
-    <a
-      href="https://eur-lex.europa.eu/eli/dec/2015/444/oj/eng"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-primary underline hover:no-underline"
-    >
-      Commission Decision № 2015/444
-    </a>
-  );
-  return (
-    <div className="text-xs text-muted-foreground space-y-2 pt-3 mt-2 border-t border-border/40">
-      <div>
-        <span className="font-medium text-foreground">Type</span> — use one of:
-        <ul className="list-disc pl-5 mt-1 space-y-0.5">
-          <li><span className="font-medium">R</span>: Document, report (excluding the periodic and final reports).</li>
-          <li><span className="font-medium">DEM</span>: Demonstrator, pilot, prototype, plan designs.</li>
-          <li><span className="font-medium">DEC</span>: Websites, patents filing, press &amp; media actions, videos, etc.</li>
-          <li><span className="font-medium">DATA</span>: Data sets, microdata, etc.</li>
-          <li><span className="font-medium">DMP</span>: Data management plan.</li>
-          <li><span className="font-medium">ETHICS</span>: Deliverables related to ethics issues.</li>
-          <li><span className="font-medium">SECURITY</span>: Deliverables related to security issues.</li>
-          <li><span className="font-medium">OTHER</span>: Software, technical diagram, algorithms, models, etc.</li>
-        </ul>
-      </div>
-      <div>
-        <span className="font-medium text-foreground">Dissemination level</span> — use one of:
-        <ul className="list-disc pl-5 mt-1 space-y-0.5">
-          <li><span className="font-medium">PU</span> – Public, fully open, e.g. web (deliverables flagged as public will be automatically published in CORDIS project&apos;s page).</li>
-          <li><span className="font-medium">SEN</span> – Sensitive, limited under the conditions of the Grant Agreement.</li>
-          <li><span className="font-medium">Classified R-UE/EU-R</span> – EU RESTRICTED under the <CD />.</li>
-          <li><span className="font-medium">Classified C-UE/EU-C</span> – EU CONFIDENTIAL under the <CD />.</li>
-          <li><span className="font-medium">Classified S-UE/EU-S</span> – EU SECRET under the <CD />.</li>
-        </ul>
-      </div>
-      <p><span className="font-medium text-foreground">Delivery date</span> — measured in months from the project&apos;s start date.</p>
-    </div>
-  );
-}
 
 
