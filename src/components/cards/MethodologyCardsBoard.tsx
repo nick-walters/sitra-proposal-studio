@@ -95,8 +95,7 @@ import {
   useCardLocks,
   useTargetLock,
 } from '@/hooks/useCardLocks';
-import { useLockedBox, lostTextPayload, lockBorderClass } from '@/hooks/useLockedBox';
-import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
+import { useLockedBox, lostTextPayload } from '@/hooks/useLockedBox';
 import { LockBoundary, lockStateOf } from '@/components/cards/LockBoundary';
 
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
