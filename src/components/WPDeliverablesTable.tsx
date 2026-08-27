@@ -178,7 +178,8 @@ function DeliverableTitleCell({
     <LazyRichField
       value={local}
       disabled={disabled}
-      minHeight="28px"
+      cellSurface
+      minHeight="21px"
       proposalId={proposalId ?? ''}
       staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
       shouldStayMounted={shouldStayMounted}
@@ -426,7 +427,7 @@ export function WPDeliverablesTable({
                   </th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Partner</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Type</th>
-                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Diss. level</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Level</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Due</th>
                   <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Task</th>
                 </tr>
