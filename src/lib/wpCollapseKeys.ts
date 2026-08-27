@@ -16,3 +16,6 @@ export const wpDescriptionCollapseKey = (wpDraftId?: string | null) =>
 export const wpDeliverablesCollapseKey = (wpDraftId?: string | null) =>
   `wp:${wpDraftId ?? 'none'}:deliverables`;
 export const wpTaskCollapseKey = (taskId: string) => `wp_task:${taskId}`;
+
+/** A Part B module (a card field). Same store, so both surfaces behave alike. */
+export const moduleCollapseKey = (fieldId: string) => `module:${fieldId}`;

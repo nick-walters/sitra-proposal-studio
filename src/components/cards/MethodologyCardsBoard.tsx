@@ -133,6 +133,7 @@ import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
+import { moduleCollapseKey } from '@/lib/wpCollapseKeys';
 import { useCardCollapse } from '@/hooks/useCardCollapse';
 import { useCardFigureSummaries } from '@/hooks/useCardFigureSummaries';
 import { TypstPreviewDialog } from '@/components/cards/TypstPreviewDialog';
