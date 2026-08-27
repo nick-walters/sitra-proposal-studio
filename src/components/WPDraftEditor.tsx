@@ -690,6 +690,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   /* Collapse all acts on every block and every task module on this page. */
   const allCollapseKeys = [
+    wpHeaderCollapseKey(wpDraft.id),
     wpObjectivesCollapseKey(wpDraft.id),
     wpDescriptionCollapseKey(wpDraft.id),
     wpDeliverablesCollapseKey(wpDraft.id),
