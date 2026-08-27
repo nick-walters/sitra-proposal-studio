@@ -594,8 +594,15 @@ function TaskModule({
             )}
           </div>
         )}
-        {/* The badge starts on the 18 cm column's left edge. */}
-        <span aria-hidden="true" className="shrink-0" style={{ width: WP_TITLE_INDENT }} />
+        {/* The badge starts on the 18 cm column's left edge: the row padding,
+            the control stack and the row gaps are subtracted from 1.5 cm. */}
+        <span
+          aria-hidden="true"
+          className="shrink-0"
+          style={{
+            width: onToggleCollapsed || dragHandleProps ? 'calc(1.5cm - 42px)' : 'calc(1.5cm - 26px)',
+          }}
+        />
 
         <span
           className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold"
