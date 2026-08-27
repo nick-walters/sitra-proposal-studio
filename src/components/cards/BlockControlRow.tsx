@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -104,7 +104,7 @@ export function BlockControlRow({
       {onRestore && (
         <Tip label={restoreLabel}>
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRestore}>
-            <RotateCcw className="h-3.5 w-3.5" />
+            <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
           </Button>
         </Tip>
       )}

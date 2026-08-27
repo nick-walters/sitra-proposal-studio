@@ -33,13 +33,20 @@ function snapshotTargetBoxes(
   for (const box of VERSIONED_BOXES[targetType]) {
     const value = updates[box];
     if (typeof value !== 'string') continue;
-    void supabase.rpc('save_target_version', {
-      p_target_type: targetType,
-      p_target_id: targetId,
-      p_text_box: box,
-      p_value: value,
-      p_is_auto_save: true,
-    });
+    /* PostgREST builders are lazy thenables: nothing is sent until the
+       promise is consumed. `void supabase.rpc(...)` therefore built a request
+       and never issued it, which is why no snapshots were ever written. */
+    void supabase
+      .rpc('save_target_version', {
+        p_target_type: targetType,
+        p_target_id: targetId,
+        p_text_box: box,
+        p_value: value,
+        p_is_auto_save: true,
+      })
+      .then(({ error }) => {
+        if (error) console.error('save_target_version failed', targetType, box, error);
+      });
   }
 }
 

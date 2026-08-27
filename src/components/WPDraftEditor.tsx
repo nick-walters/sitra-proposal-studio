@@ -923,6 +923,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 fontSize: '11pt',
                 overflowWrap: 'anywhere',
                 lineHeight: 1.15,
+                /* Explicit: wrapping pills inherit the board's body colour
+                   otherwise, which reads black on the WP colour. */
+                color: '#FFFFFF',
               }}
             >
               WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
