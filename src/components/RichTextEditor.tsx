@@ -32,7 +32,7 @@ import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
-import { TrackChanges } from '@/extensions/TrackChanges';
+import { TrackChanges, findForeignPendingAuthor } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
@@ -92,7 +92,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
+import { useTrackChangesSetting } from '@/lib/trackChangesContext';
+import { toast } from 'sonner';
 import {
   Popover,
   PopoverContent,
@@ -2177,6 +2179,54 @@ StarterKit.configure({
     }
   }, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate,
       trackChanges?.authorId, trackChanges?.authorName, trackChanges?.authorColor]);
+
+  // ── The guard ────────────────────────────────────────────────────────
+  // A field holding PENDING changes by another author must not be edited
+  // untracked: an ordinary keystroke over a pending deletion accepts it
+  // silently and destroys that author's work. The edit is never refused —
+  // refusing is worse than recording — recording is forced on instead, and
+  // the user is told once per field.
+  const forcedNoticeRef = useRef(false);
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !editor.schema) return;
+    if (trackChangesProp || disableTrackChanges || !globalTracking) return;
+
+    const evaluate = () => {
+      if (globalTracking.enabled) {
+        // The user's own setting already records; nothing to force.
+        if (forcedTrackingRef.current) {
+          forcedTrackingRef.current = false;
+          setForcedTracking(false);
+        }
+        return;
+      }
+      const foreign = findForeignPendingAuthor(
+        editor.state.doc,
+        editor.schema,
+        globalTracking.authorId,
+      );
+      const needed = !!foreign;
+      if (needed !== forcedTrackingRef.current) {
+        forcedTrackingRef.current = needed;
+        setForcedTracking(needed);
+        // Force it onto live storage immediately: the next keystroke may
+        // arrive before React has re-run the sync effect above.
+        const storage = (editor.storage as any)?.trackChanges;
+        if (storage) storage.enabled = needed;
+        if (needed && !forcedNoticeRef.current) {
+          forcedNoticeRef.current = true;
+          toast.info('Recording your changes here', {
+            description:
+              `This text holds unresolved changes by ${foreign?.authorName}. Your edits are being tracked so theirs are not overwritten.`,
+          });
+        }
+      }
+    };
+
+    evaluate();
+    editor.on('update', evaluate);
+    return () => { editor.off('update', evaluate); };
+  }, [editor, trackChangesProp, disableTrackChanges, globalTracking, isReady, content]);
 
   // Scan document for existing track change marks on load
   // Also triggers a one-time re-save if marks had missing attributes (to flush corrected HTML to DB)
