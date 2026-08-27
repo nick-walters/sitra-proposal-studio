@@ -36,6 +36,29 @@ interface StreamEntry {
 
 const streams = new Map<string, StreamEntry>();
 
+/**
+ * Listener sets live OUTSIDE the channel entry and outlive it.
+ *
+ * React runs child effects before parent effects, so a field subscribes to a
+ * key before the provider above it has acquired the channel. When the sets
+ * lived on the entry, those early subscriptions were silently dropped and the
+ * viewer never received a single frame.
+ */
+interface ListenerSets {
+  contentListeners: Set<ContentListener>;
+  requestListeners: Set<SnapshotRequestListener>;
+}
+
+const listenerSets = new Map<string, ListenerSets>();
+
+function setsFor(key: string): ListenerSets {
+  const existing = listenerSets.get(key);
+  if (existing) return existing;
+  const created: ListenerSets = { contentListeners: new Set(), requestListeners: new Set() };
+  listenerSets.set(key, created);
+  return created;
+}
+
 function channelName(sectionId: string) {
   return `card-stream:${sectionId}`;
 }
@@ -51,14 +74,16 @@ export function acquireStream(sectionId: string): StreamEntry {
     config: { broadcast: { self: false } },
   });
 
+  const sets = setsFor(sectionId);
   const entry: StreamEntry = {
     channel,
     refCount: 1,
-    contentListeners: new Set(),
-    requestListeners: new Set(),
+    contentListeners: sets.contentListeners,
+    requestListeners: sets.requestListeners,
     pending: new Map(),
   };
   streams.set(sectionId, entry);
+
 
   channel
     .on('broadcast', { event: 'content' }, ({ payload }) => {
