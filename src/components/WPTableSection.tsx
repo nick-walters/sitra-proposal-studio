@@ -128,10 +128,16 @@ export function WPTableSection({
   proposalId,
   wpDraftId,
   shouldStayMounted,
+  collapsedKeys,
+  onToggleCollapsed,
 }: WPTableSectionProps) {
   const [binOpen, setBinOpen] = useState(false);
   const binCount = useWPBinCount(wpDraftId, ['wp_draft_task', 'wp_draft_intro']);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const isCollapsed = (key: string) => collapsedKeys?.has(key) ?? false;
+  const objectivesKey = wpObjectivesCollapseKey(wpDraftId);
+  const dowKey = wpDescriptionCollapseKey(wpDraftId);
+
 
   /** Adds a task and scrolls to it, as Part B does for a new module. */
   const handleAddTask = useCallback(async () => {
