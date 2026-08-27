@@ -97,6 +97,10 @@ async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
       .select('description, participants!inner(proposal_id)')
       .eq('participants.proposal_id', proposalId),
     supabase.from('fstp_content').select('response_content').eq('proposal_id', proposalId),
+    (supabase as any)
+      .from('case_draft_subsections')
+      .select('content_html')
+      .eq('proposal_id', proposalId),
   ]);
 
   for (const r of (secRes.data as Array<{ content: string | null }> | null) || []) addFromHtml(r.content);
@@ -122,6 +126,7 @@ async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
   }
   for (const r of (pinfraRes.data as Array<{ description: string | null }> | null) || []) addFromHtml(r.description);
   for (const r of (fstpRes.data as Array<{ response_content: string | null }> | null) || []) addFromHtml(r.response_content);
+  for (const r of (caseSubRes?.data as Array<{ content_html: string | null }> | null) || []) addFromHtml(r.content_html);
 
   return Array.from(set);
 }
