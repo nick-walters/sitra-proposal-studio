@@ -308,24 +308,26 @@ export function WPDeliverablesTable({
             face and weight as "Objectives:" and "Description of work:".
             Guidance is never printed here: it is reached through the
             Guidelines button with a field focused. */}
-        <BlockControlRow
-          className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}
-          collapsed={collapsed}
-          onToggleCollapsed={onToggleCollapsed}
-          title={
-            <span
-              className="select-none font-bold"
-              style={{
-                ...WP_DOC_FONT,
-                paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
-                display: 'inline-block',
-              }}
-            >
-              Deliverables:
-            </span>
-          }
-
-          trailing={
+        <div className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}>
+          {onToggleCollapsed && (
+            <div className={WP_CONTROL_STACK}>
+              <CollapseChevron
+                collapsed={collapsed}
+                onToggle={onToggleCollapsed}
+                className={WP_CHEVRON_SIZE}
+              />
+            </div>
+          )}
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{
+              ...WP_DOC_FONT,
+              paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
+            }}
+          >
+            Deliverables:
+          </p>
+          {
             !readOnly ? (
               <div className="flex items-center gap-1">
                 <Tooltip>
@@ -404,9 +406,9 @@ export function WPDeliverablesTable({
                   </TooltipContent>
                 </Tooltip>
               </div>
-            ) : undefined
+            ) : null
           }
-        />
+        </div>
 
         {/* One document table, styled exactly as milestones and risks: a rule
             under the header, hairlines between rows, no vertical rules, and a
@@ -460,7 +462,7 @@ export function WPDeliverablesTable({
         </div>
         )}
 
-      </div>
+      </section>
 
 
       <WPBinDialog
