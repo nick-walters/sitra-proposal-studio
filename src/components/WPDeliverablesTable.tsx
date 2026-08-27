@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BlockControlRow } from '@/components/cards/BlockControlRow';
+import { WPBinDialog } from '@/components/wp/WPBinDialog';
+
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Package, Plus, GripVertical, ArrowRight, ArrowUpDown } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import {
@@ -26,23 +28,6 @@ import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 
 interface WPOption {
@@ -63,7 +48,6 @@ interface WPDeliverablesTableProps {
   onDeliverableUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
-  onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
   onDeliverableMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
@@ -92,12 +76,20 @@ const DISSEMINATION_LEVELS = [
   { value: 'EU-SEC', label: 'EU Secret', description: 'Classified with the mention of the classification level SECRET UE/EU SECRET' },
 ];
 
-// Fixed column track for the second line of every deliverable (and its header
-// labels), so partner / type / dissemination / due month / task / controls land
-// in the same horizontal position on every row — the same fixed-column approach
-// used for the block control rows on the cards board.
-const DELIVERABLE_META_GRID =
-  'grid grid-cols-[7rem_6rem_9rem_6.5rem_7.5rem_1fr_4.5rem_2.25rem] items-start gap-x-2 pl-2';
+/** The page's content column: 21 cm page less 1.5 cm of margin each side. */
+const DOC_TEXT_COLUMN = '18cm';
+/* Shared document-table look — identical to milestones and risks: a rule under
+   the header, hairlines between rows, no vertical rules, tight padding. */
+const docTableStyles =
+  "font-['Times_New_Roman',Times,serif] text-[11pt] text-left bg-white [&_p]:!text-left";
+const docTableRules =
+  '[&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 ' +
+  '[&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 ' +
+  '[&_tbody_tr:last-child]:border-b-0';
+const docCellStyles =
+  "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const docFirstCellStyles = `${docCellStyles} !pl-0`;
+
 
 
 // ── Sort: due_month ASC (nulls last), then linked task number ASC (unlinked last),
@@ -198,7 +190,6 @@ export function WPDeliverablesTable({
   onDeliverableUpdate,
   onDeliverableAdd,
   onDeliverableDelete,
-  onDeliverableReorder,
   onDeliverableMove,
   readOnly = false,
   projectDuration = 36,
@@ -285,125 +276,107 @@ export function WPDeliverablesTable({
     }
   };
 
-  // ── Same-month manual ordering: write order_index per group only ──
-  // The database trigger derives `number` from (due month, lowest linked task,
-  // order_index), so the client never writes numbers itself.
-  const persistGroupOrder = useCallback(async (newSorted: WPDraftDeliverable[]) => {
-    // Assign order_index within each due_month group as 0..k-1
-    const groups = new Map<string, WPDraftDeliverable[]>();
-    for (const d of newSorted) {
-      const key = String(d.due_month ?? '∅');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(d);
-    }
-    const updates: Array<{ id: string; order_index: number }> = [];
-    for (const group of groups.values()) {
-      group.forEach((d, i) => {
-        if (d.order_index !== i) updates.push({ id: d.id, order_index: i });
-      });
-    }
-    for (const u of updates) {
-      await onDeliverableUpdate(u.id, { order_index: u.order_index });
-    }
-  }, [onDeliverableUpdate]);
-
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
-  const [reorderOpen, setReorderOpen] = useState(false);
+  const [binOpen, setBinOpen] = useState(false);
 
   return (
     <TooltipProvider>
-      <Card>
-        <CardHeader className="py-2 px-3 space-y-1">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4" />
-              Deliverables
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {!readOnly && (
-                <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-muted hover:bg-muted/80 text-foreground"
-                        onClick={() => setReorderOpen(true)}
-                      >
-                        <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Manually reorder deliverables that share the same due month</TooltipContent>
-                  </Tooltip>
-                  <Button size="sm" onClick={onDeliverableAdd}>
-                    <Plus className="h-4 w-4 mr-1" /> Add deliverable
+      <div className="space-y-2" data-guideline-key="wp.deliverables">
+        {/* Block controls: restore from the 90-day bin, and a single blue plus
+            that only ever adds a deliverable. There is no reorder control —
+            numbering is derived server-side from due month and linked task. */}
+        <BlockControlRow
+          className="px-1"
+          title="Deliverables"
+          onRestore={!readOnly ? () => setBinOpen(true) : undefined}
+          restoreLabel="Restore a deleted deliverable"
+          trailing={
+            !readOnly ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    aria-label="Add deliverable"
+                    onClick={() => void onDeliverableAdd()}
+                  >
+                    <Plus className="h-3.5 w-3.5 text-blue-500" />
                   </Button>
-                </>
-              )}
-            </div>
-          </div>
+                </TooltipTrigger>
+                <TooltipContent>Add deliverable</TooltipContent>
+              </Tooltip>
+            ) : undefined
+          }
+        />
+
+        {/* One document table, styled exactly as milestones and risks: a rule
+            under the header, hairlines between rows, no vertical rules, and a
+            hard 18 cm measure. Every field for a deliverable sits on ONE row;
+            each column is as tight as its content, the title taking the rest. */}
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
           <DeliverablesShortNoteInline />
-        </CardHeader>
-        <CardContent className="px-3 pb-3 pt-0">
-          <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row,
-                indented to align with the deliverable title above. */}
-            {sorted.length > 0 && (
-              <div className="grid grid-cols-[52px_1fr] gap-x-2 px-1 pb-1 border-b">
-                <div />
-                <div className={cn(DELIVERABLE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
-                  <div>Partner</div>
-                  <div>Type</div>
-                  <div>Dissemination level</div>
-                  <div>Due month</div>
-                  <div>Assign to task</div>
-                  <div />
-                  <div />
-                  <div />
-                </div>
-              </div>
-            )}
-            {sorted.length === 0 && (
-              <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
-            )}
-            {sorted.map(d => (
-              <DeliverableRow
-                key={d.id}
-                deliverable={d}
-                wpNumber={wpNumber}
-                wpColor={resolvedWpColor}
-                wpTasks={orderedTasks}
-                selectedTaskIds={tasksByDeliverable.get(d.id) || []}
-                participants={participants}
-                projectDuration={projectDuration}
-                onUpdate={onDeliverableUpdate}
-                onDelete={onDeliverableDelete}
-                onMove={onDeliverableMove}
-                onSaveTasks={saveDeliverableTasks}
-                readOnly={readOnly}
-                otherWpDrafts={otherWpDrafts}
-                proposalId={proposalId}
-                shouldStayMounted={shouldStayMounted}
-              />
-            ))}
-          </div>
-          <DeliverablesDetailedGuidelinesInline />
-        </CardContent>
-      </Card>
+          {sorted.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
+          ) : (
+            <table
+              className={`${docTableStyles} ${docTableRules}`}
+              style={{ tableLayout: 'auto', width: DOC_TEXT_COLUMN, borderCollapse: 'collapse' }}
+            >
+              <thead>
+                <tr>
+                  <th className={`${docFirstCellStyles} align-bottom font-bold whitespace-nowrap`}>No.</th>
+                  <th className={`${docCellStyles} align-bottom font-bold`} style={{ width: '100%' }}>
+                    Deliverable title
+                  </th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Partner</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Type</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Diss. level</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Due</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Task</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`} />
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(d => (
+                  <DeliverableRow
+                    key={d.id}
+                    deliverable={d}
+                    wpNumber={wpNumber}
+                    wpColor={resolvedWpColor}
+                    wpTasks={orderedTasks}
+                    selectedTaskIds={tasksByDeliverable.get(d.id) || []}
+                    participants={participants}
+                    projectDuration={projectDuration}
+                    onUpdate={onDeliverableUpdate}
+                    onDelete={onDeliverableDelete}
+                    onMove={onDeliverableMove}
+                    onSaveTasks={saveDeliverableTasks}
+                    readOnly={readOnly}
+                    otherWpDrafts={otherWpDrafts}
+                    proposalId={proposalId}
+                    shouldStayMounted={shouldStayMounted}
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <DeliverablesDetailedGuidelinesInline />
+      </div>
 
-
-      <SameMonthReorderDialog
-        open={reorderOpen}
-        onOpenChange={setReorderOpen}
-        sorted={sorted}
-        wpNumber={wpNumber}
-        wpColor={resolvedWpColor}
-        onPersist={persistGroupOrder}
+      <WPBinDialog
+        isOpen={binOpen}
+        onClose={() => setBinOpen(false)}
+        wpDraftId={wpDraftId}
+        targetType="wp_draft_deliverable"
+        title="Deleted deliverables"
       />
     </TooltipProvider>
   );
 }
+
 
 interface DeliverableRowProps {
   deliverable: WPDraftDeliverable;
@@ -444,17 +417,21 @@ function DeliverableRow({
   const selectedTasks = wpTasks.filter(t => selectedTaskIds.includes(t.id));
 
   return (
-    <div className="grid grid-cols-[52px_1fr] gap-x-2 border-b py-1.5 space-y-1 px-1">
-      {/* ── Line 1: number chip + full-width title ── */}
-      <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21, marginTop: 3 }}>
-        <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
-          <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
-        </svg>
-        <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
-          {number}
+    <tr data-version-target={`wp_draft_deliverable|${deliverable.id}|title`}>
+      {/* Number: the pennant chip, as tight as the chip itself. */}
+      <td className={`${docFirstCellStyles} whitespace-nowrap`}>
+        <span style={{ display: 'inline-block', position: 'relative', width: 52, height: 21 }}>
+          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 1, left: 0, overflow: 'visible' }}>
+            <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
+          </svg>
+          <span style={{ position: 'absolute', top: 1, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+            {number}
+          </span>
         </span>
-      </span>
-      <div className="min-w-0">
+      </td>
+
+      {/* Title: takes every pixel the tight columns leave behind. */}
+      <td className={docCellStyles} style={{ width: '100%' }}>
         <DeliverableTitleCell
           value={deliverable.title || ''}
           disabled={readOnly}
@@ -462,12 +439,12 @@ function DeliverableRow({
           proposalId={proposalId}
           shouldStayMounted={shouldStayMounted}
         />
-      </div>
+      </td>
 
-      {/* ── Line 2: metadata fields in fixed columns, aligned with the title above ── */}
-      <div className={cn(DELIVERABLE_META_GRID, 'col-start-2')}>
-        {/* Partner */}
-        <div>
+      {/* The remaining cells keep the dropdowns they had, one per column. */}
+      {/* Partner */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
+
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { responsible_participant_id: v === '__clear__' ? null : v || null })}
@@ -493,10 +470,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Type */}
-        <div>
+      {/* Type */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <Select
             value={deliverable.type || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { type: v === '__clear__' ? null : v })}
@@ -517,10 +494,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Dissemination */}
-        <div>
+      {/* Dissemination */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <Select
             value={deliverable.dissemination_level || ''}
             onValueChange={(v) => onUpdate(deliverable.id, { dissemination_level: v === '__clear__' ? null : v })}
@@ -541,10 +518,10 @@ function DeliverableRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
+      </td>
 
-        {/* Due month */}
-        <div>
+      {/* Due month */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <SingleMonthPicker
             value={deliverable.due_month}
             projectDuration={projectDuration}
@@ -552,10 +529,10 @@ function DeliverableRow({
             label=""
             onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
           />
-        </div>
+      </td>
 
-        {/* Related task */}
-        <div>
+      {/* Related task */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}
@@ -586,19 +563,16 @@ function DeliverableRow({
           />
         </div>
 
-        {/* Spacer column keeps the two control columns hard right */}
-        <div />
-
-        {/* Move — fixed column, empty when unavailable so rows stay aligned */}
-        <div className="flex justify-center">
+      {/* Controls: move and delete, hard right and as tight as the icons. */}
+      <td className={`${docCellStyles} whitespace-nowrap`}>
+        <div className="flex items-center justify-end gap-1">
           {!readOnly && onMove && otherWpDrafts.length > 0 && (
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 px-1.5 gap-1 text-xs" aria-label="Move deliverable to another WP">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Move deliverable to another WP">
                       <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
-                      Move
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
@@ -614,10 +588,6 @@ function DeliverableRow({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
-
-        {/* Delete — fixed column */}
-        <div className="flex justify-center">
           {!readOnly && (
             <DeleteConfirmDialog
               itemLabel="this deliverable"
@@ -627,8 +597,8 @@ function DeliverableRow({
             />
           )}
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 
 }
@@ -714,121 +684,6 @@ function DeliverableTaskDialog({
 }
 
 
-// ── Same-month reorder dialog ──
-function SameMonthReorderDialog({
-  open, onOpenChange, sorted, wpNumber, wpColor, onPersist,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  sorted: WPDraftDeliverable[];
-  wpNumber: number;
-  wpColor: string;
-  onPersist: (newSorted: WPDraftDeliverable[]) => Promise<void>;
-}) {
-  // local working copy
-  const [working, setWorking] = useState<WPDraftDeliverable[]>(sorted);
-  useEffect(() => { if (open) setWorking(sorted); }, [open, sorted]);
-
-  // group by due_month while preserving overall sort
-  const groups = useMemo(() => {
-    const map = new Map<string, { key: string; label: string; items: WPDraftDeliverable[] }>();
-    for (const d of working) {
-      const key = d.due_month == null ? '∅' : String(d.due_month);
-      const label = d.due_month == null ? 'No due month set' : `Month ${d.due_month}`;
-      if (!map.has(key)) map.set(key, { key, label, items: [] });
-      map.get(key)!.items.push(d);
-    }
-    return Array.from(map.values());
-  }, [working]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleDragEnd = (groupKey: string) => (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    setWorking(prev => {
-      // find indices within group
-      const g = prev.filter(d => (d.due_month == null ? '∅' : String(d.due_month)) === groupKey);
-      const oldIdx = g.findIndex(d => d.id === active.id);
-      const newIdx = g.findIndex(d => d.id === over.id);
-      if (oldIdx === -1 || newIdx === -1) return prev;
-      const reorderedGroup = arrayMove(g, oldIdx, newIdx);
-      // rebuild prev with reorderedGroup in place
-      const it = reorderedGroup[Symbol.iterator]();
-      return prev.map(d => {
-        const k = d.due_month == null ? '∅' : String(d.due_month);
-        return k === groupKey ? it.next().value! : d;
-      });
-    });
-  };
-
-  const onSave = async () => {
-    await onPersist(working);
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Reorder deliverables sharing a due month</DialogTitle>
-        </DialogHeader>
-        <p className="text-xs text-muted-foreground -mt-1">
-          Drag within a group to reorder. A deliverable can only move above or below other deliverables with the
-          same due month. D-numbers are recomputed automatically when you save.
-        </p>
-        <div className="space-y-4">
-          {groups.map(g => (
-            <div key={g.key} className="rounded border border-border/40">
-              <div className="px-2 py-1 text-xs font-semibold bg-muted/50">{g.label}</div>
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(g.key)}>
-                <SortableContext items={g.items.map(d => d.id)} strategy={verticalListSortingStrategy}>
-                  <div className="divide-y divide-border/40">
-                    {g.items.map(d => (
-                      <ReorderRow key={d.id} d={d} wpNumber={wpNumber} wpColor={wpColor} />
-                    ))}
-                    {g.items.length === 0 && (
-                      <div className="px-2 py-2 text-xs italic text-muted-foreground">No items.</div>
-                    )}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </div>
-          ))}
-          {groups.length === 0 && (
-            <div className="text-xs italic text-muted-foreground">No deliverables yet.</div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onSave}>Save order</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ReorderRow({ d, wpNumber, wpColor }: { d: WPDraftDeliverable; wpNumber: number; wpColor: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: d.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-2 py-1.5 bg-background">
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
-        aria-label="Reorder within month"
-      >
-        <GripVertical className="w-4 h-4 text-blue-500" />
-      </button>
-      <B31Pill variant="outline" color={wpColor}>D{wpNumber}.{d.number}</B31Pill>
-      <span className="text-sm truncate flex-1">{htmlToPlainText(d.title || '') || <span className="italic text-muted-foreground">Untitled</span>}</span>
-    </div>
-  );
-}
 
 // ── Short note rendered under the card title ──
 function DeliverablesShortNoteInline() {

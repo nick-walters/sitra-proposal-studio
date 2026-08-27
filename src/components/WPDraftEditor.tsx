@@ -240,7 +240,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     addDeliverable,
     updateDeliverable,
     deleteDeliverable: rawDeleteDeliverable,
-    reorderDeliverables,
     moveDeliverableToWP,
     refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
@@ -828,8 +827,10 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   return (
     <div className="h-full">
       {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
-          so a page-styled field renders its true measure, as in Part B. */}
-      <div className="mx-auto w-[21cm] max-w-full space-y-3 p-4">
+          matched exactly to the Part B board (max-w-[calc(21cm+3rem)] with
+          p-6), which is the reference because it matches the A4 output. */}
+      <div className="mx-auto w-full max-w-[calc(21cm+3rem)] space-y-3 p-6">
+
 
         {/* Numbering is maintained by the database resequencing triggers. */}
 
@@ -975,11 +976,16 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
 
 
-        {/* Header: pill badge + metadata row */}
+        {/* ── BLOCK 1: WP header ──
+            Read-only projection of the WP manager row: the title is owned
+            there, so it is displayed (and commentable) but never edited here.
+            The leader is a badge only, and the duration is derived from the
+            earliest task start and the latest task end. */}
         <div className="space-y-2 -mx-2">
           {/* Full-width pill badge: WPX: Short Name – Title */}
           <div
             className="rounded-full flex items-baseline gap-0"
+            data-comment-target={`wp_draft:${wpDraft.id}:title`}
             style={{
               backgroundColor: effectiveColor,
               color: '#FFFFFF',
@@ -989,101 +995,34 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             }}
           >
             <span
-              className="font-bold whitespace-nowrap shrink-0"
+              className="font-bold whitespace-nowrap"
               style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
             >
-              WP{wpDraft.number}:&nbsp;
+              WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
+              {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' – ' : ''}
+              {wpDraft.title?.trim() || ''}
             </span>
-            <DebouncedInput
-              value={wpDraft.short_name?.trim() || ''}
-              onDebouncedChange={(v) => updateField('short_name', v.trim())}
-              placeholder="SHORT"
-              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
-              style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '11pt',
-                width: `${Math.max(5, (wpDraft.short_name?.trim() || '').length)}ch`,
-              }}
-              disabled={readOnly}
-            />
-            {Boolean(wpDraft.short_name?.trim()) && (Boolean(wpDraft.title?.trim()) || !readOnly) && (
-              <span
-                className="font-bold whitespace-nowrap shrink-0"
-                style={{
-                  fontFamily: "'Times New Roman', Times, serif",
-                  fontSize: '11pt',
-                  marginLeft: '0.25em',
-                  marginRight: '0.25em',
-                }}
-              >
-                –
-              </span>
-            )}
-            <DebouncedInput
-              value={wpDraft.title?.trim() || ''}
-              onDebouncedChange={(v) => updateField('title', v.trim())}
-              placeholder="Work package title"
-              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold flex-1 min-w-0"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-              disabled={readOnly}
-            />
           </div>
 
-          {/* Metadata row: WP Leader (left) + Duration (right) */}
+          {/* Metadata row: WP leader badge (left) + derived duration (right) */}
           <div className="flex items-center justify-between px-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-draft text-muted-foreground">WP Leader:</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80" disabled={readOnly}>
-                    {(() => {
-                      const leader = participants.find(p => p.id === wpDraft.lead_participant_id);
-                      if (leader) {
-                        return (
-                          <span
-                            className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-                            style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
-                          >
-                            <Crown className="w-3 h-3 mr-1 text-white fill-white" />
-                            {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
-                          </span>
-                        );
-                      }
-                      return <span className="text-draft text-muted-foreground italic">Select</span>;
-                    })()}
-                    <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[220px] p-0" align="start">
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {participants.map(p => (
-                      <button
-                        key={p.id}
-                        className={cn(
-                          'flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
-                          p.id === wpDraft.lead_participant_id && 'bg-accent',
-                        )}
-                        onClick={() => updateField('lead_participant_id', p.id)}
-                      >
-                        <div
-                          className={cn(
-                            'flex h-4 w-4 items-center justify-center rounded-full border',
-                            p.id === wpDraft.lead_participant_id ? 'bg-primary border-primary' : 'border-muted-foreground',
-                          )}
-                        >
-                          {p.id === wpDraft.lead_participant_id && <Check className="h-3 w-3 text-primary-foreground" />}
-                        </div>
-                        <span
-                          className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                          style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
-                        >
-                          {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              {(() => {
+                const leader = participants.find((p) => p.id === wpDraft.lead_participant_id);
+                if (!leader) {
+                  return <span className="text-draft text-muted-foreground italic">Not set</span>;
+                }
+                return (
+                  <span
+                    className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+                    style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                  >
+                    <Crown className="w-3 h-3 mr-1 text-white fill-white" />
+                    {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+                  </span>
+                );
+              })()}
             </div>
             {/* Auto-calculated duration from tasks (uses whichever tasks have durations) */}
             {(() => {
@@ -1091,7 +1030,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
               const taskStartMonths = tasks.filter(t => t.start_month != null).map(t => t.start_month!);
               const taskEndMonths = tasks.filter(t => t.end_month != null).map(t => t.end_month!);
               const allMonths = [...taskStartMonths, ...taskEndMonths];
-              
+
               if (allMonths.length > 0) {
                 const startMonth = Math.min(...allMonths);
                 const endMonth = Math.max(...allMonths);
@@ -1114,6 +1053,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             })()}
           </div>
         </div>
+
 
         {/* Guidelines Dialog */}
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
@@ -1242,7 +1182,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           onDeliverableUpdate={updateDeliverable}
           onDeliverableAdd={addDeliverable}
           onDeliverableDelete={deleteDeliverable}
-          onDeliverableReorder={reorderDeliverables}
           onDeliverableMove={moveDeliverableToWP}
           readOnly={readOnly}
           projectDuration={projectDuration}

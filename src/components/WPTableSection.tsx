@@ -23,9 +23,11 @@ import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
 import { BlockControlRow } from '@/components/cards/BlockControlRow';
 import { WPBinDialog } from '@/components/wp/WPBinDialog';
 import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
-
 import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
-import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS, WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
+import {
+  WP_OBJECTIVES_FIELD_EXTENSIONS,
+  WP_DRAFT_FIELD_EXTENSIONS,
+} from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -54,6 +56,7 @@ interface WPTableSectionProps {
   onTaskDelete: (taskId: string) => Promise<boolean>;
   onTaskParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
   onTaskMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
+  onRefetch?: () => void;
   readOnly?: boolean;
   projectDuration?: number;
   allWpDrafts?: WPOption[];
@@ -66,13 +69,15 @@ interface WPTableSectionProps {
 }
 
 /**
- * The Objectives and Tasks blocks of a WP draft.
+ * Blocks 2 and 3 of a WP draft: Objectives, and Tasks.
  *
  * These are PROJECTIONS over `wp_drafts` and `wp_draft_tasks` — there are no
  * card rows behind them. They wear the Part B block chrome (`BlockControlRow`)
  * and the page-styled surface (`doc-surface-page`), and every rich field is
  * lock-, stream- and version-aware through `LockedWPRichField` and the
- * `data-version-target` marker the toolbar reads.
+ * `data-version-target` marker the shared toolbar reads. Guidance is never
+ * printed on the block: it is reached through the Guidelines button while a
+ * field inside the block has focus (`data-guideline-key`).
  */
 export function WPTableSection({
   wpNumber,
@@ -91,6 +96,7 @@ export function WPTableSection({
   onTaskDelete,
   onTaskParticipantsChange,
   onTaskMove,
+  onRefetch,
   readOnly = false,
   projectDuration = 36,
   allWpDrafts = [],
@@ -99,7 +105,6 @@ export function WPTableSection({
   wpDraftId,
   shouldStayMounted,
 }: WPTableSectionProps) {
-  const monthOptions = Array.from({ length: projectDuration }, (_, i) => i + 1);
   const [binOpen, setBinOpen] = useState(false);
 
   const formatTaskNumber = (taskNum: number) => `T${wpNumber}.${taskNum}`;
@@ -113,7 +118,6 @@ export function WPTableSection({
     <div className="space-y-4">
       {/* ── BLOCK 2: Objectives. One field, no block controls. ── */}
       <section
-        className="space-y-1"
         data-guideline-key="wp.objectives"
         data-version-label="Objectives"
         data-version-target={
@@ -148,10 +152,12 @@ export function WPTableSection({
         <BlockControlRow
           className="px-1"
           title="Tasks"
+          onRestore={!readOnly && wpDraftId ? () => setBinOpen(true) : undefined}
+          restoreLabel="Restore a deleted task"
           trailing={
             !readOnly ? (
               <div className="flex items-center gap-1">
-                {/* Add: task, or the single field before the first task. */}
+                {/* Add: a task, or the single field before the first task. */}
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -219,12 +225,10 @@ export function WPTableSection({
               </div>
             ) : undefined
           }
-          onRestore={!readOnly && wpDraftId ? () => setBinOpen(true) : undefined}
-          restoreLabel="Restore a deleted task"
         />
 
-        {/* The single optional field before the first task: fixed in place,
-            no header, no grip — only visibility and delete. */}
+        {/* The single optional field before the first task: fixed in place, no
+            drag grip — only visibility and delete. */}
         {introPresent && (
           <div
             className={cn('space-y-1', !introVisible && 'opacity-50')}
@@ -262,7 +266,7 @@ export function WPTableSection({
               {!readOnly && onIntroPresenceChange && (
                 <DeleteConfirmDialog
                   itemLabel="this field"
-                  onConfirm={async () => { onIntroPresenceChange(false); }}
+                  onConfirm={() => onIntroPresenceChange(false)}
                 />
               )}
             </div>
@@ -284,8 +288,8 @@ export function WPTableSection({
           </div>
         )}
 
-        {/* Task modules. Their order is derived server-side from the task
-            number, so there is no drag grip here. */}
+        {/* Task modules. Their order follows the server-maintained task
+            numbering, so there is no drag grip here. */}
         <div className="space-y-3">
           {tasks.map((task) => (
             <div key={task.id} id={`wp-task-row-${task.id}`}>
@@ -320,10 +324,9 @@ export function WPTableSection({
           wpDraftId={wpDraftId}
           targetType="wp_draft_task"
           title="Deleted tasks"
+          onRestored={onRefetch}
         />
       )}
-      {/* monthOptions is retained for the timing picker's month range. */}
-      <span className="hidden">{monthOptions.length}</span>
     </div>
   );
 }
@@ -393,7 +396,6 @@ function TaskModule({
           <DebouncedInput
             value={task.title || ''}
             onDebouncedChange={(val) => { void onUpdate(task.id, { title: val }); }}
-            debounceMs={800}
             placeholder="Task title…"
             className="h-6 w-full border-0 bg-transparent px-1 font-bold text-foreground shadow-none outline-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
@@ -408,7 +410,7 @@ function TaskModule({
                 size="icon"
                 className="h-7 w-7 shrink-0"
                 aria-pressed={!isVisible}
-                onClick={() => void onUpdate(task.id, { is_visible: !isVisible } as Partial<WPDraftTask>)}
+                onClick={() => void onUpdate(task.id, { is_visible: !isVisible })}
               >
                 {isVisible ? (
                   <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
@@ -423,11 +425,11 @@ function TaskModule({
           </Tooltip>
         )}
         {!readOnly && (
-          <DeleteConfirmDialog itemLabel="this task" onConfirm={() => onDelete(task.id)} />
+          <DeleteConfirmDialog itemLabel="this task" onConfirm={() => void onDelete(task.id)} />
         )}
       </div>
 
-      {/* Row 2: leader, participants, duration — no headings */}
+      {/* Row 2: leader, participants, duration */}
       <div className="flex flex-wrap items-center gap-2 px-1">
         <Select
           value={task.lead_participant_id || ''}
@@ -538,7 +540,7 @@ function TaskModule({
   );
 }
 
-/* ── Timing range picker (grid-based, same as B3.1) ── */
+/* ── Timing range picker ── */
 function TimingRangePicker({
   task,
   projectDuration,
@@ -562,17 +564,17 @@ function TimingRangePicker({
       setLocalStart(m);
       if (localEnd != null && m > localEnd) setLocalEnd(null);
       setSelecting('end');
-    } else {
-      if (m < (localStart ?? 1)) {
-        setLocalStart(m);
-        setSelecting('end');
-      } else {
-        setLocalEnd(m);
-        setSelecting(null);
-        onUpdate(task.id, { start_month: localStart, end_month: m });
-        setOpen(false);
-      }
+      return;
     }
+    if (m < (localStart ?? 1)) {
+      setLocalStart(m);
+      setSelecting('end');
+      return;
+    }
+    setLocalEnd(m);
+    setSelecting(null);
+    void onUpdate(task.id, { start_month: localStart, end_month: m });
+    setOpen(false);
   };
 
   const handleOpen = (isOpen: boolean) => {
@@ -615,7 +617,7 @@ function TimingRangePicker({
                 onClick={() => {
                   setLocalStart(null);
                   setLocalEnd(null);
-                  onUpdate(task.id, { start_month: null, end_month: null });
+                  void onUpdate(task.id, { start_month: null, end_month: null });
                   setOpen(false);
                 }}
               >
@@ -653,5 +655,3 @@ function TimingRangePicker({
     </>
   );
 }
-
-export { WP_TITLE_FIELD_EXTENSIONS };

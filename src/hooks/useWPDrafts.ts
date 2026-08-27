@@ -45,13 +45,13 @@ export interface WPDraftTask {
   start_month: number | null;
   end_month: number | null;
   order_index: number;
-  /** Hidden tasks stay in the draft but are not mirrored into Part B. */
-  is_visible?: boolean;
   version: number;
-
+  /** Hidden tasks stay authorable here but are filtered out of the Part B mirror. */
+  is_visible?: boolean;
   participants?: { participant_id: string }[];
   effort?: { participant_id: string; person_months: number }[];
 }
+
 
 export interface WPDraftDeliverable {
   id: string;
@@ -76,7 +76,7 @@ export interface WPDraft {
   lead_participant_id: string | null;
   objectives: string | null;
   description_before_tasks: string | null;
-  /** Hidden intro stays in the draft but is not mirrored into Part B. */
+  /** Visibility of the single optional field before the first task. */
   intro_visible?: boolean;
 
   color: string;
@@ -461,27 +461,19 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteTask = useCallback(async (taskId: string) => {
     // Delete + renumber survivors in one transaction: a half-applied delete is
-    // what used to leave gaps such as a T2.3 with no T2.2. `bin_target_row`
-    // wraps that same call and first snapshots the row (and its effort,
-    // participant and deliverable links) into the 90-day recycle bin.
+    // what used to leave gaps such as a T2.3 with no T2.2.
     const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
-    const { data, error } = await supabase.rpc('bin_target_row', {
-      p_target_type: 'wp_draft_task',
-      p_target_id: taskId,
-      p_expected_version: known?.version ?? undefined,
-    });
-    const res = (data || {}) as { ok?: boolean; conflict?: boolean; error?: string };
-    if (error || !res.ok) {
+    const res = await deleteAndResequence('wp_draft_tasks', taskId, known?.version ?? null);
+    if (!res.ok) {
       toast.error(res.conflict
         ? 'This task changed elsewhere — it was not deleted. Reloading.'
-        : (error?.message || res.error || 'Failed to delete task'));
+        : (res.error || 'Failed to delete task'));
       await fetchWPDraft();
       return false;
     }
     await fetchWPDraft();
     return true;
   }, [wpDraft?.tasks, fetchWPDraft]);
-
 
 
   const reorderTasks = useCallback(async (newOrder: string[]) => {
@@ -579,23 +571,17 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
     const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
-    const { data, error } = await supabase.rpc('bin_target_row', {
-      p_target_type: 'wp_draft_deliverable',
-      p_target_id: deliverableId,
-      p_expected_version: known?.version ?? undefined,
-    });
-    const res = (data || {}) as { ok?: boolean; conflict?: boolean; error?: string };
-    if (error || !res.ok) {
+    const res = await deleteAndResequence('wp_draft_deliverables', deliverableId, known?.version ?? null);
+    if (!res.ok) {
       toast.error(res.conflict
         ? 'This deliverable changed elsewhere — it was not deleted. Reloading.'
-        : (error?.message || res.error || 'Failed to delete deliverable'));
+        : (res.error || 'Failed to delete deliverable'));
       await fetchWPDraft();
       return false;
     }
     await fetchWPDraft();
     return true;
   }, [wpDraft?.deliverables, fetchWPDraft]);
-
 
 
 
