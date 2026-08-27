@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BlockControlRow } from '@/components/cards/BlockControlRow';
+import { WPBinDialog } from '@/components/wp/WPBinDialog';
+
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -313,97 +315,101 @@ export function WPDeliverablesTable({
 
   return (
     <TooltipProvider>
-      <Card>
-        <CardHeader className="py-2 px-3 space-y-1">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4" />
-              Deliverables
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {!readOnly && (
-                <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-muted hover:bg-muted/80 text-foreground"
-                        onClick={() => setReorderOpen(true)}
-                      >
-                        <ArrowUpDown className="h-4 w-4 mr-1" /> Reorder same-month
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Manually reorder deliverables that share the same due month</TooltipContent>
-                  </Tooltip>
-                  <Button size="sm" onClick={onDeliverableAdd}>
-                    <Plus className="h-4 w-4 mr-1" /> Add deliverable
+      <div className="space-y-2" data-guideline-key="wp.deliverables">
+        {/* Block controls: restore from the 90-day bin, and a single blue plus
+            that only ever adds a deliverable. There is no reorder control —
+            numbering is derived server-side from due month and linked task. */}
+        <BlockControlRow
+          className="px-1"
+          title="Deliverables"
+          onRestore={!readOnly ? () => setBinOpen(true) : undefined}
+          restoreLabel="Restore a deleted deliverable"
+          trailing={
+            !readOnly ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    aria-label="Add deliverable"
+                    onClick={() => void onDeliverableAdd()}
+                  >
+                    <Plus className="h-3.5 w-3.5 text-blue-500" />
                   </Button>
-                </>
-              )}
-            </div>
-          </div>
+                </TooltipTrigger>
+                <TooltipContent>Add deliverable</TooltipContent>
+              </Tooltip>
+            ) : undefined
+          }
+        />
+
+        {/* One document table, styled exactly as milestones and risks: a rule
+            under the header, hairlines between rows, no vertical rules, and a
+            hard 18 cm measure. Every field for a deliverable sits on ONE row;
+            each column is as tight as its content, the title taking the rest. */}
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
           <DeliverablesShortNoteInline />
-        </CardHeader>
-        <CardContent className="px-3 pb-3 pt-0">
-          <div className="space-y-1">
-            {/* Column labels for the second line — same fixed grid as every row,
-                indented to align with the deliverable title above. */}
-            {sorted.length > 0 && (
-              <div className="grid grid-cols-[52px_1fr] gap-x-2 px-1 pb-1 border-b">
-                <div />
-                <div className={cn(DELIVERABLE_META_GRID, 'text-xs font-medium text-muted-foreground')}>
-                  <div>Partner</div>
-                  <div>Type</div>
-                  <div>Dissemination level</div>
-                  <div>Due month</div>
-                  <div>Assign to task</div>
-                  <div />
-                  <div />
-                  <div />
-                </div>
-              </div>
-            )}
-            {sorted.length === 0 && (
-              <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
-            )}
-            {sorted.map(d => (
-              <DeliverableRow
-                key={d.id}
-                deliverable={d}
-                wpNumber={wpNumber}
-                wpColor={resolvedWpColor}
-                wpTasks={orderedTasks}
-                selectedTaskIds={tasksByDeliverable.get(d.id) || []}
-                participants={participants}
-                projectDuration={projectDuration}
-                onUpdate={onDeliverableUpdate}
-                onDelete={onDeliverableDelete}
-                onMove={onDeliverableMove}
-                onSaveTasks={saveDeliverableTasks}
-                readOnly={readOnly}
-                otherWpDrafts={otherWpDrafts}
-                proposalId={proposalId}
-                shouldStayMounted={shouldStayMounted}
-              />
-            ))}
-          </div>
-          <DeliverablesDetailedGuidelinesInline />
-        </CardContent>
-      </Card>
+          {sorted.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
+          ) : (
+            <table
+              className={`${docTableStyles} ${docTableRules}`}
+              style={{ tableLayout: 'auto', width: DOC_TEXT_COLUMN, borderCollapse: 'collapse' }}
+            >
+              <thead>
+                <tr>
+                  <th className={`${docFirstCellStyles} align-bottom font-bold whitespace-nowrap`}>No.</th>
+                  <th className={`${docCellStyles} align-bottom font-bold`} style={{ width: '100%' }}>
+                    Deliverable title
+                  </th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Partner</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Type</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Diss. level</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Due</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`}>Task</th>
+                  <th className={`${docCellStyles} align-bottom font-bold whitespace-nowrap`} />
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(d => (
+                  <DeliverableRow
+                    key={d.id}
+                    deliverable={d}
+                    wpNumber={wpNumber}
+                    wpColor={resolvedWpColor}
+                    wpTasks={orderedTasks}
+                    selectedTaskIds={tasksByDeliverable.get(d.id) || []}
+                    participants={participants}
+                    projectDuration={projectDuration}
+                    onUpdate={onDeliverableUpdate}
+                    onDelete={onDeliverableDelete}
+                    onMove={onDeliverableMove}
+                    onSaveTasks={saveDeliverableTasks}
+                    readOnly={readOnly}
+                    otherWpDrafts={otherWpDrafts}
+                    proposalId={proposalId}
+                    shouldStayMounted={shouldStayMounted}
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <DeliverablesDetailedGuidelinesInline />
+      </div>
 
-
-      <SameMonthReorderDialog
-        open={reorderOpen}
-        onOpenChange={setReorderOpen}
-        sorted={sorted}
-        wpNumber={wpNumber}
-        wpColor={resolvedWpColor}
-        onPersist={persistGroupOrder}
+      <WPBinDialog
+        isOpen={binOpen}
+        onClose={() => setBinOpen(false)}
+        wpDraftId={wpDraftId}
+        targetType="wp_draft_deliverable"
+        title="Deleted deliverables"
       />
     </TooltipProvider>
   );
 }
+
 
 interface DeliverableRowProps {
   deliverable: WPDraftDeliverable;

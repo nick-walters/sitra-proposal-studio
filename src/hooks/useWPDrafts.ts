@@ -46,9 +46,12 @@ export interface WPDraftTask {
   end_month: number | null;
   order_index: number;
   version: number;
+  /** Hidden tasks stay authorable here but are filtered out of the Part B mirror. */
+  is_visible?: boolean;
   participants?: { participant_id: string }[];
   effort?: { participant_id: string; person_months: number }[];
 }
+
 
 export interface WPDraftDeliverable {
   id: string;
@@ -73,6 +76,9 @@ export interface WPDraft {
   lead_participant_id: string | null;
   objectives: string | null;
   description_before_tasks: string | null;
+  /** Visibility of the single optional field before the first task. */
+  intro_visible?: boolean;
+
   color: string;
   theme_id: string | null;
   order_index: number;
