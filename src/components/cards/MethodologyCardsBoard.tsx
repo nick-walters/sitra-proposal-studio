@@ -705,22 +705,33 @@ function FieldRow({
           }
         >
           {isDocumentSurface && headerField}
-          <div className={isDocumentSurface ? 'flex items-start gap-2' : 'contents'}>
-          <div
-            className={`min-w-0 flex-1 ${lockBoundaryClass(lockStateOf(contentLock))}`}
-
+          <LockBoundary
+            state={lockStateOf(contentLock)}
+            holder={contentLock.holder}
             onFocusCapture={() => {
               if (contentLock.lockedByOther) return;
               // Mount-time normalisation by the editor must never count as an
               // edit — only content changed after the user focused the box does.
               touchedRef.current = true;
               onFocusField(field.id, 'content');
+              // Entering the box takes the lock. Waiting for the first
+              // keystroke left the box looking occupied while no lock row
+              // existed, so no other user saw a border or an avatar.
+              contentLock.onType();
             }}
             onMouseDownCapture={() => {
               if (contentLock.lockedByOther) return;
               onFocusField(field.id, 'content');
             }}
             onKeyDownCapture={() => {
+              if (contentLock.lockedByOther) return;
+              contentLock.onType();
+            }}
+            onPasteCapture={() => {
+              if (contentLock.lockedByOther) return;
+              contentLock.onType();
+            }}
+            onBeforeInputCapture={() => {
               if (contentLock.lockedByOther) return;
               contentLock.onType();
             }}
@@ -760,14 +771,9 @@ function FieldRow({
               captionNumbering={captionNumbering ?? null}
               documentSurface={isDocumentSurface}
               pairedTables={isImpactSummary}
-              activeRingClass={contentLock.isMine ? 'border-2 border-emerald-600' : ''}
-
             />
-          </div>
-          {contentLock.lockedByOther && contentLock.holder && (
-            <LockHolderBadge holder={contentLock.holder} />
-          )}
-          </div>
+          </LockBoundary>
+
         </div>
       )}
 
