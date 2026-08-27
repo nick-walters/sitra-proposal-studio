@@ -185,6 +185,25 @@ export async function deleteAndResequence(
 }
 
 /**
+ * Deletes a WP draft child (or the field before the first task) into the
+ * 90-day recycle bin. The row is snapshotted with its links BEFORE the
+ * resequencing delete, so `restore_binned_target` can put it back.
+ */
+export async function binTargetRow(
+  targetType: 'wp_draft_task' | 'wp_draft_deliverable' | 'wp_draft_intro' | 'case_subsection',
+  targetId: string,
+  expectedVersion: number | null = null,
+): Promise<{ ok: boolean; conflict?: boolean; error?: string }> {
+  const { data, error } = await (supabase as any).rpc('bin_target_row', {
+    p_target_type: targetType,
+    p_target_id: targetId,
+    p_expected_version: expectedVersion,
+  });
+  if (error) return { ok: false, conflict: false, error: error.message };
+  return (data ?? { ok: false, error: 'no response' }) as any;
+}
+
+/**
  * Moves a task or deliverable to another work package: the move, the source
  * renumber and the target append all happen in one transaction.
  */
