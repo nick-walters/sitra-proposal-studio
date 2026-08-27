@@ -73,40 +73,33 @@ export function LockedWPRichField({
   }, [disabled, lock]);
 
   return (
-    <div className="flex items-start gap-2">
-      <div
-        className={`min-w-0 flex-1 rounded-md ${
-          lock.lockedByOther
-            ? 'border border-destructive ring-1 ring-destructive/40'
-            : lock.isMine
-              ? 'ring-1 ring-emerald-600/60'
-              : ''
-        }`}
-        onKeyDownCapture={claimNow}
-        onPasteCapture={claimNow}
-        onBeforeInputCapture={claimNow}
-        onBlurCapture={(e) => {
-          const next = e.relatedTarget as Node | null;
-          if (next && e.currentTarget.contains(next)) return;
-          flush();
-          lock.onBlur();
-        }}
-      >
-        <LazyRichField
-          value={viewHtml}
-          onChange={handleChange}
-          disabled={disabled || lock.lockedByOther}
-          proposalId={proposalId}
-          staticExtensions={staticExtensions}
-          minHeight={minHeight}
-          documentSurface={documentSurface}
-          shouldStayMounted={shouldStayMounted}
-          onFocus={claimNow}
-        />
-      </div>
-      {lock.lockedByOther && lock.holder && <LockHolderBadge holder={lock.holder} />}
-    </div>
+    <LockBoundary
+      state={lockStateOf(lock)}
+      holder={lock.holder}
+      onKeyDownCapture={claimNow}
+      onPasteCapture={claimNow}
+      onBeforeInputCapture={claimNow}
+      onBlurCapture={(e) => {
+        const next = e.relatedTarget as Node | null;
+        if (next && e.currentTarget.contains(next)) return;
+        flush();
+        lock.onBlur();
+      }}
+    >
+      <LazyRichField
+        value={viewHtml}
+        onChange={handleChange}
+        disabled={disabled || lock.lockedByOther}
+        proposalId={proposalId}
+        staticExtensions={staticExtensions}
+        minHeight={minHeight}
+        documentSurface={documentSurface}
+        shouldStayMounted={shouldStayMounted}
+        onFocus={claimNow}
+      />
+    </LockBoundary>
   );
+
 
 }
 
