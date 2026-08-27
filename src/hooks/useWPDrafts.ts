@@ -573,17 +573,23 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
     const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
-    const res = await deleteAndResequence('wp_draft_deliverables', deliverableId, known?.version ?? null);
-    if (!res.ok) {
+    const { data, error } = await supabase.rpc('bin_target_row', {
+      p_target_type: 'wp_draft_deliverable',
+      p_target_id: deliverableId,
+      p_expected_version: known?.version ?? undefined,
+    });
+    const res = (data || {}) as { ok?: boolean; conflict?: boolean; error?: string };
+    if (error || !res.ok) {
       toast.error(res.conflict
         ? 'This deliverable changed elsewhere — it was not deleted. Reloading.'
-        : (res.error || 'Failed to delete deliverable'));
+        : (error?.message || res.error || 'Failed to delete deliverable'));
       await fetchWPDraft();
       return false;
     }
     await fetchWPDraft();
     return true;
   }, [wpDraft?.deliverables, fetchWPDraft]);
+
 
 
 
