@@ -6691,6 +6691,7 @@ export type Database = {
           description: string | null
           end_month: number | null
           id: string
+          is_visible: boolean
           lead_participant_id: string | null
           number: number
           order_index: number
@@ -6706,6 +6707,7 @@ export type Database = {
           description?: string | null
           end_month?: number | null
           id?: string
+          is_visible?: boolean
           lead_participant_id?: string | null
           number: number
           order_index?: number
@@ -6721,6 +6723,7 @@ export type Database = {
           description?: string | null
           end_month?: number | null
           id?: string
+          is_visible?: boolean
           lead_participant_id?: string | null
           number?: number
           order_index?: number
@@ -6794,6 +6797,7 @@ export type Database = {
           created_at: string
           description_before_tasks: string | null
           id: string
+          intro_visible: boolean
           is_hidden: boolean
           is_locked: boolean
           lead_participant_id: string | null
@@ -6818,6 +6822,7 @@ export type Database = {
           created_at?: string
           description_before_tasks?: string | null
           id?: string
+          intro_visible?: boolean
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
@@ -6842,6 +6847,7 @@ export type Database = {
           created_at?: string
           description_before_tasks?: string | null
           id?: string
+          intro_visible?: boolean
           is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
