@@ -292,10 +292,10 @@ export function WPDeliverablesTable({
 
   return (
     <TooltipProvider>
-      <div className="space-y-2" data-guideline-key="wp.deliverables">
-        {/* Block controls: restore from the 90-day bin, and a single blue plus
-            that only ever adds a deliverable. There is no reorder control —
-            numbering is derived server-side from due month and linked task. */}
+      <div className="space-y-2" data-guideline-key="drafts.wp.deliverables">
+        {/* Block controls, right-aligned in the order add, move, restore —
+            exactly as the tasks block. Guidance is never printed here: it is
+            reached through the Guidelines button with a field focused. */}
         <BlockControlRow
           className="px-1"
           title="Deliverables"
@@ -316,6 +316,49 @@ export function WPDeliverablesTable({
                   </TooltipTrigger>
                   <TooltipContent>Add deliverable</TooltipContent>
                 </Tooltip>
+
+                {onDeliverableMove && otherWpDrafts.length > 0 && sorted.length > 0 && (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            aria-label="Move a deliverable to another work package"
+                          >
+                            <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Move a deliverable to another work package</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuLabel>Move a deliverable to another WP</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {sorted.map((d) => (
+                        <DropdownMenuSub key={d.id}>
+                          <DropdownMenuSubTrigger>
+                            D{wpNumber}.{d.number}
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {otherWpDrafts.map((wp) => (
+                              <DropdownMenuItem
+                                key={wp.id}
+                                onClick={() => void onDeliverableMove(d.id, wp.id)}
+                              >
+                                WP{wp.number}
+                                {wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 {/* Restore stays in place and greys out when the bin is empty. */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -344,10 +387,10 @@ export function WPDeliverablesTable({
             hard 18 cm measure. Every field for a deliverable sits on ONE row;
             each column is as tight as its content, the title taking the rest. */}
         <div className="doc-surface-page bg-white px-[1.5cm] py-[8pt]">
-          <DeliverablesShortNoteInline />
           {sorted.length === 0 ? (
             <div className="py-4 text-center text-muted-foreground italic">No deliverables yet.</div>
           ) : (
+
             <table
               className={`${docTableStyles} ${docTableRules}`}
               style={{ tableLayout: 'auto', width: DOC_TEXT_COLUMN, borderCollapse: 'collapse' }}
