@@ -302,26 +302,29 @@ export function WPDeliverablesTable({
 
   return (
     <TooltipProvider>
-      <div className="space-y-2" data-guideline-key="drafts.wp.deliverables">
+      <section className={WP_BLOCK_FRAME} data-guideline-key="drafts.wp.deliverables">
         {/* Block controls, right-aligned in the order add, move, restore —
-            exactly as the tasks block. Guidance is never printed here: it is
-            reached through the Guidelines button with a field focused. */}
+            exactly as the tasks block. The heading wears the same frame,
+            face and weight as "Objectives:" and "Description of work:".
+            Guidance is never printed here: it is reached through the
+            Guidelines button with a field focused. */}
         <BlockControlRow
-          className="px-1"
+          className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}
           collapsed={collapsed}
           onToggleCollapsed={onToggleCollapsed}
           title={
             <span
+              className="select-none font-bold"
               style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '11pt',
-                paddingLeft: onToggleCollapsed ? 'calc(1.5cm - 36px)' : 'calc(1.5cm - 4px)',
+                ...WP_DOC_FONT,
+                paddingLeft: onToggleCollapsed ? WP_TITLE_INDENT : 'calc(1.5cm - 20px)',
                 display: 'inline-block',
               }}
             >
-              Deliverables
+              Deliverables:
             </span>
           }
+
           trailing={
             !readOnly ? (
               <div className="flex items-center gap-1">
