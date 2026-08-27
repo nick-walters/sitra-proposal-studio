@@ -54,6 +54,8 @@ import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
 import { useCardGuidelines } from '@/hooks/useCardGuidelines';
 import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
 import DOMPurify from 'dompurify';
+import { useFocusedVersionTarget } from '@/hooks/useFocusedVersionTarget';
+import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
 
 
 interface WPDraftEditorProps {
@@ -240,6 +242,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   // Guidelines are keyed to the focused field (see `data-guideline-key`
   // markers on the WP table / deliverables), falling back to the whole WP.
   const focusedGuidelineKey = useFocusedGuidelineKey();
+  const versionTarget = useFocusedVersionTarget();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   /* Guidance for the focused field, authored against the Drafts section of
      the proposal's own template version. */
@@ -787,7 +791,12 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           proposalId={proposalId}
           save={{ saving, lastSaved, onSaveNow: () => {} }}
           topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
-          fieldBar={{ onOpenGuidelines: () => setGuidelinesDialogOpen(true) }}
+          fieldBar={{
+            onOpenGuidelines: () => setGuidelinesDialogOpen(true),
+            /* The toolbar reads the nearest `data-version-target` marker, so
+               history works on every WP field without threading a target. */
+            onOpenVersionHistory: versionTarget ? () => setHistoryOpen(true) : undefined,
+          }}
           formatting={{
             proposalId,
             canManageCustomColors: isCoordinator,
@@ -955,6 +964,21 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
         </div>
 
+
+        {/* Version history for whichever WP field owns the toolbar. */}
+        {versionTarget && (
+          <CardFieldHistoryDialog
+            proposalId={proposalId}
+            fieldId={versionTarget.targetId}
+            textBox={versionTarget.textBox}
+            targetType={versionTarget.targetType}
+            fieldLabel={versionTarget.label}
+            boxLabelOverride={versionTarget.label}
+            isOpen={historyOpen}
+            canEdit={canEdit}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
 
         {/* Guidelines Dialog */}
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
