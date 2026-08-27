@@ -2,7 +2,15 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { BlockControlRow } from '@/components/cards/BlockControlRow';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+  WP_TITLE_INDENT,
+} from '@/lib/wpBlockChrome';
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 
 import { Button } from '@/components/ui/button';
