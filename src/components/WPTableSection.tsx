@@ -159,7 +159,7 @@ export function WPTableSection({
     <div className="space-y-4">
       {/* ── BLOCK 2: Objectives. One field, no block controls. ── */}
       <section
-        data-guideline-key="wp.objectives"
+        data-guideline-key="drafts.wp.objectives"
         data-version-label="Objectives"
         data-version-target={
           wpDraftId ? versionTargetAttr('wp_draft', wpDraftId, 'objectives') : undefined
@@ -294,7 +294,7 @@ export function WPTableSection({
         {introPresent && (
           <div
             className={cn('border-b border-border py-2', !introVisible && 'opacity-50')}
-            data-guideline-key="wp.methodology"
+            data-guideline-key="drafts.wp.intro"
             data-version-label="Field before the first task"
             data-version-target={
               wpDraftId
@@ -475,7 +475,10 @@ function TaskModule({
     : participants;
 
   return (
-    <div className={cn('space-y-1 py-2', !isVisible && 'opacity-50')} data-guideline-key="wp.tasks">
+    <div
+      className={cn('space-y-1 bg-white py-2', !isVisible && 'opacity-50')}
+      data-guideline-key="drafts.wp.task"
+    >
       {/* Row 1: badge, title, visibility, delete — inside the 18 cm column. */}
       <div className="flex items-center gap-1.5 px-[1.5cm]">
         {dragHandleProps && (
@@ -713,7 +716,6 @@ function TimingRangePicker({
 
   return (
     <>
-      <span className="text-draft text-muted-foreground">Duration:</span>
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
           <button
