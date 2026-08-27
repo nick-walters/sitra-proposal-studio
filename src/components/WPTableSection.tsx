@@ -544,9 +544,23 @@ function TaskModule({
       className={cn('space-y-1 bg-white py-2', !isVisible && 'opacity-50')}
       data-guideline-key="drafts.wp.task"
     >
-      {/* Row 1: badge, title, visibility, delete — inside the 18 cm column. */}
+      {/* Row 1: badge, title, visibility, delete — inside the 18 cm column.
+          The collapse chevron sits above the drag grip at the module's left
+          edge, exactly as it does on a Part B module. */}
       <div className="flex items-center gap-1.5 px-[1.5cm]">
+        {(onToggleCollapsed || dragHandleProps) && (
+          <div className="-ml-9 flex shrink-0 flex-col items-center gap-0.5 self-start">
+            {onToggleCollapsed && (
+              <CollapseChevron
+                collapsed={collapsed}
+                onToggle={onToggleCollapsed}
+                label="task"
+              />
+            )}
+          </div>
+        )}
         {dragHandleProps && (
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button
