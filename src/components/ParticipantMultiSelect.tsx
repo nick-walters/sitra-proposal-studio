@@ -16,6 +16,12 @@ interface ParticipantMultiSelectProps {
   onChange: (ids: string[]) => void;
   disabled?: boolean;
   placeholder?: string;
+  /**
+   * Document surfaces (WP task modules) show no field chrome at rest: the
+   * control reads as text and only reveals its affordance on hover or focus,
+   * exactly as the task leader dropdown beside it does.
+   */
+  subtle?: boolean;
 }
 
 export function ParticipantMultiSelect({
@@ -24,7 +30,9 @@ export function ParticipantMultiSelect({
   onChange,
   disabled = false,
   placeholder = 'Select...',
+  subtle = false,
 }: ParticipantMultiSelectProps) {
+
   const [open, setOpen] = useState(false);
 
   const toggleParticipant = (participantId: string) => {
