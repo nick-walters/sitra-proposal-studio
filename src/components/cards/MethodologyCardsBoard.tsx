@@ -95,9 +95,8 @@ import {
   useCardLocks,
   useTargetLock,
 } from '@/hooks/useCardLocks';
-import { useLockedBox, lostTextPayload, lockBorderClass } from '@/hooks/useLockedBox';
-import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
-import { lockBoundaryClass, lockStateOf } from '@/components/cards/LockBoundary';
+import { useLockedBox, lostTextPayload } from '@/hooks/useLockedBox';
+import { LockBoundary, lockStateOf } from '@/components/cards/LockBoundary';
 
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { type LostTextPayload } from '@/components/cards/LostTextDialog';
@@ -475,62 +474,72 @@ function FieldRow({
           ? 'inline-flex max-w-full items-start gap-2'
           : 'flex min-w-0 flex-1 items-center gap-2'
       }
+      onFocusCapture={() => {
+        if (headerLock.lockedByOther || !canEdit) return;
+        headerLock.onType();
+      }}
+      onPasteCapture={() => {
+        if (headerLock.lockedByOther || !canEdit) return;
+        headerLock.onType();
+      }}
+      onBeforeInputCapture={() => {
+        if (headerLock.lockedByOther || !canEdit) return;
+        headerLock.onType();
+      }}
     >
-      {headerLock.lockedByOther ? (
-        // Read-only surface: a plain element, so no caret can be
-        // placed, while the text stays selectable for copying.
-        <div
-          className={
-            isDocumentSurface
-              ? 'doc-surface-heading doc-surface-heading-inline select-text border-2 border-destructive [&_p]:m-0'
-              : 'h-7 flex-1 select-text truncate rounded-md border-2 border-destructive bg-background px-2.5 py-0.5 text-sm font-bold italic [&_p]:m-0 [&_p]:inline'
-          }
-
-          aria-readonly="true"
-          dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
-        />
-      ) : (
-        // Single-line rich text, baseline formatting only.
-        <LazyRichField
-          singleLine
-          proposalId={proposalId}
-          value={ensureRichHtml(headingDraft)}
-          placeholder="Header"
-          disabled={!canEdit}
-          minHeight={isDocumentSurface ? '16px' : '28px'}
-          documentSurface={isDocumentSurface}
-          placeholderHideOnFocus={isDocumentSurface}
-          className={
-            isDocumentSurface
-              ? `doc-surface-heading doc-surface-heading-inline ${lockBorderClass(headerLock.isMine, false)}`
-              : `flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0 ${lockBorderClass(headerLock.isMine, false)}`
-          }
-          staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-          onFocus={() => {
-            headingFocused.current = true;
-            onFocusField(field.id, 'header');
-          }}
-          onChange={(html) => {
-            headerLock.onType();
-            setHeadingDraftBoth(html);
-            headerLock.push(html);
-          }}
-          onBlur={() => {
-            headingFocused.current = false;
-            const next = headingDraftRef.current.trim();
-            if (lastCommittedHeading.current !== next) {
-              lastCommittedHeading.current = next;
-              onHeadingChange(field, next || null);
+      <LockBoundary state={lockStateOf(headerLock)} holder={headerLock.holder}>
+        {headerLock.lockedByOther ? (
+          // Read-only surface: a plain element, so no caret can be
+          // placed, while the text stays selectable for copying.
+          <div
+            className={
+              isDocumentSurface
+                ? 'doc-surface-heading doc-surface-heading-inline select-text [&_p]:m-0'
+                : 'h-7 flex-1 select-text truncate bg-background px-2.5 py-0.5 text-sm font-bold italic [&_p]:m-0 [&_p]:inline'
             }
-            headerLock.onBlur();
-          }}
-        />
-      )}
-
-      {headerLock.lockedByOther && headerLock.holder && (
-        <LockHolderBadge holder={headerLock.holder} />
-      )}
+            aria-readonly="true"
+            dangerouslySetInnerHTML={{ __html: displayRichHtml(headingView) }}
+          />
+        ) : (
+          // Single-line rich text, baseline formatting only.
+          <LazyRichField
+            singleLine
+            proposalId={proposalId}
+            value={ensureRichHtml(headingDraft)}
+            placeholder="Header"
+            disabled={!canEdit}
+            minHeight={isDocumentSurface ? '16px' : '28px'}
+            documentSurface={isDocumentSurface}
+            placeholderHideOnFocus={isDocumentSurface}
+            className={
+              isDocumentSurface
+                ? 'doc-surface-heading doc-surface-heading-inline'
+                : 'flex-1 text-sm [&_.ProseMirror]:font-bold [&_.ProseMirror]:italic [&_[role=textbox]]:font-bold [&_[role=textbox]]:italic [&_p]:m-0'
+            }
+            staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+            onFocus={() => {
+              headingFocused.current = true;
+              onFocusField(field.id, 'header');
+            }}
+            onChange={(html) => {
+              headerLock.onType();
+              setHeadingDraftBoth(html);
+              headerLock.push(html);
+            }}
+            onBlur={() => {
+              headingFocused.current = false;
+              const next = headingDraftRef.current.trim();
+              if (lastCommittedHeading.current !== next) {
+                lastCommittedHeading.current = next;
+                onHeadingChange(field, next || null);
+              }
+              headerLock.onBlur();
+            }}
+          />
+        )}
+      </LockBoundary>
     </div>
+
   ) : null;
 
 
@@ -705,22 +714,33 @@ function FieldRow({
           }
         >
           {isDocumentSurface && headerField}
-          <div className={isDocumentSurface ? 'flex items-start gap-2' : 'contents'}>
-          <div
-            className={`min-w-0 flex-1 ${lockBoundaryClass(lockStateOf(contentLock))}`}
-
+          <LockBoundary
+            state={lockStateOf(contentLock)}
+            holder={contentLock.holder}
             onFocusCapture={() => {
               if (contentLock.lockedByOther) return;
               // Mount-time normalisation by the editor must never count as an
               // edit — only content changed after the user focused the box does.
               touchedRef.current = true;
               onFocusField(field.id, 'content');
+              // Entering the box takes the lock. Waiting for the first
+              // keystroke left the box looking occupied while no lock row
+              // existed, so no other user saw a border or an avatar.
+              contentLock.onType();
             }}
             onMouseDownCapture={() => {
               if (contentLock.lockedByOther) return;
               onFocusField(field.id, 'content');
             }}
             onKeyDownCapture={() => {
+              if (contentLock.lockedByOther) return;
+              contentLock.onType();
+            }}
+            onPasteCapture={() => {
+              if (contentLock.lockedByOther) return;
+              contentLock.onType();
+            }}
+            onBeforeInputCapture={() => {
               if (contentLock.lockedByOther) return;
               contentLock.onType();
             }}
@@ -760,14 +780,9 @@ function FieldRow({
               captionNumbering={captionNumbering ?? null}
               documentSurface={isDocumentSurface}
               pairedTables={isImpactSummary}
-              activeRingClass={contentLock.isMine ? 'border-2 border-emerald-600' : ''}
-
             />
-          </div>
-          {contentLock.lockedByOther && contentLock.holder && (
-            <LockHolderBadge holder={contentLock.holder} />
-          )}
-          </div>
+          </LockBoundary>
+
         </div>
       )}
 
@@ -1186,40 +1201,51 @@ function CardBlock({
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
               // upgraded to HTML on read by `ensureRichHtml`.
-              <LazyRichField
-                autoFocus
-                singleLine
-                proposalId={proposalId}
-                value={ensureRichHtml(titleDraft)}
-                minHeight="32px"
-                className={`[&_.ProseMirror]:font-bold [&_.ProseMirror]:underline [&_p]:m-0 ${lockBorderClass(titleLock.isMine, false)}`}
-                staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
-                onChange={(html) => {
+              <LockBoundary
+                state={lockStateOf(titleLock)}
+                holder={titleLock.holder}
+                onFocusCapture={() => {
+                  if (titleLock.lockedByOther) return;
                   titleLock.onType();
-                  setTitleDraft(html);
-                  titleLock.push(html);
                 }}
-                onBlur={() => {
-                  commitTitle();
-                  titleLock.onBlur();
+                onPasteCapture={() => {
+                  if (titleLock.lockedByOther) return;
+                  titleLock.onType();
                 }}
-              />
+              >
+                <LazyRichField
+                  autoFocus
+                  singleLine
+                  proposalId={proposalId}
+                  value={ensureRichHtml(titleDraft)}
+                  minHeight="32px"
+                  className="[&_.ProseMirror]:font-bold [&_.ProseMirror]:underline [&_p]:m-0"
+                  staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+                  onChange={(html) => {
+                    titleLock.onType();
+                    setTitleDraft(html);
+                    titleLock.push(html);
+                  }}
+                  onBlur={() => {
+                    commitTitle();
+                    titleLock.onBlur();
+                  }}
+                />
+              </LockBoundary>
             ) : (
-              <div className="flex min-w-0 items-center gap-2">
+              <LockBoundary state={lockStateOf(titleLock)} holder={titleLock.holder}>
                 <h3
                   className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
                     displayedTitle ? '' : 'italic text-muted-foreground no-underline'
-                  } ${titleLock.lockedByOther ? 'rounded-md border-2 border-destructive px-1' : ''}`}
+                  } ${titleLock.lockedByOther ? 'px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
                   {...(displayedTitle
                     ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
                     : { children: 'No title' })}
                 />
-                {titleLock.lockedByOther && titleLock.holder && (
-                  <LockHolderBadge holder={titleLock.holder} />
-                )}
-              </div>
+              </LockBoundary>
             )}
+
 
             {userCollapsed && (
               <p className="truncate text-xs text-muted-foreground">{collapsedSummary}</p>
