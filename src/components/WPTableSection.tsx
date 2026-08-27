@@ -338,6 +338,10 @@ export function WPTableSection({
           )}
         </div>
 
+        {/* Everything below the header hides when the block is collapsed. */}
+        {!isCollapsed(dowKey) && (
+        <>
+
         {/* The single optional field before the first task: fixed in place, no
             drag grip — only visibility and delete. */}
         {introPresent && (
@@ -443,6 +447,8 @@ export function WPTableSection({
           <p className="py-3 text-center text-sm italic text-muted-foreground">
             No tasks yet — use the add control above.
           </p>
+        )}
+        </>
         )}
       </section>
 
