@@ -1,10 +1,25 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Plus, ArrowRight, Crown, Eye, EyeOff } from 'lucide-react';
+import { Plus, ArrowRight, Crown, Eye, EyeOff, GripVertical, RotateCcw } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   DropdownMenu,
@@ -20,8 +35,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
-import { BlockControlRow } from '@/components/cards/BlockControlRow';
-import { WPBinDialog } from '@/components/wp/WPBinDialog';
+import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
+import { jumpToElementId } from '@/lib/jumpToElement';
 import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
 import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
 import {
@@ -49,8 +64,12 @@ interface WPTableSectionProps {
   participants: ParticipantSummary[];
   onObjectivesChange: (value: string) => void;
   onDescriptionBeforeTasksChange: (value: string) => void;
-  /** Creates or removes the single optional field before the first task. */
+  /** Creates the single optional field before the first task. */
   onIntroPresenceChange?: (present: boolean) => void;
+  /** Deletes that field into the tasks bin (restorable for 90 days). */
+  onIntroDelete?: () => Promise<boolean> | void;
+  /** Persists a new task order through the server-side resequencing. */
+  onTasksReorder?: (orderedIds: string[]) => Promise<boolean>;
   onTaskUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onTaskAdd: () => Promise<any>;
   onTaskDelete: (taskId: string) => Promise<boolean>;
@@ -91,6 +110,8 @@ export function WPTableSection({
   onObjectivesChange,
   onDescriptionBeforeTasksChange,
   onIntroPresenceChange,
+  onIntroDelete,
+  onTasksReorder,
   onTaskUpdate,
   onTaskAdd,
   onTaskDelete,
@@ -106,6 +127,27 @@ export function WPTableSection({
   shouldStayMounted,
 }: WPTableSectionProps) {
   const [binOpen, setBinOpen] = useState(false);
+  const binCount = useWPBinCount(wpDraftId, ['wp_draft_task', 'wp_draft_intro']);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  /** Adds a task and scrolls to it, as Part B does for a new module. */
+  const handleAddTask = useCallback(async () => {
+    const created = await onTaskAdd();
+    const id = (created as { id?: string } | null)?.id;
+    if (id) void jumpToElementId(`wp-task-row-${id}`);
+  }, [onTaskAdd]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onTasksReorder) return;
+    const ids = tasks.map((t) => t.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = [...ids];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    void onTasksReorder(next);
+  }, [tasks, onTasksReorder]);
 
   const formatTaskNumber = (taskNum: number) => `T${wpNumber}.${taskNum}`;
 
@@ -407,6 +449,7 @@ interface TaskModuleProps {
   formatTaskNumber: (num: number) => string;
   proposalId?: string | null;
   shouldStayMounted?: () => boolean;
+  dragHandleProps?: Record<string, unknown>;
 }
 
 /** One task module: badge and title, leader and participants, duration, text. */
@@ -423,6 +466,7 @@ function TaskModule({
   formatTaskNumber,
   proposalId,
   shouldStayMounted,
+  dragHandleProps,
 }: TaskModuleProps) {
   const isVisible = task.is_visible !== false;
   const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
@@ -433,9 +477,23 @@ function TaskModule({
     : participants;
 
   return (
-    <div className={cn('space-y-1', !isVisible && 'opacity-50')} data-guideline-key="wp.tasks">
-      {/* Row 1: badge, title, visibility, delete */}
-      <div className="flex items-center gap-1.5 px-1">
+    <div className={cn('space-y-1 py-2', !isVisible && 'opacity-50')} data-guideline-key="wp.tasks">
+      {/* Row 1: badge, title, visibility, delete — inside the 18 cm column. */}
+      <div className="flex items-center gap-1.5 px-[1.5cm]">
+        {dragHandleProps && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="-ml-5 shrink-0 cursor-grab touch-none rounded hover:bg-muted active:cursor-grabbing"
+                {...dragHandleProps}
+              >
+                <GripVertical className="h-4 w-4 text-blue-500" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Drag to reorder this task</TooltipContent>
+          </Tooltip>
+        )}
         <span
           className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold"
           style={{
@@ -488,12 +546,16 @@ function TaskModule({
           </Tooltip>
         )}
         {!readOnly && (
-          <DeleteConfirmDialog itemLabel="this task" onConfirm={() => void onDelete(task.id)} />
+          <DeleteConfirmDialog
+            itemLabel="this task"
+            description="This task goes to the tasks bin, where it can be restored for 90 days."
+            onConfirm={() => void onDelete(task.id)}
+          />
         )}
       </div>
 
       {/* Row 2: leader, participants, duration */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
+      <div className="flex flex-wrap items-center gap-2 px-[1.5cm]">
         <Select
           value={task.lead_participant_id || ''}
           onValueChange={(value) =>
