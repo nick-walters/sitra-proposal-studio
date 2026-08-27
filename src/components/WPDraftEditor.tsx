@@ -827,7 +827,10 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   return (
     <div className="h-full">
-      <div className="space-y-3 p-4">
+      {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
+          so a page-styled field renders its true measure, as in Part B. */}
+      <div className="mx-auto w-[21cm] max-w-full space-y-3 p-4">
+
         {/* Numbering is maintained by the database resequencing triggers. */}
 
 
