@@ -22,6 +22,7 @@ import {
   wpObjectivesCollapseKey,
   wpTaskCollapseKey,
 } from '@/lib/wpCollapseKeys';
+import { WP_BLOCK_FRAME, WP_DOC_FONT } from '@/lib/wpBlockChrome';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
