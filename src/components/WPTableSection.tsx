@@ -634,6 +634,9 @@ function TaskModule({
         )}
       </div>
 
+      {/* Rows 2 and 3 fold away when the module is collapsed. */}
+      {!collapsed && (
+      <>
       {/* Row 2: leader, participants, duration */}
       <div className="flex flex-wrap items-center gap-2 px-[1.5cm]">
         <Select
@@ -709,6 +712,8 @@ function TaskModule({
             selectedIds={selectedParticipantIds}
             onChange={(ids) => onParticipantsChange(task.id, ids)}
             disabled={readOnly}
+            placeholder="Participants"
+            subtle
           />
         </div>
 
@@ -727,7 +732,10 @@ function TaskModule({
         data-version-label={`${formatTaskNumber(task.number)} description`}
         data-version-target={versionTargetAttr('wp_draft_task', task.id, 'description')}
       >
-        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+        <div
+          className="doc-surface-page bg-white px-[1.5cm] pb-[6pt] pt-0"
+          style={{ marginTop: '-2.67px' }}
+        >
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
@@ -741,6 +749,8 @@ function TaskModule({
           />
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -798,7 +808,7 @@ function TimingRangePicker({
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
           <button
-            className="h-6 cursor-pointer rounded-md border bg-background px-2 text-draft hover:opacity-80"
+            className="h-6 cursor-pointer rounded-md border-0 bg-transparent px-1 text-draft shadow-none hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             disabled={readOnly}
           >
             {task.start_month != null && task.end_month != null ? (
