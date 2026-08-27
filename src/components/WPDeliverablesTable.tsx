@@ -454,6 +454,8 @@ export function WPDeliverablesTable({
             </table>
           )}
         </div>
+        )}
+
       </div>
 
 
