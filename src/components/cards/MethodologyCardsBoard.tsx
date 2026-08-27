@@ -95,6 +95,7 @@ import {
   useCardLocks,
   useTargetLock,
 } from '@/hooks/useCardLocks';
+import { useLockedBox, lostTextPayload, lockBorderClass } from '@/hooks/useLockedBox';
 import { LockHolderBadge } from '@/components/cards/LockHolderBadge';
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { type LostTextPayload } from '@/components/cards/LostTextDialog';
@@ -265,92 +266,9 @@ function OutsideClickClear({ onClear }: { onClear: () => void }) {
   return null;
 }
 
-/* ------------------------------------------------------------------ */
-/* Per-text-box lock wiring                                            */
-/* ------------------------------------------------------------------ */
+/* Per-text-box lock wiring now lives in `@/hooks/useLockedBox`, so the same
+   behaviour can be applied to non-card targets (WP drafts) unchanged. */
 
-interface LockedBoxOptions {
-  /** Current locally typed value, used if the lock race is lost. */
-  getTyped: () => string;
-  /** Called when another user won the race: revert to authoritative text. */
-  onLoseRace: (typed: string, holderName: string | null) => void;
-  /** Flushes this text box to the database (used before a timeout release). */
-  save?: () => Promise<void>;
-  /** Current value, answered to viewers that join mid-edit. */
-  snapshot?: () => string;
-}
-
-/**
- * Locking for one addressable text box. The lock is taken on the first
- * keystroke, refreshed on every later one, and released on blur.
- */
-function useLockedBox(targetId: string, opts: LockedBoxOptions) {
-  const { claim, noteKeystroke, release, registerSaver, registerSnapshotSource, stream, useStreamedValue } =
-    useCardLocks();
-  const { holder, isMine, lockedByOther } = useTargetLock(targetId);
-  const streamed = useStreamedValue(targetId, lockedByOther);
-  const optsRef = useRef(opts);
-  optsRef.current = opts;
-  const holderRef = useRef(holder);
-  holderRef.current = holder;
-
-  useEffect(() => {
-    if (!optsRef.current.save) return;
-    return registerSaver(targetId, () => optsRef.current.save!());
-  }, [registerSaver, targetId]);
-
-  useEffect(() => {
-    if (!optsRef.current.snapshot) return;
-    return registerSnapshotSource(targetId, () => optsRef.current.snapshot!());
-  }, [registerSnapshotSource, targetId]);
-
-  const onType = useCallback(() => {
-    noteKeystroke(targetId);
-    void claim(targetId).then((ok) => {
-      if (!ok) optsRef.current.onLoseRace(optsRef.current.getTyped(), holderRef.current?.userName ?? null);
-    });
-  }, [claim, noteKeystroke, targetId]);
-
-  // A browser fires editor blur when the WINDOW loses focus (alt-tab, desktop
-  // switch, clicking another browser). That must never surrender the lock —
-  // only a genuine in-app focus move away from this box does. The deferred
-  // `document.hasFocus()` check distinguishes the two.
-  const onBlur = useCallback(() => {
-    if (!isMine) return;
-    window.setTimeout(() => {
-      if (!document.hasFocus()) return; // window/app blur — keep the lock
-      void release(targetId, { save: true });
-    }, 0);
-  }, [isMine, release, targetId]);
-
-
-  const push = useCallback((html: string) => stream(targetId, html), [stream, targetId]);
-
-  return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
-}
-/**
- * Chooses the right dialog for a lost race: the copy-to-backup dialog only
- * when the user genuinely typed something, otherwise a plain "locked" notice.
- */
-function lostTextPayload(typed: string, holderName: string | null): LostTextPayload {
-  if (isHtmlBlank(typed)) return { text: '', reason: 'blocked', holderName };
-  return { text: typed, reason: 'race', holderName };
-}
-
-
-
-/**
- * Green when held by me, red when held by someone else.
- * The `focus-visible:` overrides matter: shadcn inputs paint the ordinary blue
- * focus ring on focus, which would otherwise win over the green lock border
- * exactly when the holder is typing.
- */
-function lockBorderClass(isMine: boolean, lockedByOther: boolean) {
-  if (lockedByOther) return 'border-destructive ring-1 ring-destructive/40';
-  if (isMine)
-    return 'border-emerald-600 ring-1 ring-emerald-600/40 focus-visible:border-emerald-600 focus-visible:ring-emerald-600/60 focus-visible:ring-offset-0';
-  return '';
-}
 
 
 /* ------------------------------------------------------------------ */

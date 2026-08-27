@@ -17,6 +17,8 @@ import {
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
+import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
 import { WP_OBJECTIVES_FIELD_EXTENSIONS, WP_DRAFT_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -66,6 +68,8 @@ interface WPTableSectionProps {
   allWpDrafts?: WPOption[];
   currentWpDraftId?: string;
   proposalId?: string | null;
+  /** WP draft row id — addresses this WP's lock targets. */
+  wpDraftId?: string | null;
   canManageCustomColors?: boolean;
   /** Keep the focused editor mounted while an insert dialog is open. */
   shouldStayMounted?: () => boolean;
@@ -92,6 +96,7 @@ export function WPTableSection({
   allWpDrafts = [],
   currentWpDraftId,
   proposalId,
+  wpDraftId,
   canManageCustomColors = false,
   shouldStayMounted,
 }: WPTableSectionProps) {
@@ -128,15 +133,34 @@ export function WPTableSection({
             Guidelines control show this field's guidance only. */}
         <div className="space-y-2" data-guideline-key="wp.objectives">
           <label className="text-draft font-medium">Objective</label>
-          <DebouncedRichField
-            value={objectives || ''}
-            onChange={onObjectivesChange}
-            disabled={readOnly}
-            minHeight="80px"
-            proposalId={proposalId ?? ''}
-            staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
-            shouldStayMounted={shouldStayMounted}
-          />
+          {/* Page-styled surface trial: 21 cm page (18 cm column + 1.5 cm
+              margins), white, Times 11 pt justified, no field chrome. */}
+          <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
+            {wpDraftId ? (
+              <LockedWPRichField
+                targetId={wpTargetId(wpDraftId, 'objectives')}
+                value={objectives || ''}
+                onChange={onObjectivesChange}
+                disabled={readOnly}
+                minHeight="80px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            ) : (
+              <DebouncedRichField
+                value={objectives || ''}
+                onChange={onObjectivesChange}
+                disabled={readOnly}
+                minHeight="80px"
+                proposalId={proposalId ?? ''}
+                staticExtensions={WP_OBJECTIVES_FIELD_EXTENSIONS}
+                documentSurface
+                shouldStayMounted={shouldStayMounted}
+              />
+            )}
+          </div>
           <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
 
@@ -440,15 +464,19 @@ function SortableTaskCard({
 
       {/* Row 3: Description editor */}
       <div className="mt-2 ml-5" data-guideline-key="wp.tasks">
-        <DebouncedRichField
-          value={task.description || ''}
-          onChange={handleDescriptionChange}
-          disabled={readOnly}
-          minHeight="60px"
-          proposalId={proposalId ?? ''}
-          staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
-          shouldStayMounted={shouldStayMounted}
-        />
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[3pt]">
+          <LockedWPRichField
+            targetId={wpTaskTargetId(task.id, 'description')}
+            value={task.description || ''}
+            onChange={handleDescriptionChange}
+            disabled={readOnly}
+            minHeight="60px"
+            proposalId={proposalId ?? ''}
+            staticExtensions={WP_DRAFT_FIELD_EXTENSIONS}
+            documentSurface
+            shouldStayMounted={shouldStayMounted}
+          />
+        </div>
       </div>
     </div>
   );

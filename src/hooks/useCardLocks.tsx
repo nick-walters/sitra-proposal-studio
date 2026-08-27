@@ -34,6 +34,10 @@ export type LockTargetType = 'text_box' | 'table_cell' | 'figure';
 export const fieldTargetId = (fieldId: string, textBox: 'header' | 'content') =>
   `field:${fieldId}:${textBox}`;
 export const cardTitleTargetId = (cardId: string) => `card:${cardId}:title`;
+/** WP draft narrative field, e.g. `wp:<id>:objectives`. */
+export const wpTargetId = (wpDraftId: string, field: string) => `wp:${wpDraftId}:${field}`;
+/** WP draft task field, e.g. `wp_task:<id>:description`. */
+export const wpTaskTargetId = (taskId: string, field: string) => `wp_task:${taskId}:${field}`;
 
 export interface LockHolder {
   targetId: string;
@@ -91,15 +95,22 @@ const CardLockContext = createContext<CardLockContextValue | null>(null);
 export function CardLockProvider({
   proposalId,
   sectionId,
+  channelKey,
   enabled = true,
   children,
 }: {
   proposalId: string;
-  sectionId: string;
+  /** Section the targets belong to, when there is one. Stored on the lock row
+   *  (nullable in the table) — surfaces without a section pass null. */
+  sectionId: string | null;
+  /** Broadcast channel name for live streaming. Defaults to the section id;
+   *  section-less surfaces (WP drafts) supply their own key. */
+  channelKey?: string;
   enabled?: boolean;
   children: ReactNode;
 }) {
   const { user, session } = useAuth();
+  const streamKey = channelKey ?? sectionId;
   const myUserId = user?.id ?? null;
 
   /** Kept in a ref so the unload handler can read the token synchronously. */
@@ -183,18 +194,18 @@ export function CardLockProvider({
   /* ---------------- streaming channel ---------------- */
 
   useEffect(() => {
-    if (!enabled || !sectionId) return;
-    acquireStream(sectionId);
-    const off = onSnapshotRequest(sectionId, (targetId) => {
+    if (!enabled || !streamKey) return;
+    acquireStream(streamKey);
+    const off = onSnapshotRequest(streamKey, (targetId) => {
       if (myTargetRef.current !== targetId) return;
       const get = snapshotSourcesRef.current.get(targetId);
-      if (get) sendSnapshot(sectionId, targetId, get());
+      if (get) sendSnapshot(streamKey, targetId, get());
     });
     return () => {
       off();
-      releaseStream(sectionId);
+      releaseStream(streamKey);
     };
-  }, [enabled, sectionId]);
+  }, [enabled, streamKey]);
 
   /* ---------------- acquire / heartbeat / release ---------------- */
 
@@ -414,25 +425,25 @@ export function CardLockProvider({
 
   const stream = useCallback(
     (targetId: string, html: string) => {
-      if (!enabled || !sectionId) return;
+      if (!enabled || !streamKey) return;
       if (myTargetRef.current !== targetId) return;
-      broadcastContent(sectionId, targetId, html);
+      broadcastContent(streamKey, targetId, html);
     },
-    [enabled, sectionId],
+    [enabled, streamKey],
   );
 
   const useStreamedValue = (targetId: string, active: boolean) => {
     const [value, setValue] = useState<string | null>(null);
     useEffect(() => {
-      if (!enabled || !active || !sectionId) {
+      if (!enabled || !active || !streamKey) {
         setValue(null);
         return;
       }
-      const off = onStreamContent(sectionId, (id, html) => {
+      const off = onStreamContent(streamKey, (id, html) => {
         if (id === targetId) setValue(html);
       });
       // A viewer joining mid-edit asks the holder for the full current value.
-      requestSnapshot(sectionId, targetId);
+      requestSnapshot(streamKey, targetId);
       return () => {
         off();
       };
