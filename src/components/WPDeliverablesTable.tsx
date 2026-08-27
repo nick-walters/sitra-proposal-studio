@@ -319,7 +319,7 @@ export function WPDeliverablesTable({
 
   const otherWpDrafts = allWpDrafts.filter(wp => wp.id !== wpDraftId);
 
-  const [reorderOpen, setReorderOpen] = useState(false);
+  const [binOpen, setBinOpen] = useState(false);
 
   return (
     <TooltipProvider>
