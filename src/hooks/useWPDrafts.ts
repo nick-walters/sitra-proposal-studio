@@ -45,7 +45,10 @@ export interface WPDraftTask {
   start_month: number | null;
   end_month: number | null;
   order_index: number;
+  /** Hidden tasks stay in the draft but are not mirrored into Part B. */
+  is_visible?: boolean;
   version: number;
+
   participants?: { participant_id: string }[];
   effort?: { participant_id: string; person_months: number }[];
 }
