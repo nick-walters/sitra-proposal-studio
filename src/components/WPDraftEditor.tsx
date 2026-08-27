@@ -20,6 +20,8 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 import { getEditorCapabilities } from '@/lib/fieldCapabilities';
+import { CardLockProvider, useCardLocks } from '@/hooks/useCardLocks';
+import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
@@ -197,11 +199,27 @@ function parseGuidelineContent(content: string): React.ReactNode {
 export function WPDraftEditor(props: WPDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
-      <PageSearchProvider>
-        <WPDraftEditorInner {...props} />
-      </PageSearchProvider>
+      {/* WP drafts are not a section, so the lock rows carry no section id
+          (the column is nullable) and streaming uses a proposal-wide key. */}
+      <CardLockProvider
+        proposalId={props.proposalId}
+        sectionId={null}
+        channelKey={`wp-drafts:${props.proposalId}`}
+        enabled
+      >
+        <PageSearchProvider>
+          <WPDraftEditorInner {...props} />
+          <WPLockTimeoutWarning />
+        </PageSearchProvider>
+      </CardLockProvider>
     </MethodologyEditorFocusProvider>
   );
+}
+
+/** Idle-timeout warning for whichever WP field this client currently holds. */
+function WPLockTimeoutWarning() {
+  const { warning } = useCardLocks();
+  return warning ? <LockTimeoutWarning secondsLeft={warning.secondsLeft} /> : null;
 }
 
 function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
@@ -1201,6 +1219,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
           allWpDrafts={wpDrafts}
           currentWpDraftId={wpDraft.id}
           proposalId={proposalId}
+          wpDraftId={wpDraft.id}
           canManageCustomColors={isCoordinator}
           shouldStayMounted={shouldStayMounted}
         />
