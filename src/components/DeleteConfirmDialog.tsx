@@ -58,7 +58,7 @@ export function DeleteConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {itemLabel}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete {itemLabel}? This action cannot be undone.
+            {description ?? `Are you sure you want to delete ${itemLabel}?`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
