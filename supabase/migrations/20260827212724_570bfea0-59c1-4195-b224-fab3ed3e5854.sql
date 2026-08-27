@@ -1,0 +1,2 @@
+ALTER TABLE public.card_deletions DROP CONSTRAINT card_deletions_target_type_check;
+ALTER TABLE public.card_deletions ADD CONSTRAINT card_deletions_target_type_check CHECK (target_type = ANY (ARRAY['card'::text, 'field'::text, 'wp_draft_task'::text, 'wp_draft_deliverable'::text, 'wp_draft_intro'::text, 'wp_draft_objectives'::text, 'case_subsection'::text]));
