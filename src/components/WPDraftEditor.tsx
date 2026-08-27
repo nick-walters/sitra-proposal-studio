@@ -76,40 +76,6 @@ const GUIDELINE_TITLES: Record<string, string> = {
   'drafts.wp.deliverables': 'Guidelines: deliverables',
 };
 
-// Parse content to handle bullet points
-function parseGuidelineContent(content: string): React.ReactNode {
-  const lines = content.split('\n');
-  
-  return (
-    <div className="space-y-1.5">
-      {lines.map((line, index) => {
-        const cleanLine = line.trim();
-        
-        if (cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–')) {
-          const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
-          return (
-            <div key={index} className="flex items-start gap-1.5">
-              <span className="text-muted-foreground mt-0.5">•</span>
-              <span className="text-sm text-muted-foreground">{bulletContent}</span>
-            </div>
-          );
-        }
-        
-        if (cleanLine) {
-          return (
-            <p key={index} className="text-sm text-muted-foreground">{cleanLine}</p>
-          );
-        }
-        
-        return null;
-      })}
-    </div>
-  );
-}
-
-
-
-
 export function WPDraftEditor(props: WPDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
