@@ -1093,7 +1093,8 @@ function AddBlockDialog({
       template_type_id: templateTypeId,
       section_source_id: sectionSourceId,
       section_number: sectionNumber,
-      document: 'part_b',
+      /* D-sections hold the WP and case draft fields, not Part B blocks. */
+      document: sectionNumber.startsWith('D') ? 'drafts' : 'part_b',
       key: key.trim(),
       kind,
       default_title: title.trim() || null,
