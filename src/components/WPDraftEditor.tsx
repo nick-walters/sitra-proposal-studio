@@ -18,17 +18,12 @@ import { WPTableSection } from '@/components/WPTableSection';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import {
   wpDeliverablesCollapseKey,
-  wpHeaderCollapseKey,
   wpDescriptionCollapseKey,
   wpObjectivesCollapseKey,
   wpTaskCollapseKey,
 } from '@/lib/wpCollapseKeys';
-import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   WP_BLOCK_FRAME,
-  WP_BLOCK_HEADER,
-  WP_CHEVRON_SIZE,
-  WP_CONTROL_STACK,
   WP_DOC_FONT,
 } from '@/lib/wpBlockChrome';
 import {
@@ -690,7 +685,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
   /* Collapse all acts on every block and every task module on this page. */
   const allCollapseKeys = [
-    wpHeaderCollapseKey(wpDraft.id),
     wpObjectivesCollapseKey(wpDraft.id),
     wpDescriptionCollapseKey(wpDraft.id),
     wpDeliverablesCollapseKey(wpDraft.id),
@@ -913,28 +907,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             there, so it is displayed (and commentable) but never edited here.
             The leader is a badge only, and the duration is derived from the
             earliest task start and the latest task end. It wears the same
-            block frame as every other block, and everything inside it sits
-            within the 18 cm text column. */}
+            block frame as every other block, is always expanded, and has no
+            collapse control. */}
         <section className={WP_BLOCK_FRAME}>
-          {/* The header block's chevron sits in the same control stack, and so
-              the same vertical line, as every other block's. */}
-          <div
-            className={cn(
-              WP_BLOCK_HEADER,
-              'py-1',
-              !collapsedKeys.has(wpHeaderCollapseKey(wpDraft.id)) && 'border-b border-border',
-            )}
-          >
-            <div className={WP_CONTROL_STACK}>
-              <CollapseChevron
-                collapsed={collapsedKeys.has(wpHeaderCollapseKey(wpDraft.id))}
-                onToggle={() => toggleCollapsed(wpHeaderCollapseKey(wpDraft.id))}
-                className={WP_CHEVRON_SIZE}
-              />
-            </div>
-            <span className="flex-1" aria-hidden="true" />
-          </div>
-          {!collapsedKeys.has(wpHeaderCollapseKey(wpDraft.id)) && (
           <div className="space-y-2 px-[1.5cm] py-2">
             {/* Full-width pill badge: WPX: Short Name – Title */}
             <div
@@ -1002,7 +977,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
               })()}
             </div>
           </div>
-          )}
         </section>
 
 
