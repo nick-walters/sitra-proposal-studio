@@ -571,20 +571,18 @@ function FieldRow({
           : 'space-y-2 p-3'
       } ${field.isVisible ? '' : 'print:hidden'}`}
     >
-      <div className={cn(
-        'flex items-center',
+      <div className={`flex items-center ${
         isDocumentSurface
           ? 'gap-1.5 py-3 pl-5 pr-[13px]'
           : 'gap-1'
-      )}>
+      }`}>
         {/* Left edge control stack: the module's own collapse chevron above
             its drag grip, pulled back to the same vertical line as the block's
             chevron/grip above it. */}
         {(onToggleModuleCollapsed || canEdit) && (
-          <div className={cn(
-            'flex shrink-0 flex-col items-center gap-0.5 self-start',
-            isDocumentSurface && '-ml-3.5'
-          )}>
+          <div className={`flex shrink-0 flex-col items-center gap-0.5 self-start ${
+            isDocumentSurface ? '-ml-3.5' : ''
+          }`}>
             {onToggleModuleCollapsed && (
               <CollapseChevron
                 collapsed={moduleCollapsed}
