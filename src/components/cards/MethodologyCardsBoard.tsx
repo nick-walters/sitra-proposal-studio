@@ -704,13 +704,8 @@ function FieldRow({
           {isDocumentSurface && headerField}
           <div className={isDocumentSurface ? 'flex items-start gap-2' : 'contents'}>
           <div
-            className={`min-w-0 flex-1 rounded-md ${
-              contentLock.lockedByOther
-                ? 'border border-destructive ring-1 ring-destructive/40'
-                : contentLock.isMine
-                  ? 'ring-1 ring-emerald-600/60'
-                  : ''
-            }`}
+            className={`min-w-0 flex-1 ${lockBoundaryClass(lockStateOf(contentLock))}`}
+
             onFocusCapture={() => {
               if (contentLock.lockedByOther) return;
               // Mount-time normalisation by the editor must never count as an
