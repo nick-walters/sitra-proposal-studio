@@ -472,16 +472,16 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // independent pieces of text.
   const subsectionBaseline = useRef<Record<string, string>>({});
   useEffect(() => {
-    const stored = ((caseDraft as any)?.subsection_content as Record<string, any> | null) || {};
     const next: Record<string, string> = {};
-    for (const [k, v] of Object.entries(stored)) {
-      next[k] = typeof v === 'string' ? v : String(v?.body ?? '');
+    for (const [k, v] of Object.entries(subsectionContent)) {
+      next[k] = entryBody(v);
     }
     // Only seed keys we have not already saved in this session.
     for (const [k, v] of Object.entries(next)) {
       if (!(k in subsectionBaseline.current)) subsectionBaseline.current[k] = v;
     }
-  }, [caseDraft]);
+  }, [subsectionContent]);
+
   useEffect(() => { subsectionBaseline.current = {}; }, [caseId]);
 
   // Update mutation for the scalar columns — guarded by the row version.
