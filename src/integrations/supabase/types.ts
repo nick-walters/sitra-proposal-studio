@@ -1129,6 +1129,60 @@ export type Database = {
           },
         ]
       }
+      case_draft_subsections: {
+        Row: {
+          case_id: string
+          content_html: string
+          created_at: string
+          heading: string
+          id: string
+          order_index: number
+          proposal_id: string
+          subsection_key: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          case_id: string
+          content_html?: string
+          created_at?: string
+          heading?: string
+          id?: string
+          order_index?: number
+          proposal_id: string
+          subsection_key: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          case_id?: string
+          content_html?: string
+          created_at?: string
+          heading?: string
+          id?: string
+          order_index?: number
+          proposal_id?: string
+          subsection_key?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_draft_subsections_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "case_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_draft_subsections_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_drafts: {
         Row: {
           b12_populated: boolean
@@ -7030,6 +7084,7 @@ export type Database = {
         Returns: boolean
       }
       capture_scope_predicates: { Args: never; Returns: Json }
+      capture_scope_predicates_base: { Args: never; Returns: Json }
       card_block_guard: { Args: { p_card_id: string }; Returns: string }
       card_html_is_blank: { Args: { p_html: string }; Returns: boolean }
       claim_template_draft: {
@@ -7220,6 +7275,7 @@ export type Database = {
       restore_excluded_tables: { Args: never; Returns: string[] }
       restore_figure: { Args: { p_figure_id: string }; Returns: undefined }
       restore_in_scope_tables: { Args: never; Returns: string[] }
+      restore_in_scope_tables_base: { Args: never; Returns: string[] }
       restore_proposal_snapshot: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
@@ -7263,8 +7319,8 @@ export type Database = {
       save_case_draft_subsection: {
         Args: {
           p_body: string
-          p_expected_body: string
-          p_heading: string
+          p_expected_body?: string
+          p_heading?: string
           p_id: string
           p_key: string
         }
