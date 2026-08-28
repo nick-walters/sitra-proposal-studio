@@ -513,6 +513,14 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     // Delete + renumber survivors in one transaction: a half-applied delete is
     // what used to leave gaps such as a T2.3 with no T2.2.
     const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
+    // The row leaves the screen at once. The database work is milliseconds;
+    // what made deletion feel slow was keeping the row on screen for the whole
+    // round trip plus the full nested refetch that follows it. The refetch
+    // still runs and remains authoritative — a failure puts the row back.
+    setWPDraft(prev => prev ? {
+      ...prev,
+      tasks: (prev.tasks || []).filter(t => t.id !== taskId),
+    } : prev);
     // Binned, not destroyed: the row and its links are snapshotted and kept
     // until 90 days after the proposal is submitted.
     const res = await binTargetRow('wp_draft_task', taskId, known?.version ?? null);
@@ -643,6 +651,13 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
 
   const deleteDeliverable = useCallback(async (deliverableId: string) => {
     const known = (wpDraft?.deliverables || []).find(d => d.id === deliverableId);
+    // Optimistic removal, as for tasks. Deliverable numbering is derived
+    // server-side (due month, then linked task order), so the refetch below
+    // still supplies the authoritative numbers a moment later.
+    setWPDraft(prev => prev ? {
+      ...prev,
+      deliverables: (prev.deliverables || []).filter(d => d.id !== deliverableId),
+    } : prev);
     const res = await binTargetRow('wp_draft_deliverable', deliverableId, known?.version ?? null);
     if (!res.ok) {
       toast.error(res.conflict
