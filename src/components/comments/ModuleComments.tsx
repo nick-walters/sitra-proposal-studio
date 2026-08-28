@@ -784,7 +784,7 @@ function ModuleCommentsRail({
       >
         {visible.length === 0 && !composing && (
           <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
+            <MessageSquarePlus className="h-5 w-5 text-blue-600" />
             <p className="text-[12px] text-muted-foreground">Add a comment to a field</p>
           </div>
         )}
