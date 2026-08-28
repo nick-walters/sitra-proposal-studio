@@ -15,7 +15,7 @@ import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types'
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
-import { ModuleCommentsProvider } from '@/components/comments/ModuleComments';
+import { ModuleCommentsProvider, ModuleCommentAnchor } from '@/components/comments/ModuleComments';
 import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import {
@@ -919,7 +919,15 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             collapse control. */}
         <section className={WP_BLOCK_FRAME}>
           <div className="space-y-2 px-[1.5cm] py-2">
-            {/* Full-width pill badge: WPX: Short Name – Title */}
+            {/* Full-width pill badge: WPX: Short Name – Title.
+                Not a rich text field, but commentable all the same: the pill
+                is wrapped in a module anchor rather than carrying a comment
+                control of its own. */}
+            <ModuleCommentAnchor
+              targetKey={`wp:${wpDraft.id}:title`}
+              label="Work package title"
+              offset="-right-7 top-0"
+            >
             <div
               className="wp-title-pill flex w-full items-baseline gap-0 rounded-full"
               data-comment-target={`wp_draft:${wpDraft.id}:title`}
