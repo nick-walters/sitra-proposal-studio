@@ -34,7 +34,7 @@ import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
-import { TrackChanges, TRACK_CHANGE_MARKS, findForeignPendingAuthor } from '@/extensions/TrackChanges';
+import { TrackChanges, findForeignPendingAuthor } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
@@ -1483,10 +1483,6 @@ StarterKit.configure({
           ];
         },
       }),
-      // Schema-only: this editor does not RECORD tracked changes, but the
-      // marks must exist or stored insertions/deletions are dropped the
-      // moment the field is parsed — and then written away by the next save.
-      ...TRACK_CHANGE_MARKS,
     ],
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
@@ -2060,15 +2056,6 @@ StarterKit.configure({
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     onCreate: ({ editor }) => {
-      // TEMP DIAGNOSTIC
-      // eslint-disable-next-line no-console
-      console.log('[tcprobe]' + JSON.stringify({
-        inMarks: (String(content).match(/data-track-insertion/g) || []).length,
-        prepMarks: (String(preparedContent).match(/data-track-insertion/g) || []).length,
-        docMarks: (editor.getHTML().match(/data-track-insertion/g) || []).length,
-        head: String(preparedContent).slice(0, 700),
-        docHead: editor.getHTML().slice(0, 200),
-      }));
       // Explicitly run the position-derived caption pass after TipTap has
       // parsed the document. This covers both an existing captionLabel mark
       // and a canonical caption paragraph with no stored label span.
