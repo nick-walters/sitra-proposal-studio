@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeftRight, GitCompareArrows, MessageSquare, X } from 'lucide-react';
+import { MessageSquarePlus, X } from 'lucide-react';
+import { TrackedChangesIcon } from '@/components/panels/TrackedChangesIcon';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useMethodologyEditorFocus } from '@/components/MethodologyEditorFocusContext';
@@ -334,51 +335,48 @@ export function RightPanelProvider({
           >
             {/* Title row — names the region, so the two controls below it read
                 as a switch between its views rather than as page navigation. */}
-            <div className="flex items-center justify-between border-b border-border pl-3 pr-1.5 py-1.5">
-              <span className="text-[12px] font-semibold text-foreground">Review panel</span>
+            <div className="flex items-center justify-between border-b border-border bg-white pl-3 pr-1.5 py-3">
+              <span className="text-[18px] font-semibold text-black">Review panel</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-7 w-7"
                 onClick={() => setOpenTracked(false)}
                 aria-label="Close the review panel"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
-            {/* The switch itself: a segmented control, with the switch icon
-                between the two halves so the toggle is unmistakable. */}
-            <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-              <div className="flex flex-1 items-center rounded-md bg-muted p-0.5">
-                <button
-                  type="button"
-                  onClick={() => showPanel('review')}
-                  aria-pressed={activeTab === 'review'}
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-[5px] px-2 py-1 text-[11px] font-medium transition-colors ${
-                    activeTab === 'review'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <GitCompareArrows className="h-3.5 w-3.5" />
-                  Tracked changes
-                </button>
-                <ArrowLeftRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
-                <button
-                  type="button"
-                  onClick={() => showPanel('comments')}
-                  aria-pressed={activeTab === 'comments'}
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-[5px] px-2 py-1 text-[11px] font-medium transition-colors ${
-                    activeTab === 'comments'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Comments
-                </button>
-              </div>
+            {/* The switch itself: two filled buttons, each in its own colour —
+                blue for comments, green for tracked changes. */}
+            <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
+              <button
+                type="button"
+                onClick={() => showPanel('review')}
+                aria-pressed={activeTab === 'review'}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                  activeTab === 'review'
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    : 'border-border bg-white text-foreground hover:bg-muted'
+                }`}
+              >
+                <TrackedChangesIcon className="h-4 w-4" mono={activeTab === 'review'} />
+                Tracked changes
+              </button>
+              <button
+                type="button"
+                onClick={() => showPanel('comments')}
+                aria-pressed={activeTab === 'comments'}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                  activeTab === 'comments'
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-border bg-white text-blue-600 hover:bg-muted'
+                }`}
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+                Comments
+              </button>
             </div>
 
 
