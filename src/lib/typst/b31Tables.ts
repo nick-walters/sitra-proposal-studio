@@ -257,7 +257,13 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
 
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Diss.'), lit('Due')],
       rows,
+      undefined,
+      false,
+      // Tight cell padding, as the editor's own deliverables table uses, so
+      // the stored column widths land at the same proportions on the page.
+      true,
     ),
+
   ];
 }
 
