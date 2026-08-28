@@ -1422,8 +1422,8 @@ function CaseSubsectionModule({
       <ModuleCommentAnchor
         targetKey={caseTarget(caseId, subsectionKey)}
         label={heading}
-        >
       >
+
       <div className={WP_BLOCK_HEADER}>
         <div className={WP_CONTROL_STACK}>
           <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
