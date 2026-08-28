@@ -15,17 +15,27 @@ import { cn } from '@/lib/utils';
  * remaining controls sit further right.
  */
 
-/** Where a row-level delete button starts, measured from the frame edge. */
-export const RAIL_DELETE_LEFT = 4;
+/**
+ * Nothing extends past the page's right edge. The 1.5 cm right margin is
+ * 56.7 px wide and a control button is 28 px, so the two outermost controls —
+ * comment, then delete — sit side by side INSIDE that margin, and every other
+ * control sits to their left inside the content column.
+ */
 
-/** Where the comment button starts, measured from the frame edge. */
-export const RAIL_COMMENT_LEFT = 28;
+/** Width of one control button (h-7 / w-7). */
+export const RAIL_BUTTON = 28;
 
 /**
- * How far a control row is pulled out of the frame so its last control lands
- * immediately to the left of the comment button.
+ * Where the comment button's left edge sits, measured from the frame edge.
+ * Negative: the button is inside the page, flush with its right edge.
  */
-export const RAIL_SHIFT = 28;
+export const RAIL_COMMENT_LEFT = -RAIL_BUTTON;
+
+/**
+ * How far a control row is inset from the frame edge so its last control (the
+ * delete button) lands immediately to the left of the comment slot.
+ */
+export const RAIL_SHIFT = RAIL_BUTTON;
 
 /**
  * Pulls a trailing control group out into the margin rail. `padding` is the
@@ -43,8 +53,11 @@ export function MarginRail({
 }) {
   return (
     <div
-      className={cn('flex shrink-0 items-center gap-0.5', className)}
-      style={{ marginRight: `calc(-${padding} - ${RAIL_SHIFT}px)` }}
+      // Buttons already carry 7 px of internal padding on each side, so a
+      // zero gap reads as a tight, even 14 px between glyphs — the same
+      // spacing on every block and module across the platform.
+      className={cn('flex shrink-0 items-center gap-0', className)}
+      style={{ marginRight: `calc(-${padding} + ${RAIL_SHIFT}px)` }}
     >
       {children}
     </div>
