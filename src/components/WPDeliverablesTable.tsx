@@ -657,7 +657,7 @@ function DeliverableRow({
       <td className={`${docCellStyles} whitespace-nowrap relative`}>
           {/* Right margin controls: comment, then delete — the same order and
               treatment the block control rows use. */}
-          <MarginRailAbsolute nudge={7.6}>
+          <MarginRailAbsolute nudge={RAIL_DELIVERABLE_DELETE_NUDGE}>
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"
