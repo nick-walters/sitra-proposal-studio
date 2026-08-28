@@ -127,9 +127,18 @@ export function ModuleCommentsProvider({
     addComment,
     updateCommentContent,
     updateCommentStatus,
+    updateCommentAssignee,
     deleteComment,
     refetch,
   } = useSectionComments({ proposalId, sectionId });
+
+  const { user } = useAuth();
+  const { data: members = [] } = useProposalMembers(proposalId);
+  const actorName =
+    members.find((m) => m.id === user?.id)?.full_name ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email ||
+    'Someone';
 
   const [open, setOpen] = useState(false);
   const [composing, setComposing] = useState<ModuleAnchorPayload | null>(null);
@@ -171,6 +180,23 @@ export function ModuleCommentsProvider({
     setComposing({ targetKey, label });
   }, []);
 
+  // Arriving from a notification: ?comment=<id> opens the panel and brings the
+  // commented module into view.
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('comment'),
+  );
+  useEffect(() => {
+    if (!focusCommentId) return;
+    const thread = comments.find((c) => c.id === focusCommentId);
+    const key = thread ? payloadOf(thread)?.targetKey : null;
+    if (!key) return;
+    setOpen(true);
+    const el = elements.current.get(key);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setFocusCommentId(null);
+  }, [comments, focusCommentId, tick]);
+
   const ctx: ModuleCommentsCtx = {
     enabled: true,
     open,
@@ -181,6 +207,18 @@ export function ModuleCommentsProvider({
     threadsFor,
     startComposing,
   };
+
+  /** Everything a notification needs to name the place a comment lives. */
+  const notifyTarget = (commentId: string, payload: ModuleAnchorPayload) => ({
+    proposalId,
+    sectionId,
+    sectionTitle: sectionId,
+    commentId,
+    targetKey: payload.targetKey,
+    moduleLabel: payload.label,
+    actorId: user?.id ?? '',
+    actorName,
+  });
 
   return (
     <Ctx.Provider value={ctx}>
@@ -195,16 +233,54 @@ export function ModuleCommentsProvider({
           composing={composing}
           setComposing={setComposing}
           openCount={openCount}
+          members={members}
+          focusCommentId={focusCommentId}
           onClose={() => setOpen(false)}
-          onAdd={async (content, payload, parentId) => {
-            await addComment(content, {
+          onAdd={async (content, payload, parentId, assignedTo) => {
+            const row = await addComment(content, {
               anchorType: MODULE_ANCHOR_TYPE,
               anchorPayload: payload,
               parentCommentId: parentId,
+              assignedTo,
             });
+            if (row) {
+              // A tag or an assignment notifies; an ordinary reply does not.
+              await notifyCommentTags(
+                extractMentionedUserIds(content),
+                notifyTarget(row.id, payload),
+              );
+              await notifyCommentAssignment(
+                assignedTo ?? null,
+                notifyTarget(row.id, payload),
+              );
+            }
             refetch();
           }}
-          onEdit={updateCommentContent}
+          onAssign={async (commentId, assignedTo, payload) => {
+            await updateCommentAssignee(commentId, assignedTo);
+            await notifyCommentAssignment(
+              assignedTo,
+              notifyTarget(commentId, payload),
+            );
+          }}
+          onEdit={async (id, content) => {
+            await updateCommentContent(id, content);
+            // Editing in a new tag notifies that person too; people already
+            // tagged were notified when the tag first appeared.
+            const thread = comments.find(
+              (c) => c.id === id || c.replies?.some((r) => r.id === id),
+            );
+            const payload = thread ? payloadOf(thread) : null;
+            const before = new Set(
+              extractMentionedUserIds(
+                (thread?.id === id ? thread?.content : thread?.replies?.find((r) => r.id === id)?.content) ?? '',
+              ),
+            );
+            const added = extractMentionedUserIds(content).filter((u) => !before.has(u));
+            if (payload && added.length > 0) {
+              await notifyCommentTags(added, notifyTarget(id, payload));
+            }
+          }}
           onResolve={updateCommentStatus}
           onDelete={deleteComment}
         />
