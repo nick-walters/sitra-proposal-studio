@@ -2000,6 +2000,11 @@ function BoardInner({
   useEffect(() => {
     for (const list of Object.values(fieldsByCard)) {
       for (const f of list) {
+        // Never advance the version pointer of a text box this client is still
+        // holding unsaved edits for. If somebody else wrote it meanwhile, the
+        // pointer must stay behind so the next save is REJECTED and the
+        // lost-text dialog appears, instead of silently overwriting them.
+        if (dirtyRef.current[f.id]) continue;
         const ck = `${f.id}:content`;
         const hk = `${f.id}:header`;
         versionsRef.current[ck] = Math.max(versionsRef.current[ck] ?? 0, f.contentVersion);
@@ -2007,6 +2012,7 @@ function BoardInner({
       }
     }
   }, [fieldsByCard]);
+
 
   useEffect(() => {
     for (const c of cards) {
