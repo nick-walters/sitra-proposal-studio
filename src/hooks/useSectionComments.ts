@@ -22,7 +22,10 @@ export interface B31DomAnchorPayload {
   endOffset?: number;
 }
 
-export type AnchorPayload = EditorTextAnchorPayload | B31DomAnchorPayload;
+export type AnchorPayload =
+  | EditorTextAnchorPayload
+  | B31DomAnchorPayload
+  | ModuleAnchorPayload;
 
 export interface Comment {
   id: string;
