@@ -49,7 +49,7 @@ function generateChangeId(): string {
 
 // ── Collect changes from doc ─────────────────────────────────────────────
 
-function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
+export function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
   const changes: TrackChange[] = [];
   const insertionType = schema.marks.trackInsertion;
   const deletionType = schema.marks.trackDeletion;

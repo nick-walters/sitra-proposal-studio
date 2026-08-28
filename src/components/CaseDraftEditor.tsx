@@ -23,6 +23,7 @@ import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
+import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
 import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
 import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
 import {
@@ -121,6 +122,7 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
       {/* Case drafts are not a template section, so lock rows carry no section
           id and streaming uses a case-wide channel — the same arrangement WP
           drafts use. */}
+      <RightPanelProvider proposalId={props.proposalId}>
       <CardLockProvider
         proposalId={props.proposalId}
         sectionId={null}
@@ -140,6 +142,7 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
       </ModuleCommentsProvider>
       </PageSearchProvider>
       </CardLockProvider>
+      </RightPanelProvider>
     </MethodologyEditorFocusProvider>
   );
 }
