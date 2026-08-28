@@ -123,6 +123,8 @@ export interface ParticipantInfrastructure {
   participantId: string;
   name: string;
   description?: string;
+  /** Max 200 characters — mirrored into Part B3.2, not sent to the portal. */
+  projectSupport?: string;
   orderIndex: number;
   createdAt?: string;
   updatedAt?: string;
@@ -225,6 +227,7 @@ export interface ParticipantInfrastructureRow {
   participant_id: string;
   name: string;
   description: string | null;
+  project_support: string | null;
   order_index: number;
   created_at: string;
   updated_at: string;
@@ -310,6 +313,7 @@ export function transformInfrastructureFromRow(row: ParticipantInfrastructureRow
     participantId: row.participant_id,
     name: row.name,
     description: row.description || undefined,
+    projectSupport: row.project_support || undefined,
     orderIndex: row.order_index,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
