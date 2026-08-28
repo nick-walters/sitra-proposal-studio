@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MethodologyCardsBoard } from '@/components/cards/MethodologyCardsBoard';
+import { ModuleCommentsProvider } from '@/components/comments/ModuleComments';
 
 interface MethodologiesCardsPanelProps {
   proposalId: string;
@@ -53,7 +54,13 @@ export default function MethodologiesCardsPanel({
   }
 
   return (
-    <MethodologyCardsBoard
+    <ModuleCommentsProvider
+      proposalId={proposalId}
+      sectionId={sectionId}
+      canEdit={canEdit}
+      isCoordinator={isCoordinator}
+    >
+      <MethodologyCardsBoard
       proposalId={proposalId}
       sectionId={sectionId}
       sectionNumber={sectionNumber}
@@ -61,6 +68,7 @@ export default function MethodologiesCardsPanel({
       isCoordinator={isCoordinator}
       proposalAcronym={proposalAcronym}
       acronymSegments={acronymSegments}
-    />
+      />
+    </ModuleCommentsProvider>
   );
 }
