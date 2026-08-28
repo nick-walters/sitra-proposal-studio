@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -177,7 +177,7 @@ export function ParticipantDescriptionsSection({
             />
           );
           return (
-            <div key={field.key} className="contents">
+            <Fragment key={field.key}>
               <div className="space-y-1.5">
                 <div className="text-sm text-foreground/90">{label}</div>
                 <LazyRichField
@@ -214,7 +214,7 @@ export function ParticipantDescriptionsSection({
                   </RadioGroup>
                 </div>
               )}
-            </div>
+            </Fragment>
           );
         })}
       </CardContent>
