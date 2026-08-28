@@ -13,7 +13,8 @@
  *  - paragraph slots (capacity, value chain, international): one entry per
  *    participant, the participant badge inline at the start of the first
  *    paragraph and the mirrored text following it;
- *  - infrastructure: the merged two-column table with its caption;
+ *  - infrastructure: the one-column "Access to critical infrastructure" table
+ *    (see `b32InfraData.ts`), emitted from the stored atom in the HTML;
  *  - interdisciplinarity: the expertise matrix with its caption.
  */
 
@@ -36,14 +37,6 @@ export interface B32Participant {
   id: string;
   number: number | null;
   shortName: string;
-}
-
-export interface B32InfraRow {
-  key: string;
-  name: string;
-  description: string | null;
-  participantIds: string[];
-  minPartNum: number;
 }
 
 export interface B32MatrixData {
@@ -73,16 +66,13 @@ export interface B32TypstData {
   captions: Map<string, string>;
 }
 
-const SEP = '\u241E';
+
 
 function isBlank(html: string | null | undefined): boolean {
   if (!html) return true;
   return htmlToPlainText(String(html)).replace(/\u00a0/g, ' ').trim().length === 0;
 }
 
-function mergeKey(name: string, description: string | null | undefined) {
-  return (name || '').trim().toLowerCase() + SEP + (description || '').trim().toLowerCase();
-}
 
 /** Every query the B3.2 mirror NodeViews make, issued once for the export. */
 export async function fetchB32TypstData(proposalId: string): Promise<B32TypstData> {
@@ -134,57 +124,6 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
     if (c.caption) captions.set(c.table_key, c.caption);
   }
 
-  // Infrastructure: identical name+description rows merge into one line, with
-  // every participant that offers it listed in the Access column.
-  const partIds = participants.map((p) => p.id);
-  let infrastructure: B32InfraRow[] = [];
-  if (prop.mirror_infrastructure && partIds.length) {
-    const infraR = await supabase
-      .from('participant_infrastructure')
-      .select('id, participant_id, name, description, order_index')
-      .in('participant_id', partIds);
-    const byNum = new Map(participants.map((p) => [p.id, p.number ?? 9999]));
-    const groups = new Map<string, B32InfraRow>();
-    for (const item of ((infraR.data || []) as any[])) {
-      const name = (item.name || '').trim();
-      if (!name) continue;
-      if (!byNum.has(item.participant_id)) continue;
-      const key = mergeKey(item.name, item.description);
-      let group = groups.get(key);
-      if (!group) {
-        const desc = (item.description || '').trim();
-        group = {
-          key,
-          name,
-          description: desc.length ? desc : null,
-          participantIds: [],
-          minPartNum: 9999,
-        };
-        groups.set(key, group);
-      }
-      if (!group.participantIds.includes(item.participant_id)) {
-        group.participantIds.push(item.participant_id);
-        group.minPartNum = Math.min(group.minPartNum, byNum.get(item.participant_id) ?? 9999);
-      }
-    }
-    for (const g of groups.values()) {
-      g.participantIds.sort((a, b) => (byNum.get(a) ?? 9999) - (byNum.get(b) ?? 9999));
-    }
-    const savedOrder: string[] = Array.isArray(prop.b32_infrastructure_order)
-      ? prop.b32_infrastructure_order.filter((k: unknown) => typeof k === 'string')
-      : [];
-    const orderIdx = new Map(savedOrder.map((k, i) => [k, i]));
-    const all = Array.from(groups.values());
-    infrastructure = [
-      ...all
-        .filter((r) => orderIdx.has(r.key))
-        .sort((a, b) => orderIdx.get(a.key)! - orderIdx.get(b.key)!),
-      ...all
-        .filter((r) => !orderIdx.has(r.key))
-        .sort((a, b) => a.minPartNum - b.minPartNum || a.name.localeCompare(b.name)),
-    ];
-  }
-
   // Expertise matrix cells are only needed when the matrix is on.
   const matrixEnabled = prop.expertise_matrix_enabled ?? true;
   const checked = new Set<string>();
@@ -203,12 +142,11 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
     descriptions,
     toggles: {
       capacity: !!prop.mirror_contribution_resources,
-      infrastructure: !!prop.mirror_infrastructure,
       value_chain: !!prop.mirror_value_chain,
       industrial_involvement: !!prop.mirror_industrial_involvement,
       participation_justification: !!prop.mirror_participation_justification,
     },
-    infrastructure,
+    infraTable,
     matrix: {
       enabled: !!matrixEnabled,
       rows: ((mRowsR.data || []) as any[]).map((r) => ({ id: r.id, label: r.label || '' })),
