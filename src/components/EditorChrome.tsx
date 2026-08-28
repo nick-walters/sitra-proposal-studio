@@ -281,6 +281,19 @@ export function EditorTopBar({
         onSaveNow={onSaveNow}
       />
 
+      {/* Criteria are section-wide, not per block, so they live in the
+          page-wide tier — second, immediately right of Save. */}
+      <FeatureButton
+        icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+        primary="Criteria"
+        secondary="for this section"
+        secondarySmall
+        tone="destructive"
+        tooltip="Evaluation criteria for this section"
+        disabled={!onOpenCriteria}
+        onClick={onOpenCriteria}
+      />
+
       {onPreview && (
         <FeatureButton
           icon={<FileText className="h-3.5 w-3.5" />}
@@ -356,19 +369,6 @@ export function EditorTopBar({
         onClick={onFindReplace}
       />
 
-      {/* Criteria are section-wide, not per block, so they live in the
-          page-wide tier next to the other page-level controls. */}
-      <FeatureButton
-        icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-        primary="Criteria"
-        secondary="for this section"
-        secondarySmall
-        tone="destructive"
-        tooltip="Evaluation criteria for this section"
-        disabled={!onOpenCriteria}
-        onClick={onOpenCriteria}
-      />
-
       {trailing}
 
       <FeatureButton
@@ -401,6 +401,37 @@ export interface EditorFieldBarProps {
   onOpenAiTools?: () => void;
   /** Extra field-specific controls. */
   trailing?: ReactNode;
+}
+
+/**
+ * The Review control. Like Comments it is a TOGGLE on the shared right-hand
+ * region, wired through context so no surface has to drill it.
+ */
+function ReviewPanelButton({
+  onReviewChanges,
+  pendingChangeCount,
+}: {
+  onReviewChanges?: () => void;
+  pendingChangeCount?: number;
+}) {
+  const rightPanel = useRightPanel();
+  const isOpen = !!rightPanel?.reviewOpen;
+  const handler =
+    onReviewChanges ??
+    (rightPanel ? () => rightPanel.setReviewOpen(!rightPanel.reviewOpen) : undefined);
+  const count = pendingChangeCount ?? rightPanel?.fieldChanges.length;
+  return (
+    <FeatureButton
+      icon={<GitCompare className="h-3.5 w-3.5" />}
+      primary="Review"
+      tooltip={isOpen ? 'Close the review panel' : 'Review tracked changes in this field'}
+      secondary={typeof count === 'number' ? `changes · ${count}` : 'changes'}
+      secondarySmall
+      tone={isOpen ? 'success' : 'default'}
+      disabled={!handler}
+      onClick={handler}
+    />
+  );
 }
 
 export function EditorFieldBar({
@@ -440,16 +471,9 @@ export function EditorFieldBar({
         onClick={onOpenVersionHistory}
       />
 
-      <FeatureButton
-        icon={<GitCompare className="h-3.5 w-3.5" />}
-        primary="Review"
-        tooltip="Review tracked changes"
-        secondary={
-          typeof pendingChangeCount === 'number' ? `changes · ${pendingChangeCount}` : 'changes'
-        }
-        secondarySmall
-        disabled={!onReviewChanges}
-        onClick={onReviewChanges}
+      <ReviewPanelButton
+        onReviewChanges={onReviewChanges}
+        pendingChangeCount={pendingChangeCount}
       />
 
       <FeatureButton
