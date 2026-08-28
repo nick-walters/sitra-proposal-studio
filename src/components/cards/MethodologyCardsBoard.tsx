@@ -555,6 +555,13 @@ function FieldRow({
 
 
   return (
+    <ModuleCommentAnchor
+      targetKey={cardFieldTarget(field.id)}
+      label={
+        (field.headingEnabled && htmlToPlainText(field.heading ?? '').trim()) ||
+        'Module'
+      }
+    >
     <div
       ref={setNodeRef}
       id={`card-module-${field.id}`}
