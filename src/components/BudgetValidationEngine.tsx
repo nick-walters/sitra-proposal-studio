@@ -70,10 +70,11 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
   const runValidation = async () => {
     setLoading(true);
     try {
-      const [{ data: budgetRows }, { data: participants }, { data: effortData }] = await Promise.all([
+      const [{ data: budgetRows }, { data: participants }, { data: effortData }, { data: proposal }] = await Promise.all([
         supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
         supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
+        supabase.from('proposals').select('proposal_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
 
       const results: ValidationRule[] = [];
