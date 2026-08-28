@@ -420,12 +420,20 @@ interface RailProps {
   composing: ModuleAnchorPayload | null;
   setComposing: (v: ModuleAnchorPayload | null) => void;
   openCount: number;
+  members: ProposalMember[];
+  focusCommentId: string | null;
   onClose: () => void;
   onAdd: (
     content: string,
     payload: ModuleAnchorPayload,
     parentId?: string,
+    assignedTo?: string | null,
   ) => Promise<void>;
+  onAssign: (
+    commentId: string,
+    assignedTo: string | null,
+    payload: ModuleAnchorPayload,
+  ) => void | Promise<void>;
   onEdit: (id: string, content: string) => void | Promise<void>;
   onResolve: (id: string, status: 'open' | 'resolved' | 'rejected') => void;
   onDelete: (id: string) => void;
@@ -440,8 +448,11 @@ function ModuleCommentsRail({
   composing,
   setComposing,
   openCount,
+  members,
+  focusCommentId,
   onClose,
   onAdd,
+  onAssign,
   onEdit,
   onResolve,
   onDelete,
@@ -582,9 +593,11 @@ function ModuleCommentsRail({
       {composing && (
         <ComposeBox
           label={composing.label}
+          members={members}
+          allowAssignment
           onCancel={() => setComposing(null)}
-          onSubmit={async (text) => {
-            await onAdd(text, composing);
+          onSubmit={async (text, assignedTo) => {
+            await onAdd(text, composing, undefined, assignedTo);
             setComposing(null);
           }}
         />
@@ -623,7 +636,10 @@ function ModuleCommentsRail({
                   canEdit={canEdit}
                   isCoordinator={isCoordinator}
                   deletedModule={deleted}
+                  members={members}
+                  focused={focusCommentId === thread.id}
                   onAdd={onAdd}
+                  onAssign={onAssign}
                   onEdit={onEdit}
                   onResolve={onResolve}
                   onDelete={onDelete}
@@ -643,40 +659,59 @@ function ModuleCommentsRail({
 
 function ComposeBox({
   label,
+  members,
   onCancel,
   onSubmit,
   initialText = '',
   submitLabel = 'Comment',
-  placeholder = 'Leave a comment on this module…',
+  placeholder = 'Leave a comment on this module… type @ to tag someone',
+  allowAssignment = false,
 }: {
   label: string;
+  members: ProposalMember[];
   onCancel: () => void;
-  onSubmit: (text: string) => void | Promise<void>;
+  onSubmit: (text: string, assignedTo: string | null) => void | Promise<void>;
   initialText?: string;
   submitLabel?: string;
   placeholder?: string;
+  allowAssignment?: boolean;
 }) {
   const [text, setText] = useState(initialText);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const submit = () => {
-    if (text.trim()) void onSubmit(text.trim());
+    if (text.trim()) void onSubmit(text.trim(), assignedTo);
   };
   return (
-    <div className="border-b border-border bg-muted/40 p-2">
+    <div
+      className="border-b border-border bg-muted/40 p-2"
+      // Shift+Return posts wherever the caret is, including inside the tag
+      // picker's textarea; Return alone opens a new paragraph.
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.shiftKey) {
+          e.preventDefault();
+          submit();
+        }
+      }}
+    >
       <p className="mb-1 truncate text-[11px] text-muted-foreground">On: {label}</p>
-      <Textarea
+      <MentionTextarea
         autoFocus
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        // Shift+Return posts; Return alone opens a new paragraph.
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.shiftKey) {
-            e.preventDefault();
-            submit();
-          }
-        }}
+        onChange={setText}
+        teamMembers={members.map((m) => ({ ...m, full_name: m.full_name || m.email }))}
         placeholder={placeholder}
         className="min-h-[64px] text-[12px]"
       />
+      {allowAssignment && (
+        <div className="mt-1.5">
+          <AssigneePicker
+            members={members}
+            value={assignedTo}
+            onChange={setAssignedTo}
+            compact
+          />
+        </div>
+      )}
       <div className="mt-1.5 flex items-center justify-between gap-1.5">
         <span className="text-[10px] text-muted-foreground">Shift + Return to post</span>
         <div className="flex gap-1.5">
