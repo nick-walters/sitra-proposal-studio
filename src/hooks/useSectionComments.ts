@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AnchorType = 'editor_text' | 'b31_dom';
+import type { ModuleAnchorPayload } from '@/lib/moduleCommentTargets';
+
+export type AnchorType = 'editor_text' | 'b31_dom' | 'module';
 
 export interface EditorTextAnchorPayload {
   from: number;
