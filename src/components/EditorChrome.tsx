@@ -364,7 +364,7 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <CommentsPanelButton
+      <ReviewToggleButton
         onOpenComments={onOpenComments}
         commentCount={commentCount}
       />
@@ -478,11 +478,6 @@ export function EditorFieldBar({
         secondary="history"
         disabled={!onOpenVersionHistory}
         onClick={onOpenVersionHistory}
-      />
-
-      <ReviewPanelButton
-        onReviewChanges={onReviewChanges}
-        pendingChangeCount={pendingChangeCount}
       />
 
       <FeatureButton
