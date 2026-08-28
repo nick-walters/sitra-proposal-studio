@@ -1492,7 +1492,14 @@ function DocumentEditorInner({
                 </div>
               ) : (
                 <>
-                  <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                  <div
+                    ref={editorContainerRef}
+                    /* This editor carries its own accept/reject bubble, which
+                       already names the author — the global hover tooltip
+                       stands aside here. */
+                    data-track-menu-host=""
+                    className="relative tiptap-editor-container overflow-visible"
+                  >
                     <EditorContent
                       key={section?.id}
                       editor={editor}
@@ -1521,9 +1528,7 @@ function DocumentEditorInner({
                         </div>
                       );
                     })()}
-                    {/* Track change bubble menu. `data-track-menu-host` keeps
-                        the global hover tooltip out of this editor. */}
-                    <div data-track-menu-host="" />
+                    {/* Track change bubble menu */}
                     {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
                     {/* Block lock indicators */}
                     <BlockLockIndicator
