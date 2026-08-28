@@ -20,7 +20,7 @@ import { smartTimestamp } from '@/lib/smartTimestamp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
-import { findEditorForNode, waitForEditorAt } from '@/lib/trackChangeEditorRegistry';
+import { resolveChangeAtElement } from '@/lib/resolveTrackChange';
 import { toast } from 'sonner';
 
 const SELECTOR = '[data-track-insertion],[data-track-deletion]';
@@ -165,25 +165,11 @@ export function TrackChangeHoverTooltip({ proposalId }: { proposalId?: string })
       if (!changeId) return;
       setBusy(true);
       try {
-        let editor = findEditorForNode(el);
-        if (!editor) {
-          const point = { x, y: y + 2 };
-          const opts = { bubbles: true, cancelable: true, clientX: point.x, clientY: point.y };
-          el.dispatchEvent(new MouseEvent('mousedown', opts));
-          el.dispatchEvent(new MouseEvent('mouseup', opts));
-          el.dispatchEvent(new MouseEvent('click', opts));
-          editor = await waitForEditorAt(el, point);
-        }
-        if (!editor || editor.isDestroyed) {
-          toast.error('Open the field first, then accept or reject the change.');
-          return;
-        }
-        const ok =
-          action === 'accept'
-            ? editor.commands.acceptChange(changeId)
-            : editor.commands.rejectChange(changeId);
+        // Same path as the tracked-changes tab: hydrate the field if it is
+        // not mounted, then apply through the editor's versioned save.
+        const ok = await resolveChangeAtElement(el, changeId, action, { x, y: y + 2 });
         if (!ok) {
-          toast.error('That change could not be resolved.');
+          toast.error('Open the field first, then accept or reject the change.');
           return;
         }
         setHover(null);

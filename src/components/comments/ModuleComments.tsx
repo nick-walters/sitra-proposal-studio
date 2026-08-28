@@ -689,12 +689,16 @@ function ModuleCommentsRail({
       }
       style={host ? undefined : { width: RAIL_WIDTH }}
     >
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="text-[13px] font-semibold">
-          Comments
-          <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-            {openCount} open
-          </span>
+      {/* Inside the shared region the tab bar already names the panel and
+          carries the close control, so only the scope line is repeated. */}
+      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+        <div className={host ? 'text-[11px] text-muted-foreground' : 'text-[13px] font-semibold'}>
+          {host ? `Whole page · ${openCount} open` : 'Comments'}
+          {!host && (
+            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+              {openCount} open
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -704,9 +708,11 @@ function ModuleCommentsRail({
           >
             {showResolved ? 'Hide resolved' : 'Show resolved'}
           </button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
+          {!host && (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
