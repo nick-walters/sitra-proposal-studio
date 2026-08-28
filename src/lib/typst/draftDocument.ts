@@ -27,6 +27,8 @@ export interface DraftBuildResult {
   unsupported: string[];
   /** Footer label and download stem fragment, e.g. "WP3" or "Finnish Pilot". */
   label: string;
+  /** Proposal acronym, for the filename. */
+  acronym: string;
 }
 
 interface DraftBuildOptions {
@@ -103,6 +105,7 @@ export async function buildWpDraftTypstDocument(
     assets: [],
     unsupported: Array.from(ctx.unsupported).sort(),
     label,
+    acronym: meta.acronym || '',
   };
 }
 
@@ -132,6 +135,7 @@ export async function buildCaseDraftTypstDocument(
     assets: [],
     unsupported: Array.from(ctx.unsupported).sort(),
     label,
+    acronym: meta.acronym || '',
   };
 }
 
