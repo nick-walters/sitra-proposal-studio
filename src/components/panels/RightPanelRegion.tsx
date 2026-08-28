@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useMethodologyEditorFocus } from '@/components/MethodologyEditorFocusContext';
 import { collectChangesFromDoc, type TrackChange } from '@/extensions/TrackChanges';
+import { ReviewPanelBody } from '@/components/panels/ReviewPanel';
 
 /**
  * THE RIGHT-HAND PANEL REGION
@@ -331,11 +332,12 @@ export function RightPanelProvider({
             />
 
             {activeTab === 'review' && (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
-                <p className="text-[12px] text-muted-foreground">
-                  Click in a field to review its tracked changes.
-                </p>
-              </div>
+              <ReviewPanelBody
+                hasActiveField={hasActiveField}
+                changes={fieldChanges}
+                editor={activeEditor}
+                proposalId={proposalId}
+              />
             )}
           </aside>,
           document.body,
