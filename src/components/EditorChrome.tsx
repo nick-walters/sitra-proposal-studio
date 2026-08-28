@@ -412,36 +412,11 @@ export interface EditorFieldBarProps {
   trailing?: ReactNode;
 }
 
-/**
- * The Review control. Like Comments it is a TOGGLE on the shared right-hand
- * region, wired through context so no surface has to drill it.
- */
-function ReviewPanelButton({
-  onReviewChanges,
-  pendingChangeCount,
-}: {
-  onReviewChanges?: () => void;
-  pendingChangeCount?: number;
-}) {
-  const rightPanel = useRightPanel();
-  const isOpen = !!rightPanel?.reviewOpen;
-  const handler =
-    onReviewChanges ??
-    (rightPanel ? () => rightPanel.setReviewOpen(!rightPanel.reviewOpen) : undefined);
-  const count = pendingChangeCount ?? rightPanel?.fieldChanges.length;
-  return (
-    <FeatureButton
-      icon={<GitCompare className="h-3.5 w-3.5" />}
-      primary="Review"
-      tooltip={isOpen ? 'Close the review panel' : 'Review tracked changes in this field'}
-      secondary={typeof count === 'number' ? `changes · ${count}` : 'changes'}
-      secondarySmall
-      tone={isOpen ? 'success' : 'default'}
-      disabled={!handler}
-      onClick={handler}
-    />
-  );
-}
+/* The Review toggle lives in the PAGE-WIDE tier (see `ReviewToggleButton`):
+   one control opens the shared region, whose tracked-changes tab is itself
+   field-specific. The field bar therefore carries no review button. */
+
+
 
 export function EditorFieldBar({
   hasFocusedField,
