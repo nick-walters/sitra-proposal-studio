@@ -36,6 +36,11 @@ import type { WPDraftDeliverable, WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble, WPBubble, B31Pill } from '@/components/B31Pill';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import {
+  ModuleCommentAnchor,
+  ModuleCommentButton,
+} from '@/components/comments/ModuleComments';
+import { wpDeliverableTarget } from '@/lib/moduleCommentTargets';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -535,13 +540,21 @@ function DeliverableRow({
 
       {/* Title: takes every pixel the tight columns leave behind. */}
       <td className={docCellStyles} style={{ width: '100%' }}>
-        <DeliverableTitleCell
-          value={deliverable.title || ''}
-          disabled={readOnly}
-          onCommit={(v) => onUpdate(deliverable.id, { title: v })}
-          proposalId={proposalId}
-          shouldStayMounted={shouldStayMounted}
-        />
+        {/* A deliverable is a commentable module like any other: the anchor
+            only measures the row, the control sits in the right margin. */}
+        <ModuleCommentAnchor
+          control="none"
+          targetKey={wpDeliverableTarget(deliverable.id, 'title')}
+          label={`${number} — deliverable`}
+        >
+          <DeliverableTitleCell
+            value={deliverable.title || ''}
+            disabled={readOnly}
+            onCommit={(v) => onUpdate(deliverable.id, { title: v })}
+            proposalId={proposalId}
+            shouldStayMounted={shouldStayMounted}
+          />
+        </ModuleCommentAnchor>
       </td>
 
       {/* Every remaining control reads as cell text until hovered or focused,
@@ -642,15 +655,23 @@ function DeliverableRow({
       {/* Related task. Delete sits in the page's right margin, as on
           milestones and risks, so the table keeps exactly its seven columns. */}
       <td className={`${docCellStyles} whitespace-nowrap relative`}>
-          {!readOnly && (
-            <DeleteConfirmDialog
-              itemLabel="this deliverable"
-              description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
-              onConfirm={() => onDelete(deliverable.id)}
-              buttonClassName="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
-              iconSize="h-4 w-4"
+          {/* Right margin controls: comment, then delete — the same order and
+              treatment the block control rows use. */}
+          <div className="absolute left-full top-1/2 ml-1 flex -translate-y-1/2 items-center">
+            <ModuleCommentButton
+              targetKey={wpDeliverableTarget(deliverable.id, 'title')}
+              label={`${number} — deliverable`}
             />
-          )}
+            {!readOnly && (
+              <DeleteConfirmDialog
+                itemLabel="this deliverable"
+                description="This deliverable goes to the deliverables bin, where it can be restored for 90 days."
+                onConfirm={() => onDelete(deliverable.id)}
+                buttonClassName="h-6 w-6 text-red-600 hover:text-red-700"
+                iconSize="h-4 w-4"
+              />
+            )}
+          </div>
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}
