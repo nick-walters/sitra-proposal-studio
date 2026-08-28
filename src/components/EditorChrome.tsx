@@ -5,7 +5,6 @@ import {
   History,
   Search,
   GitCompare,
-  MessageSquare,
   Sparkles,
   FileText,
   Loader2,
@@ -212,44 +211,8 @@ function TrackMyChangesButton() {
   );
 }
 
-/**
- * The Comments control. A surface that mounts `ModuleCommentsProvider` wires
- * itself automatically through context, so the panel needs no prop drilling;
- * surfaces with their own handler keep passing `onOpenComments`.
- */
-function CommentsPanelButton({
-  onOpenComments,
-  commentCount,
-}: {
-  onOpenComments?: () => void;
-  commentCount?: number;
-}) {
-  const modules = useModuleComments();
-  const rightPanel = useRightPanel();
-  // The button is a TOGGLE: it opens the panel and closes it again, and the
-  // state it leaves behind is remembered.
-  const isOpen = rightPanel ? rightPanel.commentsOpen : !!modules?.open;
-  const handler =
-    onOpenComments ??
-    (rightPanel
-      ? () => rightPanel.setCommentsOpen(!rightPanel.commentsOpen)
-      : modules
-        ? () => modules.setOpen(!modules.open)
-        : undefined);
-  const count = commentCount ?? modules?.openCount;
-  return (
-    <FeatureButton
-      icon={<MessageSquare className="h-3.5 w-3.5" />}
-      primary="Comments"
-      secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
-      secondarySmall
-      tone={isOpen ? 'success' : 'default'}
-      tooltip={isOpen ? 'Close the comments panel' : 'Open the comments panel'}
-      disabled={!handler}
-      onClick={handler}
-    />
-  );
-}
+
+
 
 export function EditorTopBar({
   saving,
@@ -355,10 +318,13 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <CommentsPanelButton
-        onOpenComments={onOpenComments}
+      {/* ONE toggle for the shared right-hand region (Tracked changes +
+          Comments tabs). It replaces the old separate Comments control. */}
+      <ReviewPanelButton
+        onReviewChanges={onOpenComments}
         commentCount={commentCount}
       />
+
 
       <FeatureButton
         icon={<Search className="h-3.5 w-3.5" />}
@@ -404,28 +370,36 @@ export interface EditorFieldBarProps {
 }
 
 /**
- * The Review control. Like Comments it is a TOGGLE on the shared right-hand
- * region, wired through context so no surface has to drill it.
+ * THE Review control — the ONE toggle for the shared right-hand region, which
+ * carries the Tracked changes and Comments tabs. Wired through context so no
+ * surface has to drill it.
  */
 function ReviewPanelButton({
   onReviewChanges,
   pendingChangeCount,
+  commentCount,
 }: {
   onReviewChanges?: () => void;
   pendingChangeCount?: number;
+  commentCount?: number;
 }) {
   const rightPanel = useRightPanel();
-  const isOpen = !!rightPanel?.reviewOpen;
+  const modules = useModuleComments();
+  const isOpen = !!rightPanel?.open;
   const handler =
     onReviewChanges ??
-    (rightPanel ? () => rightPanel.setReviewOpen(!rightPanel.reviewOpen) : undefined);
-  const count = pendingChangeCount ?? rightPanel?.fieldChanges.length;
+    (rightPanel
+      ? () => rightPanel.setOpen(!rightPanel.open)
+      : modules
+        ? () => modules.setOpen(!modules.open)
+        : undefined);
+  const count = pendingChangeCount ?? commentCount ?? modules?.openCount;
   return (
     <FeatureButton
       icon={<GitCompare className="h-3.5 w-3.5" />}
       primary="Review"
-      tooltip={isOpen ? 'Close the review panel' : 'Review tracked changes in this field'}
-      secondary={typeof count === 'number' ? `changes · ${count}` : 'changes'}
+      tooltip={isOpen ? 'Close the review panel' : 'Open the review panel'}
+      secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
       secondarySmall
       tone={isOpen ? 'success' : 'default'}
       disabled={!handler}
@@ -433,6 +407,7 @@ function ReviewPanelButton({
     />
   );
 }
+
 
 export function EditorFieldBar({
   hasFocusedField,
@@ -471,10 +446,9 @@ export function EditorFieldBar({
         onClick={onOpenVersionHistory}
       />
 
-      <ReviewPanelButton
-        onReviewChanges={onReviewChanges}
-        pendingChangeCount={pendingChangeCount}
-      />
+      {/* Review lives in the page-wide tier now: one toggle, two tabs. */}
+
+
 
       <FeatureButton
         icon={<Sparkles className="h-3.5 w-3.5" />}
