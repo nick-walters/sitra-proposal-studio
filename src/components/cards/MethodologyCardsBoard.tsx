@@ -770,7 +770,10 @@ function FieldRow({
               // margin cancels the module's own 12 px padding so the page runs
               // to the module edge, then 1.5 cm of margin puts the table's left
               // edge on exactly the same line as every other module's text.
-              : 'doc-surface-page -mx-3 !w-[calc(100%+24px)] bg-white px-[1.5cm] py-[3pt] [&>*]:!w-[18cm] [&>*]:!max-w-[18cm]'
+              // The extra 2 px matches the transparent 2 px focus border that
+              // wraps every text module, so the table's left edge lands on the
+              // same pixel as the body text rather than 2 px outside it.
+              : 'doc-surface-page -mx-3 !w-[calc(100%+24px)] bg-white px-[calc(1.5cm+2px)] py-[3pt] [&>*]:!w-[18cm] [&>*]:!max-w-[18cm]'
           }
         >
 
