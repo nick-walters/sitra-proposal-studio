@@ -513,7 +513,8 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     // Delete + renumber survivors in one transaction: a half-applied delete is
     // what used to leave gaps such as a T2.3 with no T2.2.
     const known = (wpDraft?.tasks || []).find(t => t.id === taskId);
-    // Binned, not destroyed: the row and its links are snapshotted for 90 days.
+    // Binned, not destroyed: the row and its links are snapshotted and kept
+    // until 90 days after the proposal is submitted.
     const res = await binTargetRow('wp_draft_task', taskId, known?.version ?? null);
     if (!res.ok) {
       toast.error(res.conflict

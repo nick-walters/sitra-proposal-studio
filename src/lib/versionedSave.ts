@@ -186,7 +186,7 @@ export async function deleteAndResequence(
 
 /**
  * Deletes a WP draft child (or the field before the first task) into the
- * 90-day recycle bin. The row is snapshotted with its links BEFORE the
+ * recycle bin (kept until 90 days after submission). The row is snapshotted with its links BEFORE the
  * resequencing delete, so `restore_binned_target` can put it back.
  */
 export async function binTargetRow(

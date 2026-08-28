@@ -65,7 +65,8 @@ interface BinRow {
 }
 
 /**
- * The 90-day recycle bin for a WP draft's tasks and deliverables.
+ * The recycle bin for a WP draft's tasks and deliverables. Items are kept
+ * until 90 days after the proposal is submitted.
  *
  * Deletion goes through `bin_target_row`, which snapshots the row and its
  * relational links before the resequencing delete; restoring replays that
@@ -131,7 +132,7 @@ export function WPBinDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Deleted items are kept for 90 days. Restoring one renumbers the rest automatically.
+            Deleted items are kept until 90 days after the proposal is submitted. Restoring one renumbers the rest automatically.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[50vh] pr-3">

@@ -556,12 +556,12 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   );
   const [guidanceEditOpen, setGuidanceEditOpen] = useState(false);
 
-  // 90-day recycle bin. A binned subsection hangs off the proposal, because the
+  // recycle bin (kept until 90 days after submission). A binned subsection hangs off the proposal, because the
   // subsection set is project-wide rather than owned by one case.
   const [binOpen, setBinOpen] = useState(false);
   const binCount = useWPBinCount(proposalId, 'case_subsection', 'proposal');
 
-  /** Deletes a subsection module into the 90-day bin, restorable in full. */
+  /** Deletes a subsection module into the bin (kept until 90 days after submission), restorable in full. */
   const deleteSubsectionToBin = useCallback(
     async (subsectionId: string, heading: string) => {
       const res = await binTargetRow('case_subsection', subsectionId);
@@ -1473,7 +1473,7 @@ function CaseSubsectionModule({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete “{heading}”?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The module and its text move to the recycle bin for 90 days and can be restored in full.
+                    The module and its text move to the recycle bin, where they are kept until 90 days after the proposal is submitted and can be restored in full.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

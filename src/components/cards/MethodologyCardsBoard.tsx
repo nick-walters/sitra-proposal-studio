@@ -728,7 +728,8 @@ function FieldRow({
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       The whole module — both text boxes and their version histories — moves to
-                      the recycle bin and can be restored in full.
+                      the recycle bin, where it is kept until 90 days after the proposal is
+                      submitted, and can be restored in full.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -1542,7 +1543,7 @@ function CardBlock({
                       Delete “{htmlToPlainText(card.title ?? '') || 'this block'}”?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      The block and its modules move to the recycle bin and can be restored.
+                      The block and its modules move to the recycle bin, where they are kept until 90 days after the proposal is submitted, and can be restored.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
