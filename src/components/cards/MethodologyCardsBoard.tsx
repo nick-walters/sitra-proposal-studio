@@ -1139,6 +1139,19 @@ function CardBlock({
   const isPertCard = card.sourceKey === 'b31.pert';
   const isGanttCard = card.sourceKey === 'b31.gantt';
 
+  /* Blocks that carry the comment control and nothing else: the B1.1 list of
+     participants and every references block. Their content is entirely
+     source-fed or reference-managed, so hiding, adding, restoring and
+     deleting them has no meaning. */
+  const isCommentOnlyBlock =
+    card.sourceKey === 'b11.participants' || card.kind === 'references';
+
+  /* B3.1's blocks have a fixed structure: only the "Overall structure of the
+     work plan" intro grows and loses modules, so only it carries a recycle
+     bin. Every other B3.1 block keeps its remaining controls. */
+  const hidesRestore =
+    (card.templateKey ?? '').startsWith('b31.') && card.templateKey !== 'b31.intro';
+
   // The chart itself is rendered by SourceFedBlock, which tags its wrapper
   // with data-figure-type; the header control finds it and hands it to the
   // shared figure export path.
@@ -1478,9 +1491,10 @@ function CardBlock({
               </Tip>
             ) : null}
 
-            {/* Column 4 — restore. Always present, greyed out when this
-                block's bin is empty, so the row never shifts. */}
-            {canEdit ? (
+            {/* Column 4 — restore. Greyed out when this block's bin is
+                empty, so the row never shifts. Omitted entirely by the fixed
+                B3.1 blocks, which have nothing to restore. */}
+            {canEdit && !hidesRestore ? (
               (() => {
                 const thing = isLinkedActivitiesCard
                   ? 'activity'
@@ -1523,7 +1537,7 @@ function CardBlock({
             ) : null}
 
             {/* Column 5 — visibility */}
-            {canEdit && card.isHideable ? (
+            {canEdit && card.isHideable && !isCommentOnlyBlock ? (
               <Tip label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}>
                 <Button
                   type="button"
@@ -1544,7 +1558,7 @@ function CardBlock({
             ) : null}
 
             {/* Column 6 — delete */}
-            {canEdit && card.isDeletable ? (
+            {canEdit && card.isDeletable && !isCommentOnlyBlock ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete block">
