@@ -5427,6 +5427,7 @@ export type Database = {
         Row: {
           anchor_payload: Json | null
           anchor_type: string | null
+          assigned_to: string | null
           content: string
           created_at: string
           id: string
@@ -5445,6 +5446,7 @@ export type Database = {
         Insert: {
           anchor_payload?: Json | null
           anchor_type?: string | null
+          assigned_to?: string | null
           content: string
           created_at?: string
           id?: string
@@ -5463,6 +5465,7 @@ export type Database = {
         Update: {
           anchor_payload?: Json | null
           anchor_type?: string | null
+          assigned_to?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -5479,6 +5482,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "section_comments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_comments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles_basic"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "section_comments_parent_comment_id_fkey"
             columns: ["parent_comment_id"]
