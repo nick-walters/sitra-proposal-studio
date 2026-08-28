@@ -200,9 +200,10 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .from('wp_drafts')
       .select(
         `id, number, title, short_name, lead_participant_id, color, objectives,
-         description_before_tasks, manual_duration,
+         description_before_tasks, manual_duration, intro_visible,
          tasks:wp_draft_tasks(
            id, number, title, description, lead_participant_id, start_month, end_month, order_index,
+           is_visible,
            participants:wp_draft_task_participants(participant_id)
          ),
          deliverables:wp_draft_deliverables(
