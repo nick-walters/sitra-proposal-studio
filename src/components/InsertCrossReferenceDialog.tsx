@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Table2 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCrossRefTargets } from '@/lib/crossRefTargets';
 import { cn } from '@/lib/utils';
 
 interface CrossReferenceItem {
@@ -39,39 +40,39 @@ interface InsertCrossReferenceDialogProps {
   filterType?: 'figure' | 'table';
 }
 
+/**
+ * LEGACY fallback only: sections that still hold their body in
+ * `section_content` write the caption label into the HTML itself. The label is
+ * followed by the description in SIBLING tags, so the text is read from the
+ * parsed paragraph rather than from the regex match — that truncation at the
+ * first '<' is why these entries used to read "Untitled".
+ */
 function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; tables: CrossReferenceItem[] } {
   const figures: CrossReferenceItem[] = [];
   const tables: CrossReferenceItem[] = [];
+  if (!html || typeof document === 'undefined') return { figures, tables };
 
-  const figurePattern = /Figure (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
-  let match;
-  const seenFigures = new Set<string>();
-  while ((match = figurePattern.exec(html)) !== null) {
-    if (!seenFigures.has(match[1])) {
-      seenFigures.add(match[1]);
-      figures.push({
-        label: match[1],
-        title: match[2]?.trim() || 'Untitled',
-        type: 'figure',
-      });
-    }
-  }
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  const labelPattern = /^\s*(Figure|Table)\s+(\d+\.\d+\.[a-z]+)\.?\s*/i;
+  const seen = new Set<string>();
 
-  const tablePattern = /Table (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
-  const seenTables = new Set<string>();
-  while ((match = tablePattern.exec(html)) !== null) {
-    if (!seenTables.has(match[1])) {
-      seenTables.add(match[1]);
-      tables.push({
-        label: match[1],
-        title: match[2]?.trim().replace(/<[^>]*>/g, '') || 'Untitled',
-        type: 'table',
-      });
-    }
-  }
+  holder.querySelectorAll('p, div, caption').forEach((el) => {
+    const text = (el.textContent || '').replace(/\s+/g, ' ');
+    const match = labelPattern.exec(text);
+    if (!match) return;
+    const kind = match[1].toLowerCase() === 'figure' ? 'figure' : 'table';
+    const label = match[2];
+    const key = `${kind}:${label}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const title = text.slice(match[0].length).trim();
+    (kind === 'figure' ? figures : tables).push({ label, title, type: kind });
+  });
 
   return { figures, tables };
 }
+
 
 export function InsertCrossReferenceDialog({
   isOpen,
@@ -87,127 +88,61 @@ export function InsertCrossReferenceDialog({
 
   useEffect(() => {
     if (!isOpen || !proposalId) return;
+    let cancelled = false;
 
     const loadAllContent = async () => {
       setLoading(true);
 
-      // Fetch section content, compulsory table captions, and figures in parallel
-      const [contentResult, captionsResult, figuresResult] = await Promise.all([
+      // The BLOCK board is the authority: every number here is derived from
+      // document position at open time, so a picker opened after a reorder
+      // shows the new numbering.
+      const [derived, legacyResult] = await Promise.all([
+        fetchCrossRefTargets(proposalId).catch((err) => {
+          console.error('Error deriving cross-reference targets:', err);
+          return { figures: [], tables: [] };
+        }),
         supabase
           .from('section_content')
           .select('content, section_id')
           .eq('proposal_id', proposalId),
-        supabase
-          .from('table_captions')
-          .select('table_key, caption')
-          .eq('proposal_id', proposalId),
-        supabase
-          .from('figures')
-          .select('id, figure_number, title, section_id')
-          .eq('proposal_id', proposalId)
-          .order('figure_number'),
       ]);
+      if (cancelled) return;
 
-      if (contentResult.error) {
-        console.error('Error loading section content:', contentResult.error);
-        setLoading(false);
-        return;
-      }
+      const allFigures: CrossReferenceItem[] = derived.figures.map((f) => ({
+        label: f.label,
+        title: f.title,
+        type: 'figure' as const,
+        sectionId: f.sectionId,
+        figureId: f.figureId,
+      }));
+      const allTables: CrossReferenceItem[] = derived.tables.map((t) => ({
+        label: t.label,
+        title: t.title,
+        type: 'table' as const,
+        sectionId: t.sectionId,
+        tableKey: t.tableKey,
+      }));
+      const seenFigLabels = new Set(allFigures.map((f) => f.label));
+      const seenTblLabels = new Set(allTables.map((t) => t.label));
 
-      const allFigures: CrossReferenceItem[] = [];
-      const allTables: CrossReferenceItem[] = [];
-      const seenFigLabels = new Set<string>();
-      const seenTblLabels = new Set<string>();
-
-      // Extract from section content HTML
-      for (const row of contentResult.data || []) {
+      // Legacy `section_content` bodies, for sections not yet on blocks.
+      for (const row of legacyResult.data || []) {
         if (!row.content) continue;
         const { figures: figs, tables: tbls } = extractRefsFromContent(row.content);
         for (const f of figs) {
-          if (!seenFigLabels.has(f.label)) {
-            seenFigLabels.add(f.label);
-            allFigures.push({ ...f, sectionId: row.section_id });
-          }
+          if (seenFigLabels.has(f.label)) continue;
+          seenFigLabels.add(f.label);
+          allFigures.push({ ...f, sectionId: row.section_id });
         }
         for (const t of tbls) {
-          if (!seenTblLabels.has(t.label)) {
-            seenTblLabels.add(t.label);
-            allTables.push({ ...t, sectionId: row.section_id });
-          }
+          if (seenTblLabels.has(t.label)) continue;
+          seenTblLabels.add(t.label);
+          allTables.push({ ...t, sectionId: row.section_id });
         }
       }
 
-      // Add compulsory tables from table_captions (e.g. Table 3.1.a, 3.1.b, etc.)
-      for (const cap of captionsResult.data || []) {
-        // table_key format: "table-3.1.a" → label "3.1.a"
-        const labelMatch = cap.table_key?.match(/^table-(\d+\.\d+\.[a-z])$/i);
-        if (labelMatch) {
-          const label = labelMatch[1];
-          if (!seenTblLabels.has(label)) {
-            seenTblLabels.add(label);
-            allTables.push({
-              label,
-              title: cap.caption || 'Untitled',
-              type: 'table',
-              tableKey: cap.table_key,
-            });
-          } else {
-            // Update existing entry with tableKey if missing
-            const existing = allTables.find(t => t.label === label && !t.tableKey);
-            if (existing) existing.tableKey = cap.table_key;
-          }
-        }
-      }
-
-      // Add figures from figures table — these have DB IDs
-      for (const fig of figuresResult.data || []) {
-        if (!seenFigLabels.has(fig.figure_number)) {
-          seenFigLabels.add(fig.figure_number);
-          allFigures.push({
-            label: fig.figure_number,
-            title: fig.title || 'Untitled',
-            type: 'figure',
-            sectionId: fig.section_id,
-            figureId: fig.id,
-          });
-        } else {
-          // Update existing entry with figureId if missing
-          const existing = allFigures.find(f => f.label === fig.figure_number && !f.figureId);
-          if (existing) existing.figureId = fig.id;
-        }
-      }
-
-      // Add compulsory B3.1 tables and figures as fallbacks
-      const compulsoryTables: { label: string; title: string }[] = [
-        { label: '3.1.a', title: 'List of work packages' },
-        { label: '3.1.b', title: 'Work package descriptions' },
-        { label: '3.1.c', title: 'List of deliverables' },
-        { label: '3.1.d', title: 'List of milestones' },
-        { label: '3.1.e', title: 'Critical risks for implementation' },
-        { label: '3.1.f', title: 'Summary of staff effort' },
-        { label: '3.1.g', title: 'Subcontracting costs' },
-        { label: '3.1.h', title: 'Purchase costs of equipment' },
-      ];
-      for (const ct of compulsoryTables) {
-        if (!seenTblLabels.has(ct.label)) {
-          seenTblLabels.add(ct.label);
-          allTables.push({ label: ct.label, title: ct.title, type: 'table', tableKey: `table-${ct.label}` });
-        }
-      }
-
-      const compulsoryFigures: { label: string; title: string }[] = [
-        { label: '3.1.a', title: 'PERT chart' },
-        { label: '3.1.b', title: 'Gantt chart' },
-      ];
-      for (const cf of compulsoryFigures) {
-        if (!seenFigLabels.has(cf.label)) {
-          seenFigLabels.add(cf.label);
-          allFigures.push({ label: cf.label, title: cf.title, type: 'figure' });
-        }
-      }
-
-      allFigures.sort((a, b) => a.label.localeCompare(b.label));
-      allTables.sort((a, b) => a.label.localeCompare(b.label));
+      allFigures.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      allTables.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
 
       setFigures(allFigures);
       setTables(allTables);
@@ -215,7 +150,11 @@ export function InsertCrossReferenceDialog({
     };
 
     loadAllContent();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, proposalId]);
+
 
   const handleInsert = (item: CrossReferenceItem) => {
     const refText = item.type === 'figure'
@@ -259,7 +198,16 @@ export function InsertCrossReferenceDialog({
               >
                 {item.type === 'figure' ? `Figure ${item.label}` : `Table ${item.label}`}
               </span>
-              <span className="text-sm text-muted-foreground truncate">{item.title}</span>
+              {item.title ? (
+                <span className="text-sm text-muted-foreground truncate">
+                  <span className="mr-1">—</span>
+                  {item.title}
+                </span>
+              ) : (
+                <span className="text-sm italic text-muted-foreground/70 truncate">
+                  — no caption yet
+                </span>
+              )}
             </button>
           ))}
         </div>
