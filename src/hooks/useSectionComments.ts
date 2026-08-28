@@ -297,6 +297,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     comments,
     loading,
     addComment,
+    updateCommentContent,
     updateCommentStatus,
     deleteComment,
     refetch: fetchComments,
