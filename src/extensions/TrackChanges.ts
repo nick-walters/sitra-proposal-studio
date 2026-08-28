@@ -280,6 +280,12 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       lastDeletionTime: 0,
       lastDeletionOldStart: 0,
       prevDoc: null as any,
+      // Set while the host replaces the whole document (external content sync,
+      // live-stream mirroring). A full setContent arrives as one giant replace
+      // step; with tracking merely "disabled" the step handler below strips
+      // insertion/deletion marks across the replaced range, which silently
+      // destroyed other authors' pending tracked changes on the next save.
+      suspended: false,
     };
   },
 
@@ -295,6 +301,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     const deletionType = schema.marks.trackDeletion;
 
     if (
+      storage.suspended ||
       tr.getMeta('trackChangesInternal') ||
       tr.getMeta('setContent') ||
       tr.getMeta('history$')

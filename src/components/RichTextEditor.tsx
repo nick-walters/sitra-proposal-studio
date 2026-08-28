@@ -2124,9 +2124,19 @@ StarterKit.configure({
     // the entire document being marked as insertions
     const storage = (editor.storage as any)?.trackChanges;
     const wasEnabled = storage?.enabled;
-    if (storage) storage.enabled = false;
+    // `suspended` makes the tracker ignore the transaction wholesale. Merely
+    // clearing `enabled` is not enough: the disabled branch of the tracker
+    // removes track marks over every changed range, and a full setContent
+    // changes the entire document — wiping other authors' pending changes.
+    if (storage) {
+      storage.suspended = true;
+      storage.enabled = false;
+    }
     editor.commands.setContent(nextContent, { emitUpdate: false });
-    if (storage) storage.enabled = wasEnabled;
+    if (storage) {
+      storage.enabled = wasEnabled;
+      storage.suspended = false;
+    }
   }, [editor, content, isReady, captionNumberingKey]);
 
 
