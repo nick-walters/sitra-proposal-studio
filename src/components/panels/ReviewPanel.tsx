@@ -10,7 +10,8 @@
  * the field's versioned save.
  */
 import { useState } from 'react';
-import { Check, GitCompare, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
+import { TrackedChangesIcon } from '@/components/panels/TrackedChangesIcon';
 import type { Editor } from '@tiptap/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -93,7 +94,7 @@ export function ReviewPanelBody({
   if (!hasActiveField) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <GitCompare className="h-5 w-5 text-muted-foreground" />
+        <TrackedChangesIcon className="h-5 w-5" />
         <p className="text-[12px] text-muted-foreground">
           Click in a field to review its tracked changes.
         </p>

@@ -638,18 +638,13 @@ function FieldRow({
           <>
             {headerField && !isDocumentSurface ? (
               headerField
-            ) : (collapsed || moduleCollapsed) ? (
-              // On a page-styled surface the editable header lives inside the
-              // body, which is hidden while collapsed — including during a
-              // drag. Show its text here so the module stays identifiable
-              // while it is being moved.
-              <span className="flex-1 truncate text-xs text-muted-foreground">
-                {htmlToPlainText(field.heading ?? '').trim() || 'Module'}
-              </span>
             ) : (
-
+              // On a page-styled surface the header lives inside the body and
+              // STAYS THERE while the module is collapsed or dragged, so it
+              // keeps exactly the same size and position in every state.
               <span className="flex-1" aria-hidden="true" />
             )}
+
 
 
             {/* Every module control sits in the page-margin rail, ordered
@@ -791,7 +786,7 @@ function FieldRow({
       {!isPlaceholder && (
         <div
           className={
-            collapsed || moduleCollapsed
+            (collapsed || moduleCollapsed) && !(isDocumentSurface && headerField)
               ? 'hidden'
               : isDocumentSurface
                 // The page itself: white, 1.5 cm side margins running to the
@@ -802,7 +797,9 @@ function FieldRow({
           }
         >
           {isDocumentSurface && headerField}
+          {!(collapsed || moduleCollapsed) && (
           <LockBoundary
+
             state={lockStateOf(contentLock)}
             holder={contentLock.holder}
             onFocusCapture={() => {
@@ -870,6 +867,8 @@ function FieldRow({
               pairedTables={isImpactSummary}
             />
           </LockBoundary>
+          )}
+
 
         </div>
       )}
@@ -1547,7 +1546,8 @@ function CardBlock({
             ) : null}
 
             {/* Column 5 — visibility */}
-            {canEdit && card.isHideable ? (
+            {/* A references block keeps its comment control only. */}
+            {canEdit && card.isHideable && card.kind !== 'references' ? (
               <Tip label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}>
                 <Button
                   type="button"

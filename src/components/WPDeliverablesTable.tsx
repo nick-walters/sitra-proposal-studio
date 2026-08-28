@@ -655,7 +655,10 @@ function DeliverableRow({
       <td className={`${docCellStyles} whitespace-nowrap relative`}>
           {/* Right margin controls: comment, then delete — the same order and
               treatment the block control rows use. */}
-          <div className="absolute left-full top-1/2 ml-1 flex -translate-y-1/2 items-center">
+          <div
+            className="absolute left-full top-1/2 flex -translate-y-1/2 items-center"
+            style={{ marginLeft: 1 }}
+          >
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"

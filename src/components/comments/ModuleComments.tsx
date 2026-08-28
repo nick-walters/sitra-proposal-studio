@@ -46,7 +46,7 @@ import {
   UserPlus,
   UserCheck,
 } from 'lucide-react';
-import { RAIL_COMMENT_LEFT } from '@/components/cards/MarginRail';
+import { RAIL_COMMENT_LEFT, RAIL_COMMENT_TOP } from '@/components/cards/MarginRail';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -403,12 +403,12 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
       if (row) {
         const r = row.getBoundingClientRect();
         if (r.height > 0) {
-          top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2);
+          top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2) + RAIL_COMMENT_TOP;
         }
       } else if (box.height > 0 && box.height <= 64) {
         // A bare anchor — a block title, a task pill — has no rail of its own,
         // so it centres on itself rather than hanging off its top edge.
-        top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2);
+        top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2) + RAIL_COMMENT_TOP;
       }
       setOffset((prev) => (prev.left === left && prev.top === top ? prev : { left, top }));
     };
@@ -753,9 +753,13 @@ function ModuleCommentsRail({
           >
             {showResolved ? 'Hide resolved' : 'Show resolved'}
           </button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
+          {/* Hosted in the review panel, the panel's own close control is the
+              only one: a second X beside "Show resolved" simply duplicated it. */}
+          {!host && (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -779,9 +783,10 @@ function ModuleCommentsRail({
         className="relative flex-1 overflow-y-auto overflow-x-hidden [mask-image:linear-gradient(to_bottom,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]"
       >
         {visible.length === 0 && !composing && (
-          <p className="p-3 text-[12px] text-muted-foreground">
-            No comments yet. Use a block's blue comment control to leave one.
-          </p>
+          <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+            <MessageSquarePlus className="h-5 w-5 text-blue-600" />
+            <p className="text-[12px] text-muted-foreground">Add a comment to a field</p>
+          </div>
         )}
         <div className="relative" style={{ height: contentHeight }}>
           {visible.map((thread) => {
