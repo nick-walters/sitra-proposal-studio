@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Table2 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCrossRefTargets } from '@/lib/crossRefTargets';
 import { cn } from '@/lib/utils';
 
 interface CrossReferenceItem {
