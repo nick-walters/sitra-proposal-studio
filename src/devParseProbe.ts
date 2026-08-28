@@ -12,3 +12,13 @@ export function probe(html: string) {
     out: out.slice(0, 200),
   };
 }
+
+export async function probeSanitize(html: string) {
+  const { sanitizeEditorHtml } = await import('@/lib/editorContentSanitizer');
+  const out = sanitizeEditorHtml(html);
+  return {
+    inCount: (html.match(/data-track-insertion/g) || []).length,
+    outCount: (out.match(/data-track-insertion/g) || []).length,
+    out: out.slice(0, 200),
+  };
+}
