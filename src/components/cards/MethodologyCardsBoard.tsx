@@ -137,6 +137,7 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
+import { MarginRail } from '@/components/cards/MarginRail';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   ModuleCommentAnchor,
@@ -642,6 +643,10 @@ function FieldRow({
               <span className="flex-1" aria-hidden="true" />
             )}
 
+            {/* Every module control sits in the page-margin rail, ordered
+                right to left: comment (floating), delete, visibility, and the
+                include-header toggle. */}
+            <MarginRail>
             {canEdit && (
               <div className="flex shrink-0 items-center gap-1.5">
                 <Tip
@@ -741,6 +746,7 @@ function FieldRow({
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            </MarginRail>
           </>
         )}
       </div>
@@ -1351,15 +1357,15 @@ function CardBlock({
           </div>
 
 
-          {/* Fixed control columns, read right to left:
-                delete | visibility | restore | add | block-specific.
-              Every block reserves all six columns, so a block that lacks a
-              control leaves its column empty instead of pulling the rest out
-              of line. Spacing, button size and icon size match the module
-              control row exactly. Icons only — each control's tooltip text is
-              also its aria-label. Controls stay at full opacity when the block
-              is hidden; only the block's content dims. */}
-          <div className="ml-auto grid shrink-0 grid-cols-[28px_28px_28px_28px_28px_28px] items-center justify-items-center gap-1 opacity-100">
+          {/* The page-margin control rail, read right to left:
+                comment (floating) | delete | visibility | restore | add |
+                block-specific.
+              There are no reserved gaps: a block that lacks a control simply
+              omits it, so an undeletable block's controls sit further right.
+              Icons only — each control's tooltip text is also its aria-label.
+              Controls stay at full opacity when the block is hidden; only the
+              block's content dims. */}
+          <MarginRail className="ml-auto opacity-100">
 
             {/* Column 1 — block-specific: download (Pert and Gantt charts) */}
             {isPertCard || isGanttCard ? (
@@ -1374,9 +1380,7 @@ function CardBlock({
                   <Download className="h-3.5 w-3.5" />
                 </Button>
               </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
             {/* Column 2 — block-specific: edit (Pert), figure controls, or
                 reorder (milestones). Reorder is always present and simply
@@ -1427,9 +1431,7 @@ function CardBlock({
                   </Button>
                 </span>
               </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
             {/* Column 3 — add */}
             {isLinkedActivitiesCard && canEdit ? (
@@ -1472,9 +1474,7 @@ function CardBlock({
                   <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
                 </Button>
               </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
             {/* Column 4 — restore. Always present, greyed out when this
                 block's bin is empty, so the row never shifts. */}
@@ -1518,9 +1518,7 @@ function CardBlock({
                   </Tip>
                 );
               })()
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
             {/* Column 5 — visibility */}
             {canEdit && card.isHideable ? (
@@ -1541,9 +1539,7 @@ function CardBlock({
                   )}
                 </Button>
               </Tip>
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
             {/* Column 6 — delete */}
             {canEdit && card.isDeletable ? (
@@ -1578,11 +1574,9 @@ function CardBlock({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            ) : (
-              <span aria-hidden="true" />
-            )}
+            ) : null}
 
-          </div>
+          </MarginRail>
 
         </CardHeader>
 
