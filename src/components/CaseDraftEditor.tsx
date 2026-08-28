@@ -772,6 +772,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   const prefix = getCasePrefix(caseDraft.case_type, caseDraft.custom_type_name);
   const includeNumber = caseTypeRow?.include_number !== false;
   const includeAbbreviation = caseTypeRow?.include_abbreviation !== false;
+  const caseAccent = caseTypeRow?.outline_color || '#000000';
   const headingLabel = buildCaseLabel({
     prefix,
     number: caseDraft.number,
@@ -1182,5 +1183,143 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       />
       {conflictDialog}
     </div>
+    </TooltipProvider>
+  );
+}
+
+/**
+ * One subsection block: the shared block frame, the shared left control stack
+ * (chevron above grip), an uneditable bold heading from the project-wide
+ * template, and a single page-styled rich field carrying locking, streaming,
+ * version history and guidance markers.
+ */
+function CaseSubsectionBlock({
+  caseId,
+  proposalId,
+  subsectionId,
+  subsectionKey,
+  heading,
+  value,
+  onChange,
+  readOnly,
+  collapsed,
+  onToggleCollapsed,
+  onAdd,
+  onRestore,
+  restoreDisabled,
+  shouldStayMounted,
+}: {
+  caseId: string;
+  proposalId: string;
+  subsectionId: string;
+  subsectionKey: string;
+  heading: string;
+  value: string;
+  onChange: (html: string) => void;
+  readOnly: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onAdd?: () => void;
+  onRestore?: () => void;
+  restoreDisabled?: boolean;
+  shouldStayMounted?: () => boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: subsectionId,
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      id={`case-subsection-${subsectionKey}`}
+      className={cn(WP_BLOCK_FRAME, isDragging && 'opacity-60')}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      /* Guidance is keyed on the subsection's own template key, so a
+         case-type-specific subsection carries its own guidance. */
+      data-guideline-key={`drafts.case.${subsectionKey}`}
+      data-version-label={heading}
+      data-version-target={versionTargetAttr('case_draft_subsection', caseId, subsectionKey)}
+    >
+      <div className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}>
+        <div className={WP_CONTROL_STACK}>
+          <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="shrink-0 cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing"
+                aria-label="Drag to reorder this subsection"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4 text-blue-500" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Drag to reorder this subsection</TooltipContent>
+          </Tooltip>
+        </div>
+        <ModuleCommentAnchor targetKey={caseTarget(caseId, `${subsectionKey}:heading`)} label={`${heading} — heading`}>
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
+          >
+            {heading}:
+          </p>
+        </ModuleCommentAnchor>
+
+        {!readOnly && (
+          <div className="flex items-center gap-1">
+            {onAdd && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onAdd} aria-label="Add a subsection">
+                    <Plus className="h-3.5 w-3.5 text-blue-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add a subsection</TooltipContent>
+              </Tooltip>
+            )}
+            {onRestore && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={onRestore}
+                    disabled={restoreDisabled}
+                    aria-label="Restore a deleted subsection"
+                  >
+                    <Recycle
+                      className={cn('h-3.5 w-3.5', restoreDisabled ? 'text-muted-foreground' : 'text-emerald-600')}
+                      strokeWidth={2.5}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Restore a deleted subsection</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!collapsed && (
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+          <ModuleCommentAnchor targetKey={caseTarget(caseId, subsectionKey)} label={heading}>
+            <LockedWPRichField
+              targetId={caseTarget(caseId, subsectionKey)}
+              value={value}
+              onChange={onChange}
+              disabled={readOnly}
+              minHeight="60px"
+              proposalId={proposalId}
+              staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+              documentSurface
+              shouldStayMounted={shouldStayMounted}
+            />
+          </ModuleCommentAnchor>
+        </div>
+      )}
+    </section>
   );
 }
