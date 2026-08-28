@@ -70,7 +70,11 @@ export function computeBudgetRow(input: BudgetComputeInput): BudgetComputeOutput
 
   const directCosts = personnel + sub + travel + equip + other + fstp + internally + procurement;
 
-  const indirectBase = directCosts - sub - fstp;
+  // 25% flat-rate indirect costs apply to categories A (personnel) and C
+  // (purchases: travel, equipment, other goods & services) ONLY. They exclude
+  // B (subcontracting), D.1 (financial support to third parties) and
+  // D.2 (internally invoiced goods & services).
+  const indirectBase = personnel + travel + equip + other + procurement;
   const indirect = input.indirect_costs_override != null
     ? Number(input.indirect_costs_override)
     : Math.round(indirectBase * 0.25 * 100) / 100;
