@@ -43,8 +43,9 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 
-import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { useCaseGuidelineDefaults, resolveCaseGuidance } from '@/hooks/useCaseGuidance';
+import { CaseGuidanceEditDialog } from '@/components/CaseGuidanceEditDialog';
+import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown, Eye, EyeOff, Trash2, Pencil } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -95,28 +96,9 @@ import { stripWordHtml } from '@/lib/stripWordHtml';
 
 
 
-const SITRA_CASE_TIPS = [
-  {
-    id: 'sitra-case-1',
-    title: 'Make each case distinct',
-    content: 'Each case should address a clearly different context, sector, or geography. Avoid overlap — evaluators want to see breadth and complementarity across cases.',
-  },
-  {
-    id: 'sitra-case-2',
-    title: 'Ground cases in real needs',
-    content: 'Cases are most convincing when rooted in genuine, documented needs of end-users or stakeholders. Reference existing evidence or engagement activities.',
-  },
-  {
-    id: 'sitra-case-3',
-    title: 'Show the path to impact',
-    content: 'For each case, make the connection from activities to outcomes to wider impact explicit. This helps evaluators see how results will materialise beyond the project.',
-  },
-  {
-    id: 'sitra-case-4',
-    title: 'Plan for replicability early',
-    content: 'Describe how lessons learned and solutions developed in each case can be transferred to other contexts. This strengthens the overall impact narrative of the proposal.',
-  },
-];
+/* Case guidance is DATA, not code: the shared default lives in
+   `case_guideline_defaults` and a proposal may override it on its own
+   subsection row. The old hardcoded Sitra tips were removed with prompt 109. */
 
 // Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
 // Legacy per-case heading_*/guideline_* fields are no longer read or written.
@@ -562,6 +544,18 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   );
   const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
   const authoredTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
+
+  /* Sitra guidance for the focused subsection: the proposal's own override
+     wins, otherwise the shared default. Coordinators may edit it here. */
+  const { data: caseGuidelineDefaults = [] } = useCaseGuidelineDefaults();
+  const focusedSubsectionKey = focusedGuidelineKey?.startsWith('drafts.case.')
+    ? focusedGuidelineKey.slice('drafts.case.'.length)
+    : null;
+  const resolvedGuidance = useMemo(
+    () => resolveCaseGuidance(focusedSubsectionKey, subsectionTemplates, caseGuidelineDefaults),
+    [focusedSubsectionKey, subsectionTemplates, caseGuidelineDefaults],
+  );
+  const [guidanceEditOpen, setGuidanceEditOpen] = useState(false);
 
   // 90-day recycle bin. A binned subsection hangs off the proposal, because the
   // subsection set is project-wide rather than owned by one case.
@@ -1164,20 +1158,58 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   </div>
                 )}
 
-                {blockGuidelines.length === 0 && (
-                  <>
-                    <p className="text-sm text-muted-foreground">
-                      {focusedGuidelineKey
-                        ? 'No guidance has been authored for this subsection yet.'
-                        : 'Place the cursor in a subsection to see the guidance for it.'}
-                    </p>
-                    <SitraTipsBox tips={SITRA_CASE_TIPS} />
-                  </>
+                {/* Case guidance: this proposal's override, or the shared default. */}
+                {resolvedGuidance && (resolvedGuidance.content || isCoordinator) && (
+                  <div className="rounded-lg border-2 border-gray-800 bg-gray-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0 text-gray-800" />
+                      <span className="text-sm font-bold text-gray-900">
+                        Sitra&rsquo;s tips
+                        {resolvedGuidance.isOverride && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            (written for this proposal)
+                          </span>
+                        )}
+                      </span>
+                      {isCoordinator && resolvedGuidance.templateId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-auto h-7 px-2"
+                          onClick={() => setGuidanceEditOpen(true)}
+                        >
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          Edit for this proposal
+                        </Button>
+                      )}
+                    </div>
+                    <h4 className="mb-2 font-semibold text-gray-900">{resolvedGuidance.title}</h4>
+                    <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {resolvedGuidance.content || 'No guidance yet — add some for this proposal.'}
+                    </div>
+                  </div>
+                )}
+
+                {blockGuidelines.length === 0 && !resolvedGuidance && (
+                  <p className="text-sm text-muted-foreground">
+                    {focusedGuidelineKey
+                      ? 'No guidance has been authored for this subsection yet.'
+                      : 'Place the cursor in a subsection to see the guidance for it.'}
+                  </p>
                 )}
               </div>
             </ScrollArea>
           </DialogContent>
         </Dialog>
+
+        <CaseGuidanceEditDialog
+          isOpen={guidanceEditOpen}
+          onClose={() => setGuidanceEditOpen(false)}
+          guidance={resolvedGuidance}
+          onSaved={() =>
+            queryClient.invalidateQueries({ queryKey: ['case-subsection-templates', proposalId] })
+          }
+        />
 
 
         <WPBinDialog

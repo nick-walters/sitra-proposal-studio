@@ -1322,6 +1322,36 @@ export type Database = {
           },
         ]
       }
+      case_guideline_defaults: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          key: string
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          key: string
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          key?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       case_subsection_templates: {
         Row: {
           created_at: string
@@ -7348,6 +7378,10 @@ export type Database = {
           p_key: string
         }
         Returns: Json
+      }
+      save_case_subsection_guideline: {
+        Args: { p_guideline: string; p_template_id: string }
+        Returns: undefined
       }
       save_milestone_and_resequence: {
         Args: { p_expected_version?: number; p_id: string; p_patch: Json }
