@@ -63,14 +63,19 @@ function subsectionsOf(row: any, templates: any[]): TypstCaseSubsection[] {
     { key: 'outcomes', heading: row.heading_outcomes, fallback: 'Expected outcomes', body: row.expected_outcomes },
     { key: 'replicability', heading: row.heading_replicability, fallback: 'Replicability', body: row.replicability },
   ];
+  const pushRef = null;
   const push = (key: string, heading: string, body: string | null | undefined) => {
-    if (seen.has(key) || !hasText(body)) return;
+    if (seen.has(key) || hidden.has(key) || !hasText(body)) return;
     seen.add(key);
     out.push({ heading, bodyHtml: String(body) });
   };
 
   const json = (row.subsection_content || null) as Record<string, any> | null;
+  const hidden = new Set(
+    templates.filter((t) => t.is_visible === false).map((t) => t.key as string),
+  );
   const ordered = templates
+    .filter((t) => t.is_visible !== false)
     .slice()
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
     .map((t) => t.key as string);
@@ -116,7 +121,7 @@ export async function fetchCasesTypstData(proposalId: string): Promise<CasesTyps
       .order('number', { ascending: true }),
     supabase
       .from('case_subsection_templates')
-      .select('id, key, heading, order_index, is_default')
+      .select('id, key, heading, order_index, is_default, is_visible')
       .eq('proposal_id', proposalId)
       .order('order_index'),
     supabase
@@ -197,7 +202,9 @@ export function emitCasesTable(
     out.push(`he-caption(${typstString(captionLabel)}, ${lit(group.captionText)})`);
   }
 
-  for (const c of group.cases) {
+  group.cases.forEach((c, caseIndex) => {
+    // Roughly one blank line between consecutive cases.
+    if (caseIndex > 0) out.push('v(11pt)');
     const chip = `chip-pill(${typstString(c.chipLabel)}, rgb(${typstString(c.colour)}))`;
     const lead = c.leadLabel
       ? `chip-pill(${typstString(c.leadLabel)}, black, filled: true)`
@@ -217,6 +224,6 @@ export function emitCasesTable(
       out.push(...blocks);
       out.push(RULE(index === c.subsections.length - 1 ? '2pt' : '0.5pt'));
     });
-  }
+  });
   return out;
 }
