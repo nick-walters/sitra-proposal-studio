@@ -51,6 +51,9 @@ export function MarginRail({
 }) {
   return (
     <div
+      // Tagged so the floating comment control can align its vertical centre
+      // to this row rather than to the top of the module it wraps.
+      data-control-row=""
       // Buttons already carry 7 px of internal padding on each side, so a
       // zero gap reads as a tight, even 14 px between glyphs — the same
       // spacing on every block and module across the platform.
