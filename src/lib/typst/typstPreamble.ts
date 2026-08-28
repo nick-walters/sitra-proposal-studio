@@ -359,6 +359,18 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   text(weight: "bold", fill: black, label),
 )
 
+/// The work-package name pill: the same full-width shape as the case pill,
+/// filled with the work package's own colour and labelled in white.
+#let wp-name-pill(label, colour) = block(
+  width: he-table-width,
+  inset: (x: 6pt, y: 1.5pt),
+  radius: 999pt,
+  fill: colour,
+  stroke: 1.5pt + colour,
+  text(weight: "bold", fill: white, label),
+)
+
+
 #let he-inset = (x: 5pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.
