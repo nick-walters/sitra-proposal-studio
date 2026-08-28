@@ -15,10 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { useSectionComments, type Comment } from '@/hooks/useSectionComments';
-import {
-  MODULE_ANCHOR_TYPE,
-  type ModuleAnchorPayload,
-} from '@/lib/moduleCommentTargets';
+import { MODULE_ANCHOR_TYPE, type ModuleAnchorPayload } from '@/lib/moduleCommentTargets';
 
 /* ==================================================================== */
 /* Context                                                              */
@@ -76,11 +73,6 @@ interface ProviderProps {
   children: ReactNode;
 }
 
-interface InternalRegistry {
-  map: Map<string, RegistryEntry>;
-  version: number;
-}
-
 const RegistryCtx = createContext<{
   registry: React.MutableRefObject<Map<string, RegistryEntry>>;
   version: number;
@@ -105,8 +97,8 @@ export function ModuleCommentsProvider({
   const byTarget = useMemo(() => {
     const m = new Map<string, Comment[]>();
     for (const c of comments.comments) {
-      if (c.anchor_type !== (MODULE_ANCHOR_TYPE as unknown as Comment['anchor_type'])) continue;
-      const key = (c.anchor_payload as unknown as ModuleAnchorPayload | null)?.targetKey;
+      if (c.anchor_type !== MODULE_ANCHOR_TYPE) continue;
+      const key = (c.anchor_payload as ModuleAnchorPayload | null)?.targetKey;
       if (!key) continue;
       const arr = m.get(key);
       if (arr) arr.push(c);
@@ -319,7 +311,7 @@ function ModuleCommentsPanel({
   }, [reg, byTarget, composer]);
 
   const orphanLabel = (key: string) =>
-    (byTarget.get(key)?.[0]?.anchor_payload as unknown as ModuleAnchorPayload | null)?.label ??
+    (byTarget.get(key)?.[0]?.anchor_payload as ModuleAnchorPayload | null)?.label ??
     'Deleted module';
 
   return (
@@ -388,11 +380,11 @@ function ModuleCommentsPanel({
                     onCancel={onCloseComposer}
                     onSubmit={async (text) => {
                       await api.addComment(text, {
-                        anchorType: MODULE_ANCHOR_TYPE as never,
+                        anchorType: MODULE_ANCHOR_TYPE,
                         anchorPayload: {
                           targetKey: composer.targetKey,
                           label: composer.label,
-                        } as never,
+                        },
                       });
                       onCloseComposer();
                       api.refetch();
@@ -499,8 +491,8 @@ function ThreadCard({
             onSubmit={async (text) => {
               await api.addComment(text, {
                 parentCommentId: thread.id,
-                anchorType: thread.anchor_type as never,
-                anchorPayload: thread.anchor_payload as never,
+                anchorType: thread.anchor_type ?? undefined,
+                anchorPayload: thread.anchor_payload ?? undefined,
               });
               setReplying(false);
               api.refetch();

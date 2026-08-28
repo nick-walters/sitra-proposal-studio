@@ -10,7 +10,7 @@
  * `anchor_payload = { targetKey, label }`. No second table.
  */
 
-export const MODULE_ANCHOR_TYPE = 'module';
+export const MODULE_ANCHOR_TYPE = 'module' as const;
 
 export interface ModuleAnchorPayload {
   /** Generic target address, e.g. `card_field:<uuid>` or `wp:<uuid>:objectives`. */
