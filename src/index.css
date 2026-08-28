@@ -814,6 +814,51 @@ table.b31-effort-matrix.first-col-flush {
   vertical-align: baseline;
 }
 
+/* ── Dark-filled chip labels are TRUE WHITE, stated explicitly ─────────────
+   Participant, WP and milestone chips carry a dark fill. Their labels must be
+   #ffffff on every surface (editor, mirrors, tables, print) and must never
+   depend on inheritance from a parent — a missing inner span previously left a
+   WP title pill painting itself in the near-black body foreground.
+   The global `antialiased` body rule (grayscale smoothing) also thins
+   white-on-dark glyphs so they read as grey; restore subpixel smoothing on
+   these chips so the white renders at full weight. */
+[data-participant-reference],
+[data-participant-reference] > *,
+.participant-reference-badge,
+.participant-reference-badge > *,
+[data-wp-reference],
+[data-wp-reference] > *,
+.wp-reference-badge,
+.wp-reference-badge > *,
+.inline-ref-milestone,
+.inline-ref-milestone > *,
+[data-ref-type="milestone"],
+[data-ref-type="milestone"] > * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+/* Print/export mirrors the same explicit white. */
+.print-export-container [data-participant-reference],
+.print-export-container [data-participant-reference] > *,
+.print-export-container .wp-reference-badge,
+.print-export-container .wp-reference-badge > *,
+.print-export-container [data-wp-reference],
+.print-export-container [data-wp-reference] > *,
+.print-export-container .inline-ref-milestone,
+.print-export-container .inline-ref-milestone > *,
+.print-export-container [data-ref-type="milestone"],
+.print-export-container [data-ref-type="milestone"] > * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+
+
 .ProseMirror p:not(.figure-caption) {
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
