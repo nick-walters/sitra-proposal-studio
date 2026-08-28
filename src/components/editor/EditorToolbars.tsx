@@ -147,9 +147,14 @@ export function EditorToolbars({
           onOpenShortcuts={topBar?.onOpenShortcuts ?? (() => setShortcutsOpen(true))}
         />
       }
-      fieldBar={<EditorFieldBar hasFocusedField={hasFocusedField} {...(fieldBar ?? {})} />}
+      fieldBar={
+        <ToolbarReveal active={hasFocusedField}>
+          <EditorFieldBar hasFocusedField {...(fieldBar ?? {})} />
+        </ToolbarReveal>
+      }
       formattingBar={
         formatting && hasFocusedEditor ? (
+          <ToolbarReveal active>
           <div
             onMouseDown={(e) => {
               // Keep the caret in the field the toolbar is acting on, unless
@@ -179,8 +184,10 @@ export function EditorToolbars({
               }
             />
           </div>
+          </ToolbarReveal>
         ) : null
       }
+
     >
       {children}
     </EditorChrome>
