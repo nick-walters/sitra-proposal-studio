@@ -4,15 +4,24 @@
  * Colour alone never says who changed what, or when. This mounts once per
  * proposal and watches the whole page: hovering ANY tracked change — inside a
  * live TipTap instance or in the static HTML a lazy field renders when it is
- * not focused — shows the author's name and the time of the change.
+ * not focused — shows the author's name, the time of the change, and (where
+ * permitted) accept/reject controls that resolve the change in place.
  *
  * It is deliberately DOM-based rather than editor-based, so the marks read the
  * same on every surface: Part B modules, WP and case drafts, mirrors.
+ *
+ * The author is resolved from `data-author-id` at RENDER time, so marks that
+ * were recorded with a bad or missing name still name their author.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Check, X } from 'lucide-react';
 import { smartTimestamp } from '@/lib/smartTimestamp';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useProposalRole } from '@/hooks/useProposalRole';
+import { findEditorForNode, waitForEditorAt } from '@/lib/trackChangeEditorRegistry';
+import { toast } from 'sonner';
 
 const SELECTOR = '[data-track-insertion],[data-track-deletion]';
 
@@ -20,7 +29,8 @@ const SELECTOR = '[data-track-insertion],[data-track-deletion]';
 const nameCache = new Map<string, string>();
 
 async function resolveAuthorName(authorId: string, fallback: string): Promise<string> {
-  if (!authorId || authorId === 'ai-assistant') return fallback || 'Unknown';
+  if (!authorId) return fallback || 'Unknown';
+  if (authorId === 'ai-assistant') return 'AI assistant';
   const cached = nameCache.get(authorId);
   if (cached) return cached;
   try {
@@ -28,17 +38,28 @@ async function resolveAuthorName(authorId: string, fallback: string): Promise<st
       .from('profiles')
       .select('full_name')
       .eq('id', authorId)
-      .single();
+      .maybeSingle();
     const name = data?.full_name || fallback || 'Unknown';
     nameCache.set(authorId, name);
     return name;
   } catch {
-    nameCache.set(authorId, fallback || 'Unknown');
     return fallback || 'Unknown';
   }
 }
 
+/**
+ * Read an attribute from the hovered element or the nearest ancestor that
+ * carries it. The decoration span sits INSIDE the mark span, so the identity
+ * often lives one level up.
+ */
+function readAttr(el: HTMLElement, attr: string): string {
+  const owner = el.closest(`[${attr}]`) as HTMLElement | null;
+  return (owner?.getAttribute(attr) || '').trim();
+}
+
 interface HoverState {
+  el: HTMLElement;
+  changeId: string;
   kind: 'insertion' | 'deletion';
   authorId: string;
   authorName: string;
@@ -48,27 +69,36 @@ interface HoverState {
   y: number;
 }
 
-export function TrackChangeHoverTooltip() {
+export function TrackChangeHoverTooltip({ proposalId }: { proposalId?: string }) {
   const [hover, setHover] = useState<HoverState | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  const { user } = useAuth();
+  const { roleTier } = useProposalRole(proposalId);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
+      if (target && tooltipRef.current?.contains(target)) {
+        clearTimeout(hideTimer.current);
+        return;
+      }
       const el = target?.closest?.(SELECTOR) as HTMLElement | null;
       // The document editor carries its own accept/reject bubble, which
       // already names the author — never stack two tooltips there.
       if (el?.closest('[data-track-menu-host]')) return;
       if (!el) {
         clearTimeout(hideTimer.current);
-        hideTimer.current = setTimeout(() => setHover(null), 120);
+        hideTimer.current = setTimeout(() => setHover(null), 200);
         return;
       }
       clearTimeout(hideTimer.current);
       const rect = el.getBoundingClientRect();
-      const colour = (el.getAttribute('data-author-color') || '').trim();
-      const stamp = el.getAttribute('data-timestamp');
+      const colour = readAttr(el, 'data-author-color');
+      const stamp = readAttr(el, 'data-timestamp');
       let when: string | null = null;
       if (stamp) {
         try {
@@ -78,9 +108,11 @@ export function TrackChangeHoverTooltip() {
         }
       }
       const next: HoverState = {
-        kind: el.hasAttribute('data-track-deletion') ? 'deletion' : 'insertion',
-        authorId: el.getAttribute('data-author-id') || '',
-        authorName: el.getAttribute('data-author-name') || 'Unknown',
+        el,
+        changeId: readAttr(el, 'data-change-id'),
+        kind: el.closest('[data-track-deletion]') ? 'deletion' : 'insertion',
+        authorId: readAttr(el, 'data-author-id'),
+        authorName: readAttr(el, 'data-author-name') || 'Unknown',
         colour: /^#[0-9a-fA-F]{3,8}$/.test(colour) ? colour : '#3B82F6',
         when,
         x: rect.left + rect.width / 2,
@@ -88,6 +120,7 @@ export function TrackChangeHoverTooltip() {
       };
       setHover((prev) =>
         prev &&
+        prev.changeId === next.changeId &&
         prev.authorId === next.authorId &&
         prev.kind === next.kind &&
         prev.when === next.when &&
@@ -119,23 +152,105 @@ export function TrackChangeHoverTooltip() {
     };
   }, [hover?.authorId, hover?.authorName, hover]);
 
+  /**
+   * Resolve the hovered change. On a static (unfocused) field the editor is
+   * not mounted yet, so the field is asked to hydrate first; the change is
+   * then applied through the editor, which writes through the field's normal
+   * versioned save path — conflict rejection still applies.
+   */
+  const resolveChange = useCallback(
+    async (action: 'accept' | 'reject') => {
+      if (!hover || busy) return;
+      const { el, changeId, x, y } = hover;
+      if (!changeId) return;
+      setBusy(true);
+      try {
+        let editor = findEditorForNode(el);
+        if (!editor) {
+          const point = { x, y: y + 2 };
+          const opts = { bubbles: true, cancelable: true, clientX: point.x, clientY: point.y };
+          el.dispatchEvent(new MouseEvent('mousedown', opts));
+          el.dispatchEvent(new MouseEvent('mouseup', opts));
+          el.dispatchEvent(new MouseEvent('click', opts));
+          editor = await waitForEditorAt(el, point);
+        }
+        if (!editor || editor.isDestroyed) {
+          toast.error('Open the field first, then accept or reject the change.');
+          return;
+        }
+        const ok =
+          action === 'accept'
+            ? editor.commands.acceptChange(changeId)
+            : editor.commands.rejectChange(changeId);
+        if (!ok) {
+          toast.error('That change could not be resolved.');
+          return;
+        }
+        setHover(null);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [hover, busy],
+  );
+
   if (!hover) return null;
+
+  const isCoordinator = roleTier === 'coordinator';
+  const isOwnChange = !!user?.id && hover.authorId === user.id;
+  // Coordinator and above may resolve any change. A change's own author may
+  // withdraw their own edit — rejecting it is not a review action.
+  const canAccept = isCoordinator;
+  const canReject = isCoordinator || isOwnChange;
 
   return createPortal(
     <div
-      className="pointer-events-none fixed z-[9998] flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[10px] text-muted-foreground shadow-md"
+      ref={tooltipRef}
+      className="pointer-events-auto fixed z-[9998] flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[10px] text-muted-foreground shadow-md"
       style={{
         left: hover.x,
         top: hover.y,
         transform: 'translate(-50%, -100%) translateY(-6px)',
+      }}
+      onMouseEnter={() => clearTimeout(hideTimer.current)}
+      onMouseLeave={() => {
+        hideTimer.current = setTimeout(() => setHover(null), 200);
       }}
     >
       <span
         className="inline-block h-2 w-2 shrink-0 rounded-full"
         style={{ backgroundColor: hover.colour }}
       />
-      {name || hover.authorName} · {hover.kind === 'insertion' ? 'inserted' : 'deleted'}
-      {hover.when && <span className="opacity-70">· {hover.when}</span>}
+      <span>
+        {name || hover.authorName} · {hover.kind === 'insertion' ? 'inserted' : 'deleted'}
+        {hover.when && <span className="opacity-70"> · {hover.when}</span>}
+      </span>
+      {canAccept && (
+        <button
+          type="button"
+          disabled={busy}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => void resolveChange('accept')}
+          className="rounded p-0.5 text-green-600 hover:bg-green-100 disabled:opacity-50 dark:text-green-400 dark:hover:bg-green-900/30"
+          title="Accept change"
+          aria-label="Accept change"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {canReject && (
+        <button
+          type="button"
+          disabled={busy}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => void resolveChange('reject')}
+          className="rounded p-0.5 text-red-600 hover:bg-red-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/30"
+          title="Reject change"
+          aria-label="Reject change"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>,
     document.body,
   );
