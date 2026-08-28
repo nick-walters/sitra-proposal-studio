@@ -39,6 +39,7 @@ import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
+import { MarginRailAbsolute } from '@/components/cards/MarginRail';
 import { wpDeliverableTarget } from '@/lib/moduleCommentTargets';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
@@ -655,10 +656,7 @@ function DeliverableRow({
       <td className={`${docCellStyles} whitespace-nowrap relative`}>
           {/* Right margin controls: comment, then delete — the same order and
               treatment the block control rows use. */}
-          <div
-            className="absolute left-full top-1/2 flex -translate-y-1/2 items-center"
-            style={{ marginLeft: -8 }}
-          >
+          <MarginRailAbsolute>
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"
@@ -668,7 +666,7 @@ function DeliverableRow({
                 iconSize="h-4 w-4"
               />
             )}
-          </div>
+          </MarginRailAbsolute>
           <DeliverableTaskDialog
             wpNumber={wpNumber}
             wpColor={wpColor}

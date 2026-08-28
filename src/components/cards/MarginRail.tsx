@@ -141,4 +141,34 @@ export function MarginRail({
 }
 
 
+/**
+ * The same rail, for a control that hangs off a document table cell rather
+ * than sitting in a flow control row — deliverables, milestones and risks.
+ * It is placed at the cell's right edge, then measured onto the shared line.
+ */
+export function MarginRailAbsolute({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const dx = useRailAlign(ref);
+
+  return (
+    <div
+      ref={ref}
+      className={cn('absolute left-full top-1/2 flex items-center', className)}
+      style={{
+        gap: `${RAIL_CONTROL_GAP}px`,
+        transform: `translate(${dx}px, -50%)`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+
 export default MarginRail;

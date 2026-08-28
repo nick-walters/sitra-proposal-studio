@@ -861,14 +861,16 @@ export function MilestonesEditor({
                         column intrudes on the 18 cm document table. */}
                     <td className={`${docCellStyles} relative`}>
                       {canEdit && (
-                        <Button
-                          size="icon" variant="ghost"
-                          className="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
-                          onClick={() => deleteMilestone.mutate(m.id)}
-                          aria-label="Delete milestone"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <MarginRailAbsolute>
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-6 w-6 text-red-600 hover:text-red-700"
+                            onClick={() => deleteMilestone.mutate(m.id)}
+                            aria-label="Delete milestone"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </MarginRailAbsolute>
                       )}
                       <SingleMonthPicker
                         value={m.due_month}
@@ -1283,14 +1285,16 @@ function SortableRiskRow({
           left, so the document table keeps exactly its five columns. */}
       <td className={`${docCellStyles} relative break-words`}>
         {canEdit && (
-          <Button
-            size="icon" variant="ghost"
-            className="absolute left-full top-1/2 ml-1 -translate-y-1/2 h-6 w-6 text-red-600 hover:text-red-700"
-            onClick={onDelete}
-            aria-label="Delete risk"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <MarginRailAbsolute>
+            <Button
+              size="icon" variant="ghost"
+              className="h-6 w-6 text-red-600 hover:text-red-700"
+              onClick={onDelete}
+              aria-label="Delete risk"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </MarginRailAbsolute>
         )}
         <DebouncedRichField
           value={risk.mitigation || ''}
