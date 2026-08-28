@@ -45,8 +45,9 @@ interface RightPanelCtx {
   setReviewOpen: (v: boolean) => void;
   /** Which panel currently occupies the region — null when the region is closed. */
   visiblePanel: PanelId | null;
-  /** Open the region on this tab. */
-  showPanel: (p: PanelId) => void;
+  /** Open the region on this tab. Counts as an EXPLICIT choice by default. */
+  showPanel: (p: PanelId, opts?: { explicit?: boolean }) => void;
+
   /** Portal target for the comments panel's own content. */
   host: HTMLElement | null;
   /** Tracked changes in the ACTIVE field only. */
