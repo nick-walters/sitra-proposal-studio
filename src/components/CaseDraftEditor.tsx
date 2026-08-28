@@ -16,25 +16,20 @@ import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePa
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DebouncedInput } from '@/components/ui/debounced-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
 import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
-import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
-import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 
 import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown } from 'lucide-react';
@@ -76,7 +71,6 @@ import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useCaseSubsectionTemplates } from '@/hooks/useCaseSubsectionTemplates';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
-import { ParticipantBubble } from '@/components/B31Pill';
 
 import {
   getCaseTypeLabel,
