@@ -37,7 +37,33 @@ import {
 import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
+import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
+import { CardLockProvider, useCardLocks } from '@/hooks/useCardLocks';
+import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
+import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+  WP_TITLE_INDENT,
+} from '@/lib/wpBlockChrome';
+import { caseSubsectionCollapseKey } from '@/lib/wpCollapseKeys';
+import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
+import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
+import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
+import { useFocusedVersionTarget, versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
+import { useCardGuidelines } from '@/hooks/useCardGuidelines';
+import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
