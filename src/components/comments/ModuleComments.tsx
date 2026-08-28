@@ -25,7 +25,15 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquarePlus, X, Check, Trash2, CornerDownRight } from 'lucide-react';
+import {
+  MessageSquarePlus,
+  X,
+  Check,
+  Trash2,
+  CornerDownRight,
+  RotateCcw,
+  Pencil,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -62,6 +70,11 @@ const payloadOf = (c: Comment): ModuleAnchorPayload | null =>
     ? ((c.anchor_payload ?? null) as ModuleAnchorPayload | null)
     : null;
 
+/** A comment counts as edited once its row was written well after it was made. */
+const wasEdited = (c: Comment) =>
+  !!c.updated_at &&
+  new Date(c.updated_at).getTime() - new Date(c.created_at).getTime() > 2000;
+
 /* --------------------------------------------------------------- provider */
 
 interface ProviderProps {
@@ -84,6 +97,7 @@ export function ModuleCommentsProvider({
   const {
     comments,
     addComment,
+    updateCommentContent,
     updateCommentStatus,
     deleteComment,
     refetch,
@@ -162,6 +176,7 @@ export function ModuleCommentsProvider({
             });
             refetch();
           }}
+          onEdit={updateCommentContent}
           onResolve={updateCommentStatus}
           onDelete={deleteComment}
         />
@@ -180,6 +195,12 @@ interface AnchorProps {
   className?: string;
   /** Where the hover control sits — defaults to the top right of the module. */
   controlClassName?: string;
+  /**
+   * `'floating'` keeps the legacy control beside the field; `'none'` measures
+   * the module only, for surfaces whose comment control lives in the block's
+   * own control row (see `ModuleCommentButton`).
+   */
+  control?: 'floating' | 'none';
 }
 
 /**
@@ -193,6 +214,7 @@ export function ModuleCommentAnchor({
   children,
   className,
   controlClassName,
+  control = 'floating',
 }: AnchorProps) {
   const ctx = useModuleComments();
   const ref = useRef<HTMLDivElement | null>(null);
@@ -219,31 +241,64 @@ export function ModuleCommentAnchor({
       } ${className ?? ''}`}
     >
       {children}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label="Comment on this module"
-            onClick={() =>
-              openThreads > 0 ? ctx.setOpen(true) : ctx.startComposing(targetKey, label)
-            }
-            className={`absolute -right-7 top-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-muted focus-visible:opacity-100 group-hover/comment:opacity-100 ${
-              openThreads > 0 ? 'text-amber-600 opacity-100' : ''
-            } ${controlClassName ?? ''}`}
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            {openThreads > 0 && (
-              <span className="absolute -right-1 -top-1 rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-[14px] text-white">
-                {openThreads}
-              </span>
-            )}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          {openThreads > 0 ? 'Open the comments panel' : `Comment on ${label}`}
-        </TooltipContent>
-      </Tooltip>
+      {control === 'floating' && (
+        <div className={`absolute -right-8 top-0 z-10 ${controlClassName ?? ''}`}>
+          <ModuleCommentButton targetKey={targetKey} label={label} />
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------- control-row button */
+
+/**
+ * The comment control as it appears in a block's control row — the same size,
+ * spacing and ghost treatment as the visibility, add and restore controls
+ * beside it, so it is exactly as discoverable as they are. Blue, and half
+ * again the size of the other control glyphs so it reads as an invitation.
+ */
+export function ModuleCommentButton({
+  targetKey,
+  label,
+  className = '',
+}: {
+  targetKey: string;
+  label: string;
+  className?: string;
+}) {
+  const ctx = useModuleComments();
+  if (!ctx) return null;
+
+  const threads = ctx.threadsFor(targetKey);
+  const openThreads = threads.filter((t) => t.status === 'open').length;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={openThreads > 0 ? 'Open the comments panel' : `Comment on ${label}`}
+          className={`relative h-7 w-7 shrink-0 text-blue-600 hover:text-blue-700 ${className}`}
+          onClick={() =>
+            openThreads > 0 ? ctx.setOpen(true) : ctx.startComposing(targetKey, label)
+          }
+        >
+          {/* 50 % larger than the 3.5-unit glyphs of the neighbouring controls. */}
+          <MessageSquarePlus className="h-[1.3125rem] w-[1.3125rem]" strokeWidth={2} />
+          {openThreads > 0 && (
+            <span className="absolute right-0 top-0 rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-[14px] text-white">
+              {openThreads}
+            </span>
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="left">
+        {openThreads > 0 ? 'Open the comments panel' : `Comment on ${label}`}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -267,6 +322,7 @@ interface RailProps {
     payload: ModuleAnchorPayload,
     parentId?: string,
   ) => Promise<void>;
+  onEdit: (id: string, content: string) => void | Promise<void>;
   onResolve: (id: string, status: 'open' | 'resolved' | 'rejected') => void;
   onDelete: (id: string) => void;
 }
@@ -282,6 +338,7 @@ function ModuleCommentsRail({
   openCount,
   onClose,
   onAdd,
+  onEdit,
   onResolve,
   onDelete,
 }: RailProps) {
@@ -289,12 +346,33 @@ function ModuleCommentsRail({
   const railRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const [tops, setTops] = useState<Record<string, number>>({});
-  /** Anchor top per target, in rail coordinates; null when it is not on screen. */
+  /** Total height the cards need, so the rail can scroll past both edges. */
+  const [contentHeight, setContentHeight] = useState(0);
+  /** Anchor top per target, in rail coordinates; null when its module is gone. */
   const [anchorTops, setAnchorTops] = useState<Record<string, number | null>>({});
+  const [measured, setMeasured] = useState(false);
+
+  /** A module that is no longer on the page has been binned (or is on another
+   *  surface): its anchor never registers, so it never measures. */
+  const isDeleted = useCallback(
+    (t: Comment) => {
+      if (!measured) return false;
+      const key = payloadOf(t)?.targetKey ?? '';
+      return anchorTops[key] === null || anchorTops[key] === undefined;
+    },
+    [anchorTops, measured],
+  );
 
   const visible = useMemo(
-    () => threads.filter((t) => showResolved || t.status !== 'resolved'),
-    [threads, showResolved],
+    () =>
+      threads.filter((t) => {
+        if (!showResolved && t.status === 'resolved') return false;
+        // A comment on a deleted module is history: it belongs with the
+        // resolved ones, not in the working list.
+        if (!showResolved && isDeleted(t)) return false;
+        return true;
+      }),
+    [threads, showResolved, isDeleted],
   );
 
   // Measure the anchors on every scroll and resize, so the panel scrolls in
@@ -318,6 +396,7 @@ function ModuleCommentsRail({
           Object.entries(next).every(([k, v]) => prev[k] === v);
         return same ? prev : next;
       });
+      setMeasured(true);
     };
     const onScroll = () => {
       cancelAnimationFrame(frame);
@@ -336,11 +415,11 @@ function ModuleCommentsRail({
   }, [threads, elements, tick]);
 
   // Lay the cards out: each sits beside its module, pushed down only as far as
-  // the card above it requires.
+  // the card above it requires. The stack is free to run past the rail's own
+  // height in both directions — the rail scrolls.
   useLayoutEffect(() => {
     const rail = railRef.current;
     if (!rail) return;
-    const height = rail.clientHeight;
     const ordered = [...visible].sort((a, b) => {
       const ka = payloadOf(a)?.targetKey ?? '';
       const kb = payloadOf(b)?.targetKey ?? '';
@@ -354,13 +433,9 @@ function ModuleCommentsRail({
       const key = payloadOf(t)?.targetKey ?? '';
       const el = cardRefs.current.get(t.id);
       const h = el?.offsetHeight ?? 96;
-      // A module that is not in view clamps to the nearest rail edge rather
-      // than disappearing; the card also dims (see below).
+      // Cards for modules that are gone simply queue after the rest.
       const raw = anchorTops[key];
-      const desired =
-        raw === null || raw === undefined
-          ? height - h
-          : Math.min(Math.max(raw, 0), Math.max(height - h, 0));
+      const desired = raw === null || raw === undefined ? cursor : Math.max(raw, 0);
       const y = Math.max(desired, cursor);
       next[t.id] = y;
       cursor = y + h + CARD_GAP;
@@ -371,6 +446,7 @@ function ModuleCommentsRail({
         Object.entries(next).every(([k, v]) => prev[k] === v);
       return same ? prev : next;
     });
+    setContentHeight(cursor + 24);
   }, [visible, anchorTops]);
 
   const body = (
@@ -410,38 +486,48 @@ function ModuleCommentsRail({
         />
       )}
 
-      <div ref={railRef} className="relative flex-1 overflow-hidden">
+      {/* The stack scrolls past both edges, with a soft fade top and bottom so
+          it is obvious there is more above and below. */}
+      <div
+        ref={railRef}
+        className="relative flex-1 overflow-y-auto overflow-x-hidden [mask-image:linear-gradient(to_bottom,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]"
+      >
         {visible.length === 0 && !composing && (
           <p className="p-3 text-[12px] text-muted-foreground">
-            No comments yet. Hover a module and use its comment control to leave one.
+            No comments yet. Use a block's blue comment control to leave one.
           </p>
         )}
-        {visible.map((thread) => {
-          const key = payloadOf(thread)?.targetKey ?? '';
-          const offScreen = anchorTops[key] === null || anchorTops[key] === undefined;
-          return (
-            <div
-              key={thread.id}
-              ref={(el) => {
-                if (el) cardRefs.current.set(thread.id, el);
-                else cardRefs.current.delete(thread.id);
-              }}
-              className={`absolute left-2 right-2 transition-[top,opacity] duration-150 ${
-                offScreen ? 'opacity-40' : ''
-              }`}
-              style={{ top: tops[thread.id] ?? 0 }}
-            >
-              <ThreadCard
-                thread={thread}
-                canEdit={canEdit}
-                isCoordinator={isCoordinator}
-                onAdd={onAdd}
-                onResolve={onResolve}
-                onDelete={onDelete}
-              />
-            </div>
-          );
-        })}
+        <div className="relative" style={{ height: contentHeight }}>
+          {visible.map((thread) => {
+            const key = payloadOf(thread)?.targetKey ?? '';
+            const deleted = isDeleted(thread);
+            const offScreen = deleted || anchorTops[key] === undefined;
+            return (
+              <div
+                key={thread.id}
+                ref={(el) => {
+                  if (el) cardRefs.current.set(thread.id, el);
+                  else cardRefs.current.delete(thread.id);
+                }}
+                className={`absolute left-2 right-2 transition-[top,opacity] duration-150 ${
+                  offScreen ? 'opacity-50' : ''
+                }`}
+                style={{ top: tops[thread.id] ?? 0 }}
+              >
+                <ThreadCard
+                  thread={thread}
+                  canEdit={canEdit}
+                  isCoordinator={isCoordinator}
+                  deletedModule={deleted}
+                  onAdd={onAdd}
+                  onEdit={onEdit}
+                  onResolve={onResolve}
+                  onDelete={onDelete}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -455,12 +541,21 @@ function ComposeBox({
   label,
   onCancel,
   onSubmit,
+  initialText = '',
+  submitLabel = 'Comment',
+  placeholder = 'Leave a comment on this module…',
 }: {
   label: string;
   onCancel: () => void;
   onSubmit: (text: string) => void | Promise<void>;
+  initialText?: string;
+  submitLabel?: string;
+  placeholder?: string;
 }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText);
+  const submit = () => {
+    if (text.trim()) void onSubmit(text.trim());
+  };
   return (
     <div className="border-b border-border bg-muted/40 p-2">
       <p className="mb-1 truncate text-[11px] text-muted-foreground">On: {label}</p>
@@ -468,21 +563,26 @@ function ComposeBox({
         autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Leave a comment on this module…"
+        // Shift+Return posts; Return alone opens a new paragraph.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.shiftKey) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder={placeholder}
         className="min-h-[64px] text-[12px]"
       />
-      <div className="mt-1.5 flex justify-end gap-1.5">
-        <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          className="h-6 text-[11px]"
-          disabled={!text.trim()}
-          onClick={() => void onSubmit(text.trim())}
-        >
-          Comment
-        </Button>
+      <div className="mt-1.5 flex items-center justify-between gap-1.5">
+        <span className="text-[10px] text-muted-foreground">Shift + Return to post</span>
+        <div className="flex gap-1.5">
+          <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button size="sm" className="h-6 text-[11px]" disabled={!text.trim()} onClick={submit}>
+            {submitLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -492,23 +592,29 @@ function ThreadCard({
   thread,
   canEdit,
   isCoordinator,
+  deletedModule,
   onAdd,
+  onEdit,
   onResolve,
   onDelete,
 }: {
   thread: Comment;
   canEdit: boolean;
   isCoordinator: boolean;
+  deletedModule: boolean;
   onAdd: (
     content: string,
     payload: ModuleAnchorPayload,
     parentId?: string,
   ) => Promise<void>;
+  onEdit: (id: string, content: string) => void | Promise<void>;
   onResolve: (id: string, status: 'open' | 'resolved' | 'rejected') => void;
   onDelete: (id: string) => void;
 }) {
   const { user } = useAuth();
   const [replying, setReplying] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   const payload = payloadOf(thread);
   const isAuthor = user?.id === thread.user_id;
   const mayResolve = isAuthor || isCoordinator;
@@ -521,21 +627,47 @@ function ThreadCard({
       }`}
     >
       <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-muted-foreground">
-        {payload?.label ?? 'Module'}
+        {deletedModule ? 'Deleted module' : (payload?.label ?? 'Module')}
       </p>
       <div className="flex items-start justify-between gap-1">
-        <span className="text-[11px] font-semibold">{thread.user_name}</span>
+        <span className="text-[11px] font-semibold">
+          {thread.user_name}
+          {wasEdited(thread) && (
+            <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
+          )}
+        </span>
         <div className="flex items-center gap-0.5">
+          {isAuthor && !editing && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Edit comment"
+                  className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Edit your comment</TooltipContent>
+            </Tooltip>
+          )}
           {mayResolve && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   aria-label={resolved ? 'Reopen' : 'Resolve'}
-                  className="rounded p-0.5 text-emerald-600 hover:bg-muted"
+                  className={`rounded p-0.5 hover:bg-muted ${
+                    resolved ? 'text-blue-600' : 'text-emerald-600'
+                  }`}
                   onClick={() => onResolve(thread.id, resolved ? 'open' : 'resolved')}
                 >
-                  <Check className="h-3.5 w-3.5" />
+                  {resolved ? (
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="left">
@@ -560,20 +692,83 @@ function ThreadCard({
           )}
         </div>
       </div>
-      <p className="whitespace-pre-wrap">{thread.content}</p>
 
-      {(thread.replies ?? []).map((r) => (
-        <div key={r.id} className="mt-1.5 border-l-2 border-border pl-2">
-          <span className="text-[11px] font-semibold">{r.user_name}</span>
-          <p className="whitespace-pre-wrap">{r.content}</p>
+      {editing ? (
+        <div className="mt-1.5">
+          <ComposeBox
+            label="Edit"
+            initialText={thread.content}
+            submitLabel="Save"
+            placeholder="Edit your comment…"
+            onCancel={() => setEditing(false)}
+            onSubmit={async (text) => {
+              await onEdit(thread.id, text);
+              setEditing(false);
+            }}
+          />
         </div>
-      ))}
+      ) : (
+        <p className="whitespace-pre-wrap">{thread.content}</p>
+      )}
+
+      {(thread.replies ?? []).map((r) => {
+        const mine = user?.id === r.user_id;
+        return (
+          <div key={r.id} className="mt-1.5 border-l-2 border-border pl-2">
+            <div className="flex items-start justify-between gap-1">
+              <span className="text-[11px] font-semibold">
+                {r.user_name}
+                {wasEdited(r) && (
+                  <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
+                )}
+              </span>
+              {mine && editingReplyId !== r.id && (
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    aria-label="Edit reply"
+                    className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                    onClick={() => setEditingReplyId(r.id)}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Delete reply"
+                    className="rounded p-0.5 text-destructive hover:bg-muted"
+                    onClick={() => onDelete(r.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {editingReplyId === r.id ? (
+              <ComposeBox
+                label="Edit reply"
+                initialText={r.content}
+                submitLabel="Save"
+                placeholder="Edit your reply…"
+                onCancel={() => setEditingReplyId(null)}
+                onSubmit={async (text) => {
+                  await onEdit(r.id, text);
+                  setEditingReplyId(null);
+                }}
+              />
+            ) : (
+              <p className="whitespace-pre-wrap">{r.content}</p>
+            )}
+          </div>
+        );
+      })}
 
       {canEdit && !resolved && (
         replying ? (
           <div className="mt-1.5">
             <ComposeBox
               label="Reply"
+              submitLabel="Reply"
+              placeholder="Reply…"
               onCancel={() => setReplying(false)}
               onSubmit={async (text) => {
                 if (payload) await onAdd(text, payload, thread.id);
