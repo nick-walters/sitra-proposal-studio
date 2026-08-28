@@ -539,6 +539,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // Version history for whichever field owns the toolbar (data-version-target).
   const versionTarget = useFocusedVersionTarget();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
 
   /* Guidance is never printed on a block: it is reached through the Guidelines
      button while a field has focus, keyed `drafts.case.<subsection key>`. */
