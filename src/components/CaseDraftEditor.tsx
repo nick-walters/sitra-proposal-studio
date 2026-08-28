@@ -927,63 +927,141 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         />
 
 
-        {/* ── BLOCK 1: CASE HEADER ──
-            A read-only projection of the case manager row: the title, the lead
-            and the type are all owned there. Permanently expanded, no chevron
-            and no controls — but every part of it is commentable. */}
+        {/* ── THE CASE DRAFT BLOCK ──
+            One block for the whole draft: an uncollapsible header part (a
+            read-only projection of the case manager row) followed by one
+            collapsible module per subsection. */}
         <section className={WP_BLOCK_FRAME}>
-          <div className="space-y-2 px-[1.5cm] py-2">
-            <ModuleCommentAnchor targetKey={caseTarget(caseId, 'title')} label={`${headingLabel} title`}>
-              <div
-                className="flex w-full items-baseline gap-0 rounded-full"
-                style={{
-                  backgroundColor: caseAccent,
-                  border: `1.5px solid ${caseAccent}`,
-                  padding: '0px 6px',
-                  lineHeight: 1,
-                }}
-              >
-                <span
-                  className="min-w-0 font-bold text-white"
-                  style={{ ...WP_DOC_FONT, color: '#FFFFFF', overflowWrap: 'anywhere', lineHeight: 1.15 }}
-                >
-                  {/* `headingLabel` already carries the short name, so only the
-                      long title follows it — never the short name twice. */}
-                  {headingLabel}
-                  {caseDraft.title?.trim() ? `: ${caseDraft.title.trim()}` : ''}
+          {/* Block-level controls: add a subsection, restore a deleted one. */}
+          {!readOnly && (
+            <div className="flex items-center justify-end gap-1 px-[1.5cm] pt-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => addSubsection.mutate()} aria-label="Add a subsection">
+                    <Plus className="h-3.5 w-3.5 text-blue-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add a subsection</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => setBinOpen(true)}
+                    disabled={binCount === 0}
+                    aria-label="Restore a deleted subsection"
+                  >
+                    <Recycle
+                      className={cn('h-3.5 w-3.5', binCount === 0 ? 'text-muted-foreground' : 'text-emerald-600')}
+                      strokeWidth={2.5}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Restore a deleted subsection</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
 
-                </span>
-              </div>
-            </ModuleCommentAnchor>
+          {/* Header part — never collapsible, never draggable. */}
+          <div className="space-y-2 border-b border-border px-[1.5cm] pb-2 pt-2">
+            {/* The short name sits in a long pill spanning the text column,
+                styled exactly like a case cross-reference chip. */}
+            <div
+              className="flex w-full items-baseline gap-0 rounded-full"
+              style={{
+                backgroundColor: '#FFFFFF',
+                border: '1.5px solid #000000',
+                padding: '0px 6px',
+                lineHeight: 1,
+              }}
+            >
+              <span
+                className="min-w-0 font-bold"
+                style={{ ...WP_DOC_FONT, color: '#000000', overflowWrap: 'anywhere', lineHeight: 1.15 }}
+              >
+                {headingLabel}
+              </span>
+            </div>
+
+            {/* The full title is a module of its own: plain bold document text
+                with the standard right-hand control row. */}
+            <div className="flex items-start gap-1">
+              <p
+                className="min-w-0 flex-1 font-bold"
+                style={{ ...WP_DOC_FONT, overflowWrap: 'anywhere' }}
+              >
+                {caseDraft.title?.trim() || <span className="italic text-muted-foreground">No title set</span>}
+              </p>
+              <ModuleCommentButton
+                targetKey={caseTarget(caseId, 'title')}
+                label={`${headingLabel} title`}
+              />
+            </div>
 
             {/* The lead is a badge, not a dropdown — it is changed in the case
-                manager. The case type sits opposite it. */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <ModuleCommentAnchor targetKey={caseTarget(caseId, 'lead')} label={`${headingLabel} lead participant`}>
-                {(() => {
-                  const leader = participants.find((pt) => pt.id === caseDraft.lead_participant_id);
-                  if (!leader) {
-                    return <span className="text-draft italic text-muted-foreground">Lead not set</span>;
-                  }
-                  return (
-                    <span
-                      className="inline-flex items-center whitespace-nowrap rounded-full font-bold"
-                      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
-                    >
-                      <Crown className="mr-1 h-3 w-3 fill-white text-white" />
-                      {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
-                    </span>
-                  );
-                })()}
-              </ModuleCommentAnchor>
-              <ModuleCommentAnchor targetKey={caseTarget(caseId, 'type')} label={`${headingLabel} type`}>
-                <span className="text-draft font-medium">
-                  {getCaseTypeLabel(caseDraft.case_type, caseDraft.custom_type_name)}
-                </span>
-              </ModuleCommentAnchor>
+                manager. No hover comment control, no type label beside it. */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(() => {
+                const leader = participants.find((pt) => pt.id === caseDraft.lead_participant_id);
+                if (!leader) {
+                  return <span className="text-draft italic text-muted-foreground">Lead not set</span>;
+                }
+                return (
+                  <span
+                    className="inline-flex items-center whitespace-nowrap rounded-full font-bold"
+                    style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                  >
+                    <Crown className="mr-1 h-3 w-3 fill-white text-white" />
+                    {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+                  </span>
+                );
+              })()}
             </div>
           </div>
+
+          {/* ── MODULES: ONE PER SUBSECTION ── */}
+          {subsectionTemplates.length === 0 && (
+            <p className="px-[1.5cm] py-3 text-sm italic text-muted-foreground">
+              No subsections defined for this proposal yet. A coordinator can add them via the
+              &ldquo;Edit {caseWord(caseTypes, { capitalize: false })} subsections &amp; guidelines&rdquo; button in the case manager.
+            </p>
+          )}
+
+          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubsectionDragEnd}>
+            <SortableContext items={subsectionTemplates.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              <div>
+                {subsectionTemplates.map((sub) => (
+                  // Keyed by case AND subsection: switching cases must build fresh
+                  // fields rather than rebind a live editor to another case's row.
+                  <CaseSubsectionModule
+                    key={`${caseId}:${sub.id}`}
+                    caseId={caseId}
+                    proposalId={proposalId}
+                    subsectionId={sub.id}
+                    subsectionKey={sub.key}
+                    heading={sub.heading}
+                    isVisible={sub.is_visible !== false}
+                    onToggleVisible={
+                      readOnly
+                        ? undefined
+                        : (next) => updateSubsection.mutate({ id: sub.id, updates: { is_visible: next } })
+                    }
+                    onDelete={readOnly ? undefined : () => deleteSubsectionToBin(sub.id, sub.heading)}
+                    value={entryBody(subsectionContent[sub.key])}
+                    onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
+                    readOnly={readOnly}
+                    collapsed={collapsedKeys.has(caseSubsectionCollapseKey(caseId, sub.key))}
+                    onToggleCollapsed={() => toggleCollapsed(caseSubsectionCollapseKey(caseId, sub.key))}
+                    shouldStayMounted={shouldStayMounted}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </section>
+
 
         {/* Version history for whichever case field owns the toolbar. */}
         {versionTarget && (
@@ -1069,41 +1147,6 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </DialogContent>
         </Dialog>
 
-        {/* ── BLOCKS 2..n: ONE PER SUBSECTION ── */}
-        {subsectionTemplates.length === 0 && (
-          <p className="text-sm text-muted-foreground italic px-1">
-            No subsections defined for this proposal yet. A coordinator can add them via the
-            &ldquo;Edit {caseWord(caseTypes, { capitalize: false })} subsections &amp; guidelines&rdquo; button in the case manager.
-          </p>
-        )}
-
-        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubsectionDragEnd}>
-          <SortableContext items={subsectionTemplates.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {subsectionTemplates.map((sub) => (
-                // Keyed by case AND subsection: switching cases must build fresh
-                // fields rather than rebind a live editor to another case's row.
-                <CaseSubsectionBlock
-                  key={`${caseId}:${sub.id}`}
-                  caseId={caseId}
-                  proposalId={proposalId}
-                  subsectionId={sub.id}
-                  subsectionKey={sub.key}
-                  heading={sub.heading}
-                  value={entryBody(subsectionContent[sub.key])}
-                  onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
-                  readOnly={readOnly}
-                  collapsed={collapsedKeys.has(caseSubsectionCollapseKey(caseId, sub.key))}
-                  onToggleCollapsed={() => toggleCollapsed(caseSubsectionCollapseKey(caseId, sub.key))}
-                  onAdd={readOnly ? undefined : () => addSubsection.mutate()}
-                  onRestore={readOnly ? undefined : () => setBinOpen(true)}
-                  restoreDisabled={binCount === 0}
-                  shouldStayMounted={shouldStayMounted}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
 
         <WPBinDialog
           isOpen={binOpen}
