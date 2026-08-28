@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
+import { useModuleComments } from '@/components/comments/ModuleComments';
 import { formatTime } from '@/lib/formatDate';
 
 
