@@ -213,11 +213,14 @@ function TrackMyChangesButton() {
 }
 
 /**
- * The Comments control. A surface that mounts `ModuleCommentsProvider` wires
- * itself automatically through context, so the panel needs no prop drilling;
- * surfaces with their own handler keep passing `onOpenComments`.
+ * THE REVIEW CONTROL — one toggle for the whole right-hand region.
+ *
+ * It replaces the old separate Comments control: the region it opens carries
+ * both tabs, tracked changes and comments. A surface that mounts
+ * `ModuleCommentsProvider` but no right-hand region falls back to the old
+ * comments-only rail.
  */
-function CommentsPanelButton({
+function ReviewToggleButton({
   onOpenComments,
   commentCount,
 }: {
@@ -226,28 +229,34 @@ function CommentsPanelButton({
 }) {
   const modules = useModuleComments();
   const rightPanel = useRightPanel();
-  // The button is a TOGGLE: it opens the panel and closes it again, and the
-  // state it leaves behind is remembered.
-  const isOpen = rightPanel ? rightPanel.commentsOpen : !!modules?.open;
+  // The button is a TOGGLE: it opens the region and closes it again, and the
+  // state it leaves behind is remembered per user and per proposal.
+  const isOpen = rightPanel ? rightPanel.open : !!modules?.open;
   const handler =
     onOpenComments ??
     (rightPanel
-      ? () => rightPanel.setCommentsOpen(!rightPanel.commentsOpen)
+      ? () => rightPanel.setOpen(!rightPanel.open)
       : modules
         ? () => modules.setOpen(!modules.open)
         : undefined);
-  const count = commentCount ?? modules?.openCount;
+  const changeCount = rightPanel?.fieldChanges.length ?? 0;
+  const comments = commentCount ?? modules?.openCount ?? 0;
   return (
     <FeatureButton
       icon={<MessageSquare className="h-3.5 w-3.5" />}
-      primary="Comments"
-      secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
+      primary="Review"
+      secondary={`changes · ${changeCount} · comments · ${comments}`}
       secondarySmall
       tone={isOpen ? 'success' : 'default'}
-      tooltip={isOpen ? 'Close the comments panel' : 'Open the comments panel'}
+      tooltip={
+        isOpen
+          ? 'Close the review panel'
+          : 'Open the review panel — tracked changes and comments'
+      }
       disabled={!handler}
       onClick={handler}
     />
+
   );
 }
 
