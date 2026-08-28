@@ -824,6 +824,7 @@ function FieldRow({
 
 
     </div>
+    </ModuleCommentAnchor>
   );
 }
 
