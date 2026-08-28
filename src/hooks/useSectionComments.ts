@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AnchorType = 'editor_text' | 'b31_dom';
+export type AnchorType = 'editor_text' | 'b31_dom' | 'module';
 
 export interface EditorTextAnchorPayload {
   from: number;
@@ -20,7 +20,17 @@ export interface B31DomAnchorPayload {
   endOffset?: number;
 }
 
-export type AnchorPayload = EditorTextAnchorPayload | B31DomAnchorPayload;
+/** Module anchoring (prompt 103): a comment is pinned to a whole module. */
+export interface ModuleCommentAnchorPayload {
+  targetKey: string;
+  label: string;
+}
+
+export type AnchorPayload =
+  | EditorTextAnchorPayload
+  | B31DomAnchorPayload
+  | ModuleCommentAnchorPayload;
+
 
 export interface Comment {
   id: string;
