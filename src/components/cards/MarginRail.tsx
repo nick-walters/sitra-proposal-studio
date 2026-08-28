@@ -85,7 +85,7 @@ export function railFrame(el: Element | null): HTMLElement | null {
  * to land on the shared rail, and keeps that measurement current as the page
  * resizes. Returns a translateX in CSS pixels.
  */
-export function useRailAlign(ref: React.RefObject<HTMLElement>) {
+export function useRailAlign(ref: React.RefObject<HTMLElement>, nudge = 0) {
   const [dx, setDx] = useState(0);
   const applied = useRef(0);
 
@@ -103,7 +103,10 @@ export function useRailAlign(ref: React.RefObject<HTMLElement>) {
       // is removed before the new delta is computed.
       const untransformedRight = rect.right - applied.current;
       const target = frame.getBoundingClientRect().right - RAIL_ROW_RIGHT_INSET;
-      const next = target - untransformedRight;
+      // The nudge is part of the transform the element already carries, so it
+      // belongs in the applied total; otherwise the next measurement cancels
+      // it out and the control creeps back onto the unnudged rail.
+      const next = target - untransformedRight + nudge;
       if (Math.abs(next - applied.current) < 0.01) return;
       applied.current = next;
       setDx(next);
@@ -118,7 +121,7 @@ export function useRailAlign(ref: React.RefObject<HTMLElement>) {
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [ref]);
+  }, [ref, nudge]);
 
   return dx;
 }
@@ -168,7 +171,7 @@ export function MarginRailAbsolute({
   nudge?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const dx = useRailAlign(ref) + nudge;
+  const dx = useRailAlign(ref, nudge);
 
   return (
     <div
