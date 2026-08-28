@@ -39,8 +39,8 @@ export function FigureBinDialog({
         <DialogHeader>
           <DialogTitle>Deleted figures</DialogTitle>
           <DialogDescription>
-            Restoring a figure returns it to Unplaced. Deleted figures are kept until the proposal
-            is submitted, then for 30 days.
+            Restoring a figure returns it to Unplaced. Deleted figures are kept until 90 days
+            after the proposal is submitted.
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] space-y-2 overflow-y-auto pt-2">
