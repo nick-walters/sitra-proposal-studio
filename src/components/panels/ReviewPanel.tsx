@@ -110,7 +110,7 @@ export function ReviewPanelBody({
             variant="outline"
             size="sm"
             className="h-6 px-2 text-[11px]"
-            disabled={busy || !isCoordinator}
+            disabled={busy || !canEdit}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('accept')}
           >
@@ -120,7 +120,7 @@ export function ReviewPanelBody({
             variant="outline"
             size="sm"
             className="h-6 px-2 text-[11px]"
-            disabled={busy || rejectable.length === 0}
+            disabled={busy || !canEdit}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('reject')}
           >
