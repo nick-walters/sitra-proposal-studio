@@ -67,6 +67,7 @@ import { EditableColumnHeader } from '@/components/EditableColumnHeader';
 import { saveMilestoneAndResequence } from '@/lib/versionedSave';
 
 import { useVersionConflict } from '@/hooks/useVersionConflict';
+import { MarginRailAbsolute } from '@/components/cards/MarginRail';
 
 
 // ── Save tracker context: lets AutoTextarea report pending/flush to the page header ──
