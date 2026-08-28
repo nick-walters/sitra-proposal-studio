@@ -2060,6 +2060,16 @@ StarterKit.configure({
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     onCreate: ({ editor }) => {
+      // TEMP DIAGNOSTIC
+      // eslint-disable-next-line no-console
+      console.log('[tcprobe]', {
+        isReady,
+        inMarks: (String(content).match(/data-track-insertion/g) || []).length,
+        prepMarks: (String(preparedContent).match(/data-track-insertion/g) || []).length,
+        docMarks: (editor.getHTML().match(/data-track-insertion/g) || []).length,
+        schema: !!editor.schema.marks.trackInsertion,
+        text: editor.state.doc.textBetween(0, Math.min(30, editor.state.doc.content.size), ' '),
+      });
       // Explicitly run the position-derived caption pass after TipTap has
       // parsed the document. This covers both an existing captionLabel mark
       // and a canonical caption paragraph with no stored label span.
