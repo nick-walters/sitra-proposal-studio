@@ -15,7 +15,6 @@ const B32SectionContent = lazy(() =>
 const PARAGRAPH_SLOTS: readonly B32ParagraphSlotKey[] = [
   'capacity',
   'value-chain',
-  'industrial',
   'international',
 ];
 
@@ -31,7 +30,6 @@ const SLOT_LABELS: Record<B32SlotKey, string> = {
   capacity: 'Participants\u2019 capacity, contributions & resources',
   infrastructure: 'Critical infrastructure',
   'value-chain': 'Value chain coverage',
-  industrial: 'Industrial / commercial involvement',
   international: 'Justification of international organisations & third countries',
 };
 

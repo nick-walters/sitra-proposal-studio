@@ -90,14 +90,13 @@ export async function seedBSectionSubheadings(
   // two mirror-slot nodes immediately after its intro <p>.
   //   - interdisciplinarity heading → [interdisciplinarity]
   //   - capacity heading            → [capacity, infrastructure]
-  //   - value-chain heading         → [value-chain, industrial]
+  //   - value-chain heading         → [value-chain] (combined mirror)
   //   - international heading       → [international]
   type B32Key =
     | 'interdisciplinarity'
     | 'capacity'
     | 'infrastructure'
     | 'value-chain'
-    | 'industrial'
     | 'international';
   const B32_HEADING_SLOTS: Record<string, { primary: B32Key; keys: B32Key[] }> = {
     'interdisciplinarity & complementarity of the consortium for addressing the project\u2019s objectives':
@@ -105,7 +104,7 @@ export async function seedBSectionSubheadings(
     'participants\u2019 capacity, contributions & resources':
       { primary: 'capacity', keys: ['capacity', 'infrastructure'] },
     'value chain coverage & industrial involvement':
-      { primary: 'value-chain', keys: ['value-chain', 'industrial'] },
+      { primary: 'value-chain', keys: ['value-chain'] },
     'justification of the participation of international organisations & third countries':
       { primary: 'international', keys: ['international'] },
   };
