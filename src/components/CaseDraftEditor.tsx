@@ -944,9 +944,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   className="min-w-0 font-bold text-white"
                   style={{ ...WP_DOC_FONT, color: '#FFFFFF', overflowWrap: 'anywhere', lineHeight: 1.15 }}
                 >
-                  {headingLabel}:&nbsp;{caseDraft.short_name?.trim() || ''}
-                  {Boolean(caseDraft.short_name?.trim()) && Boolean(caseDraft.title?.trim()) ? ' – ' : ''}
-                  {caseDraft.title?.trim() || ''}
+                  {/* `headingLabel` already carries the short name, so only the
+                      long title follows it — never the short name twice. */}
+                  {headingLabel}
+                  {caseDraft.title?.trim() ? `: ${caseDraft.title.trim()}` : ''}
+
                 </span>
               </div>
             </ModuleCommentAnchor>
