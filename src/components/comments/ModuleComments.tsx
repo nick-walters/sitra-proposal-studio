@@ -350,27 +350,45 @@ export function ModuleCommentsProvider({
  */
 const RAIL_GAP = RAIL_COMMENT_LEFT;
 const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surface-page';
+/** The comment button is a 7-unit icon button: 28 px square. */
+const RAIL_BUTTON_SIZE = 28;
 
+/**
+ * Positions the floating comment control: horizontally on the shared rail, and
+ * vertically on the CENTRE of the module's own control row, so it lines up
+ * with the delete and visibility glyphs beside it instead of riding above them.
+ */
 function useRailOffset(ref: React.RefObject<HTMLElement>) {
-  const [offset, setOffset] = useState(RAIL_GAP);
+  const [offset, setOffset] = useState({ left: RAIL_GAP, top: 0 });
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
+      const box = el.getBoundingClientRect();
       const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
-      if (!edge) {
-        setOffset(RAIL_GAP);
-        return;
+      const left = edge
+        ? Math.max(0, Math.round(edge.getBoundingClientRect().right - box.right)) + RAIL_GAP
+        : RAIL_GAP;
+      // The control row this button belongs to. Its own rail group is the
+      // reference: same row, same vertical centre.
+      const row = el.querySelector('[data-rail-row]') as HTMLElement | null;
+      let top = 0;
+      if (row) {
+        const r = row.getBoundingClientRect();
+        if (r.height > 0) {
+          top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2);
+        }
       }
-      const delta = edge.getBoundingClientRect().right - el.getBoundingClientRect().right;
-      setOffset(Math.max(0, Math.round(delta)) + RAIL_GAP);
+      setOffset((prev) => (prev.left === left && prev.top === top ? prev : { left, top }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
     if (edge) ro.observe(edge);
+    const row = el.querySelector('[data-rail-row]');
+    if (row) ro.observe(row);
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();
@@ -380,6 +398,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
 
   return offset;
 }
+
 
 interface AnchorProps {
   targetKey: string;
