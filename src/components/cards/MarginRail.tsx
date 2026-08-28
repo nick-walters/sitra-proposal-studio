@@ -52,6 +52,17 @@ export const RAIL_COMMENT_TOP = 2;
 export const RAIL_SHIFT = -41;
 
 /**
+ * The deliverable row's own offsets from the shared rail. The row sits in a
+ * document table whose right edge is not the page frame, so its controls are
+ * nudged onto their final position: the comment button by
+ * `RAIL_DELIVERABLE_COMMENT_NUDGE`, the delete button by
+ * `RAIL_DELIVERABLE_DELETE_NUDGE`. Linked activities' delete uses the same
+ * delete nudge, so the two land on one vertical line.
+ */
+export const RAIL_DELIVERABLE_COMMENT_NUDGE = 12.4;
+export const RAIL_DELIVERABLE_DELETE_NUDGE = 23.6;
+
+/**
  * The page frame a rail aligns to. The OUTERMOST match is used — a page
  * surface nested inside a block card must not pull its controls 1 px off the
  * card's own rail — so every surface resolves to the same edge.
