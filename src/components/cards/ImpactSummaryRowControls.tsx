@@ -60,28 +60,30 @@ export function ImpactSummaryRowControls({ editor, tick }: Props) {
     <div className="mb-1 flex items-center gap-1.5">
       <Button
         type="button"
-        variant="outline"
-        size="sm"
-        className="h-7"
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        aria-label="Add row"
+        title="Add row"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => editor && impactSummaryAddRowInEditor(editor)}
       >
-        <Plus className="mr-1 h-3.5 w-3.5" />
-        Add row
+        <Plus className="h-3.5 w-3.5 text-green-600" strokeWidth={2.5} />
       </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            className="h-7"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label="Delete row"
+            title="Delete row"
             disabled={!editor || rowCount === 0}
             onMouseDown={(e) => e.preventDefault()}
           >
-            <Minus className="mr-1 h-3.5 w-3.5 text-destructive" />
-            Delete row
+            <Minus className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-h-72 w-64 overflow-y-auto">
