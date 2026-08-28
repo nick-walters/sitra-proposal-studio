@@ -786,7 +786,7 @@ function FieldRow({
       {!isPlaceholder && (
         <div
           className={
-            collapsed || moduleCollapsed
+            (collapsed || moduleCollapsed) && !(isDocumentSurface && headerField)
               ? 'hidden'
               : isDocumentSurface
                 // The page itself: white, 1.5 cm side margins running to the
@@ -797,7 +797,9 @@ function FieldRow({
           }
         >
           {isDocumentSurface && headerField}
+          {!(collapsed || moduleCollapsed) && (
           <LockBoundary
+
             state={lockStateOf(contentLock)}
             holder={contentLock.holder}
             onFocusCapture={() => {
