@@ -478,11 +478,15 @@ export function ModuleCommentButton({
           type="button"
           variant="ghost"
           size="icon"
-          aria-label={openThreads > 0 ? 'Open the comments panel' : `Comment on ${label}`}
-          className={`relative h-7 w-7 shrink-0 text-blue-600 hover:text-blue-700 ${className}`}
-          onClick={() =>
-            openThreads > 0 ? ctx.setOpen(true) : ctx.startComposing(targetKey, label)
+          aria-label={
+            openThreads > 0
+              ? `Start another comment on ${label} (${openThreads} open)`
+              : `Comment on ${label}`
           }
+          className={`relative h-7 w-7 shrink-0 text-blue-600 hover:text-blue-700 ${className}`}
+          // ALWAYS a new thread. A module carries as many threads as anyone
+          // wants; the existing ones stay listed in the panel beside it.
+          onClick={() => ctx.startComposing(targetKey, label)}
         >
           {/* 50 % larger than the 3.5-unit glyphs of the neighbouring controls. */}
           <MessageSquarePlus className="h-[1.3125rem] w-[1.3125rem]" strokeWidth={2} />
@@ -494,7 +498,9 @@ export function ModuleCommentButton({
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left">
-        {openThreads > 0 ? 'Open the comments panel' : `Comment on ${label}`}
+        {openThreads > 0
+          ? `Start another comment — ${openThreads} open on ${label}`
+          : `Comment on ${label}`}
       </TooltipContent>
     </Tooltip>
   );
