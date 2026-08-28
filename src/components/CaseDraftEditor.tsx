@@ -918,6 +918,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
               </CardContent>
             </Card>
+            </ModuleCommentAnchor>
           );
         })}
       </div>
