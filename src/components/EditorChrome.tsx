@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
 import { formatTime } from '@/lib/formatDate';
@@ -187,7 +188,9 @@ function TrackMyChangesButton() {
   const setting = useTrackChangesSetting();
   return (
     <FeatureButton
-      asDiv={!setting}
+      // Always a div: the Switch inside is itself a <button>, and a nested
+      // button is invalid HTML.
+      asDiv
       leading={
         <Switch
           checked={!!setting?.enabled}
