@@ -2069,6 +2069,7 @@ StarterKit.configure({
         docMarks: (editor.getHTML().match(/data-track-insertion/g) || []).length,
         schema: !!editor.schema.marks.trackInsertion,
         text: editor.state.doc.textBetween(0, Math.min(30, editor.state.doc.content.size), ' '),
+        head: String(preparedContent).slice(0, 400),
       });
       // Explicitly run the position-derived caption pass after TipTap has
       // parsed the document. This covers both an existing captionLabel mark
