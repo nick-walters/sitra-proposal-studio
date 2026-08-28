@@ -545,6 +545,7 @@ function DeliverableRow({
         <ModuleCommentAnchor
           targetKey={wpDeliverableTarget(deliverable.id, 'title')}
           label={`${number} — deliverable`}
+          railNudge={4.4}
         >
           <DeliverableTitleCell
             value={deliverable.title || ''}
@@ -656,7 +657,7 @@ function DeliverableRow({
       <td className={`${docCellStyles} whitespace-nowrap relative`}>
           {/* Right margin controls: comment, then delete — the same order and
               treatment the block control rows use. */}
-          <MarginRailAbsolute>
+          <MarginRailAbsolute nudge={7.6}>
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"
