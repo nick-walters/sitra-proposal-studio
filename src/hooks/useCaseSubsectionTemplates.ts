@@ -10,6 +10,7 @@ export interface CaseSubsectionTemplate {
   guideline: string | null;
   order_index: number;
   is_default: boolean;
+  is_visible: boolean;
 }
 
 const QUERY_KEY = (proposalId: string) => ['case-subsection-templates', proposalId];
@@ -69,6 +70,7 @@ export function useCaseSubsectionTemplates(proposalId: string) {
         guideline: '',
         order_index: nextIndex,
         is_default: false,
+        is_visible: true,
       });
       if (error) throw error;
     },

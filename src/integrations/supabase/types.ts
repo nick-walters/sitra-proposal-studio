@@ -1329,6 +1329,7 @@ export type Database = {
           heading: string
           id: string
           is_default: boolean
+          is_visible: boolean
           key: string
           order_index: number
           proposal_id: string
@@ -1340,6 +1341,7 @@ export type Database = {
           heading: string
           id?: string
           is_default?: boolean
+          is_visible?: boolean
           key: string
           order_index?: number
           proposal_id: string
@@ -1351,6 +1353,7 @@ export type Database = {
           heading?: string
           id?: string
           is_default?: boolean
+          is_visible?: boolean
           key?: string
           order_index?: number
           proposal_id?: string

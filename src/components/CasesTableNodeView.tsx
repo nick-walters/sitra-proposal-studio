@@ -261,13 +261,17 @@ function extractSubsections(row: CaseRow, templates: SubsectionTemplate[]) {
   ];
 
   // Drive order from case_subsection_templates if present, falling back to builtin order.
+  const hiddenKeys = new Set(
+    templates.filter((t: any) => t.is_visible === false).map((t) => t.key),
+  );
   const orderedKeys = templates
+    .filter((t: any) => t.is_visible !== false)
     .slice()
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
     .map((t) => t.key);
 
   const pushSub = (key: string, heading: string, body: string | null | undefined) => {
-    if (seen.has(key)) return;
+    if (seen.has(key) || hiddenKeys.has(key)) return;
     if (!body || !body.toString().replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim()) return;
     out.push({ key, heading, body: body.toString() });
     seen.add(key);
@@ -363,7 +367,7 @@ export function CasesTableLiveView({
         casesQuery,
         supabase
           .from('case_subsection_templates')
-          .select('id, key, heading, order_index, is_default')
+          .select('id, key, heading, order_index, is_default, is_visible')
           .eq('proposal_id', proposalId)
           .order('order_index'),
         supabase
