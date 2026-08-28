@@ -20,6 +20,17 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
   ModuleCommentButton,
@@ -567,7 +578,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       }
       toast.success(`“${heading}” moved to the bin`);
       queryClient.invalidateQueries({ queryKey: ['case-subsection-templates', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-bin-count', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-bin-count'] });
       queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
     },
     [proposalId, caseId, queryClient],
@@ -1250,12 +1261,13 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 }
 
 /**
- * One subsection block: the shared block frame, the shared left control stack
- * (chevron above grip), an uneditable bold heading from the project-wide
- * template, and a single page-styled rich field carrying locking, streaming,
+ * One subsection MODULE inside the single case-draft block: the shared left
+ * control stack (chevron above grip), an uneditable bold heading from the
+ * project-wide template, the standard right-hand control row (visibility,
+ * comment, delete) and a page-styled rich field carrying locking, streaming,
  * version history and guidance markers.
  */
-function CaseSubsectionBlock({
+function CaseSubsectionModule({
   caseId,
   proposalId,
   subsectionId,
@@ -1266,9 +1278,9 @@ function CaseSubsectionBlock({
   readOnly,
   collapsed,
   onToggleCollapsed,
-  onAdd,
-  onRestore,
-  restoreDisabled,
+  isVisible,
+  onToggleVisible,
+  onDelete,
   shouldStayMounted,
 }: {
   caseId: string;
@@ -1281,9 +1293,9 @@ function CaseSubsectionBlock({
   readOnly: boolean;
   collapsed: boolean;
   onToggleCollapsed: () => void;
-  onAdd?: () => void;
-  onRestore?: () => void;
-  restoreDisabled?: boolean;
+  isVisible: boolean;
+  onToggleVisible?: (next: boolean) => void;
+  onDelete?: () => void;
   shouldStayMounted?: () => boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -1291,10 +1303,10 @@ function CaseSubsectionBlock({
   });
 
   return (
-    <section
+    <div
       ref={setNodeRef}
       id={`case-subsection-${subsectionKey}`}
-      className={cn(WP_BLOCK_FRAME, isDragging && 'opacity-60')}
+      className={cn('border-b border-border last:border-b-0', isDragging && 'opacity-60', !isVisible && 'opacity-60')}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       /* Guidance is keyed on the subsection's own template key, so a
          case-type-specific subsection carries its own guidance. */
@@ -1302,7 +1314,7 @@ function CaseSubsectionBlock({
       data-version-label={heading}
       data-version-target={versionTargetAttr('case_draft_subsection', caseId, subsectionKey)}
     >
-      <div className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}>
+      <div className={WP_BLOCK_HEADER}>
         <div className={WP_CONTROL_STACK}>
           <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
           <Tooltip>
@@ -1320,48 +1332,65 @@ function CaseSubsectionBlock({
             <TooltipContent>Drag to reorder this subsection</TooltipContent>
           </Tooltip>
         </div>
-        <ModuleCommentAnchor targetKey={caseTarget(caseId, `${subsectionKey}:heading`)} label={`${heading} — heading`}>
-          <p
-            className="min-w-0 flex-1 select-none font-bold"
-            style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
-          >
-            {heading}:
-          </p>
-        </ModuleCommentAnchor>
+        <p
+          className="min-w-0 flex-1 select-none font-bold"
+          style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
+        >
+          {heading}:
+        </p>
 
-        {!readOnly && (
-          <div className="flex items-center gap-1">
-            {onAdd && (
+        {/* The standard right-hand control row, matching Part B modules. */}
+        {onToggleVisible && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                aria-pressed={!isVisible}
+                aria-label={isVisible ? 'Hide this module from Part B' : 'Show this module in Part B'}
+                onClick={() => onToggleVisible(!isVisible)}
+              >
+                {isVisible ? (
+                  <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5 text-destructive" strokeWidth={2.5} />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isVisible ? 'Hide this module from Part B' : 'Show this module in Part B'}
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        <ModuleCommentButton targetKey={caseTarget(caseId, subsectionKey)} label={heading} />
+
+        {onDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onAdd} aria-label="Add a subsection">
-                    <Plus className="h-3.5 w-3.5 text-blue-500" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" aria-label="Delete this module">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Add a subsection</TooltipContent>
+                <TooltipContent>Delete this module</TooltipContent>
               </Tooltip>
-            )}
-            {onRestore && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    onClick={onRestore}
-                    disabled={restoreDisabled}
-                    aria-label="Restore a deleted subsection"
-                  >
-                    <Recycle
-                      className={cn('h-3.5 w-3.5', restoreDisabled ? 'text-muted-foreground' : 'text-emerald-600')}
-                      strokeWidth={2.5}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Restore a deleted subsection</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete “{heading}”?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The module and its text move to the recycle bin for 90 days and can be restored in full.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
 
@@ -1382,6 +1411,6 @@ function CaseSubsectionBlock({
           </ModuleCommentAnchor>
         </div>
       )}
-    </section>
+    </div>
   );
 }
