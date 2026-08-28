@@ -1208,9 +1208,17 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                       )}
                     </div>
                     <h4 className="mb-2 font-semibold text-gray-900">{resolvedGuidance.title}</h4>
-                    <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                      {resolvedGuidance.content || 'No guidance yet — add some for this proposal.'}
-                    </div>
+                    {resolvedGuidance.content ? (
+                      <GuidanceHtml
+                        html={resolvedGuidance.content}
+                        className="text-sm text-muted-foreground"
+                      />
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No guidance yet — add some for this proposal.
+                      </div>
+                    )}
+
                   </div>
                 )}
 
