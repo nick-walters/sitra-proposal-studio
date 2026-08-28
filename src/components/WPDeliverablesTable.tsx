@@ -39,7 +39,11 @@ import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
-import { MarginRailAbsolute } from '@/components/cards/MarginRail';
+import {
+  MarginRailAbsolute,
+  RAIL_DELIVERABLE_COMMENT_NUDGE,
+  RAIL_DELIVERABLE_DELETE_NUDGE,
+} from '@/components/cards/MarginRail';
 import { wpDeliverableTarget } from '@/lib/moduleCommentTargets';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { WP_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
@@ -545,7 +549,7 @@ function DeliverableRow({
         <ModuleCommentAnchor
           targetKey={wpDeliverableTarget(deliverable.id, 'title')}
           label={`${number} — deliverable`}
-          railNudge={4.4}
+          railNudge={RAIL_DELIVERABLE_COMMENT_NUDGE}
         >
           <DeliverableTitleCell
             value={deliverable.title || ''}
