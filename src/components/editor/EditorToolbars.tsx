@@ -19,6 +19,8 @@ import {
 } from '@/components/EditorChrome';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { useMethodologyEditorFocus } from '@/components/MethodologyEditorFocusContext';
+import { ToolbarReveal } from '@/components/editor/ToolbarReveal';
+
 
 /**
  * THE toolbar for every editing surface on the platform.
