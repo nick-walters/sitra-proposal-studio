@@ -488,6 +488,22 @@ export function buildSectionTypstBody(
       continue;
     }
 
+    // B3.2 auto-attached mirrors. On the board these slots are NOT part of the
+    // stored HTML: `B32BlockMirrors` renders them above the block's modules
+    // for every slot the migrated HTML does not already embed. The export must
+    // do the same, or the mirrored A2 content is missing from the document.
+    if (options.b32Data) {
+      const blockKeys = B32_BLOCK_SLOTS[card.templateKey || ''] || [];
+      if (blockKeys.length) {
+        const html = (tree.fieldsByCard[card.id] || [])
+          .map((f) => f.contentHtml || '')
+          .join('');
+        for (const key of blockKeys) {
+          if (html.includes(`data-b32-slot-key="${key}"`)) continue;
+          out.push(...emitB32Slot(key, options.b32Data as B32TypstData, ctx));
+        }
+      }
+    }
 
 
     for (const field of tree.fieldsByCard[card.id] || []) {
