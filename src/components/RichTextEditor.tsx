@@ -34,7 +34,7 @@ import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 
 import { InlineReferenceNode } from '@/extensions/InlineReferenceNode';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
-import { TrackChanges, findForeignPendingAuthor } from '@/extensions/TrackChanges';
+import { TrackChanges, TRACK_CHANGE_MARKS, findForeignPendingAuthor } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceNode } from '@/extensions/WPReferenceNode';
 import { CaseReferenceNode } from '@/extensions/CaseReferenceNode';
@@ -1483,6 +1483,10 @@ StarterKit.configure({
           ];
         },
       }),
+      // Schema-only: this editor does not RECORD tracked changes, but the
+      // marks must exist or stored insertions/deletions are dropped the
+      // moment the field is parsed — and then written away by the next save.
+      ...TRACK_CHANGE_MARKS,
     ],
     content: initialEditorContentRef.current,
     enableExtensionDispatchTransaction: true,
