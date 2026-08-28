@@ -2014,3 +2014,46 @@ body.table-col-resizing * {
 .wp-title-pill * {
   color: #ffffff !important;
 }
+
+/* ------------------------------------------------------------------ *
+ * Mirrored surfaces — one set of metrics
+ *
+ * Content mirrored from elsewhere (A2 into B3.2, the pilots table into
+ * B1.2, the WP tables into B3.1, the participant list into B1.1) is part
+ * of the document, so it obeys the document's own typography: Times New
+ * Roman 11pt, 1.0 line spacing, 3pt between paragraphs. Surfaces used to
+ * set this themselves and drifted (1.25 via `leading-tight`, 1.3 inline);
+ * these rules are the single source.
+ * ------------------------------------------------------------------ */
+.mirror-surface,
+.mirror-surface p,
+.mirror-surface li,
+.mirror-surface td,
+.mirror-surface th,
+.mirror-surface div {
+  line-height: 1 !important;
+}
+
+.mirror-surface p {
+  margin: 0 0 3pt 0;
+}
+
+.mirror-surface p:last-child {
+  margin-bottom: 0;
+}
+
+.mirror-surface ul,
+.mirror-surface ol {
+  margin-top: 0;
+  margin-bottom: 3pt;
+}
+
+/* A mirrored field opens with its participant badge. The mirrored body is
+   stored as rich text, so its first node is a block-level <p> whenever the
+   author typed a paragraph and a bare text run when they did not — which is
+   why the badge broke to its own line "at random". Making the body's first
+   block inline glues it to the badge in every path. */
+.mirror-inline-body > p:first-child,
+.mirror-inline-body > div:first-child {
+  display: inline;
+}

@@ -223,7 +223,7 @@ export function B32MirrorInfrastructureSlot({ proposalId, interactive = false }:
   return (
     <div
       data-b32-mirror-infrastructure-slot=""
-      className="b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]"
+      className="mirror-surface b31-tables-container space-y-1 [&_p]:!my-0 mt-[2px]"
     >
       <EditableCaption
         proposalId={proposalId}
