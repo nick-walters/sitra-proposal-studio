@@ -71,20 +71,22 @@ export async function resolveChangeAtElement(
 /**
  * WHO MAY RESOLVE WHAT
  *
- * Coordinator and above may accept or reject anything. A change's own author
- * may reject their own edit — withdrawing your own work is not a review act —
- * but may not accept it.
+ * Anyone who may edit the proposal may accept or reject ANY tracked change,
+ * whoever authored it. A partner often knows a passage better than the
+ * coordinator does, so review is not reserved to the coordinator. Viewers
+ * (and users with no role) may resolve nothing.
  */
 export function trackChangePermissions(opts: {
   roleTier?: string | null;
   userId?: string | null;
   authorId?: string | null;
 }) {
-  const isCoordinator = opts.roleTier === 'coordinator';
-  const isOwn = !!opts.userId && !!opts.authorId && opts.userId === opts.authorId;
+  const canEdit = opts.roleTier === 'coordinator' || opts.roleTier === 'editor';
   return {
-    canAccept: isCoordinator,
-    canReject: isCoordinator || isOwn,
-    isCoordinator,
+    canAccept: canEdit,
+    canReject: canEdit,
+    canEdit,
+    /** Retained for callers that gate coordinator-only UI elsewhere. */
+    isCoordinator: opts.roleTier === 'coordinator',
   };
 }

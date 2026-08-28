@@ -50,20 +50,14 @@ export function ReviewPanelBody({
   const { roleTier } = useProposalRole(proposalId);
   const [busy, setBusy] = useState(false);
 
-  const { isCoordinator } = trackChangePermissions({ roleTier, userId: user?.id });
-
-  // Reject-all only sweeps what this user is allowed to reject; a
-  // non-coordinator may withdraw their own edits in one go, nothing else.
-  const ownOnly = !isCoordinator;
-  const rejectable = changes.filter(
-    (c) => isCoordinator || (!!user?.id && c.authorId === user.id),
-  );
+  // Anyone who may edit the proposal may resolve every change in the field,
+  // whoever wrote it — accept-all and reject-all sweep the lot.
+  const { canEdit } = trackChangePermissions({ roleTier, userId: user?.id });
 
   const one = (c: TrackChange, action: TrackAction) => {
     if (busy) return;
     setBusy(true);
     try {
-      console.log('[TCDBG] one', action, c.id, 'editor?', !!editor, editor?.isDestroyed);
       if (!resolveChangeInEditor(editor, c.id, action)) {
         toast.error('That change could not be resolved.');
       }
@@ -73,19 +67,12 @@ export function ReviewPanelBody({
   };
 
   const all = (action: TrackAction) => {
-    if (busy) return;
+    if (busy || !canEdit) return;
     setBusy(true);
     try {
-      if (action === 'accept' || !ownOnly) {
-        if (!resolveAllChangesInEditor(editor, action)) {
-          toast.error('Those changes could not be resolved.');
-        }
-        return;
+      if (!resolveAllChangesInEditor(editor, action)) {
+        toast.error('Those changes could not be resolved.');
       }
-      // Own changes only: resolve them one at a time, newest first so the
-      // earlier positions stay valid as the document shrinks.
-      const targets = [...rejectable].sort((a, b) => b.from - a.from);
-      for (const c of targets) resolveChangeInEditor(editor, c.id, 'reject');
     } finally {
       setBusy(false);
     }
@@ -123,7 +110,7 @@ export function ReviewPanelBody({
             variant="outline"
             size="sm"
             className="h-6 px-2 text-[11px]"
-            disabled={busy || !isCoordinator}
+            disabled={busy || !canEdit}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('accept')}
           >
@@ -133,7 +120,7 @@ export function ReviewPanelBody({
             variant="outline"
             size="sm"
             className="h-6 px-2 text-[11px]"
-            disabled={busy || rejectable.length === 0}
+            disabled={busy || !canEdit}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('reject')}
           >
