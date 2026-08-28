@@ -210,6 +210,36 @@ function TrackMyChangesButton() {
   );
 }
 
+/**
+ * The page-wide Comments control. A surface may drive it explicitly with
+ * `onOpenComments`; where it does not, the button falls back to the
+ * module-anchored comments panel as soon as a board mounts its provider, so
+ * every board gets the control without threading props through the page.
+ */
+function CommentsPanelButton({
+  onOpenComments,
+  commentCount,
+}: {
+  onOpenComments?: () => void;
+  commentCount?: number;
+}) {
+  const modules = useModuleComments();
+  const handler =
+    onOpenComments ?? (modules.enabled ? () => modules.setOpen(!modules.open) : undefined);
+  const count = commentCount ?? (modules.enabled ? modules.openCount : undefined);
+  return (
+    <FeatureButton
+      icon={<MessageSquare className="h-3.5 w-3.5" />}
+      primary="Comments"
+      secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
+      secondarySmall
+      tooltip="Open the comments panel"
+      disabled={!handler}
+      onClick={handler}
+    />
+  );
+}
+
 export function EditorTopBar({
   saving,
   lastSaved,
