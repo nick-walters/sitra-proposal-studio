@@ -432,7 +432,7 @@ export function CasesTableLiveView({
   return (
     <div
       data-cases-table-nodeview=""
-      className="document-content"
+      className="document-content mirror-surface"
       style={{
         margin: '0',
         fontFamily: TABLE_FONT_FAMILY,
