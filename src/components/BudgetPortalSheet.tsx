@@ -321,10 +321,12 @@ export function BudgetPortalSheet({
       const fstp = row.financialSupportThirdParties;
       const internally = row.internallyInvoiced;
 
-      // K: Indirect costs = ROUND((D+F+G+H+J)*0.25, 2) [excl sub E and fstp I]
+      // K: Indirect costs = ROUND((D+F+G+H)*0.25, 2)
+      // A (D) + C (F,G,H) only — excludes B. subcontracting (E),
+      // D.1 FSTP (I) and D.2 internally invoiced (J).
       const indirectFormula = row.indirectCostsOverride != null
         ? row.indirectCostsOverride
-        : { f: `=ROUND((D${r}+F${r}+G${r}+H${r}+J${r})*0.25,2)` };
+        : { f: `=ROUND((D${r}+F${r}+G${r}+H${r})*0.25,2)` };
 
       // L: Total costs = D+E+F+G+H+I+J+K
       const totalCostsFormula = { f: `=D${r}+E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}` };
