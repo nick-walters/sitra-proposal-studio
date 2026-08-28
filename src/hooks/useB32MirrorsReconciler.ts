@@ -11,7 +11,6 @@ import type { Editor } from '@tiptap/react';
  * Owning-heading map:
  *   interdisciplinarity → interdisciplinarity heading (primary: interdisciplinarity)
  *   capacity           → capacity heading            (primary: capacity)
- *   infrastructure     → capacity heading            (secondary, after capacity)
  *   value-chain        → value-chain heading         (primary: value-chain)
  *   international      → international heading       (primary: international)
  *

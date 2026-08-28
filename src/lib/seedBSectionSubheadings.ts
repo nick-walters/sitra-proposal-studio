@@ -89,20 +89,19 @@ export async function seedBSectionSubheadings(
   // For B3.2, each heading gets a data-b32-slot-key (primary key) plus one or
   // two mirror-slot nodes immediately after its intro <p>.
   //   - interdisciplinarity heading → [interdisciplinarity]
-  //   - capacity heading            → [capacity, infrastructure]
+  //   - capacity heading            → [capacity] (+ stored infra table node)
   //   - value-chain heading         → [value-chain] (combined mirror)
   //   - international heading       → [international]
   type B32Key =
     | 'interdisciplinarity'
     | 'capacity'
-    | 'infrastructure'
     | 'value-chain'
     | 'international';
   const B32_HEADING_SLOTS: Record<string, { primary: B32Key; keys: B32Key[] }> = {
     'interdisciplinarity & complementarity of the consortium for addressing the project\u2019s objectives':
       { primary: 'interdisciplinarity', keys: ['interdisciplinarity'] },
     'participants\u2019 capacity, contributions & resources':
-      { primary: 'capacity', keys: ['capacity', 'infrastructure'] },
+      { primary: 'capacity', keys: ['capacity'] },
     'value chain coverage & industrial involvement':
       { primary: 'value-chain', keys: ['value-chain'] },
     'justification of the participation of international organisations & third countries':
