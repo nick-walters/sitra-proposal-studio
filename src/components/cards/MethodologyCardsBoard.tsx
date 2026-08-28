@@ -638,10 +638,19 @@ function FieldRow({
           <>
             {headerField && !isDocumentSurface ? (
               headerField
+            ) : (collapsed || moduleCollapsed) ? (
+              // On a page-styled surface the editable header lives inside the
+              // body, which is hidden while collapsed — including during a
+              // drag. Show its text here so the module stays identifiable
+              // while it is being moved.
+              <span className="flex-1 truncate text-xs text-muted-foreground">
+                {htmlToPlainText(field.heading ?? '').trim() || 'Module'}
+              </span>
             ) : (
 
               <span className="flex-1" aria-hidden="true" />
             )}
+
 
             {/* Every module control sits in the page-margin rail, ordered
                 right to left: comment (floating), delete, visibility, and the
