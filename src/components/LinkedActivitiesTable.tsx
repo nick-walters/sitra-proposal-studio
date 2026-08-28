@@ -45,6 +45,10 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import {
+  MarginRailAbsolute,
+  RAIL_DELIVERABLE_DELETE_NUDGE,
+} from '@/components/cards/MarginRail';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import {
   FUNDING_INSTRUMENTS,
