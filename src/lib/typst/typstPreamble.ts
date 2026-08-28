@@ -223,15 +223,22 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Rounded pill. Filled (WP, participant) or outlined (task, case).
 /// Horizontal padding is INSET (it must push neighbouring text away); the
 /// fixed box height equals the body line pitch, so it cannot inflate leading.
-#let chip-pill(label, colour, filled: false) = box(
-  baseline: 2.4pt,
-  height: chip-height,
-  inset: (x: chip-pad, y: 0pt),
-  radius: 999pt,
-  fill: if filled { colour } else { white },
-  stroke: 1pt + colour,
-  align(horizon, move(dy: chip-label-shift, chip-label(label, if filled { white } else { colour }))),
-)
+/// The width is MEASURED rather than left to the layout: inside a narrow table
+/// column an auto-width box lets its label wrap, which broke participant
+/// badges in the deliverables table. A fixed width keeps every chip on one line.
+#let chip-pill(label, colour, filled: false) = context {
+  let body = chip-label(label, if filled { white } else { colour })
+  box(
+    baseline: 2.4pt,
+    width: measure(body).width + 2 * chip-pad,
+    height: chip-height,
+    inset: (x: chip-pad, y: 0pt),
+    radius: 999pt,
+    fill: if filled { colour } else { white },
+    stroke: 1pt + colour,
+    align(horizon, move(dy: chip-label-shift, body)),
+  )
+}
 
 /// Five-point star drawn as geometry rather than text. Nimbus Roman does not
 /// contain U+2605, so a literal star is silently dropped by the PDF compiler.
