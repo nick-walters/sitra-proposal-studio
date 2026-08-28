@@ -99,6 +99,8 @@ import {
 } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 import { stripWordHtml } from '@/lib/stripWordHtml';
+import { GuidanceHtml } from '@/components/GuidanceHtml';
+
 
 
 
