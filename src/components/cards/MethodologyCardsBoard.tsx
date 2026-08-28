@@ -756,11 +756,13 @@ function FieldRow({
           className={
             collapsed || moduleCollapsed
               ? 'hidden'
-              : isDocumentSurface
-                ? 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
-                : ''
+              // Mirrored source-fed tables are page furniture too: they must
+              // sit inside the same 18 cm text column as authored text, not
+              // run the full width of the module box.
+              : 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
           }
         >
+
           <RefDataProvider proposalId={proposalId}>
             <CasesTableLiveView
               proposalId={proposalId}
