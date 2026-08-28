@@ -1262,7 +1262,7 @@ function CardBlock({
           >
             <ModuleCommentAnchor
               targetKey={cardTitleTarget(card.id)}
-              label={`${plainTextTitle(displayedTitle) || 'Block'} — title`}
+              label={`${String(displayedTitle ?? '').replace(/<[^>]+>/g, '').trim() || 'Block'} — title`}
               offset="-right-7 top-0"
             >
             {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
