@@ -158,6 +158,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
     <div
       data-b32-mirror-paragraph-slot=""
       data-b32-slot-key={slotKey}
+      className="mirror-surface"
       style={{
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '11pt',
@@ -168,7 +169,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
         return (
           <div
             key={participant.id}
-            style={{ margin: '0 0 8pt 0', lineHeight: 1.3, textAlign: 'justify' }}
+            style={{ margin: '0 0 8pt 0', textAlign: 'justify' }}
           >
             <span
               contentEditable={false}
@@ -181,11 +182,13 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
             </span>
             <span
               data-b32-mirror-body=""
+              className="mirror-inline-body"
               dangerouslySetInnerHTML={{ __html: safe }}
             />
           </div>
         );
       })}
+
     </div>
   );
 }
