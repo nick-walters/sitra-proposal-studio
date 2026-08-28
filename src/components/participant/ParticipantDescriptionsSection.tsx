@@ -168,28 +168,6 @@ export function ParticipantDescriptionsSection({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {showValueChainToggle && (
-          <div className="space-y-1.5">
-            <div className="text-sm text-foreground/90">
-              {`Does ${shortName} bring coverage of one or more parts of the value chain to the project?`}
-            </div>
-            <RadioGroup
-              className="flex items-center gap-6"
-              value={valueChainRelevant ? 'yes' : 'no'}
-              onValueChange={(v) => onValueChainApplicableChange?.(v === 'yes')}
-              disabled={!canEdit}
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="yes" id="value-chain-yes" />
-                <Label htmlFor="value-chain-yes" className="font-normal">Yes</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="no" id="value-chain-no" />
-                <Label htmlFor="value-chain-no" className="font-normal">No</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        )}
         {visibleFields.map((field) => {
           const label = field.labelTemplate.replace('[name]', shortName);
           const prefixNode = (
@@ -199,18 +177,43 @@ export function ParticipantDescriptionsSection({
             />
           );
           return (
-            <div key={field.key} className="space-y-1.5">
-              <div className="text-sm text-foreground/90">{label}</div>
-              <LazyRichField
-                value={descriptions[field.key] || ''}
-                onChange={(v) => onUpdateField(field.key, v)}
-                disabled={!canEdit}
-                prefix={prefixNode}
-                minHeight="90px"
-                proposalId={proposalId ?? ''}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
+            <div key={field.key} className="contents">
+              <div className="space-y-1.5">
+                <div className="text-sm text-foreground/90">{label}</div>
+                <LazyRichField
+                  value={descriptions[field.key] || ''}
+                  onChange={(v) => onUpdateField(field.key, v)}
+                  disabled={!canEdit}
+                  prefix={prefixNode}
+                  minHeight="90px"
+                  proposalId={proposalId ?? ''}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+              </div>
+              {/* The relevance question sits directly above the value chain field it governs. */}
+              {field.key === 'contribution_resources' && showValueChainToggle && (
+                <div className="space-y-1.5">
+                  <div className="text-sm text-foreground/90">
+                    {`Does ${shortName} bring coverage of one or more parts of the value chain to the project?`}
+                  </div>
+                  <RadioGroup
+                    className="flex items-center gap-6"
+                    value={valueChainRelevant ? 'yes' : 'no'}
+                    onValueChange={(v) => onValueChainApplicableChange?.(v === 'yes')}
+                    disabled={!canEdit}
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="yes" id="value-chain-yes" />
+                      <Label htmlFor="value-chain-yes" className="font-normal">Yes</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="no" id="value-chain-no" />
+                      <Label htmlFor="value-chain-no" className="font-normal">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
             </div>
           );
         })}
