@@ -89,7 +89,6 @@ export function acquireStream(sectionId: string): StreamEntry {
     .on('broadcast', { event: 'content' }, ({ payload }) => {
       const { targetId, html } = (payload ?? {}) as { targetId?: string; html?: string };
       if (!targetId) return;
-      (globalThis as any).__streamLog = html ?? '';
       for (const l of entry.contentListeners) l(targetId, html ?? '');
     })
     .on('broadcast', { event: 'snapshot-request' }, ({ payload }) => {
