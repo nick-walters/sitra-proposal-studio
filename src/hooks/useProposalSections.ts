@@ -175,7 +175,13 @@ async function fetchTemplateSections(
     console.error('Error fetching template sections:', error);
     return null;
   }
-  const sections = (data ?? []) as unknown as TemplateSectionData[];
+  // `part: 'drafts'` sections (D1 Work package drafts, D2 Case (pilot) drafts)
+  // exist only so guidance can be authored for the WP/case draft editors in
+  // Template Management. They are NOT navigable pages, so they never enter
+  // the proposal navigation.
+  const sections = ((data ?? []) as unknown as TemplateSectionData[]).filter(
+    (s: any) => s.part !== 'drafts',
+  );
   if (!proposalId || sections.length === 0) return sections;
 
   // Overlay the proposal's own guideline copies, keyed by the template section
