@@ -544,6 +544,18 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
   const authoredTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
 
+  /* Sitra guidance for the focused subsection: the proposal's own override
+     wins, otherwise the shared default. Coordinators may edit it here. */
+  const { data: caseGuidelineDefaults = [] } = useCaseGuidelineDefaults();
+  const focusedSubsectionKey = focusedGuidelineKey?.startsWith('drafts.case.')
+    ? focusedGuidelineKey.slice('drafts.case.'.length)
+    : null;
+  const resolvedGuidance = useMemo(
+    () => resolveCaseGuidance(focusedSubsectionKey, subsectionTemplates, caseGuidelineDefaults),
+    [focusedSubsectionKey, subsectionTemplates, caseGuidelineDefaults],
+  );
+  const [guidanceEditOpen, setGuidanceEditOpen] = useState(false);
+
   // 90-day recycle bin. A binned subsection hangs off the proposal, because the
   // subsection set is project-wide rather than owned by one case.
   const [binOpen, setBinOpen] = useState(false);
