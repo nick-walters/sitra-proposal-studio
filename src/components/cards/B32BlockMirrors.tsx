@@ -20,7 +20,7 @@ import type { CardField } from '@/types/cards';
 
 const BLOCK_SLOTS: Record<string, B32SlotKey[]> = {
   'b32.interdisciplinarity': ['interdisciplinarity'],
-  'b32.capacity': ['capacity'],
+  'b32.capacity': ['capacity', 'infrastructure'],
   'b32.value_chain_industrial': ['value-chain', 'industrial'],
   'b32.other_countries': ['international'],
 };

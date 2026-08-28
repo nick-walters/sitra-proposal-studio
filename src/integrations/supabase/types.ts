@@ -3467,6 +3467,7 @@ export type Database = {
           proposal_id: string
           updated_at: string
           value_chain: string | null
+          value_chain_applicable: boolean | null
         }
         Insert: {
           contribution_resources?: string | null
@@ -3478,6 +3479,7 @@ export type Database = {
           proposal_id: string
           updated_at?: string
           value_chain?: string | null
+          value_chain_applicable?: boolean | null
         }
         Update: {
           contribution_resources?: string | null
@@ -3489,6 +3491,7 @@ export type Database = {
           proposal_id?: string
           updated_at?: string
           value_chain?: string | null
+          value_chain_applicable?: boolean | null
         }
         Relationships: [
           {

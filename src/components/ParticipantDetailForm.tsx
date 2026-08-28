@@ -159,6 +159,8 @@ export function ParticipantDetailForm({
     descriptionsSaving,
     descriptionsLastSaved,
     descriptionsError,
+    valueChainApplicable,
+    setValueChainApplicable,
   } = useParticipantDetails(participant.id, proposalId);
 
 
@@ -475,6 +477,8 @@ export function ParticipantDetailForm({
           saving={descriptionsSaving}
           lastSaved={descriptionsLastSaved}
           saveError={descriptionsError}
+          valueChainApplicable={valueChainApplicable}
+          onValueChainApplicableChange={setValueChainApplicable}
           canEdit={canEdit}
           proposalId={proposalId}
           acronymSegments={acronymSegments}

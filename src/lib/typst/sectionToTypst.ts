@@ -45,7 +45,6 @@ import {
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { emitCasesTable, type CasesTypstData } from './casesData';
-import { emitB32InfraTable, type B32InfraTypstData } from './b32InfraData';
 import type { AuthoredFigureBlock } from './authoredFigures';
 
 import { countCaptionSlots, captionKind, captionLetter } from '@/lib/cards/captionSlots';
@@ -232,8 +231,6 @@ export interface BuildTypstOptions {
   frontMatter?: TypstFrontMatter | null;
   /** B1.2 cases ("pilots") rows, for the `casesTable` atom nodes. */
   casesData?: CasesTypstData | null;
-  /** B3.2 infrastructure rows, for the `b32InfraTable` atom node. */
-  b32InfraData?: B32InfraTypstData | null;
   /**
    * Authored figure blocks: their resolved bitmaps (already in the compiler's
    * virtual filesystem) plus their per-block layout settings, keyed by card id.
@@ -376,10 +373,6 @@ export function buildSectionTypstBody(
     casesTable: options.casesData
       ? (typeId, label, inner) =>
           emitCasesTable(options.casesData as CasesTypstData, typeId, label, inner)
-      : undefined,
-    b32InfraTable: options.b32InfraData
-      ? (heading, label, inner) =>
-          emitB32InfraTable(options.b32InfraData as B32InfraTypstData, heading, label, inner)
       : undefined,
     captionNumbering:
       sectionNumber && sectionNumber !== '3.1'

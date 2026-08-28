@@ -4,15 +4,15 @@ import type { Editor } from '@tiptap/react';
 /**
  * B3.2 mirror-slots reconciler — Stage 3a-iii.
  *
- * Ensures exactly one <b32MirrorSlot> node exists for each of the six slot
+ * Ensures exactly one <b32MirrorSlot> node exists for each of the five slot
  * keys in the B3.2 editor doc. Bindings are made via a heading's
  * data-b32-slot-key ("primary" key) and each slot key's owning heading.
  *
  * Owning-heading map:
  *   interdisciplinarity → interdisciplinarity heading (primary: interdisciplinarity)
  *   capacity           → capacity heading            (primary: capacity)
+ *   infrastructure     → capacity heading            (secondary, after capacity)
  *   value-chain        → value-chain heading         (primary: value-chain)
- *   industrial         → value-chain heading         (secondary, after value-chain)
  *   international      → international heading       (primary: international)
  *
  * Placement rule (missing slot):
@@ -31,8 +31,8 @@ import type { Editor } from '@tiptap/react';
 const SLOT_KEYS = [
   'interdisciplinarity',
   'capacity',
+  'infrastructure',
   'value-chain',
-  'industrial',
   'international',
 ] as const;
 type SlotKey = (typeof SLOT_KEYS)[number];
@@ -43,16 +43,16 @@ type PrimaryKey = 'interdisciplinarity' | 'capacity' | 'value-chain' | 'internat
 const OWNER: Record<SlotKey, PrimaryKey> = {
   interdisciplinarity: 'interdisciplinarity',
   capacity: 'capacity',
+  infrastructure: 'capacity',
   'value-chain': 'value-chain',
-  industrial: 'value-chain',
   international: 'international',
 };
 
 // Order of slot keys under each owning heading (first → last).
 const ORDER_UNDER_HEADING: Record<PrimaryKey, SlotKey[]> = {
   interdisciplinarity: ['interdisciplinarity'],
-  capacity: ['capacity'],
-  'value-chain': ['value-chain', 'industrial'],
+  capacity: ['capacity', 'infrastructure'],
+  'value-chain': ['value-chain'],
   international: ['international'],
 };
 

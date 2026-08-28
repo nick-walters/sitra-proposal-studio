@@ -36,6 +36,9 @@ export function useParticipantDetails(participantId: string | undefined, proposa
   const [descriptionsSaving, setDescriptionsSaving] = useState(false);
   const [descriptionsLastSaved, setDescriptionsLastSaved] = useState<Date | null>(null);
   const [descriptionsError, setDescriptionsError] = useState<string | null>(null);
+  // Explicit Yes/No answer to "does this participant bring value chain
+  // coverage?". null = never answered; the caller derives the default.
+  const [valueChainApplicable, setValueChainApplicableState] = useState<boolean | null>(null);
   const descriptionsDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
 
@@ -119,7 +122,9 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     }
     const { data, error } = await supabase
       .from('participant_descriptions')
-      .select('contribution_resources, value_chain, industrial_involvement, participation_justification')
+      .select(
+        'contribution_resources, value_chain, industrial_involvement, participation_justification, value_chain_applicable',
+      )
       .eq('proposal_id', proposalId)
       .eq('participant_id', participantId)
       .maybeSingle();
@@ -133,6 +138,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       industrial_involvement: data?.industrial_involvement ?? '',
       participation_justification: data?.participation_justification ?? '',
     });
+    setValueChainApplicable_(data?.value_chain_applicable ?? null);
   }, [participantId, proposalId]);
 
   useEffect(() => {
@@ -142,6 +148,34 @@ export function useParticipantDetails(participantId: string | undefined, proposa
   useEffect(() => {
     fetchDescriptions();
   }, [fetchDescriptions]);
+
+  // Named apart from the public setter so the fetch can seed state without
+  // writing back to the database.
+  const setValueChainApplicable_ = setValueChainApplicableState;
+
+  /**
+   * Writes the value chain relevance answer. Selecting "No" only hides the
+   * field — the text already written stays in `value_chain` and returns
+   * untouched if "Yes" is selected again.
+   */
+  const setValueChainApplicable = useCallback(async (next: boolean) => {
+    if (!participantId || !proposalId) return;
+    setValueChainApplicableState(next);
+    const { error } = await supabase
+      .from('participant_descriptions')
+      .upsert(
+        {
+          proposal_id: proposalId,
+          participant_id: participantId,
+          value_chain_applicable: next,
+        } as never,
+        { onConflict: 'proposal_id,participant_id' },
+      );
+    if (error) {
+      console.error('value_chain_applicable upsert failed:', error);
+      toast.error('Failed to save');
+    }
+  }, [participantId, proposalId]);
 
   const commitDescriptionField = useCallback(async (field: ParticipantDescriptionField, value: string) => {
     if (!participantId || !proposalId) return;
@@ -441,7 +475,6 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     const updateData: Record<string, unknown> = {};
     if (updates.projectName !== undefined) updateData.project_name = updates.projectName;
     if (updates.description !== undefined) updateData.description = updates.description || null;
-    if (updates.projectSupport !== undefined) updateData.project_support = updates.projectSupport || null;
     if (updates.orderIndex !== undefined) updateData.order_index = updates.orderIndex;
 
     const { error } = await supabase
@@ -507,6 +540,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     const updateData: Record<string, unknown> = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.description !== undefined) updateData.description = updates.description || null;
+    if (updates.projectSupport !== undefined) updateData.project_support = updates.projectSupport || null;
     if (updates.orderIndex !== undefined) updateData.order_index = updates.orderIndex;
 
     const { error } = await supabase
@@ -639,6 +673,8 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     descriptionsSaving,
     descriptionsLastSaved,
     descriptionsError,
+    valueChainApplicable,
+    setValueChainApplicable,
     // Refresh
 
     refetch: fetchDetails,

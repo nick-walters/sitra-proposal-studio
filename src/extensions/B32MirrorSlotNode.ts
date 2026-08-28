@@ -15,8 +15,8 @@ import { B32MirrorSlotNodeView } from '@/components/B32MirrorSlotNodeView';
 export type B32SlotKey =
   | 'interdisciplinarity'
   | 'capacity'
+  | 'infrastructure'
   | 'value-chain'
-  | 'industrial'
   | 'international';
 
 declare module '@tiptap/core' {

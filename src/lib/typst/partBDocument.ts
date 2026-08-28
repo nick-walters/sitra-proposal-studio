@@ -172,20 +172,17 @@ export async function buildPartBTypstDocument(
     { fetchB31TypstData },
     { fetchTypstFrontMatter },
     { fetchCasesTypstData },
-    { fetchB32InfraTypstData },
     { fetchAuthoredFigures },
   ] = await Promise.all([
     import('./b31Data'),
     import('./frontMatter'),
     import('./casesData'),
-    import('./b32InfraData'),
     import('./authoredFigures'),
   ]);
 
-  const [sourceData, casesData, b32InfraData] = await Promise.all([
+  const [sourceData, casesData] = await Promise.all([
     fetchB31TypstData(proposalId),
     fetchCasesTypstData(proposalId),
-    fetchB32InfraTypstData(proposalId),
   ]);
 
   const figureAssets = options.figureAssets ?? [];
@@ -226,7 +223,6 @@ export async function buildPartBTypstDocument(
       references,
       frontMatter,
       casesData,
-      b32InfraData,
       authoredFigures: authored.blocks,
       figuresAvailable,
     });
