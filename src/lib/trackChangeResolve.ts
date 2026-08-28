@@ -55,7 +55,17 @@ export async function resolveChangeAtElement(
     editor = await waitForEditorAt(el, point);
   }
   if (!editor || editor.isDestroyed) return 'no-editor';
+  // The host field ignores content changes until the box has been focused
+  // (mount-time normalisation must never write). Resolving from the tooltip
+  // never focuses the box, so the accepted change stayed on screen and was
+  // lost on reload. Focus first, then resolve — the field's autosave follows.
+  if (!editor.isFocused) {
+    editor.commands.focus();
+    await new Promise((r) => setTimeout(r, 0));
+    if (editor.isDestroyed) return 'no-editor';
+  }
   return resolveChangeInEditor(editor, changeId, action) ? 'ok' : 'failed';
+
 }
 
 /**
