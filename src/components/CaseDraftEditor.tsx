@@ -962,12 +962,24 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             <div className="flex items-center justify-end gap-1 px-[1.5cm] pt-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => addSubsection.mutate()} aria-label="Add a subsection">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={async () => {
+                      // Same reveal helper Part B and the WP drafts use: the
+                      // new module is scrolled to and flashed once it mounts.
+                      const created = await addSubsection.mutateAsync();
+                      if (created?.key) void jumpToElementId(`case-subsection-${created.key}`);
+                    }}
+                    aria-label="Add a subsection"
+                  >
                     <Plus className="h-3.5 w-3.5 text-blue-500" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Add a subsection</TooltipContent>
               </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1073,6 +1085,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                         : (next) => updateSubsection.mutate({ id: sub.id, updates: { is_visible: next } })
                     }
                     onDelete={readOnly ? undefined : () => deleteSubsectionToBin(sub.id, sub.heading)}
+                    onRenameHeading={
+                      readOnly
+                        ? undefined
+                        : (next) => updateSubsection.mutate({ id: sub.id, updates: { heading: next } })
+                    }
                     value={entryBody(subsectionContent[sub.key])}
                     onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
                     readOnly={readOnly}
@@ -1305,6 +1322,7 @@ function CaseSubsectionModule({
   heading,
   value,
   onChange,
+  onRenameHeading,
   readOnly,
   collapsed,
   onToggleCollapsed,
@@ -1320,6 +1338,8 @@ function CaseSubsectionModule({
   heading: string;
   value: string;
   onChange: (html: string) => void;
+  /** Renames the heading for THIS proposal only; undefined when read-only. */
+  onRenameHeading?: (next: string) => void;
   readOnly: boolean;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -1331,6 +1351,20 @@ function CaseSubsectionModule({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: subsectionId,
   });
+  // The delete dialog is CONTROLLED: an `AlertDialogTrigger asChild` cannot
+  // clone a `Tooltip`, so the old trigger swallowed the click silently.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [draftHeading, setDraftHeading] = useState(heading);
+  useEffect(() => setDraftHeading(heading), [heading]);
+
+  const commitHeading = () => {
+    const next = draftHeading.trim();
+    if (!next || next === heading) {
+      setDraftHeading(heading);
+      return;
+    }
+    onRenameHeading?.(next);
+  };
 
   return (
     <div
@@ -1344,6 +1378,9 @@ function CaseSubsectionModule({
       data-version-label={heading}
       data-version-target={versionTargetAttr('case_draft_subsection', caseId, subsectionKey)}
     >
+      {/* The anchor wraps the WHOLE module — header included — so the comment
+          control stays in the right-hand rail when the module is collapsed. */}
+      <ModuleCommentAnchor targetKey={caseTarget(caseId, subsectionKey)} label={heading}>
       <div className={WP_BLOCK_HEADER}>
         <div className={WP_CONTROL_STACK}>
           <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
@@ -1362,12 +1399,33 @@ function CaseSubsectionModule({
             <TooltipContent>Drag to reorder this subsection</TooltipContent>
           </Tooltip>
         </div>
-        <p
-          className="min-w-0 flex-1 select-none font-bold"
-          style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
-        >
-          {heading}:
-        </p>
+        {onRenameHeading ? (
+          <input
+            value={draftHeading}
+            onChange={(e) => setDraftHeading(e.target.value)}
+            onBlur={commitHeading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                (e.currentTarget as HTMLInputElement).blur();
+              }
+              if (e.key === 'Escape') {
+                setDraftHeading(heading);
+                (e.currentTarget as HTMLInputElement).blur();
+              }
+            }}
+            aria-label="Subsection heading"
+            className="min-w-0 flex-1 rounded border border-transparent bg-transparent font-bold outline-none hover:border-border focus:border-ring focus:bg-white"
+            style={{ ...WP_DOC_FONT, marginLeft: WP_TITLE_INDENT }}
+          />
+        ) : (
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
+          >
+            {heading}:
+          </p>
+        )}
 
         {/* The standard right-hand control row, matching Part B modules. */}
         {onToggleVisible && (
@@ -1395,50 +1453,55 @@ function CaseSubsectionModule({
         )}
 
         {onDelete && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" aria-label="Delete this module">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete this module</TooltipContent>
-              </Tooltip>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete “{heading}”?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  The module and its text move to the recycle bin for 90 days and can be restored in full.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-destructive"
+                  aria-label="Delete this module"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete this module</TooltipContent>
+            </Tooltip>
+            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete “{heading}”?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The module and its text move to the recycle bin for 90 days and can be restored in full.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </div>
 
       {!collapsed && (
         <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
-          <ModuleCommentAnchor targetKey={caseTarget(caseId, subsectionKey)} label={heading}>
-            <LockedWPRichField
-              targetId={caseTarget(caseId, subsectionKey)}
-              value={value}
-              onChange={onChange}
-              disabled={readOnly}
-              minHeight="60px"
-              proposalId={proposalId}
-              staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
-              documentSurface
-              shouldStayMounted={shouldStayMounted}
-            />
-          </ModuleCommentAnchor>
+          <LockedWPRichField
+            targetId={caseTarget(caseId, subsectionKey)}
+            value={value}
+            onChange={onChange}
+            disabled={readOnly}
+            minHeight="60px"
+            proposalId={proposalId}
+            staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+            documentSurface
+            shouldStayMounted={shouldStayMounted}
+          />
         </div>
       )}
+      </ModuleCommentAnchor>
     </div>
   );
 }

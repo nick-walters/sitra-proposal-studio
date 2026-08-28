@@ -109,25 +109,26 @@ const caseChipLabel = (opts: {
 }): string => buildCaseLabel({ ...opts, withShortName: false });
 
 
-function CaseChip({ label, color }: { label: string; color: string }) {
+function CaseChip({ label }: { label: string }) {
+  // The long pill: full text-column width, white fill, black outline and black
+  // bold label — identical to the case draft editor and the Typst output.
   return (
     <span
       data-case-reference=""
       className="case-reference-badge"
       contentEditable={false}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
+        display: 'flex',
+        width: '100%',
+        alignItems: 'baseline',
         backgroundColor: '#ffffff',
-        border: `1.5px solid ${color || '#000000'}`,
-        padding: '0 0.4rem',
+        border: '1.5px solid #000000',
+        padding: '0 6px',
         borderRadius: 9999,
-        whiteSpace: 'nowrap',
-        verticalAlign: 'baseline',
+        lineHeight: 1,
       }}
     >
-
-      <span style={{ color: color || '#000000', fontFamily: TABLE_FONT_FAMILY, fontSize: TABLE_FONT_SIZE, fontWeight: 700, lineHeight: 1 }}>
+      <span style={{ color: '#000000', fontFamily: TABLE_FONT_FAMILY, fontSize: TABLE_FONT_SIZE, fontWeight: 700, lineHeight: 1.15, overflowWrap: 'anywhere' }}>
         {label}
       </span>
     </span>
@@ -462,7 +463,6 @@ export function CasesTableLiveView({
         const typeRow = c.case_type_id ? data.typeById.get(c.case_type_id) : undefined;
         const includeNumber = typeRow?.include_number !== false;
         const includeAbbreviation = typeRow?.include_abbreviation !== false;
-        const outlineColor = typeRow?.outline_color || c.color || '#000000';
         const label = caseChipLabel({
           prefix,
           number: c.number,
@@ -480,12 +480,16 @@ export function CasesTableLiveView({
             data-case-id={c.id}
             style={{ marginTop: idx === 0 ? 18 : 24 }}
           >
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 12, width: '100%', marginBottom: 4,
-            }}>
-              <CaseChip label={label} color={outlineColor} />
+            <CaseChip label={label} />
 
+            <div style={{ marginBottom: 4, fontWeight: 700 }}>
+              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              gap: 12, width: '100%', margin: '4px 0',
+            }}>
               {leader ? (
                 <ParticipantBubble
                   showCrown
@@ -495,10 +499,6 @@ export function CasesTableLiveView({
               ) : (
                 <span className="text-[9pt] italic text-black">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
-            </div>
-
-            <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
             <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />

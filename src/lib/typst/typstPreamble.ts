@@ -346,6 +346,19 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 // ── tables and figures ─────────────────────────────────────────────────────
 #let he-table-width = ${TABLE_MAX_WIDTH_CM}cm
+
+/// The long case-name pill: it spans the full text column, white filled with
+/// a black outline and black bold label, exactly as the case draft editor and
+/// the B1.2 cases table draw it.
+#let case-name-pill(label) = block(
+  width: he-table-width,
+  inset: (x: 6pt, y: 1.5pt),
+  radius: 999pt,
+  fill: white,
+  stroke: 1.5pt + black,
+  text(weight: "bold", fill: black, label),
+)
+
 #let he-inset = (x: 5pt, y: 2.5pt)
 
 /// Caption above a table: bold-italic label, italic description.

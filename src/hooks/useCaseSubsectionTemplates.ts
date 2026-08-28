@@ -63,7 +63,7 @@ export function useCaseSubsectionTemplates(proposalId: string) {
       const existing = query.data || [];
       const nextIndex = existing.length;
       const baseKey = `custom_${Date.now()}`;
-      const { error } = await supabase.from('case_subsection_templates').insert({
+      const { data, error } = await supabase.from('case_subsection_templates').insert({
         proposal_id: proposalId,
         key: baseKey,
         heading: 'New subsection',
@@ -71,8 +71,10 @@ export function useCaseSubsectionTemplates(proposalId: string) {
         order_index: nextIndex,
         is_default: false,
         is_visible: true,
-      });
+      }).select('id, key').single();
       if (error) throw error;
+      // The caller scrolls to the new module, so the created key is returned.
+      return data as { id: string; key: string };
     },
     onSettled: invalidate,
     onError: () => toast.error('Failed to add subsection'),
