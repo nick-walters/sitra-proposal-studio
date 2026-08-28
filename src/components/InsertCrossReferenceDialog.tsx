@@ -198,7 +198,16 @@ export function InsertCrossReferenceDialog({
               >
                 {item.type === 'figure' ? `Figure ${item.label}` : `Table ${item.label}`}
               </span>
-              <span className="text-sm text-muted-foreground truncate">{item.title}</span>
+              {item.title ? (
+                <span className="text-sm text-muted-foreground truncate">
+                  <span className="mr-1">—</span>
+                  {item.title}
+                </span>
+              ) : (
+                <span className="text-sm italic text-muted-foreground/70 truncate">
+                  — no caption yet
+                </span>
+              )}
             </button>
           ))}
         </div>
