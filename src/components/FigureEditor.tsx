@@ -24,6 +24,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
@@ -483,17 +489,17 @@ export function FigureEditor({
                     Delete
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this figure?</AlertDialogTitle>
+                    <AlertDialogTitle>{deleteDialogTitle('figure')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This cannot be undone.
+                      {deleteDialogDescription('figure')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className={DELETE_DIALOG_ACTION_CLASS}
                       onClick={() => onDelete()}
                     >
                       Delete

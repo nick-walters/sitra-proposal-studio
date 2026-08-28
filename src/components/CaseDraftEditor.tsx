@@ -31,6 +31,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
+import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
@@ -1473,16 +1479,21 @@ function CaseSubsectionModule({
               <TooltipContent>Delete this module</TooltipContent>
             </Tooltip>
             <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <AlertDialogContent>
+              <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete “{heading}”?</AlertDialogTitle>
+                  <AlertDialogTitle>{deleteDialogTitle('subsection')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The module and its text move to the recycle bin, where they are kept until 90 days after the proposal is submitted and can be restored in full.
+                    {deleteDialogDescription('subsection')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+                  <AlertDialogAction
+                    className={DELETE_DIALOG_ACTION_CLASS}
+                    onClick={onDelete}
+                  >
+                    Delete
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

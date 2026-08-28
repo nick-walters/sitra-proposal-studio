@@ -38,6 +38,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
 import { EditorContent } from "@tiptap/react";
 
 import { CitationDialog } from "./CitationDialog";
@@ -2062,18 +2068,18 @@ function DocumentEditorInner({
         open={deleteBlockConfirm?.isOpen || false} 
         onOpenChange={(open) => !open && setDeleteBlockConfirm(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete block</AlertDialogTitle>
+            <AlertDialogTitle>{deleteDialogTitle('block')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this block? This action cannot be undone.
+              {deleteDialogDescription('block')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeleteBlockConfirm(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => deleteBlockConfirm?.onConfirm()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={DELETE_DIALOG_ACTION_CLASS}
             >
               Delete
             </AlertDialogAction>
