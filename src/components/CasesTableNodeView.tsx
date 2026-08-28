@@ -463,7 +463,6 @@ export function CasesTableLiveView({
         const typeRow = c.case_type_id ? data.typeById.get(c.case_type_id) : undefined;
         const includeNumber = typeRow?.include_number !== false;
         const includeAbbreviation = typeRow?.include_abbreviation !== false;
-        const outlineColor = typeRow?.outline_color || c.color || '#000000';
         const label = caseChipLabel({
           prefix,
           number: c.number,
@@ -483,6 +482,10 @@ export function CasesTableLiveView({
           >
             <CaseChip label={label} />
 
+            <div style={{ marginBottom: 4, fontWeight: 700 }}>
+              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
+            </div>
+
             <div style={{
               display: 'flex', alignItems: 'center',
               gap: 12, width: '100%', margin: '4px 0',
@@ -496,10 +499,6 @@ export function CasesTableLiveView({
               ) : (
                 <span className="text-[9pt] italic text-black">No {caseWord(data?.types ?? [], { capitalize: false })} lead</span>
               )}
-            </div>
-
-            <div style={{ marginBottom: 4, fontWeight: 700 }}>
-              {(c.title || '').trim() ? c.title : <span className="italic font-normal text-black">Untitled {caseWord(data?.types ?? [], { capitalize: false })}</span>}
             </div>
 
             <div style={{ height: 2, backgroundColor: '#000000', width: '100%', margin: '6px 0' }} />
