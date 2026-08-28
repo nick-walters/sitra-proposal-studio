@@ -456,12 +456,13 @@ export function ModuleCommentAnchor({
       {children}
       {control === 'floating' && (
         <div
-          className={`absolute top-0 z-10 ${controlClassName ?? ''}`}
-          style={{ left: `calc(100% + ${railOffset}px)` }}
+          className={`absolute z-10 ${controlClassName ?? ''}`}
+          style={{ left: `calc(100% + ${railOffset.left}px)`, top: `${railOffset.top}px` }}
         >
           <ModuleCommentButton targetKey={targetKey} label={label} />
         </div>
       )}
+
     </div>
   );
 }
