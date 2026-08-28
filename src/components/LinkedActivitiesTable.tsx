@@ -47,7 +47,7 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   MarginRailAbsolute,
-  RAIL_DELIVERABLE_COMMENT_NUDGE,
+  RAIL_LINKED_ACTIVITY_DELETE_NUDGE,
 } from '@/components/cards/MarginRail';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import {
@@ -318,9 +318,9 @@ function SortableActivityRow({
             could only be positioned against the drag transform. */}
         <td data-noresize="" className={`${cellStyles} !px-0 w-[28px] relative`}>
           {canEdit && (
-            /* On the shared margin rail, at the deliverable delete button's
+            /* On the shared margin rail, at the deliverable COMMENT button's
                horizontal position, rather than a hand-set column offset. */
-            <MarginRailAbsolute nudge={RAIL_DELIVERABLE_COMMENT_NUDGE}>
+            <MarginRailAbsolute nudge={RAIL_LINKED_ACTIVITY_DELETE_NUDGE}>
               <DeleteConfirmDialog
                 itemLabel="this linked activity"
                 tooltip="Delete this linked activity"

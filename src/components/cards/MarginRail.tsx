@@ -56,11 +56,19 @@ export const RAIL_SHIFT = -41;
  * document table whose right edge is not the page frame, so its controls are
  * nudged onto their final position: the comment button by
  * `RAIL_DELIVERABLE_COMMENT_NUDGE`, the delete button by
- * `RAIL_DELIVERABLE_DELETE_NUDGE`. Linked activities' delete uses the same
- * delete nudge, so the two land on one vertical line.
+ * `RAIL_DELIVERABLE_DELETE_NUDGE`.
  */
 export const RAIL_DELIVERABLE_COMMENT_NUDGE = 7.4;
 export const RAIL_DELIVERABLE_DELETE_NUDGE = 13.6;
+
+/**
+ * Linked activities' delete lands on the DELIVERABLE COMMENT button's vertical
+ * line. It is a rail ROW, whose right edge is measured against
+ * `RAIL_ROW_RIGHT_INSET`, so the comment button's own slot — one button plus
+ * one gap — is added back before its nudge.
+ */
+export const RAIL_LINKED_ACTIVITY_DELETE_NUDGE =
+  RAIL_BUTTON_SIZE + RAIL_CONTROL_GAP + RAIL_DELIVERABLE_COMMENT_NUDGE;
 
 /**
  * The page frame a rail aligns to. The OUTERMOST match is used — a page
