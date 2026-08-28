@@ -371,8 +371,12 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
         ? Math.max(0, Math.round(edge.getBoundingClientRect().right - box.right)) + RAIL_GAP
         : RAIL_GAP;
       // The control row this button belongs to. Its own rail group is the
-      // reference: same row, same vertical centre.
-      const row = el.querySelector('[data-rail-row]') as HTMLElement | null;
+      // reference: same row, same vertical centre. A rail belonging to a
+      // NESTED commentable module is not ours, so it is skipped.
+      const row = (Array.from(el.querySelectorAll('[data-rail-row]')) as HTMLElement[]).find(
+        (r) => r.closest('[data-comment-target]') === el,
+      );
+
       let top = 0;
       if (row) {
         const r = row.getBoundingClientRect();
