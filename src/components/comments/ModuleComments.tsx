@@ -183,10 +183,17 @@ export function ModuleCommentsProvider({
 
   const openCount = moduleThreads.filter((c) => c.status === 'open').length;
 
-  const startComposing = useCallback((targetKey: string, label: string) => {
-    setOpen(true);
-    setComposing({ targetKey, label });
-  }, []);
+  const startComposing = useCallback(
+    (targetKey: string, label: string) => {
+      // A module holds as many threads as people want to start, so this always
+      // opens a FRESH composer — never the existing thread.
+      if (rightPanel) rightPanel.showPanel('comments');
+      else setOpen(true);
+      setComposing({ targetKey, label });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rightPanel?.showPanel, setOpen],
+  );
 
   // Arriving from a notification: ?comment=<id> opens the comments panel,
   // brings the commented module into view and highlights the thread. The id
