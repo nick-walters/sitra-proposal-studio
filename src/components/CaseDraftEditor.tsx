@@ -894,10 +894,15 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             // fields rather than rebind a live editor to another case's row.
             <Card key={`${caseId}:${sub.id}`} id={`case-subsection-${sub.key}`}>
               <CardHeader className="py-2 px-3">
+                <ModuleCommentAnchor
+                  targetKey={caseTarget(caseId, `${sub.key}:heading`)}
+                  label={`${sub.heading} — heading`}
+                >
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
                   <span>{sub.heading}</span>
                 </CardTitle>
+                </ModuleCommentAnchor>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
                 {guideline && (
