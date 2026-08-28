@@ -14,6 +14,8 @@ import {
   type EditorTopBarProps,
   type EditorFieldBarProps,
 } from '@/components/EditorChrome';
+import { ToolbarReveal } from '@/components/editor/ToolbarReveal';
+
 import { FULL_FIELD_CAPABILITIES, type FieldCapabilityFlags } from '@/lib/fieldCapabilities';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
@@ -263,17 +265,21 @@ export function DraftFormattingToolbar({
 
       {/* MIDDLE TIER — field-specific features, only with a focused field */}
       {showGuidelinesRow && (
-        <EditorFieldBar
-          hasFocusedField={hasFocusedField}
-          onOpenGuidelines={onOpenGuidelines}
-          {...(fieldBar ?? {})}
-        />
+        <ToolbarReveal active={hasFocusedField}>
+          <EditorFieldBar
+            hasFocusedField
+            onOpenGuidelines={onOpenGuidelines}
+            {...(fieldBar ?? {})}
+          />
+        </ToolbarReveal>
       )}
 
 
       {/* Row 2: Formatting toolbar */}
       {!isReadOnly && hasFocusedField && (
+        <ToolbarReveal active>
         <div className={row2Class}>
+
           {undo && (
             <>
               <ToolbarButton
@@ -432,7 +438,9 @@ export function DraftFormattingToolbar({
 
           {trailing}
         </div>
+        </ToolbarReveal>
       )}
+
     </div>
   );
 

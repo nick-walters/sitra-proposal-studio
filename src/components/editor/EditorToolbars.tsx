@@ -19,6 +19,8 @@ import {
 } from '@/components/EditorChrome';
 import { FormattingToolbar } from '@/components/RichTextEditor';
 import { useMethodologyEditorFocus } from '@/components/MethodologyEditorFocusContext';
+import { ToolbarReveal } from '@/components/editor/ToolbarReveal';
+
 
 /**
  * THE toolbar for every editing surface on the platform.
@@ -147,9 +149,14 @@ export function EditorToolbars({
           onOpenShortcuts={topBar?.onOpenShortcuts ?? (() => setShortcutsOpen(true))}
         />
       }
-      fieldBar={<EditorFieldBar hasFocusedField={hasFocusedField} {...(fieldBar ?? {})} />}
+      fieldBar={
+        <ToolbarReveal active={hasFocusedField}>
+          <EditorFieldBar hasFocusedField {...(fieldBar ?? {})} />
+        </ToolbarReveal>
+      }
       formattingBar={
         formatting && hasFocusedEditor ? (
+          <ToolbarReveal active>
           <div
             onMouseDown={(e) => {
               // Keep the caret in the field the toolbar is acting on, unless
@@ -179,8 +186,10 @@ export function EditorToolbars({
               }
             />
           </div>
+          </ToolbarReveal>
         ) : null
       }
+
     >
       {children}
     </EditorChrome>
