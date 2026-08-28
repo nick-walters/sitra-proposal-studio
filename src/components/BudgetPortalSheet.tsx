@@ -55,7 +55,7 @@ const COST_CATEGORIES = [
   { key: null, code: 'D.', name: 'Other cost categories', description: 'Other cost categories', isMajor: true, isGroupHeader: true },
   { key: 'financialSupportThirdParties', code: 'D.1.', name: 'Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
   { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally invoiced goods & services', description: 'Unit costs for internally invoiced goods and services' },
-  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isMajor: true, isIndirect: true },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on categories A & C only (excludes B. subcontracting, D.1 financial support to third parties and D.2 internally invoiced goods & services)', isMajor: true, isIndirect: true },
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
