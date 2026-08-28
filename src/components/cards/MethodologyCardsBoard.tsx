@@ -651,6 +651,11 @@ function FieldRow({
                 right to left: comment (floating), delete, visibility, and the
                 include-header toggle. */}
             <MarginRail>
+            {/* The impact summary's row add/delete controls join the standard
+                module controls, sitting to their left on the same rail. */}
+            {isImpactSummary && canEdit && !contentLock.lockedByOther && (
+              <ImpactSummaryRowControls editor={contentEditor.current} tick={rowTick} />
+            )}
             {canEdit && (
               <div className="flex shrink-0 items-center gap-1.5">
                 <Tip
@@ -838,9 +843,6 @@ function FieldRow({
               contentLock.onBlur();
             }}
           >
-            {isImpactSummary && canEdit && !contentLock.lockedByOther && (
-              <ImpactSummaryRowControls editor={contentEditor.current} tick={rowTick} />
-            )}
             <MethodologyRichEditor
               key={`${field.id}-${reloadNonce}`}
               proposalId={proposalId}

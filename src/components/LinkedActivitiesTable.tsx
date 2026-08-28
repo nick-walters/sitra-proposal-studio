@@ -47,7 +47,7 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   MarginRailAbsolute,
-  RAIL_DELIVERABLE_DELETE_NUDGE,
+  RAIL_DELIVERABLE_COMMENT_NUDGE,
 } from '@/components/cards/MarginRail';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
 import {
@@ -320,7 +320,7 @@ function SortableActivityRow({
           {canEdit && (
             /* On the shared margin rail, at the deliverable delete button's
                horizontal position, rather than a hand-set column offset. */
-            <MarginRailAbsolute nudge={RAIL_DELIVERABLE_DELETE_NUDGE}>
+            <MarginRailAbsolute nudge={RAIL_DELIVERABLE_COMMENT_NUDGE}>
               <DeleteConfirmDialog
                 itemLabel="this linked activity"
                 tooltip="Delete this linked activity"
