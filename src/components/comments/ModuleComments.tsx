@@ -256,7 +256,7 @@ export function ModuleCommentsProvider({
           setComposing={setComposing}
           openCount={openCount}
           members={members}
-          focusCommentId={focusCommentId}
+          focusCommentId={focusThreadId}
           onClose={() => setOpen(false)}
           onAdd={async (content, payload, parentId, assignedTo) => {
             const row = await addComment(content, {
