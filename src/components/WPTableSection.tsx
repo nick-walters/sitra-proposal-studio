@@ -575,10 +575,17 @@ function TaskModule({
       className={cn('space-y-1 bg-white py-2', !isVisible && 'opacity-50')}
       data-guideline-key="drafts.wp.task"
     >
+      {/* The anchor wraps the WHOLE task module, so its comment control stays
+          in the right-hand rail even when the module is collapsed. */}
+      <ModuleCommentAnchor
+        targetKey={wpTaskTargetId(task.id, 'description')}
+        label={`${formatTaskNumber(task.number)}`}
+      >
       {/* Row 1: badge, title, visibility, delete — inside the 18 cm column.
           The chevron and grip share the block header's left control stack, so
           a module's chevron sits in the same vertical line as its block's. */}
       <div className="flex items-center gap-1.5 py-0 pl-5 pr-[13px]">
+
         {(onToggleCollapsed || dragHandleProps) && (
           <div className={WP_CONTROL_STACK}>
             {onToggleCollapsed && (
