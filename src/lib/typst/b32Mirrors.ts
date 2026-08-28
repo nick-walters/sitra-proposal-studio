@@ -80,7 +80,7 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
     supabase
       .from('proposals')
       .select(
-        'mirror_contribution_resources, mirror_infrastructure, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification, b32_infrastructure_order, expertise_matrix_enabled',
+        'mirror_contribution_resources, mirror_value_chain, mirror_industrial_involvement, mirror_participation_justification, expertise_matrix_enabled',
       )
       .eq('id', proposalId)
       .maybeSingle(),
@@ -123,6 +123,8 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
   for (const c of (capR.data || []) as any[]) {
     if (c.caption) captions.set(c.table_key, c.caption);
   }
+
+  const infraTable = await fetchB32InfraTableData(proposalId);
 
   // Expertise matrix cells are only needed when the matrix is on.
   const matrixEnabled = prop.expertise_matrix_enabled ?? true;
@@ -228,7 +230,7 @@ function emitParagraphSlot(
       .filter((h): h is string => h !== null);
     if (!htmls.length) continue;
 
-    if (emittedAny) out.push('v(4pt, weak: true)');
+    if (emittedAny) out.push('v(3pt, weak: true)');
     emittedAny = true;
     htmls.forEach((html, i) => {
       if (i === 0) out.push(...leadInBlocks(participantChip(p), html, ctx));

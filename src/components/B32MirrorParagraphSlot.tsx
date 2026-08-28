@@ -186,7 +186,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
       }}
     >
       {rows.map(({ participant, htmls }) => (
-        <div key={participant.id} style={{ margin: '0 0 8pt 0', textAlign: 'justify' }}>
+        <div key={participant.id} style={{ margin: '0 0 3pt 0', textAlign: 'justify' }}>
           {htmls.map((html, i) => {
             const safe = renderRefBadges(DOMPurify.sanitize(html, SANITIZE_CONFIG), refData);
             return (
