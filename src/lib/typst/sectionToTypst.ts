@@ -92,6 +92,8 @@ function titleText(value: string | null | undefined): string {
 
 
 import { emitB32Slot, type B32TypstData } from './b32Mirrors';
+import { emitB32InfraTable } from './b32InfraData';
+import { B32_INFRA_DEFAULT_HEADER } from '@/extensions/B32InfraTableNode';
 
 /**
  * Mirrors the board's `B32BlockMirrors` map: which A2 mirror slots each B3.2
@@ -99,7 +101,7 @@ import { emitB32Slot, type B32TypstData } from './b32Mirrors';
  */
 const B32_BLOCK_SLOTS: Record<string, string[]> = {
   'b32.interdisciplinarity': ['interdisciplinarity'],
-  'b32.capacity': ['capacity', 'infrastructure'],
+  'b32.capacity': ['capacity'],
   'b32.value_chain_industrial': ['value-chain'],
   'b32.other_countries': ['international'],
 };
@@ -384,6 +386,14 @@ export function buildSectionTypstBody(
       titles: new Map(refEntries.map((r) => [r.refKey, r.title || ''])),
       emitted: new Set<number>(),
     },
+    b32InfraTable: options.b32Data
+      ? (header, inner) =>
+          emitB32InfraTable(
+            (options.b32Data as B32TypstData).infraTable,
+            header || B32_INFRA_DEFAULT_HEADER,
+            inner,
+          )
+      : undefined,
     b32Slot: options.b32Data
       ? (slotKey, inner) => emitB32Slot(slotKey, options.b32Data as B32TypstData, inner)
       : undefined,

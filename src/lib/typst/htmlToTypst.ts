@@ -46,6 +46,12 @@ export interface ConvertContext {
    * `b32Mirrors.ts`).
    */
   b32Slot?: (slotKey: string | null, ctx: ConvertContext) => string[];
+  /**
+   * Emits the B3.2 "Access to critical infrastructure" table. Stored HTML holds
+   * only `<div data-b32-infra-table data-header="…">`; rows come from
+   * `participant_infrastructure.project_support` (see `b32InfraData.ts`).
+   */
+  b32InfraTable?: (header: string, ctx: ConvertContext) => string[];
   /** Position-derived caption sequence for authored content outside B3.1. */
   captionNumbering?: {
     sectionNumber: string;
@@ -496,6 +502,16 @@ function convertBlock(el: Element, ctx: ConvertContext): string {
       return '';
     }
     const parts = ctx.casesTable(el.getAttribute('data-case-type-id'), label, ctx);
+    return parts.length ? `{\n${parts.join('\n')}\n}` : '';
+  }
+
+  // B3.2 critical-infrastructure table atom: rows fetched from A2.
+  if (el.hasAttribute('data-b32-infra-table')) {
+    if (!ctx.b32InfraTable) {
+      ctx.unsupported.add('B3.2 infrastructure table');
+      return '';
+    }
+    const parts = ctx.b32InfraTable(el.getAttribute('data-header') || '', ctx);
     return parts.length ? `{\n${parts.join('\n')}\n}` : '';
   }
 

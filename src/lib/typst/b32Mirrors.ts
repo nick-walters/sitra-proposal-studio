@@ -20,6 +20,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { fetchB32InfraTableData, type B32InfraTableData } from './b32InfraData';
 import {
   htmlToTypstBlocks,
   htmlToTypstInline,
@@ -66,7 +67,8 @@ export interface B32TypstData {
     }
   >;
   toggles: Record<string, boolean>;
-  infrastructure: B32InfraRow[];
+  /** Rows for the one-column "Access to critical infrastructure" table. */
+  infraTable: B32InfraTableData;
   matrix: B32MatrixData;
   captions: Map<string, string>;
 }
@@ -302,29 +304,6 @@ function cell(inner: string, align?: string): string {
   return `table.cell(${align ? `align: ${align}, ` : ''}par(justify: false, ${inner}))`;
 }
 
-function emitInfrastructure(data: B32TypstData, _ctx: ConvertContext): string[] {
-  if (!data.toggles.infrastructure || !data.infrastructure.length) return [];
-  const byId = new Map(data.participants.map((p) => [p.id, p]));
-  const cells: string[] = [
-    `table.header(${cell('strong(' + lit('Infrastructure') + ')')}, ${cell(
-      'strong(' + lit('Access') + ')',
-    )})`,
-  ];
-  for (const row of data.infrastructure) {
-    const body =
-      `strong(${lit(row.name)})` + (row.description ? ` + ${lit(`: ${row.description}`)}` : '');
-    const chips = row.participantIds
-      .map((id) => participantChip(byId.get(id)))
-      .join(' + h(3pt) + ');
-    cells.push(cell(body), cell(chips || lit('')));
-  }
-  const caption = data.captions.get('b32-infrastructure') || 'Access to critical infrastructure';
-  return [
-    `he-caption(${typstString('Table 3.2.b.')}, ${lit(caption)})`,
-    `he-authored-table((3fr, 1fr,), (${cells.join(', ')},), ${data.infrastructure.length + 1})`,
-  ];
-}
-
 function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
   const m = data.matrix;
   if (!m.enabled || !m.rows.length || !m.cols.length) return [];
@@ -366,8 +345,6 @@ export function emitB32Slot(
   switch (slotKey as B32SlotKey) {
     case 'interdisciplinarity':
       return emitMatrix(data, ctx);
-    case 'infrastructure':
-      return emitInfrastructure(data, ctx);
     case 'capacity':
     case 'value-chain':
     case 'international':
