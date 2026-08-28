@@ -188,7 +188,9 @@ function TrackMyChangesButton() {
   const setting = useTrackChangesSetting();
   return (
     <FeatureButton
-      asDiv={!setting}
+      // Always a div: the Switch inside is itself a <button>, and a nested
+      // button is invalid HTML.
+      asDiv
       leading={
         <Switch
           checked={!!setting?.enabled}
