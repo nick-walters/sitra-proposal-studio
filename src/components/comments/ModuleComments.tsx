@@ -46,7 +46,6 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -727,12 +726,75 @@ function ComposeBox({
   );
 }
 
+/**
+ * WHO IS THIS COMMENT FOR
+ *
+ * Assignment is deliberately separate from tagging: a comment names any number
+ * of people in its text, but exactly one person owns it.
+ */
+function AssigneePicker({
+  members,
+  value,
+  onChange,
+  compact = false,
+  disabled = false,
+}: {
+  members: ProposalMember[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  compact?: boolean;
+  disabled?: boolean;
+}) {
+  const assignee = members.find((m) => m.id === value);
+  const name = assignee ? assignee.full_name || assignee.email : null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild disabled={disabled}>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ${
+            value
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+              : 'text-muted-foreground'
+          } hover:bg-muted disabled:opacity-50`}
+        >
+          {value ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+          {value
+            ? `Assigned to ${name ?? 'someone no longer on this proposal'}`
+            : compact
+              ? 'Assign to…'
+              : 'Unassigned'}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+        {members.map((m) => (
+          <DropdownMenuItem key={m.id} onClick={() => onChange(m.id)} className="text-[12px]">
+            {m.full_name || m.email}
+          </DropdownMenuItem>
+        ))}
+        {value && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onChange(null)} className="text-[12px]">
+              Clear the assignment
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ThreadCard({
   thread,
   canEdit,
   isCoordinator,
   deletedModule,
+  members,
+  focused,
   onAdd,
+  onAssign,
   onEdit,
   onResolve,
   onDelete,
@@ -741,11 +803,19 @@ function ThreadCard({
   canEdit: boolean;
   isCoordinator: boolean;
   deletedModule: boolean;
+  members: ProposalMember[];
+  focused: boolean;
   onAdd: (
     content: string,
     payload: ModuleAnchorPayload,
     parentId?: string,
+    assignedTo?: string | null,
   ) => Promise<void>;
+  onAssign: (
+    commentId: string,
+    assignedTo: string | null,
+    payload: ModuleAnchorPayload,
+  ) => void | Promise<void>;
   onEdit: (id: string, content: string) => void | Promise<void>;
   onResolve: (id: string, status: 'open' | 'resolved' | 'rejected') => void;
   onDelete: (id: string) => void;
@@ -757,13 +827,14 @@ function ThreadCard({
   const payload = payloadOf(thread);
   const isAuthor = user?.id === thread.user_id;
   const mayResolve = isAuthor || isCoordinator;
+  const mayAssign = isAuthor || isCoordinator;
   const resolved = thread.status === 'resolved';
 
   return (
     <div
-      className={`rounded-md border border-border bg-card p-2 text-[12px] shadow-sm ${
+      className={`rounded-md border bg-card p-2 text-[12px] shadow-sm ${
         resolved ? 'opacity-60' : ''
-      }`}
+      } ${focused ? 'border-blue-500 ring-1 ring-blue-500' : 'border-border'}`}
     >
       <p className="mb-1 truncate text-[10px] uppercase tracking-wide text-muted-foreground">
         {deletedModule ? 'Deleted module' : (payload?.label ?? 'Module')}
@@ -836,6 +907,7 @@ function ThreadCard({
         <div className="mt-1.5">
           <ComposeBox
             label="Edit"
+            members={members}
             initialText={thread.content}
             submitLabel="Save"
             placeholder="Edit your comment…"
@@ -847,8 +919,21 @@ function ThreadCard({
           />
         </div>
       ) : (
-        <p className="whitespace-pre-wrap">{thread.content}</p>
+        <p className="whitespace-pre-wrap">{renderMentionContent(thread.content)}</p>
       )}
+
+      {/* Assignment survives resolving and reopening — it is a property of the
+          comment, not of its status. */}
+      <div className="mt-1.5">
+        <AssigneePicker
+          members={members}
+          value={thread.assigned_to}
+          disabled={!mayAssign}
+          onChange={(id) => {
+            if (payload) void onAssign(thread.id, id, payload);
+          }}
+        />
+      </div>
 
       {(thread.replies ?? []).map((r) => {
         const mine = user?.id === r.user_id;
@@ -885,6 +970,7 @@ function ThreadCard({
             {editingReplyId === r.id ? (
               <ComposeBox
                 label="Edit reply"
+                members={members}
                 initialText={r.content}
                 submitLabel="Save"
                 placeholder="Edit your reply…"
@@ -895,7 +981,7 @@ function ThreadCard({
                 }}
               />
             ) : (
-              <p className="whitespace-pre-wrap">{r.content}</p>
+              <p className="whitespace-pre-wrap">{renderMentionContent(r.content)}</p>
             )}
           </div>
         );
@@ -906,8 +992,9 @@ function ThreadCard({
           <div className="mt-1.5">
             <ComposeBox
               label="Reply"
+              members={members}
               submitLabel="Reply"
-              placeholder="Reply…"
+              placeholder="Reply… type @ to tag someone"
               onCancel={() => setReplying(false)}
               onSubmit={async (text) => {
                 if (payload) await onAdd(text, payload, thread.id);
