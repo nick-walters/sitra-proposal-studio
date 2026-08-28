@@ -5,7 +5,6 @@ import {
   History,
   Search,
   GitCompare,
-  MessageSquare,
   Sparkles,
   FileText,
   Loader2,
