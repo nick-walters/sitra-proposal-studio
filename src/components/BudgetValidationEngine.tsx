@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { formatPercent } from '@/lib/formatNumber';
+import { formatPercent, formatCurrency } from '@/lib/formatNumber';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,6 +32,36 @@ interface ValidationRule {
   passed: boolean;
 }
 
+/**
+ * The topic's indicative maximum budget per project is captured as free text on
+ * the topic information page (`proposals.indicative_budget_per_project`), e.g.
+ * "15000000", "€3 500 000" or a range such as "3,000,000–4,000,000". We take the
+ * largest number found — for a range that is the upper bound, which is the
+ * ceiling a proposal must not exceed. Returns null when nothing parseable is
+ * stored, in which case the check is skipped rather than failed.
+ */
+export function parseIndicativeMaximum(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const matches = String(text).match(/\d[\d\s.,]*/g);
+  if (!matches) return null;
+  const values: number[] = [];
+  for (const raw of matches) {
+    // Strip spaces and thousands separators; treat a trailing ",dd"/".dd" as decimals.
+    let s = raw.replace(/\s/g, '');
+    const dec = s.match(/[.,](\d{1,2})$/);
+    let fraction = 0;
+    if (dec) {
+      fraction = Number(`0.${dec[1]}`);
+      s = s.slice(0, dec.index);
+    }
+    const whole = Number(s.replace(/[.,]/g, ''));
+    if (Number.isFinite(whole) && whole > 0) values.push(whole + fraction);
+  }
+  if (values.length === 0) return null;
+  return Math.max(...values);
+}
+
+
 export function BudgetValidationDialog({ proposalId, open, onOpenChange }: BudgetValidationDialogProps) {
   const [rules, setRules] = useState<ValidationRule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,10 +70,11 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
   const runValidation = async () => {
     setLoading(true);
     try {
-      const [{ data: budgetRows }, { data: participants }, { data: effortData }] = await Promise.all([
+      const [{ data: budgetRows }, { data: participants }, { data: effortData }, { data: proposal }] = await Promise.all([
         supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
         supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
+        supabase.from('proposals').select('proposal_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
 
       const results: ValidationRule[] = [];
@@ -89,6 +121,34 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + direct;
         byParticipantExFstp[r.participant_id] = (byParticipantExFstp[r.participant_id] || 0) + directExFstp;
       });
+
+      // Requested EU contribution vs the topic's indicative maximum budget.
+      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
+      if (indicativeMax != null && rows.length > 0) {
+        const partById = new Map(parts.map((p) => [p.id, p]));
+        const requestedTotal = rows.reduce((sum, r: any) => {
+          const out = computeBudgetRow({
+            ...r,
+            totalPersonMonths: pmTotals.get(r.participant_id) || 0,
+            proposalType: (proposal as any)?.proposal_type ?? null,
+            organisationCategory: partById.get(r.participant_id)?.organisation_category ?? null,
+          });
+          return sum + out.requestedEuContribution;
+        }, 0);
+        const overage = Math.round((requestedTotal - indicativeMax) * 100) / 100;
+        const exceeded = overage > 0;
+        results.push({
+          id: 'indicative-maximum',
+          name: 'Indicative maximum budget',
+          severity: exceeded ? 'error' : 'info',
+          message: exceeded
+            ? `Requested EU contribution ${formatCurrency(requestedTotal)} exceeds the topic's indicative maximum ${formatCurrency(indicativeMax)} by ${formatCurrency(overage)}`
+            : `Requested EU contribution ${formatCurrency(requestedTotal)} is within the topic's indicative maximum ${formatCurrency(indicativeMax)}`,
+          passed: !exceeded,
+        });
+      }
+
+
 
       if (rows.length === 0) {
         results.push({ id: 'empty-budget', name: 'Budget populated', severity: 'error', message: 'No budget data has been entered', passed: false });

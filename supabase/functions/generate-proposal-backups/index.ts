@@ -892,7 +892,8 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     const internally = Number(r.internally_invoiced || 0);
     const procurement = Number(r.procurement || 0);
     const directCosts = personnelCosts + subcontracting + travel + equipment + otherGoods + fstp + internally + procurement;
-    const indirectBase = directCosts - subcontracting - fstp;
+    // 25% flat rate on A + C only (excludes B, D.1 and D.2).
+    const indirectBase = personnelCosts + travel + equipment + otherGoods + procurement;
     const indirectOverride = r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null;
     const indirectCosts = indirectOverride ?? Math.round(indirectBase * 0.25 * 100) / 100;
     const totalEligibleCosts = directCosts + indirectCosts;
@@ -914,7 +915,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
       const reqFstp = r.requested_fstp != null ? Number(r.requested_fstp) : fstp;
       const reqInternally = r.requested_internally_invoiced != null ? Number(r.requested_internally_invoiced) : internally;
       const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
-      const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25 * 100) / 100;
+      const reqIndirect = Math.round((reqPersonnel + reqTravel + reqEquip + reqOther) * 0.25 * 100) / 100;
       requestedEuContribution = Math.min(reqDirectTotal + reqIndirect, maxEuContribution);
     } else {
       requestedEuContribution = reqOverride != null ? Math.min(reqOverride, maxEuContribution) : maxEuContribution;
@@ -1052,7 +1053,7 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     const personnelFormula = row.pmRate != null && row.pmRate > 0
       ? { f: `=ROUND(B${r}*C${r},0)` } : row.personnelCosts;
     const indirectFormula = row.indirectCostsOverride != null
-      ? row.indirectCostsOverride : { f: `=ROUND((D${r}+F${r}+G${r}+H${r}+J${r})*0.25,2)` };
+      ? row.indirectCostsOverride : { f: `=ROUND((D${r}+F${r}+G${r}+H${r})*0.25,2)` };
     const totalCostsFormula = { f: `=D${r}+E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}` };
     const fundingRate = row.fundingRate;
     const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,2)` };

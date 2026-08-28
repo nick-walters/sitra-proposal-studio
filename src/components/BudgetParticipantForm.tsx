@@ -110,13 +110,16 @@ export function BudgetParticipantForm({
     return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
   }, [row]);
 
-  // Auto-calculate requested indirect costs: 25% of (requested direct - requested sub - requested fstp)
+  // Auto-calculate requested indirect costs: 25% of categories A + C only
+  // (excludes B. subcontracting, D.1 FSTP and D.2 internally invoiced).
   const requestedIndirectCosts = useMemo(() => {
     if (!row || !row.hasInKind) return 0;
-    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
-    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
-    return Math.round((requestedDirectCosts - reqSub - reqFstp) * 0.25);
-  }, [row, requestedDirectCosts]);
+    const reqPersonnel = row.requestedPersonnelCosts ?? row.personnelCosts;
+    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
+    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
+    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
+    return Math.round((reqPersonnel + reqTravel + reqEquip + reqOther) * 0.25);
+  }, [row]);
 
   const inKindTotalRequested = useMemo(() => {
     if (!row || !row.hasInKind) return 0;

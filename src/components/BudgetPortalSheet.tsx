@@ -55,7 +55,7 @@ const COST_CATEGORIES = [
   { key: null, code: 'D.', name: 'Other cost categories', description: 'Other cost categories', isMajor: true, isGroupHeader: true },
   { key: 'financialSupportThirdParties', code: 'D.1.', name: 'Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
   { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally invoiced goods & services', description: 'Unit costs for internally invoiced goods and services' },
-  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isMajor: true, isIndirect: true },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on categories A & C only (excludes B. subcontracting, D.1 financial support to third parties and D.2 internally invoiced goods & services)', isMajor: true, isIndirect: true },
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
@@ -321,10 +321,12 @@ export function BudgetPortalSheet({
       const fstp = row.financialSupportThirdParties;
       const internally = row.internallyInvoiced;
 
-      // K: Indirect costs = ROUND((D+F+G+H+J)*0.25, 2) [excl sub E and fstp I]
+      // K: Indirect costs = ROUND((D+F+G+H)*0.25, 2)
+      // A (D) + C (F,G,H) only — excludes B. subcontracting (E),
+      // D.1 FSTP (I) and D.2 internally invoiced (J).
       const indirectFormula = row.indirectCostsOverride != null
         ? row.indirectCostsOverride
-        : { f: `=ROUND((D${r}+F${r}+G${r}+H${r}+J${r})*0.25,2)` };
+        : { f: `=ROUND((D${r}+F${r}+G${r}+H${r})*0.25,2)` };
 
       // L: Total costs = D+E+F+G+H+I+J+K
       const totalCostsFormula = { f: `=D${r}+E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}` };

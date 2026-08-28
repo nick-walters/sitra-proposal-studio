@@ -21,7 +21,9 @@ import type { CardField } from '@/types/cards';
 const BLOCK_SLOTS: Record<string, B32SlotKey[]> = {
   'b32.interdisciplinarity': ['interdisciplinarity'],
   'b32.capacity': ['capacity', 'infrastructure'],
-  'b32.value_chain_industrial': ['value-chain', 'industrial'],
+  // The value-chain slot now emits value chain content followed by industrial
+  // involvement for each participant, so there is no separate industrial slot.
+  'b32.value_chain_industrial': ['value-chain'],
   'b32.other_countries': ['international'],
 };
 

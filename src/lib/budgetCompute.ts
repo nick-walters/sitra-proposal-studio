@@ -70,7 +70,11 @@ export function computeBudgetRow(input: BudgetComputeInput): BudgetComputeOutput
 
   const directCosts = personnel + sub + travel + equip + other + fstp + internally + procurement;
 
-  const indirectBase = directCosts - sub - fstp;
+  // 25% flat-rate indirect costs apply to categories A (personnel) and C
+  // (purchases: travel, equipment, other goods & services) ONLY. They exclude
+  // B (subcontracting), D.1 (financial support to third parties) and
+  // D.2 (internally invoiced goods & services).
+  const indirectBase = personnel + travel + equip + other + procurement;
   const indirect = input.indirect_costs_override != null
     ? Number(input.indirect_costs_override)
     : Math.round(indirectBase * 0.25 * 100) / 100;
@@ -98,7 +102,8 @@ export function computeBudgetRow(input: BudgetComputeInput): BudgetComputeOutput
     const reqInternally = input.requested_internally_invoiced ?? internally;
     const reqDirectTotal =
       n(reqPersonnel) + n(reqSub) + n(reqTravel) + n(reqEquip) + n(reqOther) + n(reqFstp) + n(reqInternally);
-    const reqIndirect = Math.round((reqDirectTotal - n(reqSub) - n(reqFstp)) * 0.25 * 100) / 100;
+    // Indirect on A + C only (excludes B, D.1 and D.2).
+    const reqIndirect = Math.round((n(reqPersonnel) + n(reqTravel) + n(reqEquip) + n(reqOther)) * 0.25 * 100) / 100;
     requestedEuContribution = Math.min(reqDirectTotal + reqIndirect, maxEuContribution);
   } else {
     requestedEuContribution = input.requested_eu_contribution != null
