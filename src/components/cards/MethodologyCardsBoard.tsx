@@ -768,7 +768,10 @@ function FieldRow({
               // The extra 2 px matches the transparent 2 px focus border that
               // wraps every text module, so the table's left edge lands on the
               // same pixel as the body text rather than 2 px outside it.
-              : 'doc-surface-page -mx-3 !w-[calc(100%+24px)] bg-white px-[calc(1.5cm+2px)] py-[3pt] [&>*]:!w-[18cm] [&>*]:!max-w-[18cm]'
+              // The table fills that column exactly — forcing a literal 18 cm
+              // made it overrun the right margin whenever the page frame was a
+              // few pixels narrower than 21 cm.
+              : 'doc-surface-page -mx-3 !w-[calc(100%+24px)] bg-white px-[calc(1.5cm+2px)] py-[3pt] [&>*]:!w-full [&>*]:!max-w-full'
           }
         >
 
