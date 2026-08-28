@@ -211,6 +211,35 @@ function TrackMyChangesButton() {
   );
 }
 
+/**
+ * The Comments control. A surface that mounts `ModuleCommentsProvider` wires
+ * itself automatically through context, so the panel needs no prop drilling;
+ * surfaces with their own handler keep passing `onOpenComments`.
+ */
+function CommentsPanelButton({
+  onOpenComments,
+  commentCount,
+}: {
+  onOpenComments?: () => void;
+  commentCount?: number;
+}) {
+  const modules = useModuleComments();
+  const handler =
+    onOpenComments ?? (modules ? () => modules.setOpen(!modules.open) : undefined);
+  const count = commentCount ?? modules?.openCount;
+  return (
+    <FeatureButton
+      icon={<MessageSquare className="h-3.5 w-3.5" />}
+      primary="Comments"
+      secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
+      secondarySmall
+      tooltip="Open the comments panel"
+      disabled={!handler}
+      onClick={handler}
+    />
+  );
+}
+
 export function EditorTopBar({
   saving,
   lastSaved,
