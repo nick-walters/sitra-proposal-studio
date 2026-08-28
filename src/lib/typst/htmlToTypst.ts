@@ -170,17 +170,15 @@ function convertInline(node: Node, ctx: ConvertContext): string {
   if (el.hasAttribute('data-citation')) {
     return convertCitation(el, ctx);
   }
-  // Tracked changes read as a marked-up draft in the PDF, exactly as they do
-  // in the editor: an insertion is underlined in the author's colour, a
-  // deletion is struck through in it. Never silently accept a deletion.
-  if (el.hasAttribute('data-track-insertion') || el.hasAttribute('data-track-deletion')) {
-    const deleted = el.hasAttribute('data-track-deletion');
-    const inner = convertInlineChildren(el, ctx);
-    const author = (el.getAttribute('data-author-color') || '').trim();
-    const colour = /^#[0-9a-fA-F]{3,8}$/.test(author) ? author : '#3B82F6';
-    const tinted = `text(fill: rgb(${typstString(colour)}), ${inner})`;
-    return deleted ? `strike(${tinted})` : `underline(${tinted})`;
+  // Tracked changes never reach the preview or the export. The document is
+  // rendered as it stood BEFORE the tracked editing — every pending change
+  // rejected: an insertion is omitted, a deletion is restored as ordinary
+  // text. A change only shows once it has been accepted in the editor.
+  if (el.hasAttribute('data-track-insertion')) return '';
+  if (el.hasAttribute('data-track-deletion')) {
+    return convertInlineChildren(el, ctx);
   }
+
 
   if (tag === 'a') {
     const href = el.getAttribute('href') || '';
