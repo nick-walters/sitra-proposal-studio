@@ -20,7 +20,7 @@ import { smartTimestamp } from '@/lib/smartTimestamp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
-import { findEditorForNode, waitForEditorAt } from '@/lib/trackChangeEditorRegistry';
+import { resolveChangeAtElement, trackChangePermissions } from '@/lib/trackChangeResolve';
 import { toast } from 'sonner';
 
 const SELECTOR = '[data-track-insertion],[data-track-deletion]';
@@ -165,24 +165,13 @@ export function TrackChangeHoverTooltip({ proposalId }: { proposalId?: string })
       if (!changeId) return;
       setBusy(true);
       try {
-        let editor = findEditorForNode(el);
-        if (!editor) {
-          const point = { x, y: y + 2 };
-          const opts = { bubbles: true, cancelable: true, clientX: point.x, clientY: point.y };
-          el.dispatchEvent(new MouseEvent('mousedown', opts));
-          el.dispatchEvent(new MouseEvent('mouseup', opts));
-          el.dispatchEvent(new MouseEvent('click', opts));
-          editor = await waitForEditorAt(el, point);
-        }
-        if (!editor || editor.isDestroyed) {
+        // Same path the review panel uses, so both routes behave identically.
+        const outcome = await resolveChangeAtElement(el, changeId, action, { x, y: y + 2 });
+        if (outcome === 'no-editor') {
           toast.error('Open the field first, then accept or reject the change.');
           return;
         }
-        const ok =
-          action === 'accept'
-            ? editor.commands.acceptChange(changeId)
-            : editor.commands.rejectChange(changeId);
-        if (!ok) {
+        if (outcome === 'failed') {
           toast.error('That change could not be resolved.');
           return;
         }
@@ -196,12 +185,13 @@ export function TrackChangeHoverTooltip({ proposalId }: { proposalId?: string })
 
   if (!hover) return null;
 
-  const isCoordinator = roleTier === 'coordinator';
-  const isOwnChange = !!user?.id && hover.authorId === user.id;
   // Coordinator and above may resolve any change. A change's own author may
   // withdraw their own edit — rejecting it is not a review action.
-  const canAccept = isCoordinator;
-  const canReject = isCoordinator || isOwnChange;
+  const { canAccept, canReject } = trackChangePermissions({
+    roleTier,
+    userId: user?.id,
+    authorId: hover.authorId,
+  });
 
   return createPortal(
     <div
