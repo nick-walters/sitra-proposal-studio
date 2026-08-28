@@ -1220,6 +1220,13 @@ function CardBlock({
   })();
 
 
+  /**
+   * Modules collapse WHILE being dragged, exactly as blocks do. View-only:
+   * nothing is written, and every module returns to its stored state when the
+   * drag ends.
+   */
+  const [isDraggingField, setIsDraggingField] = useState(false);
+
   const handleFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -1664,7 +1671,12 @@ function CardBlock({
               <DndContext
                 sensors={fieldSensors}
                 collisionDetection={closestCenter}
-                onDragEnd={handleFieldDragEnd}
+                onDragStart={() => setIsDraggingField(true)}
+                onDragCancel={() => setIsDraggingField(false)}
+                onDragEnd={(event) => {
+                  setIsDraggingField(false);
+                  handleFieldDragEnd(event);
+                }}
               >
                 <SortableContext
                   items={orderedFields.map((f) => f.id)}
@@ -1696,7 +1708,9 @@ function CardBlock({
                         onFlushContent={onFlushContent}
                         reloadNonce={reloadNonce}
                         collapsed={contentHidden}
-                        moduleCollapsed={moduleCollapsedKeys.has(moduleCollapseKey(f.id))}
+                        moduleCollapsed={
+                          isDraggingField || moduleCollapsedKeys.has(moduleCollapseKey(f.id))
+                        }
                         onToggleModuleCollapsed={() =>
                           setModuleCollapsed.mutate({
                             keys: [moduleCollapseKey(f.id)],

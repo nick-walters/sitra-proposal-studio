@@ -587,6 +587,14 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   );
 
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  /**
+   * Modules collapse WHILE being dragged, exactly as Part B blocks do, so the
+   * list stays short enough to reorder. This is view-only state: nothing is
+   * written, and each module returns to its own stored collapsed/expanded
+   * state the moment the drag ends.
+   */
+  const [isDraggingSubsection, setIsDraggingSubsection] = useState(false);
+
   const handleSubsectionDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -1076,7 +1084,16 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             </p>
           )}
 
-          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubsectionDragEnd}>
+          <DndContext
+            sensors={dndSensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => setIsDraggingSubsection(true)}
+            onDragCancel={() => setIsDraggingSubsection(false)}
+            onDragEnd={(event) => {
+              setIsDraggingSubsection(false);
+              handleSubsectionDragEnd(event);
+            }}
+          >
             <SortableContext items={subsectionTemplates.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               <div>
                 {subsectionTemplates.map((sub) => (
@@ -1104,7 +1121,10 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                     value={entryBody(subsectionContent[sub.key])}
                     onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
                     readOnly={readOnly}
-                    collapsed={collapsedKeys.has(caseSubsectionCollapseKey(caseId, sub.key))}
+                    collapsed={
+                      isDraggingSubsection ||
+                      collapsedKeys.has(caseSubsectionCollapseKey(caseId, sub.key))
+                    }
                     onToggleCollapsed={() => toggleCollapsed(caseSubsectionCollapseKey(caseId, sub.key))}
                     shouldStayMounted={shouldStayMounted}
                   />
