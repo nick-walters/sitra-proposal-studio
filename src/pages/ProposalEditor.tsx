@@ -1100,7 +1100,7 @@ export function ProposalEditor() {
   return (
     <TrackChangesProvider proposalId={id}>
     {/* Author and time of every tracked change, on hover, on every surface. */}
-    <TrackChangeHoverTooltip />
+    <TrackChangeHoverTooltip proposalId={id} />
     <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}

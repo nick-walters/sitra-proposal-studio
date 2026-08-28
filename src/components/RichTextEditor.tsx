@@ -1,4 +1,6 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
+import { registerTrackEditor } from '@/lib/trackChangeEditorRegistry';
+
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Slice, Fragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
@@ -2301,8 +2303,16 @@ StarterKit.configure({
     return () => clearTimeout(timer);
   }, [editor, content, isReady, trackChanges?.onChangesUpdate]);
 
+  // Let the page-wide tracked-change tooltip resolve a change in place: it
+  // needs the live editor that owns the hovered mark.
+  useEffect(() => {
+    if (!editor) return;
+    return registerTrackEditor(editor);
+  }, [editor]);
+
   return editor;
 }
+
 
 // Export a method to programmatically insert an image
 export function useEditorActions(editor: ReturnType<typeof useEditor>) {
