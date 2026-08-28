@@ -419,9 +419,17 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
     if (edge) ro.observe(edge);
     const railRow = findRailRow(el);
     if (railRow) ro.observe(railRow);
+    // The control row a title anchor belongs to is a SIBLING, and its glyphs
+    // often arrive a tick after the title — a control that appears on load, or
+    // once permissions resolve. Watching the row's container for added nodes
+    // re-measures then, so the button never stays stranded at the top edge.
+    const rowHost = el.parentElement?.parentElement ?? null;
+    const mo = rowHost ? new MutationObserver(measure) : null;
+    if (rowHost && mo) mo.observe(rowHost, { childList: true, subtree: true });
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();
+      mo?.disconnect();
       window.removeEventListener('resize', measure);
     };
   }, [ref]);
