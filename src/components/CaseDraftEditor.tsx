@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { saveVersionedRow, saveCaseDraftSubsection } from '@/lib/versionedSave';
+import { saveVersionedRow, saveCaseDraftSubsection, binTargetRow } from '@/lib/versionedSave';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { fetchCaseSubsections, rowsToSubsectionMap, entryBody, entryHeading } from '@/lib/caseSubsections';
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
+  ModuleCommentButton,
 } from '@/components/comments/ModuleComments';
 import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
 import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
@@ -32,7 +33,7 @@ import {
 } from '@/components/MethodologyEditorFocusContext';
 
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown } from 'lucide-react';
+import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown, Eye, EyeOff, Trash2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -513,8 +514,12 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
   // Project-wide subsection templates
-  const { templates: subsectionTemplates, addRow: addSubsection, reorder: reorderSubsections } =
-    useCaseSubsectionTemplates(proposalId);
+  const {
+    templates: subsectionTemplates,
+    addRow: addSubsection,
+    reorder: reorderSubsections,
+    updateRow: updateSubsection,
+  } = useCaseSubsectionTemplates(proposalId);
 
   /* Per-user collapse state for the subsection blocks, in the same store WP
      blocks and Part B modules use, so Collapse all behaves identically. */
@@ -551,6 +556,22 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // subsection set is project-wide rather than owned by one case.
   const [binOpen, setBinOpen] = useState(false);
   const binCount = useWPBinCount(proposalId, 'case_subsection', 'proposal');
+
+  /** Deletes a subsection module into the 90-day bin, restorable in full. */
+  const deleteSubsectionToBin = useCallback(
+    async (subsectionId: string, heading: string) => {
+      const res = await binTargetRow('case_subsection', subsectionId);
+      if (!res.ok) {
+        toast.error(res.error || 'Could not delete this subsection');
+        return;
+      }
+      toast.success(`“${heading}” moved to the bin`);
+      queryClient.invalidateQueries({ queryKey: ['case-subsection-templates', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-bin-count', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
+    },
+    [proposalId, caseId, queryClient],
+  );
 
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const handleSubsectionDragEnd = useCallback((event: DragEndEvent) => {
