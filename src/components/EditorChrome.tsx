@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useModuleComments } from '@/components/comments/ModuleComments';
 import { Switch } from '@/components/ui/switch';
 import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
