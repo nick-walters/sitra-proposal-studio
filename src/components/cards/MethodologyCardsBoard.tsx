@@ -38,6 +38,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
 import { Tip } from '@/components/ui/control-tip';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -716,20 +722,21 @@ function FieldRow({
                   </Tip>
                 </AlertDialogTrigger>
 
-                <AlertDialogContent>
+                <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Delete “{(field.headingEnabled && htmlToPlainText(field.heading ?? '')) || 'this module'}”?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>{deleteDialogTitle('module')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      The whole module — both text boxes and their version histories — moves to
-                      the recycle bin, where it is kept until 90 days after the proposal is
-                      submitted, and can be restored in full.
+                      {deleteDialogDescription('module')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDelete(field)}>Delete</AlertDialogAction>
+                    <AlertDialogAction
+                      className={DELETE_DIALOG_ACTION_CLASS}
+                      onClick={() => onDelete(field)}
+                    >
+                      Delete
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -1553,18 +1560,21 @@ function CardBlock({
                     </Button>
                   </Tip>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Delete “{htmlToPlainText(card.title ?? '') || 'this block'}”?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>{deleteDialogTitle('block')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      The block and its modules move to the recycle bin, where they are kept until 90 days after the proposal is submitted, and can be restored.
+                      {deleteDialogDescription('block')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDeleteCard(card)}>Delete</AlertDialogAction>
+                    <AlertDialogAction
+                      className={DELETE_DIALOG_ACTION_CLASS}
+                      onClick={() => onDeleteCard(card)}
+                    >
+                      Delete
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

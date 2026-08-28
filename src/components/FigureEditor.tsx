@@ -483,17 +483,17 @@ export function FigureEditor({
                     Delete
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this figure?</AlertDialogTitle>
+                    <AlertDialogTitle>{deleteDialogTitle('figure')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This cannot be undone.
+                      {deleteDialogDescription('figure')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className={DELETE_DIALOG_ACTION_CLASS}
                       onClick={() => onDelete()}
                     >
                       Delete
