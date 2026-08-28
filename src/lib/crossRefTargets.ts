@@ -15,6 +15,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { captionKind, captionLetter } from '@/lib/cards/captionSlots';
+import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
@@ -65,15 +66,19 @@ function captionDescription(p: Element): string {
 }
 
 /** Caption slots a stored fragment occupies, IN DOCUMENT ORDER. */
-function orderedCaptions(html: string | null | undefined): { kind: 'table' | 'figure'; title: string }[] {
+function orderedCaptions(
+  html: string | null | undefined,
+  captionForCaseType: (typeId: string | null) => string,
+): { kind: 'table' | 'figure'; title: string }[] {
   if (!html || typeof document === 'undefined') return [];
   const holder = document.createElement('div');
   holder.innerHTML = html;
   const out: { kind: 'table' | 'figure'; title: string }[] = [];
   holder.querySelectorAll('div[data-cases-table-node], p').forEach((el) => {
     if (el.matches('div[data-cases-table-node]')) {
-      // The atom carries its caption inside its node view, not in the HTML.
-      out.push({ kind: 'table', title: '' });
+      // The atom carries its caption inside its node view, not in the HTML —
+      // it is the bound case type's caption, exactly as the node view draws it.
+      out.push({ kind: 'table', title: captionForCaseType(el.getAttribute('data-case-type-id')) });
       return;
     }
     const kind = captionKind(el);
@@ -81,6 +86,7 @@ function orderedCaptions(html: string | null | undefined): { kind: 'table' | 'fi
   });
   return out;
 }
+
 
 function sectionCaptionNumber(sectionNumber: string | null | undefined): string {
   return (sectionNumber || '').replace(/^[A-Za-z]+/, '') || '1.1';
@@ -90,7 +96,7 @@ function sectionCaptionNumber(sectionNumber: string | null | undefined): string 
  * Enumerates every cross-referenceable table and figure of a proposal.
  */
 export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRefTargets> {
-  const [cardRes, fieldRes, placementRes, figureRes, captionRes] = await Promise.all([
+  const [cardRes, fieldRes, placementRes, figureRes, captionRes, caseTypeRes] = await Promise.all([
     supabase
       .from('proposal_cards')
       .select('id, section_id, order_index, anchor, kind, title, source_key, is_source_fed, is_visible, deleted_at')
@@ -99,14 +105,31 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
       .eq('is_visible', true),
     supabase
       .from('card_fields')
-      .select('id, card_id, order_index, content_html, field_role, is_visible, deleted_at')
+      .select('id, card_id, order_index, content_html, field_role, placeholder_case_type_id, is_visible, deleted_at')
       .eq('proposal_id', proposalId)
       .is('deleted_at', null)
       .eq('is_visible', true),
     supabase.from('card_figure').select('card_id, figure_id, caption').eq('proposal_id', proposalId),
     supabase.from('figures').select('id, title, caption, deleted_at').eq('proposal_id', proposalId),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
+    // The pilots table's caption belongs to the CASE TYPE it is bound to — the
+    // case manager writes it — not to the block it happens to sit in.
+    supabase
+      .from('proposal_case_types')
+      .select('id, caption_text, type_code, custom_type_name')
+      .eq('proposal_id', proposalId),
   ]);
+
+  const caseTypeCaption = new Map(
+    (caseTypeRes.data || []).map((t) => [
+      t.id as string,
+      (t.caption_text || '').trim()
+        || `${getCaseTypeLabel(t.type_code, t.custom_type_name, { plural: false })} descriptions`,
+    ]),
+  );
+  const captionForCaseType = (typeId: string | null) =>
+    (typeId && caseTypeCaption.get(typeId)) || '';
+
 
   const cards = cardRes.data || [];
   const sectionIds = Array.from(new Set(cards.map((c) => c.section_id).filter(Boolean))) as string[];
@@ -217,16 +240,20 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
 
       for (const field of fieldsByCard.get(card.id) || []) {
         if (field.field_role === 'case_placeholder') {
+          // NOT the block's title: the projected pilots table carries the
+          // caption the case manager wrote for its bound case type.
           tables.push({
             kind: 'table',
             label: `${number}.${captionLetter(tableIdx)}`,
-            title: htmlToPlainText(card.title || '').trim(),
+            title:
+              captionForCaseType(field.placeholder_case_type_id as string | null)
+              || htmlToPlainText(card.title || '').trim(),
             sectionId: section.id,
           });
           tableIdx += 1;
           continue;
         }
-        for (const cap of orderedCaptions(field.content_html)) {
+        for (const cap of orderedCaptions(field.content_html, captionForCaseType)) {
           if (cap.kind === 'table') {
             tables.push({
               kind: 'table',
