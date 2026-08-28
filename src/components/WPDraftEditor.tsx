@@ -951,6 +951,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 {wpDraft.title?.trim() || ''}
               </span>
             </div>
+            </ModuleCommentAnchor>
 
             {/* Metadata row: the leader badge and the derived duration carry no
                 headings — the badge and the month range read for themselves. */}
