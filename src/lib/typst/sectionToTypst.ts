@@ -92,6 +92,17 @@ function titleText(value: string | null | undefined): string {
 
 
 import { emitB32Slot, type B32TypstData } from './b32Mirrors';
+
+/**
+ * Mirrors the board's `B32BlockMirrors` map: which A2 mirror slots each B3.2
+ * block auto-attaches when its stored HTML does not already embed them.
+ */
+const B32_BLOCK_SLOTS: Record<string, string[]> = {
+  'b32.interdisciplinarity': ['interdisciplinarity'],
+  'b32.capacity': ['capacity', 'infrastructure'],
+  'b32.value_chain_industrial': ['value-chain'],
+  'b32.other_countries': ['international'],
+};
 import {
   B32_CONDITIONAL_KEYS,
   deriveB32Signals,
@@ -488,6 +499,22 @@ export function buildSectionTypstBody(
       continue;
     }
 
+    // B3.2 auto-attached mirrors. On the board these slots are NOT part of the
+    // stored HTML: `B32BlockMirrors` renders them above the block's modules
+    // for every slot the migrated HTML does not already embed. The export must
+    // do the same, or the mirrored A2 content is missing from the document.
+    if (options.b32Data) {
+      const blockKeys = B32_BLOCK_SLOTS[card.templateKey || ''] || [];
+      if (blockKeys.length) {
+        const html = (tree.fieldsByCard[card.id] || [])
+          .map((f) => f.contentHtml || '')
+          .join('');
+        for (const key of blockKeys) {
+          if (html.includes(`data-b32-slot-key="${key}"`)) continue;
+          out.push(...emitB32Slot(key, options.b32Data as B32TypstData, ctx));
+        }
+      }
+    }
 
 
     for (const field of tree.fieldsByCard[card.id] || []) {
