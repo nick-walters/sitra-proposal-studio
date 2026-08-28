@@ -1255,6 +1255,14 @@ function CardBlock({
               fontSize: '11pt',
             }}
           >
+            {/* A block title is not a rich text module, but it is commentable
+                through the very same anchor: the wrapper measures it and
+                never touches what it wraps. */}
+            <ModuleCommentAnchor
+              targetKey={cardTitleTarget(card.id)}
+              label={`${htmlToPlainText(card.title ?? '').trim() || 'Untitled block'} — block title`}
+              controlClassName="-right-1"
+            >
             {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
