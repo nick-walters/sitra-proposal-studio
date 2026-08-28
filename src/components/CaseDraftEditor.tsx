@@ -95,28 +95,9 @@ import { stripWordHtml } from '@/lib/stripWordHtml';
 
 
 
-const SITRA_CASE_TIPS = [
-  {
-    id: 'sitra-case-1',
-    title: 'Make each case distinct',
-    content: 'Each case should address a clearly different context, sector, or geography. Avoid overlap — evaluators want to see breadth and complementarity across cases.',
-  },
-  {
-    id: 'sitra-case-2',
-    title: 'Ground cases in real needs',
-    content: 'Cases are most convincing when rooted in genuine, documented needs of end-users or stakeholders. Reference existing evidence or engagement activities.',
-  },
-  {
-    id: 'sitra-case-3',
-    title: 'Show the path to impact',
-    content: 'For each case, make the connection from activities to outcomes to wider impact explicit. This helps evaluators see how results will materialise beyond the project.',
-  },
-  {
-    id: 'sitra-case-4',
-    title: 'Plan for replicability early',
-    content: 'Describe how lessons learned and solutions developed in each case can be transferred to other contexts. This strengthens the overall impact narrative of the proposal.',
-  },
-];
+/* Case guidance is DATA, not code: the shared default lives in
+   `case_guideline_defaults` and a proposal may override it on its own
+   subsection row. The old hardcoded Sitra tips were removed with prompt 109. */
 
 // Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
 // Legacy per-case heading_*/guideline_* fields are no longer read or written.
