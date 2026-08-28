@@ -60,6 +60,7 @@ import { cn } from '@/lib/utils';
 import { CardLockProvider, useCardLocks } from '@/hooks/useCardLocks';
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { MarginRail } from '@/components/cards/MarginRail';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   WP_BLOCK_FRAME,
@@ -965,7 +966,8 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         <section className={WP_BLOCK_FRAME}>
           {/* Block-level controls: add a subsection, restore a deleted one. */}
           {!readOnly && (
-            <div className="flex items-center justify-end gap-1 px-[1.5cm] pt-2">
+            <div className="flex items-center justify-end px-[1.5cm] pt-2">
+              <MarginRail padding="1.5cm">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1004,6 +1006,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                 </TooltipTrigger>
                 <TooltipContent>Restore a deleted subsection</TooltipContent>
               </Tooltip>
+              </MarginRail>
             </div>
           )}
 
@@ -1437,7 +1440,8 @@ function CaseSubsectionModule({
           </p>
         )}
 
-        {/* The standard right-hand control row, matching Part B modules. */}
+        {/* The page-margin control rail, matching Part B modules. */}
+        <MarginRail>
         {onToggleVisible && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1499,6 +1503,7 @@ function CaseSubsectionModule({
             </AlertDialog>
           </>
         )}
+        </MarginRail>
       </div>
 
       {!collapsed && (

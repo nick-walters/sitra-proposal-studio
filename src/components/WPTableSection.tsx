@@ -34,6 +34,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { MarginRail } from '@/components/cards/MarginRail';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   wpDescriptionCollapseKey,
@@ -274,8 +275,8 @@ export function WPTableSection({
 
 
           {!readOnly && (
-            <div className="flex items-center gap-1">
-              {/* Order: add, move to another WP, restore. */}
+            <MarginRail>
+              {/* In the page-margin rail, right to left: restore, move, add. */}
               <DropdownMenu>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -358,7 +359,7 @@ export function WPTableSection({
                   {binCount === 0 ? 'Nothing deleted recently' : 'Restore a deleted task'}
                 </TooltipContent>
               </Tooltip>
-            </div>
+            </MarginRail>
           )}
         </div>
 
@@ -379,7 +380,8 @@ export function WPTableSection({
                 : undefined
             }
           >
-            <div className="flex items-center justify-end gap-1 px-[1.5cm]">
+            <div className="flex items-center justify-end px-[1.5cm]">
+              <MarginRail padding="1.5cm">
               {!readOnly && onIntroVisibleChange && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -411,6 +413,7 @@ export function WPTableSection({
                   }
                 />
               )}
+              </MarginRail>
             </div>
             <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
               {wpDraftId && (
@@ -651,6 +654,7 @@ function TaskModule({
             disabled={readOnly}
           />
         </div>
+        <MarginRail>
         {!readOnly && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -680,6 +684,7 @@ function TaskModule({
             onConfirm={() => void onDelete(task.id)}
           />
         )}
+        </MarginRail>
       </div>
 
       {/* Rows 2 and 3 fold away when the module is collapsed. */}
