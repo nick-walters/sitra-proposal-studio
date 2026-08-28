@@ -84,13 +84,15 @@ export function TypstPreviewDialog({
       // with the same snapshot utility as the PNG download.
       const { fetchTypstFrontMatter } = await import('@/lib/typst/frontMatter');
       const { fetchCasesTypstData } = await import('@/lib/typst/casesData');
-      const [tree, meta, sourceData, captured, references, casesData, authored] = await Promise.all([
+      const { fetchB32TypstData } = await import('@/lib/typst/b32Mirrors');
+      const [tree, meta, sourceData, captured, references, casesData, b32Data, authored] = await Promise.all([
         fetchSectionBlockTree(proposalId, sectionId),
         fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
         fetchB31TypstData(proposalId),
         captureFigureAssets(['gantt']),
         fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
         fetchCasesTypstData(proposalId),
+        fetchB32TypstData(proposalId),
         // Uploads, AI images and rasterised canvases placed on figure blocks.
         fetchAuthoredFigures(proposalId, sectionId),
       ]);
@@ -105,6 +107,7 @@ export function TypstPreviewDialog({
         references,
         frontMatter,
         casesData,
+        b32Data,
         authoredFigures: authored.blocks,
         figuresAvailable: {
           pert: captured.assets.some((a) => a.path.includes('pert')),

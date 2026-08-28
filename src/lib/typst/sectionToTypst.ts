@@ -91,6 +91,7 @@ function titleText(value: string | null | undefined): string {
 
 
 
+import { emitB32Slot, type B32TypstData } from './b32Mirrors';
 import {
   B32_CONDITIONAL_KEYS,
   deriveB32Signals,
@@ -231,6 +232,8 @@ export interface BuildTypstOptions {
   frontMatter?: TypstFrontMatter | null;
   /** B1.2 cases ("pilots") rows, for the `casesTable` atom nodes. */
   casesData?: CasesTypstData | null;
+  /** A2 → B3.2 mirrored participant content, for the `b32MirrorSlot` atoms. */
+  b32Data?: B32TypstData | null;
   /**
    * Authored figure blocks: their resolved bitmaps (already in the compiler's
    * virtual filesystem) plus their per-block layout settings, keyed by card id.
@@ -370,6 +373,9 @@ export function buildSectionTypstBody(
       titles: new Map(refEntries.map((r) => [r.refKey, r.title || ''])),
       emitted: new Set<number>(),
     },
+    b32Slot: options.b32Data
+      ? (slotKey, inner) => emitB32Slot(slotKey, options.b32Data as B32TypstData, inner)
+      : undefined,
     casesTable: options.casesData
       ? (typeId, label, inner) =>
           emitCasesTable(options.casesData as CasesTypstData, typeId, label, inner)

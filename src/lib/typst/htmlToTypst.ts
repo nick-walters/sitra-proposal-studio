@@ -39,6 +39,13 @@ export interface ConvertContext {
    * nothing — the caller supplies the fetched data (see `casesData.ts`).
    */
   casesTable?: (caseTypeId: string | null, captionLabel: string | null, ctx: ConvertContext) => string[];
+  /**
+   * Emits an A2 → B3.2 mirror slot. Like the cases table, the stored HTML holds
+   * only an empty atom `<div data-b32-mirror-slot data-b32-slot-key="…">`, so
+   * without this the mirrored participant content converts to nothing (see
+   * `b32Mirrors.ts`).
+   */
+  b32Slot?: (slotKey: string | null, ctx: ConvertContext) => string[];
   /** Position-derived caption sequence for authored content outside B3.1. */
   captionNumbering?: {
     sectionNumber: string;
@@ -489,6 +496,17 @@ function convertBlock(el: Element, ctx: ConvertContext): string {
       return '';
     }
     const parts = ctx.casesTable(el.getAttribute('data-case-type-id'), label, ctx);
+    return parts.length ? `{\n${parts.join('\n')}\n}` : '';
+  }
+
+  // B3.2 mirror slot atom: empty in the stored HTML, rendered from A2 data.
+  if (el.hasAttribute('data-b32-mirror-slot')) {
+    const slotKey = el.getAttribute('data-b32-slot-key');
+    if (!ctx.b32Slot) {
+      ctx.unsupported.add(`B3.2 mirror slot ${slotKey || '—'}`);
+      return '';
+    }
+    const parts = ctx.b32Slot(slotKey, ctx);
     return parts.length ? `{\n${parts.join('\n')}\n}` : '';
   }
 
