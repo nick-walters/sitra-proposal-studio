@@ -1,4 +1,6 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
+import { registerTrackEditor } from '@/lib/trackChangeEditorRegistry';
+
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Slice, Fragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
