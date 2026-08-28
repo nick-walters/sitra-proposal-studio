@@ -15,6 +15,8 @@ import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types'
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
+import { ModuleCommentsProvider } from '@/components/comments/ModuleComments';
+import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import {
   wpDeliverablesCollapseKey,
@@ -733,6 +735,12 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
 
   return (
+    <ModuleCommentsProvider
+      proposalId={proposalId}
+      sectionId={wpDraftSectionId(wpDraftId ?? 'unknown')}
+      canEdit={canEdit}
+      isCoordinator={isCoordinator}
+    >
     <div className="h-full">
       {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
           matched exactly to the Part B board (max-w-[calc(21cm+3rem)] with
