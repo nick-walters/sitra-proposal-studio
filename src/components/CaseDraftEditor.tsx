@@ -23,6 +23,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import {
+  ModuleCommentsProvider,
+  ModuleCommentAnchor,
+} from '@/components/comments/ModuleComments';
+import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
 import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
 import {
@@ -95,7 +100,15 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
       <PageSearchProvider>
-      <CaseDraftEditorInner {...props} />
+      {/* Module-anchored comments; a case draft is its own comment surface. */}
+      <ModuleCommentsProvider
+        proposalId={props.proposalId}
+        sectionId={caseDraftSectionId(props.caseId)}
+        canEdit={props.canEdit}
+        isCoordinator={props.isCoordinator}
+      >
+        <CaseDraftEditorInner {...props} />
+      </ModuleCommentsProvider>
       </PageSearchProvider>
     </MethodologyEditorFocusProvider>
   );
@@ -891,6 +904,10 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
                 )}
 
+                <ModuleCommentAnchor
+                  targetKey={caseTarget(caseId, sub.key)}
+                  label={sub.heading}
+                >
                 <DebouncedRichField
                   value={content}
                   onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
@@ -900,6 +917,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
                   shouldStayMounted={shouldStayMounted}
                 />
+                </ModuleCommentAnchor>
 
               </CardContent>
             </Card>
