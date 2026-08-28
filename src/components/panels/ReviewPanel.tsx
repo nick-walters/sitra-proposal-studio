@@ -62,6 +62,7 @@ export function ReviewPanelBody({
     if (busy) return;
     setBusy(true);
     try {
+      console.log('[TCDBG] one', action, c.id, 'editor?', !!editor, editor?.isDestroyed);
       if (!resolveChangeInEditor(editor, c.id, action)) {
         toast.error('That change could not be resolved.');
       }
@@ -122,6 +123,7 @@ export function ReviewPanelBody({
             size="sm"
             className="h-6 px-2 text-[11px]"
             disabled={busy || !isCoordinator}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('accept')}
           >
             Accept all
@@ -131,6 +133,7 @@ export function ReviewPanelBody({
             size="sm"
             className="h-6 px-2 text-[11px]"
             disabled={busy || rejectable.length === 0}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => all('reject')}
           >
             Reject all
@@ -182,6 +185,7 @@ export function ReviewPanelBody({
                         size="sm"
                         className="h-6 gap-1 px-2 text-[11px]"
                         disabled={busy}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => one(c, 'accept')}
                       >
                         <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -194,6 +198,7 @@ export function ReviewPanelBody({
                         size="sm"
                         className="h-6 gap-1 px-2 text-[11px]"
                         disabled={busy}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => one(c, 'reject')}
                       >
                         <X className="h-3.5 w-3.5 text-destructive" />

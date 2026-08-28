@@ -72,6 +72,7 @@ export function MethodologyEditorFocusProvider({ children }: { children: ReactNo
         if (
           el &&
           (el.closest('[data-editor-chrome]') ||
+            el.closest('[data-right-panel]') ||
             el.closest('[role="dialog"]') ||
             el.closest('[role="menu"]') ||
             el.closest('[role="listbox"]') ||
@@ -119,6 +120,7 @@ export function MethodologyEditorFocusProvider({ children }: { children: ReactNo
       if (
         el &&
         (el.closest('[data-editor-chrome]') ||
+            el.closest('[data-right-panel]') ||
           el.closest('[role="dialog"]') ||
           el.closest('[role="menu"]') ||
           el.closest('[role="listbox"]') ||
