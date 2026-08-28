@@ -23,17 +23,20 @@ import { cn } from '@/lib/utils';
 /** Width of one control button (h-7 / w-7). */
 export const RAIL_BUTTON = 28;
 
+/** Clearance kept between the outermost control and the page's right edge. */
+export const RAIL_EDGE_INSET = 2;
+
 /**
  * Where the comment button's left edge sits, measured from the frame edge.
  * Negative: the button is inside the page, flush with its right edge.
  */
-export const RAIL_COMMENT_LEFT = -RAIL_BUTTON;
+export const RAIL_COMMENT_LEFT = -(RAIL_BUTTON + RAIL_EDGE_INSET);
 
 /**
  * How far a control row is inset from the frame edge so its last control (the
  * delete button) lands immediately to the left of the comment slot.
  */
-export const RAIL_SHIFT = RAIL_BUTTON;
+export const RAIL_SHIFT = RAIL_BUTTON + RAIL_EDGE_INSET;
 
 /**
  * Pulls a trailing control group out into the margin rail. `padding` is the
