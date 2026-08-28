@@ -1145,15 +1145,44 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   </div>
                 )}
 
-                {blockGuidelines.length === 0 && (
-                  <>
-                    <p className="text-sm text-muted-foreground">
-                      {focusedGuidelineKey
-                        ? 'No guidance has been authored for this subsection yet.'
-                        : 'Place the cursor in a subsection to see the guidance for it.'}
-                    </p>
-                    <SitraTipsBox tips={SITRA_CASE_TIPS} />
-                  </>
+                {/* Case guidance: this proposal's override, or the shared default. */}
+                {resolvedGuidance && (resolvedGuidance.content || isCoordinator) && (
+                  <div className="rounded-lg border-2 border-gray-800 bg-gray-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0 text-gray-800" />
+                      <span className="text-sm font-bold text-gray-900">
+                        Sitra&rsquo;s tips
+                        {resolvedGuidance.isOverride && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            (written for this proposal)
+                          </span>
+                        )}
+                      </span>
+                      {isCoordinator && resolvedGuidance.templateId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-auto h-7 px-2"
+                          onClick={() => setGuidanceEditOpen(true)}
+                        >
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          Edit for this proposal
+                        </Button>
+                      )}
+                    </div>
+                    <h4 className="mb-2 font-semibold text-gray-900">{resolvedGuidance.title}</h4>
+                    <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {resolvedGuidance.content || 'No guidance yet — add some for this proposal.'}
+                    </div>
+                  </div>
+                )}
+
+                {blockGuidelines.length === 0 && !resolvedGuidance && (
+                  <p className="text-sm text-muted-foreground">
+                    {focusedGuidelineKey
+                      ? 'No guidance has been authored for this subsection yet.'
+                      : 'Place the cursor in a subsection to see the guidance for it.'}
+                  </p>
                 )}
               </div>
             </ScrollArea>
