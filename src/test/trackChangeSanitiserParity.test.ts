@@ -87,7 +87,7 @@ describe('track-changes static round trip', () => {
 });
 
 describe('tracked changes in the Typst output', () => {
-  it('underlines an insertion and strikes a deletion, in the author colour', async () => {
+  it('renders the document with every pending change rejected', async () => {
     const { htmlToTypstInline } = await import('@/lib/typst/htmlToTypst');
     const ctx = { unsupported: new Set<string>() };
     const ins = htmlToTypstInline(
@@ -98,9 +98,10 @@ describe('tracked changes in the Typst output', () => {
       '<span data-track-deletion="" data-author-color="#E91E63">removed</span>',
       ctx as never,
     );
-    expect(ins).toContain('underline(');
-    expect(ins).toContain('#E91E63');
-    expect(del).toContain('strike(');
-    expect(del).toContain('#E91E63');
+    // An insertion has not been accepted, so it is not in the document yet.
+    expect(ins).toBe('');
+    // A deletion has not been accepted either: the text is still there, plain.
+    expect(del).toContain('removed');
+    expect(del).not.toContain('strike(');
   });
 });
