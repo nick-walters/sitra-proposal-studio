@@ -300,6 +300,47 @@ export function ModuleCommentsProvider({
 
 /* ----------------------------------------------------------------- anchor */
 
+/**
+ * The comment rail: every comment control on the platform sits in ONE vertical
+ * line, outside the block, in the page's right margin. An anchor may wrap a
+ * whole module (right edge = page edge) or a single table cell (right edge far
+ * to the left), so the offset is measured rather than hard-coded: find the
+ * enclosing block edge (`[data-comment-rail-edge]`, falling back to the page
+ * frame) and push the control 8 px beyond it.
+ */
+const RAIL_GAP = 8;
+const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.doc-surface-page';
+
+function useRailOffset(ref: React.RefObject<HTMLElement>) {
+  const [offset, setOffset] = useState(RAIL_GAP);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
+      if (!edge) {
+        setOffset(RAIL_GAP);
+        return;
+      }
+      const delta = edge.getBoundingClientRect().right - el.getBoundingClientRect().right;
+      setOffset(Math.max(0, Math.round(delta)) + RAIL_GAP);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
+    if (edge) ro.observe(edge);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [ref]);
+
+  return offset;
+}
+
 interface AnchorProps {
   targetKey: string;
   /** Human-readable name of the module, shown on the comment card. */
@@ -309,9 +350,8 @@ interface AnchorProps {
   /** Where the hover control sits — defaults to the top right of the module. */
   controlClassName?: string;
   /**
-   * `'floating'` keeps the legacy control beside the field; `'none'` measures
-   * the module only, for surfaces whose comment control lives in the block's
-   * own control row (see `ModuleCommentButton`).
+   * `'floating'` puts the control in the shared right-hand rail; `'none'`
+   * measures the module only, for the rare surface that renders its own.
    */
   control?: 'floating' | 'none';
 }
@@ -331,6 +371,7 @@ export function ModuleCommentAnchor({
 }: AnchorProps) {
   const ctx = useModuleComments();
   const ref = useRef<HTMLDivElement | null>(null);
+  const railOffset = useRailOffset(ref);
 
   useEffect(() => {
     if (!ctx) return;
@@ -355,13 +396,18 @@ export function ModuleCommentAnchor({
     >
       {children}
       {control === 'floating' && (
-        <div className={`absolute -right-8 top-0 z-10 ${controlClassName ?? ''}`}>
+        <div
+          className={`absolute top-0 z-10 ${controlClassName ?? ''}`}
+          style={{ left: `calc(100% + ${railOffset}px)` }}
+        >
           <ModuleCommentButton targetKey={targetKey} label={label} />
         </div>
       )}
     </div>
   );
 }
+
+
 
 /* ------------------------------------------------------- control-row button */
 
