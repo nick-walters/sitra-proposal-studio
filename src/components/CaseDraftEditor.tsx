@@ -43,8 +43,9 @@ import {
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
 
-import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { useCaseGuidelineDefaults, resolveCaseGuidance } from '@/hooks/useCaseGuidance';
+import { CaseGuidanceEditDialog } from '@/components/CaseGuidanceEditDialog';
+import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown, Eye, EyeOff, Trash2, Pencil } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
