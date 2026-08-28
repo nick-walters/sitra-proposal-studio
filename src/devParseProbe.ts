@@ -1,4 +1,4 @@
-import { generateJSON, generateHTML } from '@tiptap/html';
+import { generateJSON, generateHTML } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TRACK_CHANGE_MARKS } from '@/extensions/TrackChanges';
 
