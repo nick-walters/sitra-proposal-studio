@@ -1,17 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Check, GitCompare, X } from 'lucide-react';
 import type { Editor } from '@tiptap/core';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { TrackChange } from '@/extensions/TrackChanges';
-import { smartTimestamp } from '@/lib/smartTimestamp';
+import { formatDateTime } from '@/lib/formatDate';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import {
-  resolveAllChangesOnEditor,
-  resolveChangeOnEditor,
+  resolveChangeInEditor,
+  resolveChangesInEditor,
   type ResolveAction,
-} from '@/lib/resolveTrackChange';
+} from '@/lib/trackChangeResolution';
 
 /**
  * THE TRACKED CHANGES TAB
@@ -20,58 +19,54 @@ import {
  * shows the tracked changes of the ONE field the caret is in, never the page.
  * With no field active it stays open and says so.
  *
- * Accepting and rejecting run through `resolveTrackChange`, the same path the
+ * Accept and reject go through `trackChangeResolution`, the same path the
  * hover tooltip uses, so both routes behave identically and both write through
  * the field's versioned save.
  *
- * Permissions: coordinator and above may resolve anything; an author may
- * reject — that is, withdraw — their own change, but not accept it.
+ * Permissions: coordinator and above may accept or reject anything; an author
+ * may reject their own change (withdrawing an edit is not a review action).
  */
 export function ReviewPanelBody({
+  proposalId,
   hasActiveField,
   changes,
   editor,
-  proposalId,
 }: {
+  proposalId?: string;
   hasActiveField: boolean;
   changes: TrackChange[];
   editor: Editor | null;
-  proposalId?: string;
 }) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
-  const isCoordinator = roleTier === 'coordinator';
   const [busy, setBusy] = useState(false);
 
-  const resolveOne = useCallback(
-    (change: TrackChange, action: ResolveAction) => {
-      if (busy) return;
-      setBusy(true);
-      try {
-        if (!resolveChangeOnEditor(editor, change.id, action)) {
-          toast.error('That change could not be resolved.');
-        }
-      } finally {
-        setBusy(false);
-      }
-    },
-    [busy, editor],
+  const isCoordinator = roleTier === 'coordinator';
+  const ownIds = useMemo(
+    () => changes.filter((c) => !!user?.id && c.authorId === user.id).map((c) => c.id),
+    [changes, user?.id],
   );
 
-  const resolveAll = useCallback(
-    (action: ResolveAction) => {
-      if (busy) return;
-      setBusy(true);
-      try {
-        if (!resolveAllChangesOnEditor(editor, action)) {
-          toast.error('Those changes could not be resolved.');
-        }
-      } finally {
-        setBusy(false);
-      }
-    },
-    [busy, editor],
-  );
+  const run = (fn: () => void) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resolveOne = (changeId: string, action: ResolveAction) =>
+    run(() => resolveChangeInEditor(editor, changeId, action));
+
+  const resolveAll = (action: ResolveAction) =>
+    run(() => {
+      // Accept-all and reject-all apply to the ACTIVE FIELD only: the ids come
+      // from this field's change list, never from the page.
+      const ids = isCoordinator ? changes.map((c) => c.id) : ownIds;
+      resolveChangesInEditor(editor, ids, action);
+    });
 
   if (!hasActiveField) {
     return (
@@ -94,41 +89,36 @@ export function ReviewPanelBody({
     );
   }
 
-  const allMine =
-    !!user?.id && changes.every((c) => c.authorId === user.id);
+  const canAcceptAll = isCoordinator;
+  const canRejectAll = isCoordinator || ownIds.length > 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Accept all and reject all act on THIS FIELD only — they are the
-          editor's own commands, and the editor is the field. */}
-      {(isCoordinator || allMine) && (
-        <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
-          {isCoordinator && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 flex-1 text-[11px]"
-              disabled={busy}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => resolveAll('accept')}
-            >
-              <Check className="mr-1 h-3 w-3 text-emerald-600" />
-              Accept all
-            </Button>
-          )}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+        <span className="text-[11px] text-muted-foreground">
+          {changes.length} change{changes.length === 1 ? '' : 's'} in this field
+        </span>
+        <div className="flex items-center gap-1">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="h-6 flex-1 text-[11px]"
-            disabled={busy}
-            onMouseDown={(e) => e.preventDefault()}
+            className="h-6 px-1.5 text-[11px] text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400"
+            disabled={!canAcceptAll || busy}
+            onClick={() => resolveAll('accept')}
+          >
+            Accept all
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-1.5 text-[11px] text-destructive hover:bg-destructive/10"
+            disabled={!canRejectAll || busy}
             onClick={() => resolveAll('reject')}
           >
-            <X className="mr-1 h-3 w-3 text-destructive" />
             Reject all
           </Button>
         </div>
-      )}
+      </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         <ul className="space-y-1.5">
@@ -136,12 +126,6 @@ export function ReviewPanelBody({
             const isOwn = !!user?.id && c.authorId === user.id;
             const canAccept = isCoordinator;
             const canReject = isCoordinator || isOwn;
-            let when = '';
-            try {
-              when = smartTimestamp(new Date(c.timestamp));
-            } catch {
-              when = '';
-            }
             return (
               <li
                 key={`${c.id}-${c.from}`}
@@ -158,7 +142,7 @@ export function ReviewPanelBody({
                     {c.type === 'insertion' ? 'Inserted' : 'Deleted'}
                   </span>
                   <span className="truncate text-[10px] text-muted-foreground">
-                    {c.authorName} · {when}
+                    {c.authorName} · {formatDateTime(c.timestamp)}
                   </span>
                 </div>
                 <p
@@ -177,7 +161,7 @@ export function ReviewPanelBody({
                         type="button"
                         disabled={busy}
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => resolveOne(c, 'accept')}
+                        onClick={() => resolveOne(c.id, 'accept')}
                         className="rounded p-0.5 text-green-600 hover:bg-green-100 disabled:opacity-50 dark:text-green-400 dark:hover:bg-green-900/30"
                         title="Accept change"
                         aria-label="Accept change"
@@ -190,7 +174,7 @@ export function ReviewPanelBody({
                         type="button"
                         disabled={busy}
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => resolveOne(c, 'reject')}
+                        onClick={() => resolveOne(c.id, 'reject')}
                         className="rounded p-0.5 text-red-600 hover:bg-red-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/30"
                         title="Reject change"
                         aria-label="Reject change"

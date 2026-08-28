@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -19,16 +18,15 @@ import { ReviewPanelBody } from '@/components/panels/ReviewPanel';
 /**
  * THE RIGHT-HAND PANEL REGION
  *
- * One region on the right of every editing surface, shared by the comments
- * panel and the tracked-changes review panel. Two rules make it work:
+ * ONE region on the right of every editing surface, opened by ONE toggle and
+ * carrying TWO tabs: tracked changes and comments. Two rules make it work:
  *
  *   1. The editor SHIFTS rather than being covered. The region is a fixed
  *      column on the right, and the surface below gets an equal padding, so
  *      the document is never obscured — it simply narrows.
- *   2. ONE toggle, TWO TABS. A single "Review" control in the page-wide
- *      toolbar opens the region; inside it, a tracked-changes tab and a
- *      comments tab share the space. Which tab opens is decided from the
- *      active field, until the user picks one by hand (see `activeTab`).
+ *   2. Which tab is showing is decided from context (see `visiblePanel`)
+ *      UNLESS the user has clicked a tab, which sticks until they click the
+ *      other one or close the panel.
  */
 
 export const RIGHT_PANEL_WIDTH = 340;
@@ -36,21 +34,24 @@ export const RIGHT_PANEL_WIDTH = 340;
 export type PanelId = 'comments' | 'review';
 
 interface RightPanelCtx {
-  /** Is the shared region open at all? One toggle governs both tabs. */
-  panelOpen: boolean;
-  setPanelOpen: (v: boolean) => void;
-  /** Compatibility for the comment controls: the region carries comments. */
-  commentsOpen: boolean;
-  setCommentsOpen: (v: boolean) => void;
-  /** Which tab currently occupies the region — null when the region is closed. */
+  /** Is the region open at all? One toggle governs both tabs. */
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  /** Which tab occupies the region — null when the region is closed. */
   visiblePanel: PanelId | null;
-  /** Pick a tab by hand. The choice sticks until the field changes or it closes. */
+  /** An EXPLICIT tab choice; also opens the region. */
   showPanel: (p: PanelId) => void;
   /** Portal target for the comments panel's own content. */
   host: HTMLElement | null;
-  /** Tracked changes in the ACTIVE field only — the review panel's whole scope. */
+  /** Tracked changes in the ACTIVE field only — the review tab's whole scope. */
   fieldChanges: TrackChange[];
   hasActiveField: boolean;
+
+  /* Back-compatible aliases: both old toggles now drive the one region. */
+  commentsOpen: boolean;
+  reviewOpen: boolean;
+  setCommentsOpen: (v: boolean) => void;
+  setReviewOpen: (v: boolean) => void;
 }
 
 const Ctx = createContext<RightPanelCtx | null>(null);
@@ -62,20 +63,22 @@ export function useRightPanel() {
 /* --------------------------------------------------------- persistence */
 
 /**
- * The toggle persists PER USER, not per session and not per proposal: the key
- * carries the signed-in user's id, so a reviewer who works with the panel open
- * finds it open on every proposal and every later visit on that machine, while
- * another user on the same machine starts from their own state.
+ * The toggle persists PER USER AND PER PROPOSAL, in `localStorage` under
+ * `sitra.rightPanel.<userId>.<proposalId>` — not in component state and not in
+ * `sessionStorage` — so a reviewer who works with the panel open keeps it open
+ * across visits and across sessions on that machine, while another proposal,
+ * and another user on the same machine, each start from their own state.
  */
-const storageKey = (userId: string | undefined) =>
-  `sitra.reviewPanel.${userId ?? 'anon'}`;
+const storageKey = (userId: string | undefined, proposalId: string) =>
+  `sitra.rightPanel.${userId ?? 'anon'}.${proposalId}`;
 
 function readState(key: string): boolean {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return false;
-    const parsed = JSON.parse(raw) as { open?: boolean };
-    return !!parsed.open;
+    const parsed = JSON.parse(raw) as { open?: boolean; comments?: boolean; review?: boolean };
+    // Older stores kept two booleans; either one counts as "was open".
+    return !!(parsed.open ?? (parsed.comments || parsed.review));
   } catch {
     return false;
   }
@@ -91,19 +94,29 @@ export function RightPanelProvider({
   children: ReactNode;
 }) {
   const { user } = useAuth();
-  const key = storageKey(user?.id);
+  const key = storageKey(user?.id, proposalId);
 
-  const [panelOpen, setPanelOpenState] = useState(false);
+  const [open, setOpenState] = useState(false);
 
   // Read once the user is known, so the stored state is the right person's.
   useEffect(() => {
-    setPanelOpenState(readState(key));
+    setOpenState(readState(key));
   }, [key]);
 
-  const persist = useCallback(
-    (open: boolean) => {
+  /**
+   * A manual tab choice is distinguished from the automatic one by being
+   * stored SEPARATELY: `override` is null while the tab is chosen by context,
+   * and holds a panel id only when the user clicked a tab. It is cleared when
+   * the region closes, so the next opening starts from context again.
+   */
+  const [override, setOverride] = useState<PanelId | null>(null);
+
+  const setOpen = useCallback(
+    (v: boolean) => {
+      setOpenState(v);
+      if (!v) setOverride(null);
       try {
-        localStorage.setItem(key, JSON.stringify({ open }));
+        localStorage.setItem(key, JSON.stringify({ open: v }));
       } catch {
         /* a full or blocked store must never break the editor */
       }
@@ -136,73 +149,40 @@ export function RightPanelProvider({
     };
   }, [activeEditor]);
 
-  /* ------------------------------------------------ which tab is shown */
-
-  /**
-   * A HAND-PICKED tab is held in `manualTab`, separate from the automatic
-   * choice — that separation is the whole mechanism. `manualTab` is set ONLY
-   * by a tab click, and cleared when the caret moves to another field or the
-   * panel closes; while it is null the tab is derived from context, so a
-   * default never masquerades as a choice.
-   */
-  const [manualTab, setManualTab] = useState<PanelId | null>(null);
-  const lastEditor = useRef(activeEditor);
-  useEffect(() => {
-    if (lastEditor.current !== activeEditor) {
-      lastEditor.current = activeEditor;
-      setManualTab(null);
-    }
-  }, [activeEditor]);
-
   const hasActiveField = !!activeEditor && !activeEditor.isDestroyed;
 
-  // Context chooses: a field with tracked changes opens on the review tab,
-  // anything else opens on comments.
-  const autoTab: PanelId =
-    hasActiveField && fieldChanges.length > 0 ? 'review' : 'comments';
-  const activeTab: PanelId = manualTab ?? autoTab;
+  /* --------------------------------------------- which tab is showing */
 
-  const setPanelOpen = useCallback(
-    (v: boolean) => {
-      setPanelOpenState(v);
-      persist(v);
-      // Closing forgets the hand-picked tab, so the next open follows context.
-      if (!v) setManualTab(null);
-    },
-    [persist],
-  );
+  const visiblePanel: PanelId | null = useMemo(() => {
+    if (!open) return null;
+    if (override) return override;
+    // Context: a field with something to review opens on the review tab;
+    // everything else — a clean field, or no field at all — opens on comments.
+    return hasActiveField && fieldChanges.length > 0 ? 'review' : 'comments';
+  }, [open, override, hasActiveField, fieldChanges.length]);
 
   const showPanel = useCallback(
     (p: PanelId) => {
-      setManualTab(p);
-      setPanelOpenState(true);
-      persist(true);
+      setOverride(p);
+      setOpen(true);
     },
-    [persist],
+    [setOpen],
   );
-
-  const setCommentsOpen = useCallback(
-    (v: boolean) => {
-      if (v) showPanel('comments');
-      else setPanelOpen(false);
-    },
-    [showPanel, setPanelOpen],
-  );
-
-  const visiblePanel: PanelId | null = panelOpen ? activeTab : null;
 
   const [host, setHost] = useState<HTMLElement | null>(null);
 
   const ctx: RightPanelCtx = {
-    panelOpen,
-    setPanelOpen,
-    commentsOpen: panelOpen,
-    setCommentsOpen,
+    open,
+    setOpen,
     visiblePanel,
     showPanel,
     host,
     fieldChanges,
     hasActiveField,
+    commentsOpen: open,
+    reviewOpen: open,
+    setCommentsOpen: setOpen,
+    setReviewOpen: setOpen,
   };
 
   return (
@@ -210,57 +190,44 @@ export function RightPanelProvider({
       {/* The surface itself — narrowed, never covered. */}
       <div
         className="transition-[padding-right] duration-200"
-        style={{ paddingRight: visiblePanel ? RIGHT_PANEL_WIDTH : 0 }}
+        style={{ paddingRight: open ? RIGHT_PANEL_WIDTH : 0 }}
       >
         {children}
       </div>
 
-      {visiblePanel &&
+      {open &&
         createPortal(
           <aside
             className="fixed right-0 top-0 z-40 flex h-screen flex-col border-l border-border bg-background/95 shadow-lg backdrop-blur"
             style={{ width: RIGHT_PANEL_WIDTH }}
           >
-            {/* ONE region, TWO TABS. The tabs are always both present, so a
-                reviewer can move between page-wide comments and this field's
-                tracked changes without touching the toolbar. */}
-            <div className="flex items-center border-b border-border">
-              {(['review', 'comments'] as PanelId[]).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => showPanel(tab)}
-                  className={`flex-1 border-b-2 px-3 py-1.5 text-[11px] ${
-                    visiblePanel === tab
-                      ? 'border-primary font-semibold text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {tab === 'review' ? 'Tracked changes' : 'Comments'}
-                  {tab === 'review' && fieldChanges.length > 0 && (
-                    <span className="ml-1 text-[10px] text-muted-foreground">
-                      {fieldChanges.length}
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div className="flex items-center justify-between border-b border-border pl-1 pr-2">
+              <div className="flex items-center">
+                <TabButton
+                  active={visiblePanel === 'review'}
+                  onClick={() => showPanel('review')}
+                  label="Tracked changes"
+                  count={hasActiveField ? fieldChanges.length : undefined}
+                />
+                <TabButton
+                  active={visiblePanel === 'comments'}
+                  onClick={() => showPanel('comments')}
+                  label="Comments"
+                />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="mr-1 h-6 w-6 shrink-0"
+                className="h-6 w-6"
+                onClick={() => setOpen(false)}
                 aria-label="Close the review panel"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setPanelOpen(false)}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
 
             {/* The comments panel renders its own content INTO this host, so
-                both tabs really are one region rather than two overlays, and
-                the comment stack keeps its scroll position across tab
-                switches. */}
+                both tabs really are one region rather than two overlays. */}
             <div
               ref={setHost}
               className={`relative min-h-0 flex-1 ${visiblePanel === 'comments' ? '' : 'hidden'}`}
@@ -268,14 +235,11 @@ export function RightPanelProvider({
 
             {visiblePanel === 'review' && (
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="border-b border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-                  This field only
-                </div>
                 <ReviewPanelBody
+                  proposalId={proposalId}
                   hasActiveField={hasActiveField}
                   changes={fieldChanges}
                   editor={activeEditor ?? null}
-                  proposalId={proposalId}
                 />
               </div>
             )}
@@ -283,5 +247,35 @@ export function RightPanelProvider({
           document.body,
         )}
     </Ctx.Provider>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={
+        active
+          ? 'border-b-2 border-primary px-2.5 py-2 text-[12px] font-semibold text-foreground'
+          : 'border-b-2 border-transparent px-2.5 py-2 text-[12px] text-muted-foreground hover:text-foreground'
+      }
+    >
+      {label}
+      {typeof count === 'number' && count > 0 && (
+        <span className="ml-1 text-[11px] font-normal text-muted-foreground">{count}</span>
+      )}
+    </button>
   );
 }

@@ -46,7 +46,7 @@ import {
   UserPlus,
   UserCheck,
 } from 'lucide-react';
-import { RAIL_BUTTON, RAIL_COMMENT_LEFT } from '@/components/cards/MarginRail';
+import { RAIL_COMMENT_LEFT } from '@/components/cards/MarginRail';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -353,29 +353,17 @@ const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surfac
 
 function useRailOffset(ref: React.RefObject<HTMLElement>) {
   const [offset, setOffset] = useState(RAIL_GAP);
-  // Vertical alignment is measured, not guessed: the control lines its centre
-  // up with the module's own control row, so comment, delete and visibility
-  // all share one centre line on every surface.
-  const [top, setTop] = useState(0);
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
-      const elRect = el.getBoundingClientRect();
-      const row = el.querySelector('[data-control-row]') as HTMLElement | null;
-      if (row) {
-        const r = row.getBoundingClientRect();
-        setTop(Math.round(r.top + r.height / 2 - elRect.top - RAIL_BUTTON / 2));
-      } else {
-        setTop(0);
-      }
       const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
       if (!edge) {
         setOffset(RAIL_GAP);
         return;
       }
-      const delta = edge.getBoundingClientRect().right - elRect.right;
+      const delta = edge.getBoundingClientRect().right - el.getBoundingClientRect().right;
       setOffset(Math.max(0, Math.round(delta)) + RAIL_GAP);
     };
     measure();
@@ -390,7 +378,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
     };
   }, [ref]);
 
-  return { offset, top };
+  return offset;
 }
 
 interface AnchorProps {
@@ -423,7 +411,7 @@ export function ModuleCommentAnchor({
 }: AnchorProps) {
   const ctx = useModuleComments();
   const ref = useRef<HTMLDivElement | null>(null);
-  const { offset: railOffset, top: railTop } = useRailOffset(ref);
+  const railOffset = useRailOffset(ref);
 
   useEffect(() => {
     if (!ctx) return;
@@ -449,8 +437,8 @@ export function ModuleCommentAnchor({
       {children}
       {control === 'floating' && (
         <div
-          className={`absolute z-10 ${controlClassName ?? ''}`}
-          style={{ left: `calc(100% + ${railOffset}px)`, top: `${railTop}px` }}
+          className={`absolute top-0 z-10 ${controlClassName ?? ''}`}
+          style={{ left: `calc(100% + ${railOffset}px)` }}
         >
           <ModuleCommentButton targetKey={targetKey} label={label} />
         </div>
@@ -689,16 +677,12 @@ function ModuleCommentsRail({
       }
       style={host ? undefined : { width: RAIL_WIDTH }}
     >
-      {/* Inside the shared region the tab bar already names the panel and
-          carries the close control, so only the scope line is repeated. */}
-      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
-        <div className={host ? 'text-[11px] text-muted-foreground' : 'text-[13px] font-semibold'}>
-          {host ? `Whole page · ${openCount} open` : 'Comments'}
-          {!host && (
-            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-              {openCount} open
-            </span>
-          )}
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <div className="text-[13px] font-semibold">
+          Comments
+          <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+            {openCount} open
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -708,11 +692,9 @@ function ModuleCommentsRail({
           >
             {showResolved ? 'Hide resolved' : 'Show resolved'}
           </button>
-          {!host && (
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
 

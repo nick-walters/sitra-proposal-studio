@@ -4,7 +4,7 @@ import {
   Cloud,
   History,
   Search,
-  GitCompare,
+  MessageSquare,
   Sparkles,
   FileText,
   Loader2,
@@ -214,11 +214,12 @@ function TrackMyChangesButton() {
 /**
  * THE REVIEW CONTROL — one toggle for the whole right-hand region.
  *
- * There is no separate Comments control: the region carries a tracked-changes
- * tab and a comments tab, and this button opens and closes the region. The
- * open state is remembered per user, not per session.
+ * It replaces the old separate Comments control: the region it opens carries
+ * both tabs, tracked changes and comments. A surface that mounts
+ * `ModuleCommentsProvider` but no right-hand region falls back to the old
+ * comments-only rail.
  */
-function ReviewPanelButton({
+function ReviewToggleButton({
   onOpenComments,
   commentCount,
 }: {
@@ -227,37 +228,34 @@ function ReviewPanelButton({
 }) {
   const modules = useModuleComments();
   const rightPanel = useRightPanel();
-  const isOpen = rightPanel ? rightPanel.panelOpen : !!modules?.open;
+  // The button is a TOGGLE: it opens the region and closes it again, and the
+  // state it leaves behind is remembered per user and per proposal.
+  const isOpen = rightPanel ? rightPanel.open : !!modules?.open;
   const handler =
     onOpenComments ??
     (rightPanel
-      ? () => rightPanel.setPanelOpen(!rightPanel.panelOpen)
+      ? () => rightPanel.setOpen(!rightPanel.open)
       : modules
         ? () => modules.setOpen(!modules.open)
         : undefined);
-  const comments = commentCount ?? modules?.openCount;
-  const changes = rightPanel?.fieldChanges.length ?? 0;
-  const secondary =
-    changes > 0
-      ? `changes · ${changes}`
-      : typeof comments === 'number'
-        ? `comments · ${comments}`
-        : 'panel';
+  const changeCount = rightPanel?.fieldChanges.length ?? 0;
+  const comments = commentCount ?? modules?.openCount ?? 0;
   return (
     <FeatureButton
-      icon={<GitCompare className="h-3.5 w-3.5" />}
+      icon={<MessageSquare className="h-3.5 w-3.5" />}
       primary="Review"
-      secondary={secondary}
+      secondary={`changes · ${changeCount} · comments · ${comments}`}
       secondarySmall
       tone={isOpen ? 'success' : 'default'}
       tooltip={
         isOpen
           ? 'Close the review panel'
-          : 'Review tracked changes and comments'
+          : 'Open the review panel — tracked changes and comments'
       }
       disabled={!handler}
       onClick={handler}
     />
+
   );
 }
 
@@ -365,7 +363,7 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <ReviewPanelButton
+      <ReviewToggleButton
         onOpenComments={onOpenComments}
         commentCount={commentCount}
       />
@@ -412,6 +410,12 @@ export interface EditorFieldBarProps {
   /** Extra field-specific controls. */
   trailing?: ReactNode;
 }
+
+/* The Review toggle lives in the PAGE-WIDE tier (see `ReviewToggleButton`):
+   one control opens the shared region, whose tracked-changes tab is itself
+   field-specific. The field bar therefore carries no review button. */
+
+
 
 export function EditorFieldBar({
   hasFocusedField,

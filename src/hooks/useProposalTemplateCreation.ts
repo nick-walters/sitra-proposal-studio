@@ -271,19 +271,7 @@ export function useProposalTemplateCreation() {
         }
       }
 
-      // 9. Seed the block templates for every section, so the new proposal
-      //    opens with its authored blocks instead of "No blocks…".
-      try {
-        const { error: seedError } = await supabase.rpc('seed_proposal_cards', {
-          p_proposal_id: proposalId,
-        });
-        if (seedError) throw seedError;
-      } catch (e) {
-        console.error('Failed to seed proposal blocks:', e);
-      }
-
       return { success: true, proposalTemplate };
-
 
     } catch (error) {
       console.error('Error in createProposalTemplate:', error);

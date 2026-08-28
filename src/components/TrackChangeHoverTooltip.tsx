@@ -20,8 +20,7 @@ import { smartTimestamp } from '@/lib/smartTimestamp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
-import { resolveChangeAtElement } from '@/lib/resolveTrackChange';
-import { toast } from 'sonner';
+import { resolveChangeAtElement } from '@/lib/trackChangeResolution';
 
 const SELECTOR = '[data-track-insertion],[data-track-deletion]';
 
@@ -165,14 +164,10 @@ export function TrackChangeHoverTooltip({ proposalId }: { proposalId?: string })
       if (!changeId) return;
       setBusy(true);
       try {
-        // Same path as the tracked-changes tab: hydrate the field if it is
-        // not mounted, then apply through the editor's versioned save.
+        // ONE path, shared with the review panel: hydrate the field if it is
+        // static, apply through the editor, save through the versioned path.
         const ok = await resolveChangeAtElement(el, changeId, action, { x, y: y + 2 });
-        if (!ok) {
-          toast.error('Open the field first, then accept or reject the change.');
-          return;
-        }
-        setHover(null);
+        if (ok) setHover(null);
       } finally {
         setBusy(false);
       }
