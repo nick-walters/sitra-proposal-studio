@@ -52,7 +52,7 @@ import {
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
-import { ModuleCommentAnchor, ModuleCommentButton } from '@/components/comments/ModuleComments';
+import { ModuleCommentAnchor } from '@/components/comments/ModuleComments';
 import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
 import {
   WP_OBJECTIVES_FIELD_EXTENSIONS,
@@ -666,10 +666,6 @@ function TaskModule({
             </TooltipContent>
           </Tooltip>
         )}
-        <ModuleCommentButton
-          targetKey={wpTaskTargetId(task.id, 'description')}
-          label={`${formatTaskNumber(task.number)} description`}
-        />
         {!readOnly && (
           <DeleteConfirmDialog
             itemLabel="this task"
@@ -786,7 +782,6 @@ function TaskModule({
           style={{ marginTop: '-2.67px' }}
         >
           <ModuleCommentAnchor
-            control="none"
             targetKey={wpTaskTargetId(task.id, 'description')}
             label={`${formatTaskNumber(task.number)} description`}
           >

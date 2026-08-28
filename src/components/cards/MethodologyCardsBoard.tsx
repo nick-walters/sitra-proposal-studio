@@ -563,7 +563,6 @@ function FieldRow({
 
   return (
     <ModuleCommentAnchor
-      control="none"
       targetKey={cardFieldTarget(field.id)}
       label={
         (field.headingEnabled && htmlToPlainText(field.heading ?? '').trim()) ||
@@ -708,16 +707,6 @@ function FieldRow({
                 </Button>
               </Tip>
             )}
-
-            {/* The comment control lives with the module's other controls, so
-                it is exactly as discoverable as visibility or delete. */}
-            <ModuleCommentButton
-              targetKey={cardFieldTarget(field.id)}
-              label={
-                (field.headingEnabled && htmlToPlainText(field.heading ?? '').trim()) ||
-                'Module'
-              }
-            />
 
             {canEdit && (
               <AlertDialog>
@@ -1214,7 +1203,9 @@ function CardBlock({
 
   return (
     <div ref={sortable.setNodeRef} id={`card-block-${card.id}`} style={style} className="transition-shadow">
-      <Card>
+      {/* The block edge every comment control aligns to: the rail runs down
+          the page's right margin, outside the block. */}
+      <Card data-comment-rail-edge>
         {/* Right padding is 13px, not the card's usual 20px: the module control
             row sits 7px further right, and matching it puts the block's control
             grid in exact vertical line with every module's. */}
@@ -1274,7 +1265,6 @@ function CardBlock({
             <ModuleCommentAnchor
               targetKey={cardTitleTarget(card.id)}
               label={`${htmlToPlainText(card.title ?? '').trim() || 'Untitled block'} — block title`}
-              controlClassName="-right-1"
             >
             {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see

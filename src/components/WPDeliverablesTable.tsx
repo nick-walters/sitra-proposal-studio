@@ -38,7 +38,6 @@ import { ParticipantBubble, WPBubble, B31Pill } from '@/components/B31Pill';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentAnchor,
-  ModuleCommentButton,
 } from '@/components/comments/ModuleComments';
 import { wpDeliverableTarget } from '@/lib/moduleCommentTargets';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
@@ -543,7 +542,6 @@ function DeliverableRow({
         {/* A deliverable is a commentable module like any other: the anchor
             only measures the row, the control sits in the right margin. */}
         <ModuleCommentAnchor
-          control="none"
           targetKey={wpDeliverableTarget(deliverable.id, 'title')}
           label={`${number} — deliverable`}
         >
@@ -658,10 +656,6 @@ function DeliverableRow({
           {/* Right margin controls: comment, then delete — the same order and
               treatment the block control rows use. */}
           <div className="absolute left-full top-1/2 ml-1 flex -translate-y-1/2 items-center">
-            <ModuleCommentButton
-              targetKey={wpDeliverableTarget(deliverable.id, 'title')}
-              label={`${number} — deliverable`}
-            />
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"

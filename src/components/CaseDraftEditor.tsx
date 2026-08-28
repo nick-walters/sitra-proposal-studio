@@ -33,7 +33,6 @@ import {
 import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
-  ModuleCommentButton,
 } from '@/components/comments/ModuleComments';
 import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
 import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
@@ -1014,16 +1013,15 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             {/* The full title is a module of its own: plain bold document text
                 with the standard right-hand control row. */}
             <div className="flex items-start gap-1">
-              <p
-                className="min-w-0 flex-1 font-bold"
-                style={{ ...WP_DOC_FONT, overflowWrap: 'anywhere' }}
-              >
-                {caseDraft.title?.trim() || <span className="italic text-muted-foreground">No title set</span>}
-              </p>
-              <ModuleCommentButton
+              <ModuleCommentAnchor
+                className="min-w-0 flex-1"
                 targetKey={caseTarget(caseId, 'title')}
                 label={`${headingLabel} title`}
-              />
+              >
+                <p className="font-bold" style={{ ...WP_DOC_FONT, overflowWrap: 'anywhere' }}>
+                  {caseDraft.title?.trim() || <span className="italic text-muted-foreground">No title set</span>}
+                </p>
+              </ModuleCommentAnchor>
             </div>
 
             {/* The lead is a badge, not a dropdown — it is changed in the case
@@ -1395,8 +1393,6 @@ function CaseSubsectionModule({
             </TooltipContent>
           </Tooltip>
         )}
-
-        <ModuleCommentButton targetKey={caseTarget(caseId, subsectionKey)} label={heading} />
 
         {onDelete && (
           <AlertDialog>
