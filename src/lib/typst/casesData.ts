@@ -204,14 +204,16 @@ export function emitCasesTable(
   group.cases.forEach((c, caseIndex) => {
     // Roughly one blank line between consecutive cases.
     if (caseIndex > 0) out.push('v(11pt)');
-    const chip = `chip-pill(${typstString(c.chipLabel)}, rgb(${typstString(c.colour)}))`;
-    const lead = c.leadLabel
-      ? `chip-pill(${typstString(c.leadLabel)}, black, filled: true)`
-      : lit('');
-    out.push(
-      `block(width: he-table-width, above: 6pt, below: 2pt, grid(columns: (1fr, auto), align: (left + horizon, right + horizon), ${chip}, ${lead}))`,
-    );
+    // The case name sits in the long white pill with a black outline, matching
+    // the case draft editor and the B1.2 cases table exactly; the lead badge
+    // keeps its filled black chip, on the row beneath.
+    out.push(`case-name-pill(${lit(c.chipLabel)})`);
     if (c.title) out.push(`par(justify: false, strong(${lit(c.title)}))`);
+    if (c.leadLabel) {
+      out.push(
+        `block(width: he-table-width, above: 2pt, below: 2pt, chip-pill(${typstString(c.leadLabel)}, black, filled: true))`,
+      );
+    }
     out.push(RULE('2pt'));
 
     c.subsections.forEach((s, index) => {
