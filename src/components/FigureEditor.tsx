@@ -24,6 +24,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
 import { ArrowLeft, Trash2, Image, Sparkles, Loader2, Upload, Download } from 'lucide-react';
 import { useRef } from 'react';
 import { ImpactCanvasFreeformEditor } from '@/components/ImpactCanvasFreeformEditor';
