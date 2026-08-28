@@ -2058,3 +2058,21 @@ body.table-col-resizing * {
   display: inline;
 }
 
+
+/* ── Tracked changes in the UNFOCUSED (static) render ────────────────────
+   Colour inside a live editor comes from the TrackChanges decoration
+   plugin, which exists only while that field is mounted. A field that has
+   been blurred keeps its marks in the stored HTML but was drawn plainly,
+   so a recorded change looked like an accepted one — most visibly on
+   block titles and module headers, which are rarely focused. These rules
+   give the stored spans the same presentation outside the editor. */
+[data-track-insertion] {
+  background-color: rgba(34, 197, 94, 0.3);
+  border-bottom: 2px solid rgba(34, 197, 94, 0.9);
+}
+[data-track-deletion] {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #9ca3af;
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.9);
+}
