@@ -257,11 +257,16 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       color,
       lead_participant_id: wp.lead_participant_id,
       objectives: wp.objectives,
-      description_before_tasks: wp.description_before_tasks,
+      // Hidden modules are omitted, exactly as they are from Part B: the
+      // field before tasks follows `intro_visible`, each task follows its own
+      // `is_visible`.
+      description_before_tasks: wp.intro_visible === false ? null : wp.description_before_tasks,
       manual_duration: wp.manual_duration,
       tasks: ((wp.tasks as any[]) || [])
+        .filter((t: any) => t.is_visible !== false)
         .slice()
         .sort((a, b) => (a.order_index ?? a.number) - (b.order_index ?? b.number))
+
         .map((t: any) => ({
           id: t.id,
           number: t.number,
