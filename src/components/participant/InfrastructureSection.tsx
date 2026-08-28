@@ -46,6 +46,7 @@ function SortableInfraRow({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(infra.name);
   const [editDesc, setEditDesc] = useState(infra.description || '');
+  const [editSupport, setEditSupport] = useState(infra.projectSupport || '');
 
   const {
     attributes,
@@ -64,13 +65,14 @@ function SortableInfraRow({
 
   const handleSave = () => {
     if (!editName.trim()) return;
-    onUpdate(infra.id, { name: editName, description: editDesc });
+    onUpdate(infra.id, { name: editName, description: editDesc, projectSupport: editSupport });
     setEditing(false);
   };
 
   const handleCancel = () => {
     setEditName(infra.name);
     setEditDesc(infra.description || '');
+    setEditSupport(infra.projectSupport || '');
     setEditing(false);
   };
 
@@ -78,12 +80,28 @@ function SortableInfraRow({
     return (
       <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
         <div className="space-y-2">
-          <Label>Name of infrastructure or equipment</Label>
+          <Label>Name of infrastructure or equipment (portal)</Label>
           <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Description</Label>
-          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="min-h-[80px]" />
+          <Label>Description (portal, max 500 characters)</Label>
+          <Textarea
+            value={editDesc}
+            maxLength={500}
+            onChange={(e) => setEditDesc(e.target.value)}
+            className="min-h-[80px]"
+          />
+          <p className="text-xs text-muted-foreground text-right">{editDesc.length}/500</p>
+        </div>
+        <div className="space-y-2">
+          <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+          <Textarea
+            value={editSupport}
+            maxLength={200}
+            onChange={(e) => setEditSupport(e.target.value)}
+            className="min-h-[60px]"
+          />
+          <p className="text-xs text-muted-foreground text-right">{editSupport.length}/200</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -114,6 +132,9 @@ function SortableInfraRow({
         {infra.description && (
           <p className="text-sm text-muted-foreground mt-1">{infra.description}</p>
         )}
+        {infra.projectSupport && (
+          <p className="text-sm text-muted-foreground mt-1 italic">{infra.projectSupport}</p>
+        )}
       </div>
       {canEdit && (
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -142,7 +163,7 @@ export function InfrastructureSection({
   canEdit,
 }: InfrastructureSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newInfra, setNewInfra] = useState({ name: '', description: '' });
+  const [newInfra, setNewInfra] = useState({ name: '', description: '', projectSupport: '' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -152,7 +173,7 @@ export function InfrastructureSection({
   const handleAdd = () => {
     if (!newInfra.name.trim()) return;
     onAdd({ ...newInfra, participantId: '', orderIndex: infrastructure.length });
-    setNewInfra({ name: '', description: '' });
+    setNewInfra({ name: '', description: '', projectSupport: '' });
     setShowAddForm(false);
   };
 
@@ -187,12 +208,30 @@ export function InfrastructureSection({
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label>Name of infrastructure or equipment</Label>
+                <Label>Name of infrastructure or equipment (portal)</Label>
                 <Input value={newInfra.name} onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })} placeholder="e.g., High-Performance Computing Cluster" />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })} placeholder="Brief description of the infrastructure/equipment and its relevance..." className="min-h-[80px]" />
+                <Label>Description (portal, max 500 characters)</Label>
+                <Textarea
+                  value={newInfra.description}
+                  maxLength={500}
+                  onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })}
+                  placeholder="Brief description of the infrastructure/equipment and its relevance..."
+                  className="min-h-[80px]"
+                />
+                <p className="text-xs text-muted-foreground text-right">{newInfra.description.length}/500</p>
+              </div>
+              <div className="space-y-2">
+                <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+                <Textarea
+                  value={newInfra.projectSupport}
+                  maxLength={200}
+                  onChange={(e) => setNewInfra({ ...newInfra, projectSupport: e.target.value })}
+                  placeholder="How this infrastructure will be used to deliver the project..."
+                  className="min-h-[60px]"
+                />
+                <p className="text-xs text-muted-foreground text-right">{newInfra.projectSupport.length}/200</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>

@@ -39,6 +39,11 @@ export interface ConvertContext {
    * nothing — the caller supplies the fetched data (see `casesData.ts`).
    */
   casesTable?: (caseTypeId: string | null, captionLabel: string | null, ctx: ConvertContext) => string[];
+  /**
+   * Emits the B3.2 "Access to critical infrastructure" table. Like the cases
+   * table it is an atom node whose rows are read from A2 (`b32InfraData.ts`).
+   */
+  b32InfraTable?: (heading: string, captionLabel: string | null, ctx: ConvertContext) => string[];
   /** Position-derived caption sequence for authored content outside B3.1. */
   captionNumbering?: {
     sectionNumber: string;
@@ -481,6 +486,21 @@ function convertBlock(el: Element, ctx: ConvertContext): string {
       return '';
     }
     const parts = ctx.casesTable(el.getAttribute('data-case-type-id'), label, ctx);
+    return parts.length ? `{\n${parts.join('\n')}\n}` : '';
+  }
+
+  // B3.2 infrastructure table atom: rows read live from A2.
+  if (el.hasAttribute('data-b32-infra-table')) {
+    const numbering = ctx.captionNumbering;
+    const label = numbering
+      ? `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(numbering.tableIndex++)}.`
+      : null;
+    if (!ctx.b32InfraTable) return '';
+    const parts = ctx.b32InfraTable(
+      el.getAttribute('data-heading') || '',
+      label,
+      ctx,
+    );
     return parts.length ? `{\n${parts.join('\n')}\n}` : '';
   }
 
