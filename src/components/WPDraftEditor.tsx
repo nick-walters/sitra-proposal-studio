@@ -3,6 +3,8 @@ import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
+import { ModuleCommentsProvider } from '@/components/comments/ModuleComments';
+import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { saveVersionedRow } from '@/lib/versionedSave';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -99,8 +101,17 @@ export function WPDraftEditor(props: WPDraftEditorProps) {
         enabled
       >
         <PageSearchProvider>
-          <WPDraftEditorInner {...props} />
-          <WPLockTimeoutWarning />
+          {/* Module-anchored comments on the WP draft surface. Drafts have no
+              template section row, so the surface id is `wp-draft:<id>`. */}
+          <ModuleCommentsProvider
+            proposalId={props.proposalId}
+            sectionId={wpDraftSectionId(props.wpId)}
+            canEdit={props.canEdit}
+            isCoordinator={props.isCoordinator ?? false}
+          >
+            <WPDraftEditorInner {...props} />
+            <WPLockTimeoutWarning />
+          </ModuleCommentsProvider>
         </PageSearchProvider>
       </CardLockProvider>
     </MethodologyEditorFocusProvider>
