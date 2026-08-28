@@ -111,14 +111,14 @@ export function InsertCrossReferenceDialog({
       const allFigures: CrossReferenceItem[] = derived.figures.map((f) => ({
         label: f.label,
         title: f.title,
-        type: 'figure',
+        type: 'figure' as const,
         sectionId: f.sectionId,
         figureId: f.figureId,
       }));
       const allTables: CrossReferenceItem[] = derived.tables.map((t) => ({
         label: t.label,
         title: t.title,
-        type: 'table',
+        type: 'table' as const,
         sectionId: t.sectionId,
         tableKey: t.tableKey,
       }));
