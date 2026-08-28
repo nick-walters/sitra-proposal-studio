@@ -41,7 +41,7 @@ interface Row {
   message: string;
   section_id: string;
   section_title: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string>;
 }
 
 function baseMetadata(t: CommentNotificationTarget) {
