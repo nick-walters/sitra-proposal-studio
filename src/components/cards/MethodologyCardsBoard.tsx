@@ -131,6 +131,8 @@ import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
+import { ModuleCommentAnchor } from '@/components/comments/ModuleComments';
+import { cardFieldTarget, cardTitleTarget } from '@/lib/moduleCommentTargets';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import { moduleCollapseKey } from '@/lib/wpCollapseKeys';
@@ -311,7 +313,23 @@ interface FieldRowProps {
 }
 
 
-function FieldRow({
+/**
+ * Comments are anchored to the MODULE, never to a text range: the wrapper
+ * registers this field with the panel so its thread tracks the module through
+ * editing, reordering, binning and restoring.
+ */
+function FieldRow(props: FieldRowProps) {
+  return (
+    <ModuleCommentAnchor
+      targetKey={cardFieldTarget(props.field.id)}
+      label={props.field.heading || 'Module'}
+    >
+      <FieldRowInner {...props} />
+    </ModuleCommentAnchor>
+  );
+}
+
+function FieldRowInner({
   field,
   proposalId,
   canEdit,
@@ -1242,6 +1260,11 @@ function CardBlock({
               fontSize: '11pt',
             }}
           >
+            <ModuleCommentAnchor
+              targetKey={cardTitleTarget(card.id)}
+              label={`${plainTextTitle(displayedTitle) || 'Block'} — title`}
+              offset="-right-7 top-0"
+            >
             {headerMode === 'off' ? null : isCoordinator && editingTitle && !titleLock.lockedByOther ? (
               // Single-line rich text: baseline formatting only (see
               // TITLE_FIELD_CAPABILITIES). Legacy plain-string titles are
@@ -1300,6 +1323,7 @@ function CardBlock({
                 Not applicable — left out of the preview and the export. {conditionReason}
               </p>
             )}
+            </ModuleCommentAnchor>
           </div>
 
 
