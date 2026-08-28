@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, Plus, Recycle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { MarginRail } from '@/components/cards/MarginRail';
 
 function Tip({ label, children }: { label: string; children: ReactNode }) {
   return (
