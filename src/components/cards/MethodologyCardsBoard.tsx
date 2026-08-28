@@ -134,6 +134,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   ModuleCommentAnchor,
+  ModuleCommentButton,
   ModuleCommentsProvider,
 } from '@/components/comments/ModuleComments';
 import { cardFieldTarget, cardTitleTarget } from '@/lib/moduleCommentTargets';
@@ -561,6 +562,7 @@ function FieldRow({
 
   return (
     <ModuleCommentAnchor
+      control="none"
       targetKey={cardFieldTarget(field.id)}
       label={
         (field.headingEnabled && htmlToPlainText(field.heading ?? '').trim()) ||
@@ -705,6 +707,16 @@ function FieldRow({
                 </Button>
               </Tip>
             )}
+
+            {/* The comment control lives with the module's other controls, so
+                it is exactly as discoverable as visibility or delete. */}
+            <ModuleCommentButton
+              targetKey={cardFieldTarget(field.id)}
+              label={
+                (field.headingEnabled && htmlToPlainText(field.heading ?? '').trim()) ||
+                'Module'
+              }
+            />
 
             {canEdit && (
               <AlertDialog>
