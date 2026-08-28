@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { DraftPreviewDialog } from '@/components/drafts/DraftPreviewDialog';
 import { saveVersionedRow, saveCaseDraftSubsection, binTargetRow } from '@/lib/versionedSave';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
