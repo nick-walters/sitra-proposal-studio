@@ -80,10 +80,21 @@ export function DraftPreviewDialog({ open, onOpenChange, proposalId, wpId, caseI
     }
   };
 
+  // The dialog's BODY is unmounted while closed, so the canvas container the
+  // last run drew into is gone by the time it reopens. Status must therefore
+  // fall back to `idle` on close and the compile must run again on every
+  // open — otherwise the reopened dialog sits in `done` over an empty
+  // container and shows nothing until the page is reloaded.
   useEffect(() => {
-    if (open && status === 'idle') void run();
+    if (!open) {
+      setStatus('idle');
+      setPageCount(null);
+      return;
+    }
+    void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
