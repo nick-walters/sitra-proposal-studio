@@ -263,17 +263,21 @@ export function DraftFormattingToolbar({
 
       {/* MIDDLE TIER — field-specific features, only with a focused field */}
       {showGuidelinesRow && (
-        <EditorFieldBar
-          hasFocusedField={hasFocusedField}
-          onOpenGuidelines={onOpenGuidelines}
-          {...(fieldBar ?? {})}
-        />
+        <ToolbarReveal active={hasFocusedField}>
+          <EditorFieldBar
+            hasFocusedField
+            onOpenGuidelines={onOpenGuidelines}
+            {...(fieldBar ?? {})}
+          />
+        </ToolbarReveal>
       )}
 
 
       {/* Row 2: Formatting toolbar */}
       {!isReadOnly && hasFocusedField && (
+        <ToolbarReveal active>
         <div className={row2Class}>
+
           {undo && (
             <>
               <ToolbarButton
