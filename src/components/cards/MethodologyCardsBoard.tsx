@@ -134,7 +134,6 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import {
   ModuleCommentAnchor,
-  ModuleCommentButton,
   ModuleCommentsProvider,
 } from '@/components/comments/ModuleComments';
 import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
