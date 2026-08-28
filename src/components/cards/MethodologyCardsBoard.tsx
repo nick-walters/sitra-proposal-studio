@@ -1570,8 +1570,7 @@ function CardBlock({
               </Tip>
             ) : null}
 
-            {/* Column 6 — delete. A references block is part of every
-                section's required sequence, so it carries comment only. */}
+            {/* Column 6 — delete */}
             {canEdit && card.isDeletable && card.kind !== 'references' ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

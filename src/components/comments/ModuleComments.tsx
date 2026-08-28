@@ -459,10 +459,7 @@ interface AnchorProps {
    * measures the module only, for the rare surface that renders its own.
    */
   control?: 'floating' | 'none';
-  /**
-   * Per-surface horizontal nudge for the floating control, in CSS pixels.
-   * Positive moves it right. Only the deliverable row uses it.
-   */
+  /** Horizontal nudge for the floating control, in CSS pixels. */
   railNudge?: number;
 }
 

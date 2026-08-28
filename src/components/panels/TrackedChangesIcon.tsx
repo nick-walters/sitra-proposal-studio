@@ -2,7 +2,7 @@ import { GitCompareArrows } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * The tracked-changes glyph.
+ * The tracked-changes glyph — the original compare-arrows icon.
  *
  * One icon, two colourways: green on the white ground of the inactive tab and
  * of the panel's empty state, white on the green fill of the active tab.
