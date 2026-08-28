@@ -57,6 +57,9 @@ export function TrackChangeHoverTooltip() {
     const onMove = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       const el = target?.closest?.(SELECTOR) as HTMLElement | null;
+      // The document editor carries its own accept/reject bubble, which
+      // already names the author — never stack two tooltips there.
+      if (el?.closest('[data-track-menu-host]')) return;
       if (!el) {
         clearTimeout(hideTimer.current);
         hideTimer.current = setTimeout(() => setHover(null), 120);

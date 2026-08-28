@@ -1521,7 +1521,9 @@ function DocumentEditorInner({
                         </div>
                       );
                     })()}
-                    {/* Track change bubble menu */}
+                    {/* Track change bubble menu. `data-track-menu-host` keeps
+                        the global hover tooltip out of this editor. */}
+                    <div data-track-menu-host="" />
                     {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
                     {/* Block lock indicators */}
                     <BlockLockIndicator
