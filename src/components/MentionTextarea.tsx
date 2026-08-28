@@ -201,11 +201,21 @@ export function MentionTextarea({
 }: MentionTextareaProps) {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
+  const [dropUp, setDropUp] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastDisplayRef = useRef('');
 
   const { display } = rawToDisplay(value);
   lastDisplayRef.current = display;
+
+  /** Open below when the viewport has room; flip up only when it does not. */
+  const MENTION_LIST_MAX_H = 192; // matches max-h-48
+  const chooseDirection = () => {
+    const rect = textareaRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const below = window.innerHeight - rect.bottom;
+    setDropUp(below < MENTION_LIST_MAX_H + 8 && rect.top > below);
+  };
 
   const filteredMembers = teamMembers.filter(
     (m) =>
@@ -228,6 +238,7 @@ export function MentionTextarea({
       const query = textBeforeCursor.slice(atIndex + 1);
       if (!query.includes(' ') && !query.includes('\n')) {
         setMentionQuery(query);
+        chooseDirection();
         setShowMentions(true);
         onChange(newRaw);
         return;
@@ -288,7 +299,12 @@ export function MentionTextarea({
       />
 
       {showMentions && filteredMembers.length > 0 && (
-        <div className="absolute bottom-full left-0 mb-1 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+        <div
+          className={cn(
+            'absolute left-0 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto',
+            dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
+          )}
+        >
           {filteredMembers.map((member) => (
             <button
               key={member.id}

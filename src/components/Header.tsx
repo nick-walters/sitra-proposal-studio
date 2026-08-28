@@ -41,7 +41,7 @@ export function Header() {
     if (meta.source === 'module_comment') {
       navigate(
         `/proposal/${notification.proposal_id}?section=${notification.section_id}` +
-          `&comment=${meta.comment_id}`,
+          `&panel=comments&comment=${meta.comment_id}`,
       );
       return;
     }

@@ -34,6 +34,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquarePlus,
   X,
@@ -190,9 +191,21 @@ export function ModuleCommentsProvider({
   // Arriving from a notification: ?comment=<id> opens the comments panel,
   // brings the commented module into view and highlights the thread. The id
   // may name a REPLY, so the owning thread is resolved first.
-  const [focusCommentId] = useState<string | null>(() =>
-    new URLSearchParams(window.location.search).get('comment'),
-  );
+  //
+  // The parameter is read REACTIVELY (react-router's search params, not a
+  // one-off snapshot of window.location): a notification clicked while the
+  // proposal page is already open changes the URL without remounting this
+  // provider, so a mount-time snapshot would never see it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlComment = searchParams.get('comment');
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(urlComment);
+  const scrolledRef = useRef(false);
+  useEffect(() => {
+    if (!urlComment || urlComment === focusCommentId) return;
+    scrolledRef.current = false;
+    setFocusCommentId(urlComment);
+  }, [urlComment, focusCommentId]);
+
   const focusThread = useMemo(() => {
     if (!focusCommentId) return null;
     return (
@@ -202,7 +215,6 @@ export function ModuleCommentsProvider({
     );
   }, [comments, focusCommentId]);
   const focusThreadId = focusThread?.id ?? null;
-  const scrolledRef = useRef(false);
   useEffect(() => {
     if (!focusCommentId || scrolledRef.current) return;
     // Open the panel — and, where the shared region exists, make sure the
@@ -215,7 +227,14 @@ export function ModuleCommentsProvider({
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     scrolledRef.current = true;
-  }, [focusCommentId, focusThread, rightPanel, setOpen, tick]);
+    // The link has been honoured; drop it from the URL so a later reload does
+    // not re-scroll. The highlight lives in state, so it survives this.
+    if (searchParams.get('comment')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('comment');
+      setSearchParams(next, { replace: true });
+    }
+  }, [focusCommentId, focusThread, rightPanel, setOpen, tick, searchParams, setSearchParams]);
 
 
   const ctx: ModuleCommentsCtx = {

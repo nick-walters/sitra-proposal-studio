@@ -2,16 +2,22 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 /** Longer than a double click, short enough not to feel laggy. */
-export const TOOLBAR_REVEAL_DELAY_MS = 600;
+export const TOOLBAR_REVEAL_DELAY_MS = 800;
 
 /**
- * Focus-triggered toolbar tiers must not move the field under the user's
- * cursor: a double click sends its second click to wherever the layout has
- * settled, so a bar that pushes content down between the two clicks loses the
- * word selection.
+ * Focus-triggered toolbar tiers must not steal the second click of a double
+ * click: a bar that appears between the two clicks would otherwise sit under
+ * the cursor and swallow it as a button press.
  *
- * The children are therefore MOUNTED IMMEDIATELY on focus — reserving their
- * exact height, so nothing shifts — and only faded in after the delay.
+ * Two guards, together:
+ *   1. The children are MOUNTED IMMEDIATELY on focus, so their height is
+ *      reserved and the field beneath never moves.
+ *   2. For the first `delayMs` the whole tier is `pointer-events: none` AND
+ *      inert, so a click passes straight THROUGH it to whatever is beneath —
+ *      the text — and the word still selects.
+ *
+ * The bars are visible from the start (faded in quickly); only their
+ * interactivity is delayed.
  */
 export function ToolbarReveal({
   active,
@@ -22,16 +28,16 @@ export function ToolbarReveal({
   delayMs?: number;
   children: ReactNode;
 }) {
-  const [shown, setShown] = useState(false);
+  const [interactive, setInteractive] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     clearTimeout(timer.current);
     if (!active) {
-      setShown(false);
+      setInteractive(false);
       return;
     }
-    timer.current = setTimeout(() => setShown(true), delayMs);
+    timer.current = setTimeout(() => setInteractive(true), delayMs);
     return () => clearTimeout(timer.current);
   }, [active, delayMs]);
 
@@ -39,10 +45,13 @@ export function ToolbarReveal({
 
   return (
     <div
-      aria-hidden={!shown}
+      // `inert` keeps keyboard and click targets out of reach as well, so the
+      // event genuinely reaches the element underneath rather than being
+      // merely ignored by the bar.
+      {...(interactive ? {} : { inert: '' as unknown as boolean })}
       className={cn(
         'transition-opacity duration-200 ease-out motion-reduce:transition-none',
-        shown ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        interactive ? 'opacity-100' : 'opacity-90 pointer-events-none select-none',
       )}
     >
       {children}
