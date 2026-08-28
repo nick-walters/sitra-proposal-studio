@@ -132,6 +132,11 @@ import { jumpToElementId } from '@/lib/jumpToElement';
 import { isHtmlBlank } from '@/lib/htmlBlank';
 import { useUserRole } from '@/hooks/useUserRole';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  ModuleCommentAnchor,
+  ModuleCommentsProvider,
+} from '@/components/comments/ModuleComments';
+import { cardFieldTarget, cardTitleTarget } from '@/lib/moduleCommentTargets';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import { moduleCollapseKey } from '@/lib/wpCollapseKeys';
 import { useCardCollapse } from '@/hooks/useCardCollapse';
