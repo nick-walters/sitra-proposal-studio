@@ -39,7 +39,7 @@ export function CaseGuidanceEditDialog({ isOpen, onClose, guidance, onSaved }: P
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-[18cm]">
         <DialogHeader>
           <DialogTitle>Guidance for {guidance?.title ?? 'this subsection'}</DialogTitle>
         </DialogHeader>
@@ -51,7 +51,6 @@ export function CaseGuidanceEditDialog({ isOpen, onClose, guidance, onSaved }: P
           value={text}
           onChange={setText}
           minHeight="8rem"
-          placeholder="Write guidance suited to this project's cases…"
         />
         <DialogFooter className="gap-2">
           {guidance?.isOverride && (
