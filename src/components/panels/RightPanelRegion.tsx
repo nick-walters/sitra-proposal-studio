@@ -137,7 +137,6 @@ export function RightPanelProvider({
     (v: boolean) => {
       setOpenState(v);
       // Closing ends the explicit choice; it sticks only while open.
-      if (!v) setExplicitTab(null);
       setExplicitTab((t) => {
         const tab = v ? t : null;
         persist({ open: v, tab });
