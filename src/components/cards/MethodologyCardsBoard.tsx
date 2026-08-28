@@ -1150,7 +1150,8 @@ function CardBlock({
      work plan" intro grows and loses modules, so only it carries a recycle
      bin. Every other B3.1 block keeps its remaining controls. */
   const hidesRestore =
-    (card.templateKey ?? '').startsWith('b31.') && card.templateKey !== 'b31.intro';
+    isCommentOnlyBlock ||
+    ((card.templateKey ?? '').startsWith('b31.') && card.templateKey !== 'b31.intro');
 
   // The chart itself is rendered by SourceFedBlock, which tags its wrapper
   // with data-figure-type; the header control finds it and hands it to the
