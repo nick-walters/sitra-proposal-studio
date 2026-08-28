@@ -1487,9 +1487,12 @@ function CardBlock({
               </Tip>
             ) : null}
 
-            {/* Column 4 — restore. Always present, greyed out when this
-                block's bin is empty, so the row never shifts. */}
-            {canEdit ? (
+            {/* Column 4 — restore. Only blocks that own deletable children
+                carry it: a source-fed table has nothing of its own to bin, so
+                it shows no restore control at all rather than a dead one. */}
+            {canEdit &&
+            (isLinkedActivitiesCard || isMilestonesCard || isRisksCard || canAddModule) ? (
+
               (() => {
                 const thing = isLinkedActivitiesCard
                   ? 'activity'
