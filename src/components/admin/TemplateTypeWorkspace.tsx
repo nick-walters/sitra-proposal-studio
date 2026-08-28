@@ -327,28 +327,13 @@ export function TemplateTypeWorkspace({
         )}
       </div>
 
-      {subsections.map((section: any, i: number) => {
+      {partBSubsections.map((section: any) => {
         const sectionNumber = section.section_number as string;
         const rows = grouped.get(sectionNumber) ?? [];
         const isOpen = !collapsed[sectionNumber];
-        const isDraft = section.part === 'drafts';
-        const firstDraft = isDraft && i === partBSubsections.length;
         return (
-          <div key={section.id} className="space-y-4">
-            {firstDraft && (
-              <div className="pt-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Drafts
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Guidance for the work package and case draft fields. These are not Commission
-                  sections and carry no section numbers.
-                </p>
-              </div>
-            )}
           <SubsectionPanel
-            hideNumber={isDraft}
-            hideCriteria={isDraft}
+            key={section.id}
             sectionNumber={sectionNumber}
             title={section.title ?? ''}
             sectionSourceId={section.id}
@@ -360,15 +345,55 @@ export function TemplateTypeWorkspace({
             onToggle={() => setCollapsed((c) => ({ ...c, [sectionNumber]: isOpen }))}
             onChanged={refresh}
           />
-          </div>
         );
       })}
 
-      {subsections.length === 0 && (
+      {partBSubsections.length === 0 && (
         <p className="py-12 text-center text-sm text-muted-foreground">
           This template type has no Part B subsections yet.
         </p>
       )}
+
+      {/* WP & case drafts — a section in its own right, after Part A and Part
+          B. It is not Commission structure: it is the guidance behind the work
+          package and case draft boards, so it carries no section numbers and
+          no evaluation criteria. */}
+      <div className="flex items-center gap-2 pt-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Badge variant="outline">Drafts</Badge>
+          WP &amp; case drafts
+        </h3>
+      </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Guidance for the work package and case draft fields. These are not Commission sections
+        and carry no section numbers.
+      </p>
+
+      {draftSections.map((section: any) => {
+        const sectionNumber = section.section_number as string;
+        const rows = grouped.get(sectionNumber) ?? [];
+        const isOpen = !collapsed[sectionNumber];
+        return (
+          <SubsectionPanel
+            key={section.id}
+            hideNumber
+            hideCriteria
+            sectionNumber={sectionNumber}
+            title={section.title ?? ''}
+            sectionSourceId={section.id}
+            templateTypeId={typeId}
+            versionId={activeVersionId}
+            editable={editable}
+            blocks={rows}
+            open={isOpen}
+            onToggle={() => setCollapsed((c) => ({ ...c, [sectionNumber]: isOpen }))}
+            onChanged={refresh}
+          />
+        );
+      })}
+
+      {/* The per-subsection tips writers actually see on the case draft board. */}
+      <CaseGuidanceDefaultsPanel editable={editable} />
 
 
       <AlertDialog open={takeoverOpen} onOpenChange={setTakeoverOpen}>
