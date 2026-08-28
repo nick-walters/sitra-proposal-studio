@@ -355,10 +355,13 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <CommentsPanelButton
-        onOpenComments={onOpenComments}
+      {/* ONE toggle for the shared right-hand region (Tracked changes +
+          Comments tabs). It replaces the old separate Comments control. */}
+      <ReviewPanelButton
+        onReviewChanges={onOpenComments}
         commentCount={commentCount}
       />
+
 
       <FeatureButton
         icon={<Search className="h-3.5 w-3.5" />}
