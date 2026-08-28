@@ -39,39 +39,39 @@ interface InsertCrossReferenceDialogProps {
   filterType?: 'figure' | 'table';
 }
 
+/**
+ * LEGACY fallback only: sections that still hold their body in
+ * `section_content` write the caption label into the HTML itself. The label is
+ * followed by the description in SIBLING tags, so the text is read from the
+ * parsed paragraph rather than from the regex match — that truncation at the
+ * first '<' is why these entries used to read "Untitled".
+ */
 function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; tables: CrossReferenceItem[] } {
   const figures: CrossReferenceItem[] = [];
   const tables: CrossReferenceItem[] = [];
+  if (!html || typeof document === 'undefined') return { figures, tables };
 
-  const figurePattern = /Figure (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
-  let match;
-  const seenFigures = new Set<string>();
-  while ((match = figurePattern.exec(html)) !== null) {
-    if (!seenFigures.has(match[1])) {
-      seenFigures.add(match[1]);
-      figures.push({
-        label: match[1],
-        title: match[2]?.trim() || 'Untitled',
-        type: 'figure',
-      });
-    }
-  }
+  const holder = document.createElement('div');
+  holder.innerHTML = html;
+  const labelPattern = /^\s*(Figure|Table)\s+(\d+\.\d+\.[a-z]+)\.?\s*/i;
+  const seen = new Set<string>();
 
-  const tablePattern = /Table (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
-  const seenTables = new Set<string>();
-  while ((match = tablePattern.exec(html)) !== null) {
-    if (!seenTables.has(match[1])) {
-      seenTables.add(match[1]);
-      tables.push({
-        label: match[1],
-        title: match[2]?.trim().replace(/<[^>]*>/g, '') || 'Untitled',
-        type: 'table',
-      });
-    }
-  }
+  holder.querySelectorAll('p, div, caption').forEach((el) => {
+    const text = (el.textContent || '').replace(/\s+/g, ' ');
+    const match = labelPattern.exec(text);
+    if (!match) return;
+    const kind = match[1].toLowerCase() === 'figure' ? 'figure' : 'table';
+    const label = match[2];
+    const key = `${kind}:${label}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const title = text.slice(match[0].length).trim();
+    (kind === 'figure' ? figures : tables).push({ label, title, type: kind });
+  });
 
   return { figures, tables };
 }
+
 
 export function InsertCrossReferenceDialog({
   isOpen,
