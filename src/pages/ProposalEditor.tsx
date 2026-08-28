@@ -269,8 +269,12 @@ export function ProposalEditor() {
     if (sectionsLoading || allSections.length === 0) return;
     const urlSection = searchParams.get('section');
     const urlPanel = searchParams.get('panel') as 'comments' | 'changes' | null;
-    if (!urlSection) return;
-    
+    // `?comment=` is consumed by the comments panel itself, so it must SURVIVE
+    // this clean-up — clearing every parameter here was what made comment
+    // notifications appear to do nothing.
+    const urlComment = searchParams.get('comment');
+    if (!urlSection && !urlComment) return;
+
     // Legacy deep links: 'messaging' and 'backups' are now tabs on merged pages.
     let targetId = urlSection;
     if (urlSection === 'messaging') {
@@ -282,14 +286,16 @@ export function ProposalEditor() {
       targetId = 'snapshots';
     }
 
-    const found = findSectionById(allSections, targetId);
+    const found = targetId ? findSectionById(allSections, targetId) : undefined;
     if (found) {
       setActiveSection(found);
     }
     if (urlPanel) {
       setOpenPanel(urlPanel);
+    } else if (urlComment) {
+      setOpenPanel('comments');
     }
-    setSearchParams({}, { replace: true });
+    setSearchParams(urlComment ? { comment: urlComment } : {}, { replace: true });
   }, [searchParams, allSections, sectionsLoading, findSectionById]);
 
   // Blocks elsewhere in the editor can request a page by id — the Pert
