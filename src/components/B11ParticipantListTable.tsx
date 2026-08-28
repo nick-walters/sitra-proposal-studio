@@ -211,7 +211,7 @@ export function B11ParticipantListTable({ proposalId }: { proposalId: string }) 
     <table
       data-table-key={B11_PARTICIPANTS_TABLE_KEY}
       ref={tableRef}
-      className={`${tableStyles} w-full border-collapse`}
+      className={`mirror-surface ${tableStyles} w-full border-collapse`}
       style={{
         tableLayout: fixed ? 'fixed' : 'fixed',
         width: fixed ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
