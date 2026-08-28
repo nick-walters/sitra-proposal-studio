@@ -13,10 +13,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { Tip } from '@/components/ui/control-tip';
+import {
+  DELETE_DIALOG_ACTION_CLASS,
+  DELETE_DIALOG_CONTENT_CLASS,
+  deleteDialogDescription,
+  deleteDialogTitle,
+} from '@/components/deleteDialogCopy';
 
 
 interface DeleteConfirmDialogProps {
   itemLabel?: string;
+  /**
+   * The thing being deleted — module, task, deliverable, block, subsection,
+   * figure. It is the ONLY part of the confirmation that varies.
+   */
+  noun?: string;
   onConfirm: () => void;
   buttonClassName?: string;
   iconSize?: string;
@@ -33,6 +44,7 @@ interface DeleteConfirmDialogProps {
 
 export function DeleteConfirmDialog({
   itemLabel = 'this item',
+  noun,
   onConfirm,
   buttonClassName = 'h-6 w-6 text-destructive hover:text-destructive flex-shrink-0',
   iconSize = 'h-3.5 w-3.5',
@@ -42,6 +54,8 @@ export function DeleteConfirmDialog({
   description,
 }: DeleteConfirmDialogProps) {
   const [open, setOpen] = useState(false);
+  // Callers name the thing either way round ("this task" / "task").
+  const resolvedNoun = noun ?? itemLabel.replace(/^(this|the)\s+/i, '');
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -60,17 +74,17 @@ export function DeleteConfirmDialog({
         </Tip>
       </AlertDialogTrigger>
 
-      <AlertDialogContent>
+      <AlertDialogContent className={DELETE_DIALOG_CONTENT_CLASS}>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {itemLabel}?</AlertDialogTitle>
+          <AlertDialogTitle>{deleteDialogTitle(resolvedNoun)}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description ?? `Are you sure you want to delete ${itemLabel}?`}
+            {description ?? deleteDialogDescription(resolvedNoun)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={DELETE_DIALOG_ACTION_CLASS}
             onClick={() => onConfirm()}
           >
             Delete
