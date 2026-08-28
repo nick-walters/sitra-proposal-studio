@@ -53,8 +53,9 @@ function toBody(blocks: string[]): string {
 /**
  * Footer meta for a fragment: the acronym chip and page numbering are kept —
  * a printed WP draft is circulated and page numbers make it citable in a
- * review — but the running HEADER (the topic identifier) is dropped, because
- * that line asserts the page belongs to the submitted proposal.
+ * review. The running HEADER (the topic identifier) is kept too, so a printed
+ * fragment says which call it belongs to; only the full-bleed BANNER is
+ * dropped, because that is front matter and a draft has none.
  */
 async function draftMeta(
   proposalId: string,
@@ -69,9 +70,10 @@ async function draftMeta(
     partLabel: label,
     banner: null,
     headings: null,
-    runningHeader: '',
+    runningHeader: meta.runningHeader || '',
   };
 }
+
 
 /** One work package, as B3.1's mirror renders it. */
 export async function buildWpDraftTypstDocument(
