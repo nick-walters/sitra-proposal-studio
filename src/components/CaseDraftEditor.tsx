@@ -16,28 +16,48 @@ import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePa
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DebouncedInput } from '@/components/ui/debounced-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
 } from '@/components/comments/ModuleComments';
 import { caseTarget, caseDraftSectionId } from '@/lib/moduleCommentTargets';
-import { DebouncedRichField } from '@/components/participant/DebouncedRichField';
 import { CASE_DRAFT_FIELD_EXTENSIONS } from '@/components/cases/caseDraftFieldExtensions';
 import {
   MethodologyEditorFocusProvider,
   useMethodologyEditorFocus,
 } from '@/components/MethodologyEditorFocusContext';
-import { getEditorCapabilities } from '@/lib/fieldCapabilities';
 
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Lock, Image as ImageLucide, Table2 } from 'lucide-react';
+import { BookOpen, Lock, Image as ImageLucide, Table2, Lightbulb, Plus, Recycle, GripVertical, Crown } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
+import { CardLockProvider, useCardLocks } from '@/hooks/useCardLocks';
+import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
+import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
+import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import {
+  WP_BLOCK_FRAME,
+  WP_BLOCK_HEADER,
+  WP_CHEVRON_SIZE,
+  WP_CONTROL_STACK,
+  WP_DOC_FONT,
+  WP_TITLE_INDENT,
+} from '@/lib/wpBlockChrome';
+import { caseSubsectionCollapseKey } from '@/lib/wpCollapseKeys';
+import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
+import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
+import { CardFieldHistoryDialog } from '@/components/cards/CardFieldHistoryDialog';
+import { useFocusedVersionTarget, versionTargetAttr } from '@/hooks/useFocusedVersionTarget';
+import { useFocusedGuidelineKey } from '@/hooks/useFocusedGuidelineKey';
+import { useCardGuidelines } from '@/hooks/useCardGuidelines';
+import { useProposalTemplateVersion } from '@/hooks/useProposalTemplateVersion';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
@@ -50,7 +70,6 @@ import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useCaseSubsectionTemplates } from '@/hooks/useCaseSubsectionTemplates';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
-import { ParticipantBubble } from '@/components/B31Pill';
 
 import {
   getCaseTypeLabel,
@@ -99,6 +118,15 @@ interface CaseDraftEditorProps {
 export function CaseDraftEditor(props: CaseDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
+      {/* Case drafts are not a template section, so lock rows carry no section
+          id and streaming uses a case-wide channel — the same arrangement WP
+          drafts use. */}
+      <CardLockProvider
+        proposalId={props.proposalId}
+        sectionId={null}
+        channelKey={`case-draft:${props.caseId}`}
+        enabled
+      >
       <PageSearchProvider>
       {/* Module-anchored comments; a case draft is its own comment surface. */}
       <ModuleCommentsProvider
@@ -108,10 +136,18 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
         isCoordinator={props.isCoordinator}
       >
         <CaseDraftEditorInner {...props} />
+        <CaseLockTimeoutWarning />
       </ModuleCommentsProvider>
       </PageSearchProvider>
+      </CardLockProvider>
     </MethodologyEditorFocusProvider>
   );
+}
+
+/** Idle-timeout warning for whichever case field this client currently holds. */
+function CaseLockTimeoutWarning() {
+  const { warning } = useCardLocks();
+  return warning ? <LockTimeoutWarning secondsLeft={warning.secondsLeft} /> : null;
 }
 
 function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
@@ -474,7 +510,57 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
   // Project-wide subsection templates
-  const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
+  const { templates: subsectionTemplates, addRow: addSubsection, reorder: reorderSubsections } =
+    useCaseSubsectionTemplates(proposalId);
+
+  /* Per-user collapse state for the subsection blocks, in the same store WP
+     blocks and Part B modules use, so Collapse all behaves identically. */
+  const { collapsedKeys, setCollapsed } = useKeyedCollapse(proposalId);
+  const toggleCollapsed = useCallback(
+    (key: string) => setCollapsed.mutate({ keys: [key], collapsed: !collapsedKeys.has(key) }),
+    [collapsedKeys, setCollapsed],
+  );
+  const allCollapseKeys = useMemo(
+    () => subsectionTemplates.map((sub) => caseSubsectionCollapseKey(caseId, sub.key)),
+    [subsectionTemplates, caseId],
+  );
+  const allCollapsed =
+    allCollapseKeys.length > 0 && allCollapseKeys.every((k) => collapsedKeys.has(k));
+
+  // Version history for whichever field owns the toolbar (data-version-target).
+  const versionTarget = useFocusedVersionTarget();
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  /* Guidance is never printed on a block: it is reached through the Guidelines
+     button while a field has focus, keyed `drafts.case.<subsection key>`. */
+  const focusedGuidelineKey = useFocusedGuidelineKey();
+  const { data: caseTemplateVersionId } = useProposalTemplateVersion(proposalId);
+  const { data: blockGuidelines = [] } = useCardGuidelines(
+    focusedGuidelineKey && focusedGuidelineKey.startsWith('drafts.') ? focusedGuidelineKey : null,
+    'drafts',
+    caseTemplateVersionId,
+    proposalId,
+  );
+  const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
+  const authoredTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
+
+  // 90-day recycle bin. A binned subsection hangs off the proposal, because the
+  // subsection set is project-wide rather than owned by one case.
+  const [binOpen, setBinOpen] = useState(false);
+  const binCount = useWPBinCount(proposalId, 'case_subsection', 'proposal');
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const handleSubsectionDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = subsectionTemplates.map((t) => t.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = [...subsectionTemplates];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    reorderSubsections.mutate(next);
+  }, [subsectionTemplates, reorderSubsections]);
 
   // Offers back text refused by the version guard.
   const { reportConflict, dialog: conflictDialog } = useVersionConflict();
@@ -555,6 +641,19 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         return;
       }
       subsectionBaseline.current[key] = safe;
+      /* Snapshot into the shared version store. PostgREST builders are lazy
+         thenables, so the promise must be consumed for the request to go out. */
+      void supabase
+        .rpc('save_target_version', {
+          p_target_type: 'case_draft_subsection',
+          p_target_id: caseId,
+          p_text_box: key,
+          p_value: safe,
+          p_is_auto_save: true,
+        })
+        .then(({ error }) => {
+          if (error) console.error('save_target_version failed', key, error);
+        });
       setLastSaved(new Date());
       setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
@@ -666,6 +765,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   const prefix = getCasePrefix(caseDraft.case_type, caseDraft.custom_type_name);
   const includeNumber = caseTypeRow?.include_number !== false;
   const includeAbbreviation = caseTypeRow?.include_abbreviation !== false;
+  const caseAccent = caseTypeRow?.outline_color || '#000000';
   const headingLabel = buildCaseLabel({
     prefix,
     number: caseDraft.number,
@@ -677,8 +777,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
 
   return (
+    <TooltipProvider>
     <div className="h-full">
-      <div className="space-y-3 p-4">
+      {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
+          identical to WP drafts and the Part B board. */}
+      <div className="mx-auto w-full max-w-[calc(21cm+3rem)] space-y-3 p-6">
         {/* Lock warning banner */}
         {isLocked && !canEdit && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
@@ -716,8 +819,19 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving: updateMutation.isPending, lastSaved, onSaveNow: () => {} }}
-          topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
-          fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
+          topBar={{
+            onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            collapseAll: {
+              allCollapsed,
+              disabled: setCollapsed.isPending || allCollapseKeys.length === 0,
+              onToggle: () =>
+                setCollapsed.mutate({ keys: allCollapseKeys, collapsed: !allCollapsed }),
+            },
+          }}
+          fieldBar={{
+            onOpenGuidelines: () => setGuidelinesOpen(true),
+            onOpenVersionHistory: versionTarget ? () => setHistoryOpen(true) : undefined,
+          }}
           formatting={{
             proposalId,
             canManageCustomColors: isCoordinator,
@@ -810,124 +924,190 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         />
 
 
-        {/* Header with white bg + black outline (case bubble style) */}
-        <div
-          className="rounded-lg p-4 bg-white border-[1.5px] border-black"
-        >
-          {/* Row 1: Short name + Leader */}
-          <div className="flex items-center gap-4 flex-wrap mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-black">Short name:</span>
-              <DebouncedInput
-                value={caseDraft.short_name || ''}
-                onDebouncedChange={(v) => updateField('short_name', v)}
-                placeholder="e.g. Barcelona"
-                className="h-8 w-[160px] text-base font-bold"
-                disabled={readOnly}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-black">{getCaseTypeLabel(caseDraft.case_type, caseDraft.custom_type_name)} Leader:</span>
-              <Select
-                value={caseDraft.lead_participant_id || ''}
-                onValueChange={(value) => updateField('lead_participant_id', value || null)}
-                disabled={readOnly}
+        {/* ── BLOCK 1: CASE HEADER ──
+            A read-only projection of the case manager row: the title, the lead
+            and the type are all owned there. Permanently expanded, no chevron
+            and no controls — but every part of it is commentable. */}
+        <section className={WP_BLOCK_FRAME}>
+          <div className="space-y-2 px-[1.5cm] py-2">
+            <ModuleCommentAnchor targetKey={caseTarget(caseId, 'title')} label={`${headingLabel} title`}>
+              <div
+                className="flex w-full items-baseline gap-0 rounded-full"
+                style={{
+                  backgroundColor: caseAccent,
+                  border: `1.5px solid ${caseAccent}`,
+                  padding: '0px 6px',
+                  lineHeight: 1,
+                }}
               >
-                <SelectTrigger className="h-8 w-[160px] text-sm">
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {participants.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <ParticipantBubble>
-                        {p.organisation_short_name || p.organisation_name}
-                      </ParticipantBubble>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <span
+                  className="min-w-0 font-bold text-white"
+                  style={{ ...WP_DOC_FONT, color: '#FFFFFF', overflowWrap: 'anywhere', lineHeight: 1.15 }}
+                >
+                  {headingLabel}:&nbsp;{caseDraft.short_name?.trim() || ''}
+                  {Boolean(caseDraft.short_name?.trim()) && Boolean(caseDraft.title?.trim()) ? ' – ' : ''}
+                  {caseDraft.title?.trim() || ''}
+                </span>
+              </div>
+            </ModuleCommentAnchor>
+
+            {/* The lead is a badge, not a dropdown — it is changed in the case
+                manager. The case type sits opposite it. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <ModuleCommentAnchor targetKey={caseTarget(caseId, 'lead')} label={`${headingLabel} lead participant`}>
+                {(() => {
+                  const leader = participants.find((pt) => pt.id === caseDraft.lead_participant_id);
+                  if (!leader) {
+                    return <span className="text-draft italic text-muted-foreground">Lead not set</span>;
+                  }
+                  return (
+                    <span
+                      className="inline-flex items-center whitespace-nowrap rounded-full font-bold"
+                      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                    >
+                      <Crown className="mr-1 h-3 w-3 fill-white text-white" />
+                      {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+                    </span>
+                  );
+                })()}
+              </ModuleCommentAnchor>
+              <ModuleCommentAnchor targetKey={caseTarget(caseId, 'type')} label={`${headingLabel} type`}>
+                <span className="text-draft font-medium">
+                  {getCaseTypeLabel(caseDraft.case_type, caseDraft.custom_type_name)}
+                </span>
+              </ModuleCommentAnchor>
             </div>
           </div>
-          {/* Row 2: Badge + Title */}
-          <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-black">{headingLabel}:</span>
-            <DebouncedInput
-              value={caseDraft.title || ''}
-              onDebouncedChange={(v) => updateField('title', v)}
-              placeholder={`Full ${caseWord(caseTypes, { capitalize: false })} title`}
-              className="flex-1 text-base font-bold"
-              disabled={readOnly}
-            />
-          </div>
-        </div>
+        </section>
 
-        {/* Guidelines Dialog */}
+        {/* Version history for whichever case field owns the toolbar. */}
+        {versionTarget && (
+          <CardFieldHistoryDialog
+            proposalId={proposalId}
+            fieldId={versionTarget.targetId}
+            textBox={versionTarget.textBox}
+            targetType={versionTarget.targetType}
+            fieldLabel={versionTarget.label}
+            boxLabelOverride={versionTarget.label}
+            isOpen={historyOpen}
+            canEdit={canEdit}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
+
+        {/* Guidelines Dialog — authored in Template Management under Drafts. */}
         <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for {headingLabel}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
+              <DialogTitle>
+                {focusedGuidelineKey
+                  ? `Guidelines: ${subsectionTemplates.find((t) => `drafts.case.${t.key}` === focusedGuidelineKey)?.heading ?? caseWord(caseTypes, { capitalize: true })}`
+                  : `Guidelines for ${headingLabel}: ${caseDraft.title || caseDraft.short_name || 'Case'}`}
+              </DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  There are no official EC guidelines for {caseWord(caseTypes, { plural: true, capitalize: false })} descriptions. Use the Sitra tips below for guidance.
-                </p>
-                <SitraTipsBox tips={SITRA_CASE_TIPS} />
+                {officialGuidelines.length > 0 && (
+                  <div className="rounded-lg border-2 border-blue-500 bg-blue-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 flex-shrink-0 text-blue-500" />
+                      <span className="text-sm font-bold text-blue-600">
+                        Official guidelines from the European Commission
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      {officialGuidelines.map((g) => (
+                        <div key={g.id}>
+                          {g.title && <h4 className="mb-2 font-semibold text-blue-600">{g.title}</h4>}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(g.content) }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {authoredTips.length > 0 && (
+                  <div className="rounded-lg border-2 border-gray-800 bg-gray-50/50 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 flex-shrink-0 text-gray-800" />
+                      <span className="text-sm font-bold text-gray-900">Sitra&rsquo;s tips</span>
+                    </div>
+                    <div className="space-y-4">
+                      {authoredTips.map((tip) => (
+                        <div key={tip.id}>
+                          {tip.title && <h4 className="mb-2 font-semibold text-gray-900">{tip.title}</h4>}
+                          <div
+                            className="text-sm text-muted-foreground [&_a]:underline [&_div]:mt-1"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tip.content) }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {blockGuidelines.length === 0 && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {focusedGuidelineKey
+                        ? 'No guidance has been authored for this subsection yet.'
+                        : 'Place the cursor in a subsection to see the guidance for it.'}
+                    </p>
+                    <SitraTipsBox tips={SITRA_CASE_TIPS} />
+                  </>
+                )}
               </div>
             </ScrollArea>
           </DialogContent>
         </Dialog>
 
-        {/* Subsections — driven by project-wide template */}
+        {/* ── BLOCKS 2..n: ONE PER SUBSECTION ── */}
         {subsectionTemplates.length === 0 && (
           <p className="text-sm text-muted-foreground italic px-1">
             No subsections defined for this proposal yet. A coordinator can add them via the
             &ldquo;Edit {caseWord(caseTypes, { capitalize: false })} subsections &amp; guidelines&rdquo; button in the case manager.
           </p>
         )}
-        {subsectionTemplates.map((sub) => {
-          const content = entryBody(subsectionContent[sub.key]);
-          const guideline = sub.guideline || '';
 
-          return (
-            // Keyed by case AND subsection: switching pilots must build fresh
-            // fields rather than rebind a live editor to another case's row.
-            <Card key={`${caseId}:${sub.id}`} id={`case-subsection-${sub.key}`}>
-              <CardHeader className="py-2 px-3">
-                <ModuleCommentAnchor
-                  targetKey={caseTarget(caseId, `${sub.key}:heading`)}
-                  label={`${sub.heading} — heading`}
-                >
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{sub.heading}</span>
-                </CardTitle>
-                </ModuleCommentAnchor>
-              </CardHeader>
-              <CardContent className="space-y-2 px-3 pb-3 pt-0">
-                {guideline && (
-                  <p className="text-xs text-muted-foreground italic px-1">{guideline}</p>
-                )}
-
-                <ModuleCommentAnchor
-                  targetKey={caseTarget(caseId, sub.key)}
-                  label={sub.heading}
-                >
-                <DebouncedRichField
-                  value={content}
-                  onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
-                  disabled={readOnly}
-                  minHeight="150px"
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubsectionDragEnd}>
+          <SortableContext items={subsectionTemplates.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {subsectionTemplates.map((sub) => (
+                // Keyed by case AND subsection: switching cases must build fresh
+                // fields rather than rebind a live editor to another case's row.
+                <CaseSubsectionBlock
+                  key={`${caseId}:${sub.id}`}
+                  caseId={caseId}
                   proposalId={proposalId}
-                  staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+                  subsectionId={sub.id}
+                  subsectionKey={sub.key}
+                  heading={sub.heading}
+                  value={entryBody(subsectionContent[sub.key])}
+                  onChange={(v) => updateSubsectionContent(sub.key, v, sub.heading)}
+                  readOnly={readOnly}
+                  collapsed={collapsedKeys.has(caseSubsectionCollapseKey(caseId, sub.key))}
+                  onToggleCollapsed={() => toggleCollapsed(caseSubsectionCollapseKey(caseId, sub.key))}
+                  onAdd={readOnly ? undefined : () => addSubsection.mutate()}
+                  onRestore={readOnly ? undefined : () => setBinOpen(true)}
+                  restoreDisabled={binCount === 0}
                   shouldStayMounted={shouldStayMounted}
                 />
-                </ModuleCommentAnchor>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
-              </CardContent>
-            </Card>
-          );
-        })}
+        <WPBinDialog
+          isOpen={binOpen}
+          onClose={() => setBinOpen(false)}
+          wpDraftId={proposalId}
+          parentType="proposal"
+          targetType="case_subsection"
+          title="Deleted subsections"
+        />
       </div>
 
       {/* Cross-reference dialogs */}
@@ -996,5 +1176,143 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       />
       {conflictDialog}
     </div>
+    </TooltipProvider>
+  );
+}
+
+/**
+ * One subsection block: the shared block frame, the shared left control stack
+ * (chevron above grip), an uneditable bold heading from the project-wide
+ * template, and a single page-styled rich field carrying locking, streaming,
+ * version history and guidance markers.
+ */
+function CaseSubsectionBlock({
+  caseId,
+  proposalId,
+  subsectionId,
+  subsectionKey,
+  heading,
+  value,
+  onChange,
+  readOnly,
+  collapsed,
+  onToggleCollapsed,
+  onAdd,
+  onRestore,
+  restoreDisabled,
+  shouldStayMounted,
+}: {
+  caseId: string;
+  proposalId: string;
+  subsectionId: string;
+  subsectionKey: string;
+  heading: string;
+  value: string;
+  onChange: (html: string) => void;
+  readOnly: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onAdd?: () => void;
+  onRestore?: () => void;
+  restoreDisabled?: boolean;
+  shouldStayMounted?: () => boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: subsectionId,
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      id={`case-subsection-${subsectionKey}`}
+      className={cn(WP_BLOCK_FRAME, isDragging && 'opacity-60')}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      /* Guidance is keyed on the subsection's own template key, so a
+         case-type-specific subsection carries its own guidance. */
+      data-guideline-key={`drafts.case.${subsectionKey}`}
+      data-version-label={heading}
+      data-version-target={versionTargetAttr('case_draft_subsection', caseId, subsectionKey)}
+    >
+      <div className={cn(WP_BLOCK_HEADER, !collapsed && 'border-b border-border')}>
+        <div className={WP_CONTROL_STACK}>
+          <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="shrink-0 cursor-grab touch-none rounded p-1 hover:bg-muted active:cursor-grabbing"
+                aria-label="Drag to reorder this subsection"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4 text-blue-500" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Drag to reorder this subsection</TooltipContent>
+          </Tooltip>
+        </div>
+        <ModuleCommentAnchor targetKey={caseTarget(caseId, `${subsectionKey}:heading`)} label={`${heading} — heading`}>
+          <p
+            className="min-w-0 flex-1 select-none font-bold"
+            style={{ ...WP_DOC_FONT, paddingLeft: WP_TITLE_INDENT }}
+          >
+            {heading}:
+          </p>
+        </ModuleCommentAnchor>
+
+        {!readOnly && (
+          <div className="flex items-center gap-1">
+            {onAdd && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onAdd} aria-label="Add a subsection">
+                    <Plus className="h-3.5 w-3.5 text-blue-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add a subsection</TooltipContent>
+              </Tooltip>
+            )}
+            {onRestore && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={onRestore}
+                    disabled={restoreDisabled}
+                    aria-label="Restore a deleted subsection"
+                  >
+                    <Recycle
+                      className={cn('h-3.5 w-3.5', restoreDisabled ? 'text-muted-foreground' : 'text-emerald-600')}
+                      strokeWidth={2.5}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Restore a deleted subsection</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!collapsed && (
+        <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
+          <ModuleCommentAnchor targetKey={caseTarget(caseId, subsectionKey)} label={heading}>
+            <LockedWPRichField
+              targetId={caseTarget(caseId, subsectionKey)}
+              value={value}
+              onChange={onChange}
+              disabled={readOnly}
+              minHeight="60px"
+              proposalId={proposalId}
+              staticExtensions={CASE_DRAFT_FIELD_EXTENSIONS}
+              documentSurface
+              shouldStayMounted={shouldStayMounted}
+            />
+          </ModuleCommentAnchor>
+        </div>
+      )}
+    </section>
   );
 }

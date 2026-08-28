@@ -19,3 +19,12 @@ export const wpTaskCollapseKey = (taskId: string) => `wp_task:${taskId}`;
 
 /** A Part B module (a card field). Same store, so both surfaces behave alike. */
 export const moduleCollapseKey = (fieldId: string) => `module:${fieldId}`;
+
+/**
+ * A case draft subsection block. Case drafts are projections too, so they use
+ * the same per-user store as WP blocks and Part B modules — the key carries
+ * the case as well as the subsection, because the subsection set is
+ * project-wide but the collapse state is per case.
+ */
+export const caseSubsectionCollapseKey = (caseId: string, subsectionKey: string) =>
+  `case:${caseId}:${subsectionKey}`;

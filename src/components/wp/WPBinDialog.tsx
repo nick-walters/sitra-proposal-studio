@@ -16,30 +16,38 @@ import { htmlToPlainText } from '@/lib/htmlToPlainText';
 interface WPBinDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Parent WP draft whose binned children are listed. */
+  /** Parent whose binned children are listed: a WP draft id, or the proposal
+   *  id for surfaces whose bin rows hang off the proposal (case subsections). */
   wpDraftId: string;
+  /** `card_deletions.parent_type` to filter on. Defaults to a WP draft. */
+  parentType?: 'wp_draft' | 'proposal';
   targetType: WPBinTargetType | WPBinTargetType[];
   title: string;
   /** Called after a successful restore so the page can refetch. */
   onRestored?: () => void;
 }
 
-export type WPBinTargetType = 'wp_draft_task' | 'wp_draft_deliverable' | 'wp_draft_intro';
+export type WPBinTargetType =
+  | 'wp_draft_task'
+  | 'wp_draft_deliverable'
+  | 'wp_draft_intro'
+  | 'case_subsection';
 
 /** Live count of binned rows, so the restore control can grey out when empty. */
 export function useWPBinCount(
   wpDraftId: string | null | undefined,
   targetType: WPBinTargetType | WPBinTargetType[],
+  parentType: 'wp_draft' | 'proposal' = 'wp_draft',
 ) {
   const types = Array.isArray(targetType) ? targetType : [targetType];
   const { data = 0 } = useQuery({
-    queryKey: ['wp-bin-count', wpDraftId, types.join(',')],
+    queryKey: ['wp-bin-count', parentType, wpDraftId, types.join(',')],
     enabled: Boolean(wpDraftId),
     queryFn: async (): Promise<number> => {
       const { count, error } = await supabase
         .from('card_deletions')
         .select('id', { count: 'exact', head: true })
-        .eq('parent_type', 'wp_draft')
+        .eq('parent_type', parentType)
         .eq('parent_id', wpDraftId!)
         .in('target_type', types)
         .is('restored_at', null);
@@ -68,6 +76,7 @@ export function WPBinDialog({
   isOpen,
   onClose,
   wpDraftId,
+  parentType = 'wp_draft',
   targetType,
   title,
   onRestored,
@@ -76,13 +85,13 @@ export function WPBinDialog({
   const types = Array.isArray(targetType) ? targetType : [targetType];
 
   const { data: rows = [], isLoading, refetch } = useQuery({
-    queryKey: ['wp-bin', wpDraftId, types.join(',')],
+    queryKey: ['wp-bin', parentType, wpDraftId, types.join(',')],
     enabled: isOpen && Boolean(wpDraftId),
     queryFn: async (): Promise<BinRow[]> => {
       const { data, error } = await supabase
         .from('card_deletions')
         .select('id, deleted_at, payload')
-        .eq('parent_type', 'wp_draft')
+        .eq('parent_type', parentType)
         .eq('parent_id', wpDraftId)
         .in('target_type', types)
         .is('restored_at', null)
@@ -105,11 +114,14 @@ export function WPBinDialog({
     await refetch();
     qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     qc.invalidateQueries({ queryKey: ['wp-drafts'] });
+    qc.invalidateQueries({ queryKey: ['case-subsection-templates'] });
+    qc.invalidateQueries({ queryKey: ['case-draft-subsections'] });
     onRestored?.();
   };
 
   const rowLabel = (payload: Record<string, unknown> | null) => {
-    const text = htmlToPlainText(String(payload?.title ?? '')).trim();
+    // Tasks and deliverables carry `title`; a case subsection carries `heading`.
+    const text = htmlToPlainText(String(payload?.title ?? payload?.heading ?? '')).trim();
     return text || 'Untitled';
   };
 
