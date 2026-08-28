@@ -48,7 +48,6 @@ import {
   WP_DOC_FONT,
   WP_TITLE_INDENT,
 } from '@/lib/wpBlockChrome';
-import { ModuleCommentAnchor } from '@/components/comments/ModuleComments';
 
 import { WPBinDialog, useWPBinCount } from '@/components/wp/WPBinDialog';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -223,10 +222,6 @@ export function WPTableSection({
         {!isCollapsed(objectivesKey) && (
           <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
             {wpDraftId && (
-              <ModuleCommentAnchor
-                targetKey={wpTargetId(wpDraftId, 'objectives')}
-                label="Objectives"
-              >
               <LockedWPRichField
                 targetId={wpTargetId(wpDraftId, 'objectives')}
                 value={objectives || ''}
@@ -238,7 +233,6 @@ export function WPTableSection({
                 documentSurface
                 shouldStayMounted={shouldStayMounted}
               />
-              </ModuleCommentAnchor>
             )}
           </div>
         )}
@@ -414,10 +408,6 @@ export function WPTableSection({
             </div>
             <div className="doc-surface-page bg-white px-[1.5cm] py-[6pt]">
               {wpDraftId && (
-                <ModuleCommentAnchor
-                  targetKey={wpTargetId(wpDraftId, 'intro')}
-                  label="Description before the tasks"
-                >
                 <LockedWPRichField
                   targetId={wpTargetId(wpDraftId, 'intro')}
                   value={descriptionBeforeTasks || ''}
@@ -429,7 +419,6 @@ export function WPTableSection({
                   documentSurface
                   shouldStayMounted={shouldStayMounted}
                 />
-                </ModuleCommentAnchor>
               )}
             </div>
           </div>
@@ -781,10 +770,6 @@ function TaskModule({
           className="doc-surface-page bg-white px-[1.5cm] pb-[6pt] pt-0"
           style={{ marginTop: '-2.67px' }}
         >
-          <ModuleCommentAnchor
-            targetKey={wpTaskTargetId(task.id, 'description')}
-            label={`${formatTaskNumber(task.number)} description`}
-          >
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
@@ -796,7 +781,6 @@ function TaskModule({
             documentSurface
             shouldStayMounted={shouldStayMounted}
           />
-          </ModuleCommentAnchor>
         </div>
       </div>
       </>

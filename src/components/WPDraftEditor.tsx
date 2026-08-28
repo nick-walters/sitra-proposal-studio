@@ -15,8 +15,6 @@ import type { FieldSaveOutcome, SearchableField } from '@/lib/findReplace/types'
 import { PageFindReplacePanel } from '@/components/findReplace/PageFindReplacePanel';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPTableSection } from '@/components/WPTableSection';
-import { ModuleCommentsProvider, ModuleCommentAnchor } from '@/components/comments/ModuleComments';
-import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import {
   wpDeliverablesCollapseKey,
@@ -735,12 +733,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
 
   return (
-    <ModuleCommentsProvider
-      proposalId={proposalId}
-      sectionId={wpDraftSectionId(wpId)}
-      canEdit={canEdit}
-      isCoordinator={isCoordinator}
-    >
     <div className="h-full">
       {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
           matched exactly to the Part B board (max-w-[calc(21cm+3rem)] with
@@ -919,15 +911,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             collapse control. */}
         <section className={WP_BLOCK_FRAME}>
           <div className="space-y-2 px-[1.5cm] py-2">
-            {/* Full-width pill badge: WPX: Short Name – Title.
-                Not a rich text field, but commentable all the same: the pill
-                is wrapped in a module anchor rather than carrying a comment
-                control of its own. */}
-            <ModuleCommentAnchor
-              targetKey={`wp:${wpDraft.id}:title`}
-              label="Work package title"
-              offset="-right-7 top-0"
-            >
+            {/* Full-width pill badge: WPX: Short Name – Title */}
             <div
               className="wp-title-pill flex w-full items-baseline gap-0 rounded-full"
               data-comment-target={`wp_draft:${wpDraft.id}:title`}
@@ -951,7 +935,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 {wpDraft.title?.trim() || ''}
               </span>
             </div>
-            </ModuleCommentAnchor>
 
             {/* Metadata row: the leader badge and the derived duration carry no
                 headings — the badge and the month range read for themselves. */}
@@ -1225,6 +1208,5 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         onInsertFigure={insertFigureAtCursor}
       />
     </div>
-    </ModuleCommentsProvider>
   );
 }

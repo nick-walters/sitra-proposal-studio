@@ -84,9 +84,6 @@ const SITRA_CASE_TIPS = [
 // Subsection templates are now project-wide; loaded via useCaseSubsectionTemplates.
 // Legacy per-case heading_*/guideline_* fields are no longer read or written.
 
-import { ModuleCommentsProvider, ModuleCommentAnchor } from '@/components/comments/ModuleComments';
-import { caseDraftSectionId, caseTarget } from '@/lib/moduleCommentTargets';
-
 interface CaseDraftEditorProps {
   caseId: string;
   proposalId: string;
@@ -98,14 +95,7 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
       <PageSearchProvider>
-      <ModuleCommentsProvider
-        proposalId={props.proposalId}
-        sectionId={caseDraftSectionId(props.caseId)}
-        canEdit={props.canEdit}
-        isCoordinator={props.isCoordinator}
-      >
-        <CaseDraftEditorInner {...props} />
-      </ModuleCommentsProvider>
+      <CaseDraftEditorInner {...props} />
       </PageSearchProvider>
     </MethodologyEditorFocusProvider>
   );
@@ -889,12 +879,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           return (
             // Keyed by case AND subsection: switching pilots must build fresh
             // fields rather than rebind a live editor to another case's row.
-            <ModuleCommentAnchor
-              key={`${caseId}:${sub.id}`}
-              targetKey={caseTarget(caseId, sub.key)}
-              label={sub.heading}
-            >
-            <Card id={`case-subsection-${sub.key}`}>
+            <Card key={`${caseId}:${sub.id}`} id={`case-subsection-${sub.key}`}>
               <CardHeader className="py-2 px-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <BookOpen className="h-4 w-4" />
@@ -918,7 +903,6 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
               </CardContent>
             </Card>
-            </ModuleCommentAnchor>
           );
         })}
       </div>

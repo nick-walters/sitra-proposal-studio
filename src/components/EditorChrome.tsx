@@ -17,11 +17,11 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useModuleComments } from '@/components/comments/ModuleComments';
 import { Switch } from '@/components/ui/switch';
 import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
+import { useModuleComments } from '@/components/comments/ModuleComments';
 import { formatTime } from '@/lib/formatDate';
 
 
@@ -212,10 +212,9 @@ function TrackMyChangesButton() {
 }
 
 /**
- * The page-wide Comments control. A surface may drive it explicitly with
- * `onOpenComments`; where it does not, the button falls back to the
- * module-anchored comments panel as soon as a board mounts its provider, so
- * every board gets the control without threading props through the page.
+ * The Comments control. A surface that mounts `ModuleCommentsProvider` wires
+ * itself automatically through context, so the panel needs no prop drilling;
+ * surfaces with their own handler keep passing `onOpenComments`.
  */
 function CommentsPanelButton({
   onOpenComments,
@@ -226,8 +225,8 @@ function CommentsPanelButton({
 }) {
   const modules = useModuleComments();
   const handler =
-    onOpenComments ?? (modules.enabled ? () => modules.setOpen(!modules.open) : undefined);
-  const count = commentCount ?? (modules.enabled ? modules.openCount : undefined);
+    onOpenComments ?? (modules ? () => modules.setOpen(!modules.open) : undefined);
+  const count = commentCount ?? modules?.openCount;
   return (
     <FeatureButton
       icon={<MessageSquare className="h-3.5 w-3.5" />}
@@ -332,8 +331,10 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <CommentsPanelButton onOpenComments={onOpenComments} commentCount={commentCount} />
-
+      <CommentsPanelButton
+        onOpenComments={onOpenComments}
+        commentCount={commentCount}
+      />
 
       <FeatureButton
         icon={<Search className="h-3.5 w-3.5" />}
