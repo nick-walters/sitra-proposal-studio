@@ -737,7 +737,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   return (
     <ModuleCommentsProvider
       proposalId={proposalId}
-      sectionId={wpDraftSectionId(wpDraftId ?? 'unknown')}
+      sectionId={wpDraftSectionId(wpId)}
       canEdit={canEdit}
       isCoordinator={isCoordinator}
     >
@@ -1216,5 +1216,6 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
         onInsertFigure={insertFigureAtCursor}
       />
     </div>
+    </ModuleCommentsProvider>
   );
 }
