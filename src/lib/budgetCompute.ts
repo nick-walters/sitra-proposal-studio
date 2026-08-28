@@ -102,7 +102,8 @@ export function computeBudgetRow(input: BudgetComputeInput): BudgetComputeOutput
     const reqInternally = input.requested_internally_invoiced ?? internally;
     const reqDirectTotal =
       n(reqPersonnel) + n(reqSub) + n(reqTravel) + n(reqEquip) + n(reqOther) + n(reqFstp) + n(reqInternally);
-    const reqIndirect = Math.round((reqDirectTotal - n(reqSub) - n(reqFstp)) * 0.25 * 100) / 100;
+    // Indirect on A + C only (excludes B, D.1 and D.2).
+    const reqIndirect = Math.round((n(reqPersonnel) + n(reqTravel) + n(reqEquip) + n(reqOther)) * 0.25 * 100) / 100;
     requestedEuContribution = Math.min(reqDirectTotal + reqIndirect, maxEuContribution);
   } else {
     requestedEuContribution = input.requested_eu_contribution != null
