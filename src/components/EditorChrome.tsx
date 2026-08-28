@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
 import { formatTime } from '@/lib/formatDate';
