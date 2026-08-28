@@ -6,7 +6,6 @@ import {
   B32MirrorParagraphSlot,
   type B32ParagraphSlotKey,
 } from '@/components/B32MirrorParagraphSlot';
-import { B32MirrorInfrastructureSlot } from '@/components/B32MirrorInfrastructureSlot';
 
 const B32SectionContent = lazy(() =>
   import('@/components/B32SectionContent').then((m) => ({ default: m.B32SectionContent })),
@@ -29,7 +28,6 @@ function proposalIdFromUrl(): string {
 const SLOT_LABELS: Record<B32SlotKey, string> = {
   interdisciplinarity: 'Interdisciplinarity — expertise matrix',
   capacity: 'Participants\u2019 capacity, contributions & resources',
-  infrastructure: 'Critical infrastructure',
   'value-chain': 'Value chain coverage',
   industrial: 'Industrial / commercial involvement',
   international: 'Justification of international organisations & third countries',
@@ -54,14 +52,6 @@ export function B32MirrorSlotLiveView({ slotKey, proposalId, interactive = false
         <Suspense fallback={null}>
           <B32SectionContent proposalId={proposalId} />
         </Suspense>
-      </div>
-    );
-  }
-
-  if (slotKey === 'infrastructure') {
-    return (
-      <div data-b32-mirror-slot-nodeview="" data-b32-slot-key="infrastructure">
-        <B32MirrorInfrastructureSlot proposalId={proposalId} interactive={interactive} />
       </div>
     );
   }
