@@ -17,33 +17,40 @@ const SANITIZE_CONFIG = {
 export type B32ParagraphSlotKey =
   | 'capacity'
   | 'value-chain'
-  | 'industrial'
   | 'international';
 
+type DescField =
+  | 'contribution_resources'
+  | 'value_chain'
+  | 'industrial_involvement'
+  | 'participation_justification';
+
+type MirrorToggle =
+  | 'mirror_contribution_resources'
+  | 'mirror_value_chain'
+  | 'mirror_industrial_involvement'
+  | 'mirror_participation_justification';
+
 interface SlotConfig {
-  field:
-    | 'contribution_resources'
-    | 'value_chain'
-    | 'industrial_involvement'
-    | 'participation_justification';
-  toggle:
-    | 'mirror_contribution_resources'
-    | 'mirror_value_chain'
-    | 'mirror_industrial_involvement'
-    | 'mirror_participation_justification';
+  field: DescField;
+  toggle: MirrorToggle;
 }
 
-const SLOT_MAP: Record<B32ParagraphSlotKey, SlotConfig> = {
-  capacity: {
-    field: 'contribution_resources',
-    toggle: 'mirror_contribution_resources',
-  },
-  'value-chain': { field: 'value_chain', toggle: 'mirror_value_chain' },
-  industrial: { field: 'industrial_involvement', toggle: 'mirror_industrial_involvement' },
-  international: {
-    field: 'participation_justification',
-    toggle: 'mirror_participation_justification',
-  },
+/**
+ * A slot may carry more than one A2 field. "Value chain coverage & industrial
+ * involvement" is one B3.2 block combining two separately collected fields:
+ * per participant, value chain first, then industrial involvement, with the
+ * participant badge leading. A participant with neither produces nothing.
+ */
+const SLOT_MAP: Record<B32ParagraphSlotKey, SlotConfig[]> = {
+  capacity: [{ field: 'contribution_resources', toggle: 'mirror_contribution_resources' }],
+  'value-chain': [
+    { field: 'value_chain', toggle: 'mirror_value_chain' },
+    { field: 'industrial_involvement', toggle: 'mirror_industrial_involvement' },
+  ],
+  international: [
+    { field: 'participation_justification', toggle: 'mirror_participation_justification' },
+  ],
 };
 
 interface Props {
@@ -59,6 +66,7 @@ type ParticipantRow = {
 
 type DescRow = {
   participant_id: string;
+  value_chain_applicable: boolean | null;
   contribution_resources: string | null;
   value_chain: string | null;
   industrial_involvement: string | null;
@@ -80,7 +88,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
   const qc = useQueryClient();
   // One snapshot for the whole slot; chips resolve from their ids.
   const { data: refData } = useReferenceData(proposalId);
-  const config = SLOT_MAP[slotKey];
+  const configs = SLOT_MAP[slotKey];
 
   const toggleQ = useQuery({
     queryKey: ['b32-mirror-toggles', proposalId],
@@ -98,7 +106,12 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
     },
   });
 
-  const enabled = toggleQ.data ? Boolean(toggleQ.data[config.toggle]) : false;
+  // Enabled configs — the slot is live while at least one of its fields is on.
+  const activeConfigs = useMemo(
+    () => (toggleQ.data ? configs.filter((c) => Boolean(toggleQ.data?.[c.toggle])) : []),
+    [toggleQ.data, configs],
+  );
+  const enabled = activeConfigs.length > 0;
 
   const dataQ = useQuery({
     queryKey: ['b32-mirror-paragraph', proposalId],
@@ -112,7 +125,7 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
         supabase
           .from('participant_descriptions')
           .select(
-            'participant_id, contribution_resources, value_chain, industrial_involvement, participation_justification',
+            'participant_id, contribution_resources, value_chain, industrial_involvement, participation_justification, value_chain_applicable',
           )
           .eq('proposal_id', proposalId),
       ]);
@@ -140,16 +153,24 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
     return dataQ.data.participants
       .map((p) => {
         const desc = byId.get(p.id);
-        const raw = desc ? (desc[config.field] as string | null) : null;
-        return { participant: p, html: raw };
+        const parts = activeConfigs
+          .map((c) => {
+            const raw = desc ? (desc[c.field] as string | null) : null;
+            // "No" to the value chain relevance question hides the text; it is
+            // never deleted, and returns the moment "Yes" is chosen again.
+            if (c.field === 'value_chain' && desc?.value_chain_applicable === false) return null;
+            return isBlank(raw) ? null : (raw as string);
+          })
+          .filter((h): h is string => h !== null);
+        return { participant: p, htmls: parts };
       })
-      .filter((r) => !isBlank(r.html))
+      .filter((r) => r.htmls.length > 0)
       .sort(
         (a, b) =>
           (a.participant.participant_number ?? 999) -
           (b.participant.participant_number ?? 999),
       );
-  }, [dataQ.data, config.field]);
+  }, [dataQ.data, activeConfigs]);
 
   if (!enabled) return null;
   if (rows.length === 0) return null;
@@ -164,30 +185,30 @@ export function B32MirrorParagraphSlot({ proposalId, slotKey }: Props) {
         fontSize: '11pt',
       }}
     >
-      {rows.map(({ participant, html }) => {
-        const safe = renderRefBadges(DOMPurify.sanitize(html || '', SANITIZE_CONFIG), refData);
-        return (
-          <div
-            key={participant.id}
-            style={{ margin: '0 0 8pt 0', textAlign: 'justify' }}
-          >
-            <span
-              contentEditable={false}
-              style={{ userSelect: 'none', marginRight: 4 }}
-            >
-              <ParticipantBubble
-                number={participant.participant_number ?? undefined}
-                shortName={participant.organisation_short_name ?? ''}
-              />
-            </span>
-            <span
-              data-b32-mirror-body=""
-              className="mirror-inline-body"
-              dangerouslySetInnerHTML={{ __html: safe }}
-            />
-          </div>
-        );
-      })}
+      {rows.map(({ participant, htmls }) => (
+        <div key={participant.id} style={{ margin: '0 0 8pt 0', textAlign: 'justify' }}>
+          {htmls.map((html, i) => {
+            const safe = renderRefBadges(DOMPurify.sanitize(html, SANITIZE_CONFIG), refData);
+            return (
+              <div key={i} style={{ margin: i === 0 ? 0 : '3pt 0 0 0', textAlign: 'justify' }}>
+                {i === 0 && (
+                  <span contentEditable={false} style={{ userSelect: 'none', marginRight: 4 }}>
+                    <ParticipantBubble
+                      number={participant.participant_number ?? undefined}
+                      shortName={participant.organisation_short_name ?? ''}
+                    />
+                  </span>
+                )}
+                <span
+                  data-b32-mirror-body=""
+                  className="mirror-inline-body"
+                  dangerouslySetInnerHTML={{ __html: safe }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ))}
 
     </div>
   );

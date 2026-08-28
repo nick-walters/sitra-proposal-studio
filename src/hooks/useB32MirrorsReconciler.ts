@@ -4,7 +4,7 @@ import type { Editor } from '@tiptap/react';
 /**
  * B3.2 mirror-slots reconciler — Stage 3a-iii.
  *
- * Ensures exactly one <b32MirrorSlot> node exists for each of the six slot
+ * Ensures exactly one <b32MirrorSlot> node exists for each of the five slot
  * keys in the B3.2 editor doc. Bindings are made via a heading's
  * data-b32-slot-key ("primary" key) and each slot key's owning heading.
  *
@@ -13,7 +13,6 @@ import type { Editor } from '@tiptap/react';
  *   capacity           → capacity heading            (primary: capacity)
  *   infrastructure     → capacity heading            (secondary, after capacity)
  *   value-chain        → value-chain heading         (primary: value-chain)
- *   industrial         → value-chain heading         (secondary, after value-chain)
  *   international      → international heading       (primary: international)
  *
  * Placement rule (missing slot):
@@ -34,7 +33,6 @@ const SLOT_KEYS = [
   'capacity',
   'infrastructure',
   'value-chain',
-  'industrial',
   'international',
 ] as const;
 type SlotKey = (typeof SLOT_KEYS)[number];
@@ -47,7 +45,6 @@ const OWNER: Record<SlotKey, PrimaryKey> = {
   capacity: 'capacity',
   infrastructure: 'capacity',
   'value-chain': 'value-chain',
-  industrial: 'value-chain',
   international: 'international',
 };
 
@@ -55,7 +52,7 @@ const OWNER: Record<SlotKey, PrimaryKey> = {
 const ORDER_UNDER_HEADING: Record<PrimaryKey, SlotKey[]> = {
   interdisciplinarity: ['interdisciplinarity'],
   capacity: ['capacity', 'infrastructure'],
-  'value-chain': ['value-chain', 'industrial'],
+  'value-chain': ['value-chain'],
   international: ['international'],
 };
 

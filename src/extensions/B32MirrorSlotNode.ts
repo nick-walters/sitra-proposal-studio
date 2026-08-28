@@ -17,7 +17,6 @@ export type B32SlotKey =
   | 'capacity'
   | 'infrastructure'
   | 'value-chain'
-  | 'industrial'
   | 'international';
 
 declare module '@tiptap/core' {
