@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { formatPercent } from '@/lib/formatNumber';
+import { formatPercent, formatCurrency } from '@/lib/formatNumber';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
