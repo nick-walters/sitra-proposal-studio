@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -240,13 +241,55 @@ export function RightPanelProvider({
 
   const visiblePanel: PanelId | null = open ? activeTab : null;
 
+  /**
+   * FOCUS A MODULE THAT CARRIES COMMENTS AND THE PANEL COMES TO YOU.
+   *
+   * A module with open threads marks itself `data-has-comments`, so focusing
+   * any field inside it opens the region on the Comments tab. A module with
+   * none leaves the region exactly as it is, and closing the panel on a module
+   * keeps it closed until you move to another one — so the automatic opening
+   * never fights a deliberate close.
+   */
+  const openRef = useRef(open);
+  openRef.current = open;
+  const dismissedRef = useRef<string | null>(null);
+  const focusedTargetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const onFocusIn = () => {
+      const el = document.activeElement as HTMLElement | null;
+      const target = el?.closest?.('[data-comment-target]') as HTMLElement | null;
+      const key = target?.getAttribute('data-comment-target') ?? null;
+      if (key !== focusedTargetRef.current) {
+        focusedTargetRef.current = key;
+        // A new module clears any previous dismissal.
+        if (dismissedRef.current !== key) dismissedRef.current = null;
+      }
+      if (!key || openRef.current) return;
+      if (dismissedRef.current === key) return;
+      if (target?.getAttribute('data-has-comments') !== 'true') return;
+      showPanel('comments', { explicit: false });
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, [showPanel]);
+
+  // Closing while a module is focused is remembered, so it stays closed there.
+  const setOpenTracked = useCallback(
+    (v: boolean) => {
+      dismissedRef.current = v ? null : focusedTargetRef.current;
+      setOpen(v);
+    },
+    [setOpen],
+  );
+
 
   const [host, setHost] = useState<HTMLElement | null>(null);
 
   const ctx: RightPanelCtx = useMemo(
     () => ({
       open,
-      setOpen,
+      setOpen: setOpenTracked,
       activeTab,
       commentsOpen: open,
       reviewOpen: open,
@@ -260,7 +303,7 @@ export function RightPanelProvider({
     }),
     [
       open,
-      setOpen,
+      setOpenTracked,
       activeTab,
       setCommentsOpen,
       setReviewOpen,
@@ -297,7 +340,7 @@ export function RightPanelProvider({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => setOpen(false)}
+                onClick={() => setOpenTracked(false)}
                 aria-label="Close the review panel"
               >
                 <X className="h-3.5 w-3.5" />
