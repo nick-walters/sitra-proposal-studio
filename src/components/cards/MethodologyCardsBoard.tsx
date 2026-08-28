@@ -2000,18 +2000,26 @@ function BoardInner({
   useEffect(() => {
     for (const list of Object.values(fieldsByCard)) {
       for (const f of list) {
-        // Never advance the version pointer of a text box this client is still
-        // holding unsaved edits for. If somebody else wrote it meanwhile, the
-        // pointer must stay behind so the next save is REJECTED and the
-        // lost-text dialog appears, instead of silently overwriting them.
+        // Never advance the version pointer of a text box this client still
+        // holds: one with unsaved edits, or the box the caret is in (a mounted
+        // editor is not re-hydrated from a remote write, so its content is
+        // stale even when it is clean). The pointer must stay behind so the
+        // next save is REJECTED and the lost-text dialog appears, instead of
+        // silently overwriting whoever wrote the row meanwhile.
         if (dirtyRef.current[f.id]) continue;
         const ck = `${f.id}:content`;
         const hk = `${f.id}:header`;
-        versionsRef.current[ck] = Math.max(versionsRef.current[ck] ?? 0, f.contentVersion);
-        versionsRef.current[hk] = Math.max(versionsRef.current[hk] ?? 0, f.headingVersion);
+        const focused = focusedBox?.fieldId === f.id ? focusedBox.textBox : null;
+        if (focused !== 'content') {
+          versionsRef.current[ck] = Math.max(versionsRef.current[ck] ?? 0, f.contentVersion);
+        }
+        if (focused !== 'header') {
+          versionsRef.current[hk] = Math.max(versionsRef.current[hk] ?? 0, f.headingVersion);
+        }
       }
     }
-  }, [fieldsByCard]);
+  }, [fieldsByCard, focusedBox]);
+
 
 
   useEffect(() => {
