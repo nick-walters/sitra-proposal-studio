@@ -2775,7 +2775,15 @@ export function MethodologyCardsBoard(props: BoardProps) {
         enabled
       >
         <PageSearchProvider>
-          <BoardInner {...props} />
+          {/* Module-anchored comments for every module on this board. */}
+          <ModuleCommentsProvider
+            proposalId={props.proposalId}
+            sectionId={props.sectionId}
+            canEdit={props.canEdit}
+            isCoordinator={props.isCoordinator}
+          >
+            <BoardInner {...props} />
+          </ModuleCommentsProvider>
         </PageSearchProvider>
       </CardLockProvider>
 
