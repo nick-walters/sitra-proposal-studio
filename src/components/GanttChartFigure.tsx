@@ -380,7 +380,7 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('wp_draft_tasks')
-          .select('id, wp_draft_id, number, title, start_month, end_month')
+          .select('id, wp_draft_id, number, title, start_month, end_month, is_visible')
           .order('order_index'),
         supabase
           .from('wp_draft_deliverables')
@@ -409,7 +409,12 @@ export function GanttChartFigure({
       if (partError) throw partError;
 
       const wpIds = new Set((wps || []).map(wp => wp.id));
-      const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      // A task hidden from Part B must not appear on the chart either: the
+      // Gantt reads the live draft tables, so it has to honour the same
+      // visibility flag the WP board and the export do.
+      const filteredTasks = (tasks || [])
+        .filter(t => wpIds.has(t.wp_draft_id))
+        .filter(t => (t as { is_visible?: boolean }).is_visible !== false);
       const taskIds = new Set(filteredTasks.map(t => t.id));
       const filteredDels = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
       const delIds = new Set(filteredDels.map(d => d.id));

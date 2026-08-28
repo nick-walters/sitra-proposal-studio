@@ -57,7 +57,7 @@ export function ImpactSummaryRowControls({ editor, tick }: Props) {
   };
 
   return (
-    <div className="mb-1 flex items-center gap-1.5">
+    <div className="flex shrink-0 items-center gap-1.5">
       <Button
         type="button"
         variant="ghost"
@@ -100,10 +100,6 @@ export function ImpactSummaryRowControls({ editor, tick }: Props) {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <span className="text-[11px] text-muted-foreground">
-        Rows span both parts of the table.
-      </span>
 
       <AlertDialog open={pending !== null} onOpenChange={(o) => !o && setPending(null)}>
         <AlertDialogContent>

@@ -399,7 +399,9 @@ function SectionItem({
         ) : (
           <>
             {/* Only show number if not a top-level bold item and number exists */}
-            {showNumber && !isTopLevelBold && (
+            {/* Part headings keep their "B1"/"B2"/"B3" prefix as well as the
+                bold weight — the bold change must not drop the number. */}
+            {showNumber && (!isTopLevelBold || isPartBHeading) && (
               <span className="font-medium text-muted-foreground">
                 {formatSectionNumber(section.number, depth)}
               </span>

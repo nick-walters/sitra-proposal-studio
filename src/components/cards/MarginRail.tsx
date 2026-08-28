@@ -59,8 +59,8 @@ export const RAIL_SHIFT = -41;
  * `RAIL_DELIVERABLE_DELETE_NUDGE`. Linked activities' delete uses the same
  * delete nudge, so the two land on one vertical line.
  */
-export const RAIL_DELIVERABLE_COMMENT_NUDGE = 12.4;
-export const RAIL_DELIVERABLE_DELETE_NUDGE = 23.6;
+export const RAIL_DELIVERABLE_COMMENT_NUDGE = 7.4;
+export const RAIL_DELIVERABLE_DELETE_NUDGE = 13.6;
 
 /**
  * The page frame a rail aligns to. The OUTERMOST match is used — a page
