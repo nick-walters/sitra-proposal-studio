@@ -122,6 +122,34 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         byParticipantExFstp[r.participant_id] = (byParticipantExFstp[r.participant_id] || 0) + directExFstp;
       });
 
+      // Requested EU contribution vs the topic's indicative maximum budget.
+      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
+      if (indicativeMax != null && rows.length > 0) {
+        const partById = new Map(parts.map((p) => [p.id, p]));
+        const requestedTotal = rows.reduce((sum, r: any) => {
+          const out = computeBudgetRow({
+            ...r,
+            totalPersonMonths: pmTotals.get(r.participant_id) || 0,
+            proposalType: (proposal as any)?.proposal_type ?? null,
+            organisationCategory: partById.get(r.participant_id)?.organisation_category ?? null,
+          });
+          return sum + out.requestedEuContribution;
+        }, 0);
+        const overage = Math.round((requestedTotal - indicativeMax) * 100) / 100;
+        const exceeded = overage > 0;
+        results.push({
+          id: 'indicative-maximum',
+          name: 'Indicative maximum budget',
+          severity: exceeded ? 'error' : 'info',
+          message: exceeded
+            ? `Requested EU contribution ${formatCurrency(requestedTotal)} exceeds the topic's indicative maximum ${formatCurrency(indicativeMax)} by ${formatCurrency(overage)}`
+            : `Requested EU contribution ${formatCurrency(requestedTotal)} is within the topic's indicative maximum ${formatCurrency(indicativeMax)}`,
+          passed: !exceeded,
+        });
+      }
+
+
+
       if (rows.length === 0) {
         results.push({ id: 'empty-budget', name: 'Budget populated', severity: 'error', message: 'No budget data has been entered', passed: false });
       }
