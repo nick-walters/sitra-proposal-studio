@@ -354,6 +354,30 @@ const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surfac
 const RAIL_BUTTON_SIZE = 28;
 
 /**
+ * The control row this comment button lines up with: the anchor's own rail
+ * group when it has one, otherwise the rail of the header row the anchor
+ * SITS IN — a block title or task pill is wrapped by the anchor while its
+ * delete and visibility glyphs are siblings further up the tree.
+ */
+function findRailRow(el: HTMLElement): HTMLElement | null {
+  const own = (Array.from(el.querySelectorAll('[data-rail-row]')) as HTMLElement[]).find(
+    (r) => r.closest('[data-comment-target]') === el,
+  );
+  if (own) return own;
+  let node: HTMLElement | null = el.parentElement;
+  for (let depth = 0; node && depth < 4; depth += 1, node = node.parentElement) {
+    const row = node.querySelector(':scope > [data-rail-row]') as HTMLElement | null;
+    // Only a rail that belongs to no OTHER commentable module is ours.
+    const owner = row?.closest('[data-comment-target]');
+    if (row && (owner === null || owner === el)) {
+      return row;
+    }
+  }
+  return null;
+}
+
+
+/**
  * Positions the floating comment control: horizontally on the shared rail, and
  * vertically on the CENTRE of the module's own control row, so it lines up
  * with the delete and visibility glyphs beside it instead of riding above them.
@@ -373,9 +397,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
       // The control row this button belongs to. Its own rail group is the
       // reference: same row, same vertical centre. A rail belonging to a
       // NESTED commentable module is not ours, so it is skipped.
-      const row = (Array.from(el.querySelectorAll('[data-rail-row]')) as HTMLElement[]).find(
-        (r) => r.closest('[data-comment-target]') === el,
-      );
+      const row = findRailRow(el);
 
       let top = 0;
       if (row) {
@@ -383,6 +405,10 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
         if (r.height > 0) {
           top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2);
         }
+      } else if (box.height > 0 && box.height <= 64) {
+        // A bare anchor — a block title, a task pill — has no rail of its own,
+        // so it centres on itself rather than hanging off its top edge.
+        top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2);
       }
       setOffset((prev) => (prev.left === left && prev.top === top ? prev : { left, top }));
     };
@@ -391,8 +417,8 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
     ro.observe(el);
     const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
     if (edge) ro.observe(edge);
-    const row = el.querySelector('[data-rail-row]');
-    if (row) ro.observe(row);
+    const railRow = findRailRow(el);
+    if (railRow) ro.observe(railRow);
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();
@@ -452,6 +478,9 @@ export function ModuleCommentAnchor({
     <div
       ref={ref}
       data-comment-target={targetKey}
+      /* Read by the review panel, so focusing a module that carries comments
+         can open the panel on its Comments tab without a click. */
+      data-has-comments={openThreads > 0 ? 'true' : undefined}
       className={`group/comment relative ${
         // Subtle mark so you can see at a glance which modules carry comments.
         openThreads > 0 ? 'rounded-[3px] ring-1 ring-amber-300/70' : ''

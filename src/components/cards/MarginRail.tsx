@@ -19,16 +19,16 @@ import { cn } from '@/lib/utils';
  * Where a row-level delete button starts, measured from the frame edge.
  * Negative: the rail sits INSIDE the page, within its 1.5 cm right margin.
  */
-export const RAIL_DELETE_LEFT = -53;
+export const RAIL_DELETE_LEFT = -65;
 
 /** Where the comment button starts, measured from the frame edge. */
-export const RAIL_COMMENT_LEFT = -29;
+export const RAIL_COMMENT_LEFT = -41;
 
 /**
  * How far a control row is pulled out of the frame so its last control lands
  * immediately to the left of the comment button. Negative pulls it back in.
  */
-export const RAIL_SHIFT = -29;
+export const RAIL_SHIFT = -41;
 
 /**
  * Pulls a trailing control group into the margin rail. `padding` is the
