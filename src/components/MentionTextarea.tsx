@@ -299,7 +299,12 @@ export function MentionTextarea({
       />
 
       {showMentions && filteredMembers.length > 0 && (
-        <div className="absolute bottom-full left-0 mb-1 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
+        <div
+          className={cn(
+            'absolute left-0 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto',
+            dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
+          )}
+        >
           {filteredMembers.map((member) => (
             <button
               key={member.id}
