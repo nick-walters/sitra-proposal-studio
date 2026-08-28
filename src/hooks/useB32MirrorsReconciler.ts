@@ -31,7 +31,6 @@ import type { Editor } from '@tiptap/react';
 const SLOT_KEYS = [
   'interdisciplinarity',
   'capacity',
-  'infrastructure',
   'value-chain',
   'international',
 ] as const;
@@ -43,7 +42,6 @@ type PrimaryKey = 'interdisciplinarity' | 'capacity' | 'value-chain' | 'internat
 const OWNER: Record<SlotKey, PrimaryKey> = {
   interdisciplinarity: 'interdisciplinarity',
   capacity: 'capacity',
-  infrastructure: 'capacity',
   'value-chain': 'value-chain',
   international: 'international',
 };
@@ -51,7 +49,7 @@ const OWNER: Record<SlotKey, PrimaryKey> = {
 // Order of slot keys under each owning heading (first → last).
 const ORDER_UNDER_HEADING: Record<PrimaryKey, SlotKey[]> = {
   interdisciplinarity: ['interdisciplinarity'],
-  capacity: ['capacity', 'infrastructure'],
+  capacity: ['capacity'],
   'value-chain': ['value-chain'],
   international: ['international'],
 };
