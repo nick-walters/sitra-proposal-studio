@@ -405,7 +405,7 @@ export function WPTableSection({
               {!readOnly && (onIntroDelete || onIntroPresenceChange) && (
                 <DeleteConfirmDialog
                   itemLabel="this field"
-                  description="This field goes to the tasks bin, where it can be restored until 90 days after the proposal is submitted."
+                  noun="field"
                   onConfirm={() =>
                     onIntroDelete ? void onIntroDelete() : onIntroPresenceChange?.(false)
                   }
@@ -676,7 +676,7 @@ function TaskModule({
         {!readOnly && (
           <DeleteConfirmDialog
             itemLabel="this task"
-            description="This task goes to the tasks bin, where it can be restored until 90 days after the proposal is submitted."
+            noun="task"
             onConfirm={() => void onDelete(task.id)}
           />
         )}

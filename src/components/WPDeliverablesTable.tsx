@@ -659,7 +659,7 @@ function DeliverableRow({
             {!readOnly && (
               <DeleteConfirmDialog
                 itemLabel="this deliverable"
-                description="This deliverable goes to the deliverables bin, where it can be restored until 90 days after the proposal is submitted."
+                noun="deliverable"
                 onConfirm={() => onDelete(deliverable.id)}
                 buttonClassName="h-6 w-6 text-red-600 hover:text-red-700"
                 iconSize="h-4 w-4"
