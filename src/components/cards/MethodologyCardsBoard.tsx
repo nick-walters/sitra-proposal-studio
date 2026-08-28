@@ -137,6 +137,7 @@ import {
   ModuleCommentButton,
   ModuleCommentsProvider,
 } from '@/components/comments/ModuleComments';
+import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
 import { cardFieldTarget, cardTitleTarget } from '@/lib/moduleCommentTargets';
 import { useKeyedCollapse } from '@/hooks/useKeyedCollapse';
 import { moduleCollapseKey } from '@/lib/wpCollapseKeys';
@@ -2781,6 +2782,7 @@ export function MethodologyCardsBoard(props: BoardProps) {
 
   return (
     <MethodologyEditorFocusProvider>
+      <RightPanelProvider proposalId={props.proposalId}>
       <CardLockProvider
         proposalId={props.proposalId}
         sectionId={props.sectionId}
@@ -2798,6 +2800,7 @@ export function MethodologyCardsBoard(props: BoardProps) {
           </ModuleCommentsProvider>
         </PageSearchProvider>
       </CardLockProvider>
+      </RightPanelProvider>
 
     </MethodologyEditorFocusProvider>
   );

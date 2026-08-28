@@ -4,6 +4,7 @@ import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
 import { ModuleCommentsProvider, ModuleCommentAnchor } from '@/components/comments/ModuleComments';
+import { RightPanelProvider } from '@/components/panels/RightPanelRegion';
 import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { saveVersionedRow } from '@/lib/versionedSave';
@@ -94,6 +95,9 @@ export function WPDraftEditor(props: WPDraftEditorProps) {
     <MethodologyEditorFocusProvider>
       {/* WP drafts are not a section, so the lock rows carry no section id
           (the column is nullable) and streaming uses a proposal-wide key. */}
+      {/* One right-hand region for this surface, shared by comments and the
+          tracked-changes review panel. */}
+      <RightPanelProvider proposalId={props.proposalId}>
       <CardLockProvider
         proposalId={props.proposalId}
         sectionId={null}
@@ -114,6 +118,7 @@ export function WPDraftEditor(props: WPDraftEditorProps) {
           </ModuleCommentsProvider>
         </PageSearchProvider>
       </CardLockProvider>
+      </RightPanelProvider>
     </MethodologyEditorFocusProvider>
   );
 }
