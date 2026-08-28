@@ -196,7 +196,7 @@ function B31WPDescriptionTablesInner({ wpData, participants, proposalId }: Props
   if (!wpData || wpData.length === 0) return null;
 
   return (
-    <div>
+    <div className="mirror-surface">
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.b"
