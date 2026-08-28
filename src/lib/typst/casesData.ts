@@ -63,7 +63,9 @@ function subsectionsOf(row: any, templates: any[]): TypstCaseSubsection[] {
     { key: 'outcomes', heading: row.heading_outcomes, fallback: 'Expected outcomes', body: row.expected_outcomes },
     { key: 'replicability', heading: row.heading_replicability, fallback: 'Replicability', body: row.replicability },
   ];
-  const pushRef = null;
+  const hidden = new Set(
+    templates.filter((t) => t.is_visible === false).map((t) => t.key as string),
+  );
   const push = (key: string, heading: string, body: string | null | undefined) => {
     if (seen.has(key) || hidden.has(key) || !hasText(body)) return;
     seen.add(key);
@@ -71,9 +73,6 @@ function subsectionsOf(row: any, templates: any[]): TypstCaseSubsection[] {
   };
 
   const json = (row.subsection_content || null) as Record<string, any> | null;
-  const hidden = new Set(
-    templates.filter((t) => t.is_visible === false).map((t) => t.key as string),
-  );
   const ordered = templates
     .filter((t) => t.is_visible !== false)
     .slice()
