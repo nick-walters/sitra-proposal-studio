@@ -46,7 +46,7 @@ import {
   UserPlus,
   UserCheck,
 } from 'lucide-react';
-import { RAIL_COMMENT_LEFT } from '@/components/cards/MarginRail';
+import { RAIL_COMMENT_LEFT, RAIL_COMMENT_TOP } from '@/components/cards/MarginRail';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -403,12 +403,12 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
       if (row) {
         const r = row.getBoundingClientRect();
         if (r.height > 0) {
-          top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2);
+          top = Math.round(r.top + r.height / 2 - box.top - RAIL_BUTTON_SIZE / 2) + RAIL_COMMENT_TOP;
         }
       } else if (box.height > 0 && box.height <= 64) {
         // A bare anchor — a block title, a task pill — has no rail of its own,
         // so it centres on itself rather than hanging off its top edge.
-        top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2);
+        top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2) + RAIL_COMMENT_TOP;
       }
       setOffset((prev) => (prev.left === left && prev.top === top ? prev : { left, top }));
     };
