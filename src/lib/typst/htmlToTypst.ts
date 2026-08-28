@@ -193,8 +193,16 @@ function convertInline(node: Node, ctx: ConvertContext): string {
   const colour = inlineColour(el);
   if (colour) out = `text(fill: rgb(${typstString(colour)}), ${out})`;
 
-  const weight = (el as HTMLElement).style?.fontWeight;
-  if (weight && (weight === 'bold' || Number(weight) >= 600)) out = `strong(${out})`;
+  // Bold set through a STYLE rather than a <strong> tag. TipTap writes
+  // `font-weight: bolder` on runs pasted or split around an inline atom (a
+  // chip), and the old numeric-only test discarded it, so a title bolded end
+  // to end in the editor printed only the <strong>-marked part in bold.
+  const weight = ((el as HTMLElement).style?.fontWeight || '').trim().toLowerCase();
+  const numericWeight = Number(weight);
+  if (weight === 'bold' || weight === 'bolder' || (Number.isFinite(numericWeight) && numericWeight >= 600)) {
+    out = `strong(${out})`;
+  }
+
   const fontStyle = (el as HTMLElement).style?.fontStyle;
   if (fontStyle === 'italic') out = `emph(${out})`;
 
