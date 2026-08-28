@@ -14,6 +14,8 @@ import {
   type EditorTopBarProps,
   type EditorFieldBarProps,
 } from '@/components/EditorChrome';
+import { ToolbarReveal } from '@/components/editor/ToolbarReveal';
+
 import { FULL_FIELD_CAPABILITIES, type FieldCapabilityFlags } from '@/lib/fieldCapabilities';
 import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 import {
