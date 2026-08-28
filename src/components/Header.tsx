@@ -36,6 +36,16 @@ export function Header() {
       return;
     }
     
+    // Module comments: a tag or an assignment. Open the proposal at the
+    // section or draft the comment lives on, with the comment itself in view.
+    if (meta.source === 'module_comment') {
+      navigate(
+        `/proposal/${notification.proposal_id}?section=${notification.section_id}` +
+          `&comment=${meta.comment_id}`,
+      );
+      return;
+    }
+
     // Comment mentions - navigate to the section with review panel open
     if (notification.type === 'mention' && notification.section_id && meta.source === 'comment') {
       navigate(`/proposal/${notification.proposal_id}?section=${notification.section_id}&panel=comments`);

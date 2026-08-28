@@ -181,11 +181,12 @@ export function ModuleCommentsProvider({
 
   // Arriving from a notification: ?comment=<id> opens the panel and brings the
   // commented module into view.
-  const [focusCommentId, setFocusCommentId] = useState<string | null>(() =>
+  const [focusCommentId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('comment'),
   );
+  const scrolledRef = useRef(false);
   useEffect(() => {
-    if (!focusCommentId) return;
+    if (!focusCommentId || scrolledRef.current) return;
     const thread = comments.find((c) => c.id === focusCommentId);
     const key = thread ? payloadOf(thread)?.targetKey : null;
     if (!key) return;
@@ -193,7 +194,7 @@ export function ModuleCommentsProvider({
     const el = elements.current.get(key);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setFocusCommentId(null);
+    scrolledRef.current = true;
   }, [comments, focusCommentId, tick]);
 
   const ctx: ModuleCommentsCtx = {
