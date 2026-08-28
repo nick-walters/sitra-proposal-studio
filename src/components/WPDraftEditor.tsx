@@ -3,7 +3,7 @@ import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
 import { EditorToolbars, CrossRefMenu } from '@/components/editor/EditorToolbars';
-import { ModuleCommentsProvider } from '@/components/comments/ModuleComments';
+import { ModuleCommentsProvider, ModuleCommentAnchor } from '@/components/comments/ModuleComments';
 import { wpDraftSectionId } from '@/lib/moduleCommentTargets';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { saveVersionedRow } from '@/lib/versionedSave';
@@ -922,7 +922,13 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             collapse control. */}
         <section className={WP_BLOCK_FRAME}>
           <div className="space-y-2 px-[1.5cm] py-2">
-            {/* Full-width pill badge: WPX: Short Name – Title */}
+            {/* Full-width pill badge: WPX: Short Name – Title. The pill is not
+                a rich text module, but it is commentable through the same
+                module anchor as everything else. */}
+            <ModuleCommentAnchor
+              targetKey={`wp:${wpDraft.id}:title`}
+              label={`WP${wpDraft.number} title`}
+            >
             <div
               className="wp-title-pill flex w-full items-baseline gap-0 rounded-full"
               data-comment-target={`wp_draft:${wpDraft.id}:title`}
@@ -946,6 +952,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 {wpDraft.title?.trim() || ''}
               </span>
             </div>
+            </ModuleCommentAnchor>
 
             {/* Metadata row: the leader badge and the derived duration carry no
                 headings — the badge and the month range read for themselves. */}
