@@ -622,16 +622,11 @@ function FieldRow({
 
 
         {isPlaceholder ? (
-          <div className={collapsed || moduleCollapsed ? 'hidden' : 'min-w-0 flex-1'}>
-            <RefDataProvider proposalId={proposalId}>
-              <CasesTableLiveView
-                proposalId={proposalId}
-                caseTypeId={field.placeholderCaseTypeId ?? null}
-                letterIndex={caseLetterIndex ?? 0}
-                sectionNumber={captionSectionNumber}
-              />
-            </RefDataProvider>
-          </div>
+          // The mirrored cases table is page content, not header furniture: it
+          // is rendered below in the same 18 cm page frame every text module
+          // uses, so it lines up with the rest of the document instead of
+          // inheriting the header row's pl-5/pr-[13px] gutters.
+          <span className="flex-1" aria-hidden="true" />
         ) : (
           <>
             {headerField && !isDocumentSurface ? (
@@ -742,6 +737,27 @@ function FieldRow({
           </>
         )}
       </div>
+
+      {isPlaceholder && (
+        <div
+          className={
+            collapsed || moduleCollapsed
+              ? 'hidden'
+              : isDocumentSurface
+                ? 'doc-surface-page bg-white px-[1.5cm] py-[3pt]'
+                : ''
+          }
+        >
+          <RefDataProvider proposalId={proposalId}>
+            <CasesTableLiveView
+              proposalId={proposalId}
+              caseTypeId={field.placeholderCaseTypeId ?? null}
+              letterIndex={caseLetterIndex ?? 0}
+              sectionNumber={captionSectionNumber}
+            />
+          </RefDataProvider>
+        </div>
+      )}
 
       {!isPlaceholder && (
         <div

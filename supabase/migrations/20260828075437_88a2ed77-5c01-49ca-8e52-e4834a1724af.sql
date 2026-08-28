@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.set_row_bin_purge_after() FROM PUBLIC, anon, authenticated;
