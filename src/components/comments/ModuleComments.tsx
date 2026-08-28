@@ -309,7 +309,7 @@ export function ModuleCommentsProvider({
  * frame) and push the control 8 px beyond it.
  */
 const RAIL_GAP = 8;
-const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.doc-surface-page';
+const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surface-page';
 
 function useRailOffset(ref: React.RefObject<HTMLElement>) {
   const [offset, setOffset] = useState(RAIL_GAP);

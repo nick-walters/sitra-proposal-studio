@@ -12,7 +12,7 @@
  * edge — identical to `MethodologyCardsBoard`'s block header.
  */
 
-export const WP_BLOCK_FRAME = 'rounded-md border border-border bg-card';
+export const WP_BLOCK_FRAME = 'wp-block-frame rounded-md border border-border bg-card';
 
 export const WP_BLOCK_HEADER = 'flex items-center gap-1.5 py-2 pl-5 pr-[13px]';
 
