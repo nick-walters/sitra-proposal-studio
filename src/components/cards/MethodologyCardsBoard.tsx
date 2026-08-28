@@ -756,10 +756,12 @@ function FieldRow({
           className={
             collapsed || moduleCollapsed
               ? 'hidden'
-              // Mirrored source-fed tables are page furniture too. They are
-              // pinned to exactly 18 cm — the document's text column — and
-              // centred in the module, rather than running its full width.
-              : 'doc-surface-page bg-white py-[3pt] [&>*]:!w-[18cm] [&>*]:!max-w-[18cm]'
+              // Mirrored source-fed tables are page furniture too. They sit in
+              // the same 18 cm text column as every other module: the negative
+              // margin cancels the module's own 12 px padding so the page runs
+              // to the module edge, then 1.5 cm of margin puts the table's left
+              // edge on exactly the same line as every other module's text.
+              : 'doc-surface-page -mx-3 !w-[calc(100%+24px)] bg-white px-[1.5cm] py-[3pt] [&>*]:!w-[18cm] [&>*]:!max-w-[18cm]'
           }
         >
 
