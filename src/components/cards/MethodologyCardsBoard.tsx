@@ -1546,7 +1546,8 @@ function CardBlock({
             ) : null}
 
             {/* Column 5 — visibility */}
-            {canEdit && card.isHideable ? (
+            {/* A references block keeps its comment control only. */}
+            {canEdit && card.isHideable && card.kind !== 'references' ? (
               <Tip label={card.isVisible ? 'Hide block in Part B' : 'Show block in Part B'}>
                 <Button
                   type="button"
