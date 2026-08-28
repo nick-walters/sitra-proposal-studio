@@ -436,7 +436,9 @@ export function DraftFormattingToolbar({
 
           {trailing}
         </div>
+        </ToolbarReveal>
       )}
+
     </div>
   );
 
