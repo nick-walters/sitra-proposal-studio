@@ -302,14 +302,9 @@ export function EditorTopBar({
           edits, on every surface. Recording only. */}
       <TrackMyChangesButton />
 
-      <FeatureButton
-        icon={<MessageSquare className="h-3.5 w-3.5" />}
-        primary="Comments"
-        secondary={typeof commentCount === 'number' ? `panel · ${commentCount}` : 'panel'}
-        secondarySmall
-        tooltip="Open the comments panel"
-        disabled={!onOpenComments}
-        onClick={onOpenComments}
+      <CommentsPanelButton
+        onOpenComments={onOpenComments}
+        commentCount={commentCount}
       />
 
       <FeatureButton
