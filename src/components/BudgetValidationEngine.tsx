@@ -32,6 +32,36 @@ interface ValidationRule {
   passed: boolean;
 }
 
+/**
+ * The topic's indicative maximum budget per project is captured as free text on
+ * the topic information page (`proposals.indicative_budget_per_project`), e.g.
+ * "15000000", "€3 500 000" or a range such as "3,000,000–4,000,000". We take the
+ * largest number found — for a range that is the upper bound, which is the
+ * ceiling a proposal must not exceed. Returns null when nothing parseable is
+ * stored, in which case the check is skipped rather than failed.
+ */
+export function parseIndicativeMaximum(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const matches = String(text).match(/\d[\d\s.,]*/g);
+  if (!matches) return null;
+  const values: number[] = [];
+  for (const raw of matches) {
+    // Strip spaces and thousands separators; treat a trailing ",dd"/".dd" as decimals.
+    let s = raw.replace(/\s/g, '');
+    const dec = s.match(/[.,](\d{1,2})$/);
+    let fraction = 0;
+    if (dec) {
+      fraction = Number(`0.${dec[1]}`);
+      s = s.slice(0, dec.index);
+    }
+    const whole = Number(s.replace(/[.,]/g, ''));
+    if (Number.isFinite(whole) && whole > 0) values.push(whole + fraction);
+  }
+  if (values.length === 0) return null;
+  return Math.max(...values);
+}
+
+
 export function BudgetValidationDialog({ proposalId, open, onOpenChange }: BudgetValidationDialogProps) {
   const [rules, setRules] = useState<ValidationRule[]>([]);
   const [loading, setLoading] = useState(false);
