@@ -867,6 +867,8 @@ function FieldRow({
               pairedTables={isImpactSummary}
             />
           </LockBoundary>
+          )}
+
 
         </div>
       )}
