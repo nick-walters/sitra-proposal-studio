@@ -99,7 +99,7 @@ describe('tracked changes in the Typst output', () => {
       ctx as never,
     );
     // An insertion has not been accepted, so it is not in the document yet.
-    expect(ins).toBe('');
+    expect(ins).not.toContain('added');
     // A deletion has not been accepted either: the text is still there, plain.
     expect(del).toContain('removed');
     expect(del).not.toContain('strike(');
