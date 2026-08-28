@@ -187,23 +187,36 @@ export function ModuleCommentsProvider({
     setComposing({ targetKey, label });
   }, []);
 
-  // Arriving from a notification: ?comment=<id> opens the panel and brings the
-  // commented module into view.
+  // Arriving from a notification: ?comment=<id> opens the comments panel,
+  // brings the commented module into view and highlights the thread. The id
+  // may name a REPLY, so the owning thread is resolved first.
   const [focusCommentId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('comment'),
   );
+  const focusThread = useMemo(() => {
+    if (!focusCommentId) return null;
+    return (
+      comments.find(
+        (c) => c.id === focusCommentId || c.replies?.some((r) => r.id === focusCommentId),
+      ) ?? null
+    );
+  }, [comments, focusCommentId]);
+  const focusThreadId = focusThread?.id ?? null;
   const scrolledRef = useRef(false);
   useEffect(() => {
     if (!focusCommentId || scrolledRef.current) return;
-    const thread = comments.find((c) => c.id === focusCommentId);
-    const key = thread ? payloadOf(thread)?.targetKey : null;
+    // Open the panel — and, where the shared region exists, make sure the
+    // comments panel is the occupant showing rather than the review panel.
+    if (rightPanel) rightPanel.showPanel('comments');
+    else setOpen(true);
+    const key = focusThread ? payloadOf(focusThread)?.targetKey : null;
     if (!key) return;
-    setOpen(true);
     const el = elements.current.get(key);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     scrolledRef.current = true;
-  }, [comments, focusCommentId, tick]);
+  }, [focusCommentId, focusThread, rightPanel, setOpen, tick]);
+
 
   const ctx: ModuleCommentsCtx = {
     enabled: true,
@@ -243,7 +256,7 @@ export function ModuleCommentsProvider({
           setComposing={setComposing}
           openCount={openCount}
           members={members}
-          focusCommentId={focusCommentId}
+          focusCommentId={focusThreadId}
           onClose={() => setOpen(false)}
           onAdd={async (content, payload, parentId, assignedTo) => {
             const row = await addComment(content, {
