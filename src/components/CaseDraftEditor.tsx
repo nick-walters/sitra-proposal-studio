@@ -1380,7 +1380,11 @@ function CaseSubsectionModule({
     >
       {/* The anchor wraps the WHOLE module — header included — so the comment
           control stays in the right-hand rail when the module is collapsed. */}
-      <ModuleCommentAnchor targetKey={caseTarget(caseId, subsectionKey)} label={heading}>
+      <ModuleCommentAnchor
+        targetKey={caseTarget(caseId, subsectionKey)}
+        label={heading}
+        controlClassName="translate-y-[5px]"
+      >
       <div className={WP_BLOCK_HEADER}>
         <div className={WP_CONTROL_STACK}>
           <CollapseChevron collapsed={collapsed} onToggle={onToggleCollapsed} className={WP_CHEVRON_SIZE} />
