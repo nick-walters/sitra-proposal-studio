@@ -38,6 +38,9 @@ export interface Comment {
   selected_text: string | null;
   anchor_type: AnchorType | null;
   anchor_payload: AnchorPayload | null;
+  /** Optional single owner of the comment — a user with a role on the
+   *  proposal. Independent of the @tags inside `content`. */
+  assigned_to: string | null;
   is_suggestion: boolean;
   suggested_text: string | null;
   status: 'open' | 'resolved' | 'rejected';
@@ -70,7 +73,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
         .select(`
           id, proposal_id, section_id, user_id, content,
           selection_start, selection_end, selected_text,
-          anchor_type, anchor_payload,
+          anchor_type, anchor_payload, assigned_to,
           is_suggestion, suggested_text, status,
           parent_comment_id, created_at, updated_at,
           profiles:user_id (full_name, email)
@@ -161,6 +164,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       isSuggestion?: boolean;
       suggestedText?: string;
       parentCommentId?: string;
+      assignedTo?: string | null;
       anchorType?: AnchorType;
       anchorPayload?: AnchorPayload;
     }
@@ -181,6 +185,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
           is_suggestion: options?.isSuggestion ?? false,
           suggested_text: options?.suggestedText ?? null,
           parent_comment_id: options?.parentCommentId ?? null,
+          assigned_to: options?.assignedTo ?? null,
           anchor_type: options?.anchorType ?? null,
           anchor_payload: options?.anchorPayload ?? null,
         } as any)
@@ -253,6 +258,31 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     }
   }, [fetchComments]);
 
+  // Set or clear who a comment is assigned to. Assignment is a property of the
+  // comment row, so it survives resolving, reopening and editing untouched.
+  const updateCommentAssignee = useCallback(async (
+    commentId: string,
+    assignedTo: string | null,
+  ) => {
+    setComments(prev =>
+      prev.map(c => (c.id === commentId ? { ...c, assigned_to: assignedTo } : c)),
+    );
+
+    try {
+      const { error } = await supabase
+        .from('section_comments')
+        .update({ assigned_to: assignedTo })
+        .eq('id', commentId);
+      if (error) {
+        fetchComments(); // revert
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error assigning comment:', error);
+      toast.error('Failed to assign the comment');
+    }
+  }, [fetchComments]);
+
   // Delete a comment (with optimistic removal)
   const deleteComment = useCallback(async (commentId: string) => {
     // Optimistically remove from UI immediately
@@ -299,6 +329,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     addComment,
     updateCommentContent,
     updateCommentStatus,
+    updateCommentAssignee,
     deleteComment,
     refetch: fetchComments,
     openCount,
