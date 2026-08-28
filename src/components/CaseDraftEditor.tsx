@@ -19,7 +19,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LazyRichField } from '@/components/participant/LazyRichField';
 import {
   ModuleCommentsProvider,
   ModuleCommentAnchor,
