@@ -66,6 +66,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { useSectionComments, type Comment } from '@/hooks/useSectionComments';
+import { useRightPanel } from '@/components/panels/RightPanelRegion';
 import {
   MODULE_ANCHOR_TYPE,
   type ModuleAnchorPayload,
@@ -139,7 +140,14 @@ export function ModuleCommentsProvider({
     user?.email ||
     'Someone';
 
-  const [open, setOpen] = useState(false);
+  // The comments panel is one of the two occupants of the shared right-hand
+  // region. Where that region exists, it owns the toggle (and its
+  // persistence); a surface without it keeps the old local state.
+  const rightPanel = useRightPanel();
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = rightPanel ? rightPanel.commentsOpen : localOpen;
+  const setOpen = rightPanel ? rightPanel.setCommentsOpen : setLocalOpen;
+  const showing = rightPanel ? rightPanel.visiblePanel === 'comments' : open;
   const [composing, setComposing] = useState<ModuleAnchorPayload | null>(null);
   const elements = useRef(new Map<string, HTMLElement>());
   /** Bumped whenever anchors move, so the rail re-measures. */
@@ -223,8 +231,9 @@ export function ModuleCommentsProvider({
   return (
     <Ctx.Provider value={ctx}>
       {children}
-      {open && (
+      {showing && (
         <ModuleCommentsRail
+          host={rightPanel?.host ?? null}
           threads={moduleThreads}
           elements={elements}
           tick={tick}
@@ -420,6 +429,8 @@ interface RailProps {
   composing: ModuleAnchorPayload | null;
   setComposing: (v: ModuleAnchorPayload | null) => void;
   openCount: number;
+  /** Where the rail renders — the shared region, or the page when there is none. */
+  host: HTMLElement | null;
   members: ProposalMember[];
   focusCommentId: string | null;
   onClose: () => void;
@@ -448,6 +459,7 @@ function ModuleCommentsRail({
   composing,
   setComposing,
   openCount,
+  host,
   members,
   focusCommentId,
   onClose,
@@ -566,8 +578,12 @@ function ModuleCommentsRail({
 
   const body = (
     <div
-      className="fixed right-0 top-0 z-40 flex h-screen flex-col border-l border-border bg-background/95 shadow-lg backdrop-blur"
-      style={{ width: RAIL_WIDTH }}
+      className={
+        host
+          ? 'flex h-full w-full flex-col'
+          : 'fixed right-0 top-0 z-40 flex h-screen flex-col border-l border-border bg-background/95 shadow-lg backdrop-blur'
+      }
+      style={host ? undefined : { width: RAIL_WIDTH }}
     >
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="text-[13px] font-semibold">
@@ -652,7 +668,7 @@ function ModuleCommentsRail({
     </div>
   );
 
-  return createPortal(body, document.body);
+  return createPortal(body, host ?? document.body);
 }
 
 /* ------------------------------------------------------------------ cards */

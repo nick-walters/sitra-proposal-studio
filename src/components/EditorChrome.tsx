@@ -22,6 +22,7 @@ import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { Tip } from '@/components/ui/control-tip';
 import { ScrollableToolbarRow } from '@/components/ScrollableToolbarRow';
 import { useModuleComments } from '@/components/comments/ModuleComments';
+import { useRightPanel } from '@/components/panels/RightPanelRegion';
 import { formatTime } from '@/lib/formatDate';
 
 
@@ -224,8 +225,17 @@ function CommentsPanelButton({
   commentCount?: number;
 }) {
   const modules = useModuleComments();
+  const rightPanel = useRightPanel();
+  // The button is a TOGGLE: it opens the panel and closes it again, and the
+  // state it leaves behind is remembered.
+  const isOpen = rightPanel ? rightPanel.commentsOpen : !!modules?.open;
   const handler =
-    onOpenComments ?? (modules ? () => modules.setOpen(!modules.open) : undefined);
+    onOpenComments ??
+    (rightPanel
+      ? () => rightPanel.setCommentsOpen(!rightPanel.commentsOpen)
+      : modules
+        ? () => modules.setOpen(!modules.open)
+        : undefined);
   const count = commentCount ?? modules?.openCount;
   return (
     <FeatureButton
@@ -233,7 +243,8 @@ function CommentsPanelButton({
       primary="Comments"
       secondary={typeof count === 'number' ? `panel · ${count}` : 'panel'}
       secondarySmall
-      tooltip="Open the comments panel"
+      tone={isOpen ? 'success' : 'default'}
+      tooltip={isOpen ? 'Close the comments panel' : 'Open the comments panel'}
       disabled={!handler}
       onClick={handler}
     />
