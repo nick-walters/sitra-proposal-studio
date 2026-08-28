@@ -168,7 +168,9 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
-      participantChip(byId.get(wp.lead_participant_id || '')) + CHIP_GAP + bold(lit(wpDuration(wp))),
+      participantChip(byId.get(wp.lead_participant_id || '')) +
+        ' + h(1fr) + ' +
+        bold(lit(wpDuration(wp))),
     ]);
     rows.push([sep]);
     if (htmlToPlainText(wp.objectives || '').trim()) {
@@ -182,9 +184,11 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
         .filter((id) => id !== task.lead_participant_id)
         .map((id) => participantChip(byId.get(id)))
         .filter((c) => c !== EMPTY);
+      // The duration is pushed to the RIGHT edge of the row, as the board
+      // draws it, instead of trailing the badges.
       const months =
         task.start_month != null || task.end_month != null
-          ? CHIP_GAP +
+          ? ' + h(1fr) + ' +
             bold(lit(`${monthLabel(task.start_month)}–${monthLabel(task.end_month)}`))
           : '';
       const head =
@@ -204,13 +208,14 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     // The board closes every work package with a trailing rule.
     rows.push([sep]);
 
-    const heading = wpChip(
-      wp.number,
-      wp.color,
+    // The work-package name sits in a FULL-WIDTH pill (18 cm), like the case
+    // name pill, rather than a content-width chip.
+    const heading = `wp-name-pill(${typstString(
       `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`,
-    );
+    )}, rgb(${typstString(wp.color)}))`;
     const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
     out.push(`he-wp-table(${heading}, ${rowsSrc}, rgb(${typstString(wp.color)}))`);
+
   }
 
   return out;
