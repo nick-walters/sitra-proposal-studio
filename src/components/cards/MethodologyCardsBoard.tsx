@@ -1311,6 +1311,7 @@ function CardBlock({
                 />
               </LockBoundary>
             )}
+            </ModuleCommentAnchor>
 
 
             {userCollapsed && (
