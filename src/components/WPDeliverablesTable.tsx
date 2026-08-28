@@ -657,7 +657,7 @@ function DeliverableRow({
               treatment the block control rows use. */}
           <div
             className="absolute left-full top-1/2 flex -translate-y-1/2 items-center"
-            style={{ marginLeft: -2 }}
+            style={{ marginLeft: -8 }}
           >
             {!readOnly && (
               <DeleteConfirmDialog
