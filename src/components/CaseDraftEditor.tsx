@@ -1202,6 +1202,15 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </DialogContent>
         </Dialog>
 
+        <CaseGuidanceEditDialog
+          isOpen={guidanceEditOpen}
+          onClose={() => setGuidanceEditOpen(false)}
+          guidance={resolvedGuidance}
+          onSaved={() =>
+            queryClient.invalidateQueries({ queryKey: ['case-subsection-templates', proposalId] })
+          }
+        />
+
 
         <WPBinDialog
           isOpen={binOpen}
