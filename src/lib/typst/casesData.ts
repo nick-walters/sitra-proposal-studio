@@ -218,13 +218,20 @@ export function emitCasesTable(
 
     c.subsections.forEach((s, index) => {
       const heading = s.heading.trim();
-      const blocks = htmlToTypstBlocks(s.bodyHtml, ctx);
+      // A stored body often opens with an empty paragraph left behind by the
+      // editor; converted, it printed as a blank line between the heading and
+      // the text. Leading and trailing empties are dropped here.
+      const body = s.bodyHtml
+        .replace(/^(?:\s*<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '')
+        .replace(/(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
+      const blocks = htmlToTypstBlocks(body, ctx);
       if (heading) {
         out.push(`par(justify: false, strong(emph(${lit(`${heading}:`)})))`);
       }
       out.push(...blocks);
       out.push(RULE(index === c.subsections.length - 1 ? '2pt' : '0.5pt'));
     });
+
   });
   return out;
 }
