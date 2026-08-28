@@ -117,13 +117,23 @@ function buildDecorations(doc: any, schema: any): DecorationSet {
   doc.descendants((node: any, pos: number) => {
     if (!node.isText) return;
     for (const mark of node.marks) {
+      // The decoration span is the INNERMOST element under the cursor, so it
+      // must carry the author identity too — otherwise `closest()` in the
+      // hover tooltip finds a span with no author and reports "Unknown".
+      const identity = {
+        'data-change-id': mark.attrs.changeId,
+        'data-author-id': mark.attrs.authorId || '',
+        'data-author-name': mark.attrs.authorName || '',
+        'data-timestamp': mark.attrs.timestamp || '',
+      };
       if (mark.type === insertionType) {
         const color = mark.attrs.authorColor || '#3B82F6';
         decos.push(
           Decoration.inline(pos, pos + node.nodeSize, {
             style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${color};`,
             'data-track-insertion': '',
-            'data-change-id': mark.attrs.changeId,
+            'data-author-color': color,
+            ...identity,
           })
         );
       } else if (mark.type === deletionType) {
@@ -132,12 +142,14 @@ function buildDecorations(doc: any, schema: any): DecorationSet {
           Decoration.inline(pos, pos + node.nodeSize, {
             style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${color}; color: #9ca3af;`,
             'data-track-deletion': '',
-            'data-change-id': mark.attrs.changeId,
+            'data-author-color': color,
+            ...identity,
           })
         );
       }
     }
   });
+
 
   return DecorationSet.create(doc, decos);
 }
