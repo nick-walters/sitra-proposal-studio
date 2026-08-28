@@ -892,7 +892,8 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
     const internally = Number(r.internally_invoiced || 0);
     const procurement = Number(r.procurement || 0);
     const directCosts = personnelCosts + subcontracting + travel + equipment + otherGoods + fstp + internally + procurement;
-    const indirectBase = directCosts - subcontracting - fstp;
+    // 25% flat rate on A + C only (excludes B, D.1 and D.2).
+    const indirectBase = personnelCosts + travel + equipment + otherGoods + procurement;
     const indirectOverride = r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null;
     const indirectCosts = indirectOverride ?? Math.round(indirectBase * 0.25 * 100) / 100;
     const totalEligibleCosts = directCosts + indirectCosts;
