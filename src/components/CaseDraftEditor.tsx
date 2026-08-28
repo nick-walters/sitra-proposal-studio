@@ -860,12 +860,21 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
           </DialogContent>
         </Dialog>
         <PageFindReplacePanel />
+        {/* Per-draft Typst preview: the same fragment B1.2's pilots table prints. */}
+        <DraftPreviewDialog
+          open={draftPreviewOpen}
+          onOpenChange={setDraftPreviewOpen}
+          proposalId={proposalId}
+          caseId={caseId}
+        />
         {/* Top Toolbar Row - Guidelines + Formatting (shared component) */}
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving: updateMutation.isPending, lastSaved, onSaveNow: () => {} }}
           topBar={{
             onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            onPreview: () => setDraftPreviewOpen(true),
+            previewLabel: ((caseDraft as any)?.short_name as string) || 'draft',
             collapseAll: {
               allCollapsed,
               disabled: setCollapsed.isPending || allCollapseKeys.length === 0,

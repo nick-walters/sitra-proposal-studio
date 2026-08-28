@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { DraftPreviewDialog } from '@/components/drafts/DraftPreviewDialog';
 import { getCaseTypePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypes } from '@/hooks/useProposalCaseTypes';
 
@@ -246,6 +247,8 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     [collapsedKeys, setCollapsed],
   );
   const [historyOpen, setHistoryOpen] = useState(false);
+  /* Per-draft Typst preview: the same fragment B3.1's mirror prints for this WP. */
+  const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
 
   /* Guidance for the focused field, authored against the Drafts section of
      the proposal's own template version. */
@@ -798,12 +801,20 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             `display: contents`: the data attribute survives for focus checks
             while the sticky box measures against the page column. */}
         <PageFindReplacePanel />
+        <DraftPreviewDialog
+          open={draftPreviewOpen}
+          onOpenChange={setDraftPreviewOpen}
+          proposalId={proposalId}
+          wpId={wpId}
+        />
         <div data-wp-draft-toolbar="1" className="contents">
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving, lastSaved, onSaveNow: () => {} }}
           topBar={{
             onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            onPreview: () => setDraftPreviewOpen(true),
+            previewLabel: (wpDraft as any)?.number ? `WP${(wpDraft as any).number}` : 'draft',
             /* Collapse all folds every WP block AND every task module for this
                user only; the preference persists exactly as it does on Part B. */
             collapseAll: {
