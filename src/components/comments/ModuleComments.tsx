@@ -46,7 +46,12 @@ import {
   UserPlus,
   UserCheck,
 } from 'lucide-react';
-import { RAIL_COMMENT_LEFT, RAIL_COMMENT_TOP } from '@/components/cards/MarginRail';
+import {
+  RAIL_BUTTON_SIZE,
+  RAIL_COMMENT_RIGHT_INSET,
+  RAIL_COMMENT_TOP,
+  railFrame,
+} from '@/components/cards/MarginRail';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -348,10 +353,8 @@ export function ModuleCommentsProvider({
  * enclosing block edge (`[data-comment-rail-edge]`, falling back to the page
  * frame) and push the control 8 px beyond it.
  */
-const RAIL_GAP = RAIL_COMMENT_LEFT;
-const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surface-page';
-/** The comment button is a 7-unit icon button: 28 px square. */
-const RAIL_BUTTON_SIZE = 28;
+/** Distance from the anchor's own right edge when no page frame is found. */
+const RAIL_GAP = -(RAIL_COMMENT_RIGHT_INSET + RAIL_BUTTON_SIZE);
 
 /**
  * The control row this comment button lines up with: the anchor's own rail
@@ -390,9 +393,11 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
     if (!el) return;
     const measure = () => {
       const box = el.getBoundingClientRect();
-      const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
+      // The OUTERMOST page frame, and no rounding: a rounded offset put each
+      // surface's rail up to a pixel off the deliverable row's line.
+      const edge = railFrame(el);
       const left = edge
-        ? Math.max(0, Math.round(edge.getBoundingClientRect().right - box.right)) + RAIL_GAP
+        ? edge.getBoundingClientRect().right - box.right - RAIL_COMMENT_RIGHT_INSET - RAIL_BUTTON_SIZE
         : RAIL_GAP;
       // The control row this button belongs to. Its own rail group is the
       // reference: same row, same vertical centre. A rail belonging to a
@@ -415,7 +420,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    const edge = el.closest(RAIL_EDGE_SELECTOR) as HTMLElement | null;
+    const edge = railFrame(el);
     if (edge) ro.observe(edge);
     const railRow = findRailRow(el);
     if (railRow) ro.observe(railRow);
