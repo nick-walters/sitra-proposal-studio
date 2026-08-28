@@ -79,9 +79,12 @@ export function emitB32InfraTable(
     out.push(`he-caption(${typstString(captionLabel)}, ${lit('Access to critical infrastructure')})`);
   }
   const cells = [
-    `table.header(${lit(heading)})`,
+    `table.header(table.cell(par(justify: false, strong(${lit(heading)}))))`,
     ...data.rows.map(
-      (r) => `[${lit(r.text)} + t(" ") + chip-pill(${typstString(r.badgeLabel)}, black, filled: true)]`,
+      (r) =>
+        `table.cell(par(justify: false, ${lit(r.text)} + t(" ") + chip-pill(${typstString(
+          r.badgeLabel,
+        )}, black, filled: true)))`,
     ),
   ];
   out.push(`he-authored-table((1fr,), (${cells.join(', ')},), ${data.rows.length + 1})`);
