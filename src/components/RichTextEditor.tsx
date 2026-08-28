@@ -2301,8 +2301,16 @@ StarterKit.configure({
     return () => clearTimeout(timer);
   }, [editor, content, isReady, trackChanges?.onChangesUpdate]);
 
+  // Let the page-wide tracked-change tooltip resolve a change in place: it
+  // needs the live editor that owns the hovered mark.
+  useEffect(() => {
+    if (!editor) return;
+    return registerTrackEditor(editor);
+  }, [editor]);
+
   return editor;
 }
+
 
 // Export a method to programmatically insert an image
 export function useEditorActions(editor: ReturnType<typeof useEditor>) {
