@@ -285,6 +285,7 @@ export function RightPanelProvider({
       {open &&
         createPortal(
           <aside
+            data-right-panel
             className="fixed right-0 top-0 z-40 flex h-screen flex-col border-l border-border bg-background/95 shadow-lg backdrop-blur"
             style={{ width: RIGHT_PANEL_WIDTH }}
           >

@@ -268,7 +268,7 @@ function OutsideClickClear({ onClear }: { onClear: () => void }) {
       if (!target) return;
       if (
         target.closest(
-          '[data-editor-chrome], .ProseMirror, [contenteditable="true"], [role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]',
+          '[data-editor-chrome], [data-right-panel], .ProseMirror, [contenteditable="true"], [role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]',
         )
       ) {
         return;
