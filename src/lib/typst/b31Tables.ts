@@ -248,14 +248,14 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
   return [
     caption(data, 'deliverables', 'Table 3.1.c.', 'List of deliverables'),
     table(
-      storedCols(
-        data,
-        'b31-3-1-c-deliverables',
-        7,
-        '(auto, 1fr, auto, auto, auto, auto, auto)',
-      ),
+      // The Lead column carries a participant badge, which is an unbreakable
+      // pill: scaling it to the editor's stored pixel fraction squeezed the
+      // label and wrapped it. Every column except the title is therefore
+      // content-sized — the badge gets the width it needs, while Type shrinks
+      // to its two- or three-letter code.
+      '(auto, 1fr, auto, auto, auto, auto, auto)',
 
-      [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Diss.'), lit('Due')],
+      [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
       rows,
       undefined,
       false,

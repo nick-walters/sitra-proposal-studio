@@ -18,7 +18,12 @@ import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseT
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { fetchCaseSubsectionsByCase, overlaySubsectionContent } from '@/lib/caseSubsections';
 
-import { htmlToTypstBlocks, typstString, type ConvertContext } from './htmlToTypst';
+import {
+  htmlToTypstBlocks,
+  htmlToTypstInline,
+  typstString,
+  type ConvertContext,
+} from './htmlToTypst';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -224,11 +229,24 @@ export function emitCasesTable(
       const body = s.bodyHtml
         .replace(/^(?:\s*<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '')
         .replace(/(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
-      const blocks = htmlToTypstBlocks(body, ctx);
-      if (heading) {
-        out.push(`par(justify: false, strong(emph(${lit(`${heading}:`)})))`);
+      // The heading RUNS IN: it opens the first paragraph rather than forming a
+      // block of its own, which is what pushed the body onto the next line no
+      // matter how many empty paragraphs were stripped. Same shape as B1.2's
+      // methodology items.
+      const lead = heading ? `strong(emph(${lit(`${heading}:`)})) + h(4pt) + ` : '';
+      const tpl = document.createElement('template');
+      tpl.innerHTML = body;
+      const children = Array.from(tpl.content.children);
+      if (children.length === 0) {
+        if (heading) out.push(`par(justify: true, ${lead.slice(0, -3)})`);
+      } else {
+        out.push(
+          `par(justify: true, ${lead}${htmlToTypstInline(children[0].outerHTML, ctx)})`,
+        );
+        for (const child of children.slice(1)) {
+          out.push(...htmlToTypstBlocks(child.outerHTML, ctx));
+        }
       }
-      out.push(...blocks);
       out.push(RULE(index === c.subsections.length - 1 ? '2pt' : '0.5pt'));
     });
 
