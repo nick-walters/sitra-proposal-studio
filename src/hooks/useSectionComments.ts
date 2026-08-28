@@ -196,7 +196,40 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     }
   }, [user, proposalId, sectionId]);
 
-  // Update comment status (resolve/reject suggestion) - optimistic
+  // Edit the text of a comment or reply. Only the author may do this (RLS
+  // enforces it as well); `updated_at` moves, which is how the panel knows to
+  // show the "edited" marker.
+  const updateCommentContent = useCallback(async (commentId: string, content: string) => {
+    const stamp = new Date().toISOString();
+    setComments(prev =>
+      prev.map(c =>
+        c.id === commentId
+          ? { ...c, content, updated_at: stamp }
+          : {
+              ...c,
+              replies: c.replies?.map(r =>
+                r.id === commentId ? { ...r, content, updated_at: stamp } : r,
+              ),
+            },
+      ),
+    );
+
+    try {
+      const { error } = await supabase
+        .from('section_comments')
+        .update({ content, updated_at: stamp })
+        .eq('id', commentId);
+      if (error) {
+        fetchComments(); // revert
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error editing comment:', error);
+      toast.error('Failed to edit comment');
+    }
+  }, [fetchComments]);
+
+
   const updateCommentStatus = useCallback(async (
     commentId: string,
     status: 'open' | 'resolved' | 'rejected'
@@ -264,6 +297,7 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     comments,
     loading,
     addComment,
+    updateCommentContent,
     updateCommentStatus,
     deleteComment,
     refetch: fetchComments,

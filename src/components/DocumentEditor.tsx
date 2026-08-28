@@ -1492,7 +1492,14 @@ function DocumentEditorInner({
                 </div>
               ) : (
                 <>
-                  <div ref={editorContainerRef} className="relative tiptap-editor-container overflow-visible">
+                  <div
+                    ref={editorContainerRef}
+                    /* This editor carries its own accept/reject bubble, which
+                       already names the author — the global hover tooltip
+                       stands aside here. */
+                    data-track-menu-host=""
+                    className="relative tiptap-editor-container overflow-visible"
+                  >
                     <EditorContent
                       key={section?.id}
                       editor={editor}

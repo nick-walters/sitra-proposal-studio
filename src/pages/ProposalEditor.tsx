@@ -25,6 +25,7 @@ import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
 import PartBDocumentView from "@/components/cards/PartBDocumentView";
 
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
+import { TrackChangeHoverTooltip } from '@/components/TrackChangeHoverTooltip';
 import { TrackChangesProvider } from "@/lib/trackChangesContext";
 import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
@@ -1098,6 +1099,8 @@ export function ProposalEditor() {
 
   return (
     <TrackChangesProvider proposalId={id}>
+    {/* Author and time of every tracked change, on hover, on every surface. */}
+    <TrackChangeHoverTooltip />
     <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
