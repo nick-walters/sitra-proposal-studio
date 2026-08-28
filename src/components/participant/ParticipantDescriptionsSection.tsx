@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { LazyRichField } from '@/components/participant/LazyRichField';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { Participant } from '@/types/proposal';
 import { ALL_COUNTRIES } from '@/lib/countries';
@@ -12,6 +14,11 @@ import type {
   ParticipantDescriptions,
 } from '@/hooks/useParticipantDetails';
 
+
+function isBlankHtml(html: string | null | undefined): boolean {
+  if (!html) return true;
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim().length === 0;
+}
 
 interface FieldDef {
   key: ParticipantDescriptionField;
@@ -27,7 +34,7 @@ const FIELD_ORDER: FieldDef[] = [
   },
   {
     key: 'value_chain',
-    labelTemplate: 'If applicable, describe which parts of the value chain [name] covers.',
+    labelTemplate: 'Describe which parts of the value chain [name] covers.',
   },
   {
     key: 'industrial_involvement',
@@ -48,6 +55,9 @@ interface ParticipantDescriptionsSectionProps {
   lastSaved: Date | null;
   saveError?: string | null;
   canEdit: boolean;
+  /** Explicit Yes/No relevance answer; null when never answered. */
+  valueChainApplicable?: boolean | null;
+  onValueChainApplicableChange?: (next: boolean) => void;
   proposalId?: string;
   /** Acronym segments used when inserting an acronym cross-reference. */
   acronymSegments?: { text: string; color: string }[];
@@ -64,6 +74,8 @@ export function ParticipantDescriptionsSection({
   descriptions,
   onUpdateField,
   canEdit,
+  valueChainApplicable,
+  onValueChainApplicableChange,
   proposalId,
 }: ParticipantDescriptionsSectionProps) {
   const [, setAnyFieldFocused] = useState(false);
@@ -104,8 +116,16 @@ export function ParticipantDescriptionsSection({
     },
   });
 
+  // Relevance default: Yes for SME and LE, No for every other type — but a
+  // participant who has already written value chain text keeps it visible,
+  // whatever their type, until someone answers No deliberately.
+  const hasValueChainText = !isBlankHtml(descriptions.value_chain);
+  const valueChainRelevant =
+    valueChainApplicable ?? (isCompany || hasValueChainText);
+
   const visibleFields = FIELD_ORDER.filter(f => {
-    if (f.key === 'value_chain') return mirrorToggles?.mirror_value_chain ?? true;
+    if (f.key === 'value_chain')
+      return (mirrorToggles?.mirror_value_chain ?? true) && valueChainRelevant;
     if (f.key === 'industrial_involvement')
       return isCompany && (mirrorToggles?.mirror_industrial_involvement ?? true);
     if (f.key === 'participation_justification')
@@ -132,9 +152,12 @@ export function ParticipantDescriptionsSection({
     }, 150);
   }, []);
 
-  if (visibleFields.length === 0) return null;
-
   const shortName = participant.organisationShortName || '';
+  // The toggle follows the field's own mirror switch: when a coordinator has
+  // turned value chain off for the whole proposal, neither is offered.
+  const showValueChainToggle = mirrorToggles?.mirror_value_chain ?? true;
+
+  if (visibleFields.length === 0 && !showValueChainToggle) return null;
 
   return (
     <Card>
@@ -145,6 +168,28 @@ export function ParticipantDescriptionsSection({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {showValueChainToggle && (
+          <div className="space-y-1.5">
+            <div className="text-sm text-foreground/90">
+              {`Does ${shortName} bring coverage of one or more parts of the value chain to the project?`}
+            </div>
+            <RadioGroup
+              className="flex items-center gap-6"
+              value={valueChainRelevant ? 'yes' : 'no'}
+              onValueChange={(v) => onValueChainApplicableChange?.(v === 'yes')}
+              disabled={!canEdit}
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="yes" id="value-chain-yes" />
+                <Label htmlFor="value-chain-yes" className="font-normal">Yes</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="no" id="value-chain-no" />
+                <Label htmlFor="value-chain-no" className="font-normal">No</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
         {visibleFields.map((field) => {
           const label = field.labelTemplate.replace('[name]', shortName);
           const prefixNode = (
