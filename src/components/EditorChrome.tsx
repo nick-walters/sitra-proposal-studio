@@ -4,7 +4,6 @@ import {
   Cloud,
   History,
   Search,
-  GitCompare,
   MessageSquare,
   Sparkles,
   FileText,
