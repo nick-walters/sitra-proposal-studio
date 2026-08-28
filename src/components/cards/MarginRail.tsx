@@ -149,12 +149,15 @@ export function MarginRail({
 export function MarginRailAbsolute({
   className,
   children,
+  nudge = 0,
 }: {
   className?: string;
   children: ReactNode;
+  /** Per-surface horizontal nudge, in CSS pixels. Positive moves right. */
+  nudge?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const dx = useRailAlign(ref);
+  const dx = useRailAlign(ref) + nudge;
 
   return (
     <div

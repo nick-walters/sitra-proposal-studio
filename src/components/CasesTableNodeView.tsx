@@ -438,7 +438,8 @@ export function CasesTableLiveView({
         fontFamily: TABLE_FONT_FAMILY,
         fontSize: TABLE_FONT_SIZE,
         color: '#000',
-        width: '100%',
+        // Two pixels narrower, taken off the right edge only.
+        width: 'calc(100% - 2px)',
         userSelect: 'text',
       }}
     >

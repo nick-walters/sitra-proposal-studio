@@ -1571,7 +1571,7 @@ function CardBlock({
             ) : null}
 
             {/* Column 6 — delete */}
-            {canEdit && card.isDeletable ? (
+            {canEdit && card.isDeletable && card.kind !== 'references' ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Tip label="Delete block">

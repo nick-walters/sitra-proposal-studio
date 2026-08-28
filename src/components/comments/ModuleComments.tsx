@@ -385,7 +385,7 @@ function findRailRow(el: HTMLElement): HTMLElement | null {
  * vertically on the CENTRE of the module's own control row, so it lines up
  * with the delete and visibility glyphs beside it instead of riding above them.
  */
-function useRailOffset(ref: React.RefObject<HTMLElement>) {
+function useRailOffset(ref: React.RefObject<HTMLElement>, nudge = 0) {
   const [offset, setOffset] = useState({ left: RAIL_GAP, top: 0 });
 
   useLayoutEffect(() => {
@@ -399,6 +399,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
       const left = edge
         ? edge.getBoundingClientRect().right - box.right - RAIL_COMMENT_RIGHT_INSET - RAIL_BUTTON_SIZE
         : RAIL_GAP;
+      const nudgedLeft = left + nudge;
       // The control row this button belongs to. Its own rail group is the
       // reference: same row, same vertical centre. A rail belonging to a
       // NESTED commentable module is not ours, so it is skipped.
@@ -415,7 +416,9 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
         // so it centres on itself rather than hanging off its top edge.
         top = Math.round(box.height / 2 - RAIL_BUTTON_SIZE / 2) + RAIL_COMMENT_TOP;
       }
-      setOffset((prev) => (prev.left === left && prev.top === top ? prev : { left, top }));
+      setOffset((prev) =>
+        prev.left === nudgedLeft && prev.top === top ? prev : { left: nudgedLeft, top },
+      );
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -437,7 +440,7 @@ function useRailOffset(ref: React.RefObject<HTMLElement>) {
       mo?.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [ref]);
+  }, [ref, nudge]);
 
   return offset;
 }
@@ -456,6 +459,8 @@ interface AnchorProps {
    * measures the module only, for the rare surface that renders its own.
    */
   control?: 'floating' | 'none';
+  /** Horizontal nudge for the floating control, in CSS pixels. */
+  railNudge?: number;
 }
 
 /**
@@ -470,10 +475,11 @@ export function ModuleCommentAnchor({
   className,
   controlClassName,
   control = 'floating',
+  railNudge = 0,
 }: AnchorProps) {
   const ctx = useModuleComments();
   const ref = useRef<HTMLDivElement | null>(null);
-  const railOffset = useRailOffset(ref);
+  const railOffset = useRailOffset(ref, railNudge);
 
   useEffect(() => {
     if (!ctx) return;
@@ -788,7 +794,7 @@ function ModuleCommentsRail({
         className="relative flex-1 overflow-y-auto overflow-x-hidden [mask-image:linear-gradient(to_bottom,transparent_0,black_20px,black_calc(100%-20px),transparent_100%)]"
       >
         {visible.length === 0 && !composing && (
-          <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
             <MessageSquarePlus className="h-5 w-5 text-blue-600" />
             <p className="text-[12px] text-muted-foreground">Add a comment to a field</p>
           </div>
