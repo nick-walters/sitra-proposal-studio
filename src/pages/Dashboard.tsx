@@ -387,7 +387,10 @@ export function Dashboard() {
               .from('template_sections')
               .select('section_number')
               .eq('template_type_id', data.templateTypeId)
-              .eq('is_active', true);
+              .eq('is_active', true)
+              // 'drafts' sections (D1/D2) exist only for guideline authoring;
+              // they are not proposal pages, so they are never lockable.
+              .neq('part', 'drafts');
 
             for (const sec of templateSections || []) {
               if (sec.section_number) {
