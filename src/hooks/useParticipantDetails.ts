@@ -485,6 +485,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
         participant_id: participantId,
         name: infra.name,
         description: infra.description || null,
+        project_support: infra.projectSupport || null,
         order_index: infra.orderIndex,
       })
       .select()
@@ -505,6 +506,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
     const updateData: Record<string, unknown> = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.description !== undefined) updateData.description = updates.description || null;
+    if (updates.projectSupport !== undefined) updateData.project_support = updates.projectSupport || null;
     if (updates.orderIndex !== undefined) updateData.order_index = updates.orderIndex;
 
     const { error } = await supabase
