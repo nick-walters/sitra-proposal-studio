@@ -72,22 +72,23 @@ export function useRightPanel() {
 const storageKey = (userId: string | undefined, proposalId: string) =>
   `sitra.rightPanel.${userId ?? 'anon'}.${proposalId}`;
 
-function readState(key: string): { open: boolean; tab: PanelId } {
+function readState(key: string): { open: boolean; tab: PanelId | null } {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return { open: false, tab: 'comments' };
+    if (!raw) return { open: false, tab: null };
     const parsed = JSON.parse(raw) as {
       open?: boolean;
-      tab?: PanelId;
+      tab?: PanelId | null;
       comments?: boolean;
       review?: boolean;
     };
     // Legacy shape: two independent booleans.
     const open = parsed.open ?? !!(parsed.comments || parsed.review);
-    const tab: PanelId = parsed.tab ?? (parsed.review && !parsed.comments ? 'review' : 'comments');
+    const tab: PanelId | null =
+      parsed.tab ?? (parsed.review && !parsed.comments ? 'review' : null);
     return { open, tab };
   } catch {
-    return { open: false, tab: 'comments' };
+    return { open: false, tab: null };
   }
 }
 
@@ -104,17 +105,25 @@ export function RightPanelProvider({
   const key = storageKey(user?.id, proposalId);
 
   const [open, setOpenState] = useState(false);
-  const [activeTab, setActiveTabState] = useState<PanelId>('comments');
+  /**
+   * The user's EXPLICIT tab choice, or null when the tab is being chosen by
+   * context. This one nullable field is the whole distinction: a tab header
+   * click (or a control that names a tab, such as the comment buttons) writes
+   * a value here; context selection never does. A stored value therefore
+   * always came from a deliberate click, and closing the panel clears it so
+   * the next opening starts from context again.
+   */
+  const [explicitTab, setExplicitTab] = useState<PanelId | null>(null);
 
   // Read once the user is known, so the stored state is the right person's.
   useEffect(() => {
     const s = readState(key);
     setOpenState(s.open);
-    setActiveTabState(s.tab);
+    setExplicitTab(s.tab);
   }, [key]);
 
   const persist = useCallback(
-    (next: { open: boolean; tab: PanelId }) => {
+    (next: { open: boolean; tab: PanelId | null }) => {
       try {
         localStorage.setItem(key, JSON.stringify(next));
       } catch {
@@ -127,21 +136,29 @@ export function RightPanelProvider({
   const setOpen = useCallback(
     (v: boolean) => {
       setOpenState(v);
-      setActiveTabState((t) => {
-        persist({ open: v, tab: t });
-        return t;
+      // Closing ends the explicit choice; it sticks only while open.
+      if (!v) setExplicitTab(null);
+      setExplicitTab((t) => {
+        const tab = v ? t : null;
+        persist({ open: v, tab });
+        return tab;
       });
     },
     [persist],
   );
 
   const showPanel = useCallback(
-    (p: PanelId) => {
+    (p: PanelId, opts?: { explicit?: boolean }) => {
+      const explicit = opts?.explicit !== false;
       setOpenState(true);
-      setActiveTabState(p);
-      persist({ open: true, tab: p });
+      if (explicit) {
+        setExplicitTab(p);
+        persist({ open: true, tab: p });
+      } else {
+        persist({ open: true, tab: explicitTab });
+      }
     },
-    [persist],
+    [persist, explicitTab],
   );
 
   const setCommentsOpen = useCallback(
@@ -155,7 +172,7 @@ export function RightPanelProvider({
 
   /* ------------------------------------------------ the active field */
 
-  const { activeEditor } = useMethodologyEditorFocus();
+  const { activeEditor, scalarField } = useMethodologyEditorFocus();
   const [fieldChanges, setFieldChanges] = useState<TrackChange[]>([]);
 
   useEffect(() => {
@@ -180,7 +197,49 @@ export function RightPanelProvider({
 
   const hasActiveField = !!activeEditor && !activeEditor.isDestroyed;
 
+  /**
+   * DOES THE ACTIVE FIELD CARRY TRACKED CHANGES — WITHOUT MOUNTING IT?
+   *
+   * A mounted editor answers from its own document. An UNMOUNTED field (a
+   * lazy rich field showing its static render, or a scalar control inside a
+   * block) is answered from the DOM instead: the static renderer keeps the
+   * tracked-change marks as `span[data-track-insertion]` /
+   * `span[data-track-deletion]`, so a single `querySelector` on the field's
+   * wrapper settles it with no editor instance created.
+   */
+  const [domHasChanges, setDomHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (hasActiveField) {
+      setDomHasChanges(false);
+      return;
+    }
+    const probe = () => {
+      const focused = document.activeElement as HTMLElement | null;
+      const field =
+        scalarField ??
+        (focused?.closest?.(
+          '[data-guideline-key], [data-scalar-field], [data-field-root]',
+        ) as HTMLElement | null) ??
+        null;
+      setDomHasChanges(
+        !!field?.querySelector('[data-track-insertion], [data-track-deletion]'),
+      );
+    };
+    probe();
+    document.addEventListener('focusin', probe);
+    return () => document.removeEventListener('focusin', probe);
+  }, [hasActiveField, scalarField]);
+
+  const contextTab: PanelId =
+    (hasActiveField && fieldChanges.length > 0) || (!hasActiveField && domHasChanges)
+      ? 'review'
+      : 'comments';
+
+  const activeTab: PanelId = explicitTab ?? contextTab;
+
   const visiblePanel: PanelId | null = open ? activeTab : null;
+
 
   const [host, setHost] = useState<HTMLElement | null>(null);
 
