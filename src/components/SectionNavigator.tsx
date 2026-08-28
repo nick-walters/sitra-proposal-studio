@@ -241,8 +241,17 @@ function SectionItem({
     section.id === 'proposal-management'
   );
 
-  // Check if this is a top-level bold item
+  // Check if this is a top-level bold item. The part headings B1, B2 and B3
+  // are bold too: B1 and B2 already were, through `isCollapsibleHeading`, but
+  // only when they carried subsections, and B3 never was.
+  const isPartBHeading =
+    section.id === 'b1' ||
+    section.id === 'b2' ||
+    section.id === 'b3' ||
+    (!!section.number && /^B\d+$/.test(section.number.trim()));
+
   const isTopLevelBold = 
+    isPartBHeading ||
     section.id === 'part-a' || 
     section.number === 'Part A' ||
     section.id === 'part-b' || 
