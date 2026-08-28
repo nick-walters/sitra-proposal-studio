@@ -20,12 +20,13 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronRight, Info, Save } from 'lucide-react';
+import { ChevronDown, ChevronRight, Info, Pencil, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AdminRichTextField } from '@/components/admin/AdminRichTextField';
+import { GuidanceHtml } from '@/components/GuidanceHtml';
 import {
   useCaseGuidelineDefaults,
   type CaseGuidelineDefault,
@@ -82,6 +83,7 @@ export function CaseGuidanceDefaultsPanel({ editable }: { editable: boolean }) {
 
 function DefaultRow({ row, editable }: { row: CaseGuidelineDefault; editable: boolean }) {
   const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(row.content ?? '');
   const [dirty, setDirty] = useState(false);
 
@@ -100,6 +102,7 @@ function DefaultRow({ row, editable }: { row: CaseGuidelineDefault; editable: bo
     },
     onSuccess: () => {
       setDirty(false);
+      setEditing(false);
       toast.success(`“${row.title}” default guidance saved for every proposal.`);
       qc.invalidateQueries({ queryKey: ['case-guideline-defaults'] });
     },
@@ -107,35 +110,66 @@ function DefaultRow({ row, editable }: { row: CaseGuidelineDefault; editable: bo
       toast.error(e.message || 'Could not save the default guidance'),
   });
 
+  const cancel = () => {
+    setContent(row.content ?? '');
+    setDirty(false);
+    setEditing(false);
+  };
+
   return (
     <div className="rounded-md border p-3">
       <div className="mb-2 flex items-center gap-2">
         <span className="text-sm font-medium">{row.title}</span>
         <code className="rounded bg-muted px-1 text-[11px] text-muted-foreground">{row.key}</code>
-        {dirty && <Badge variant="secondary" className="ml-auto">Unsaved</Badge>}
-      </div>
-      <AdminRichTextField
-        value={content}
-        onChange={(html) => {
-          setContent(html);
-          setDirty(true);
-        }}
-        disabled={!editable}
-        minHeight="4rem"
-      />
-      {editable && (
-        <div className="mt-2 flex justify-end">
+        {dirty && <Badge variant="secondary">Unsaved</Badge>}
+        {editable && !editing && (
           <Button
             size="sm"
-            variant="outline"
-            className="gap-2"
-            disabled={!dirty || save.isPending}
-            onClick={() => save.mutate()}
+            variant="ghost"
+            className="ml-auto h-7 gap-1 px-2"
+            onClick={() => setEditing(true)}
           >
-            <Save className="h-4 w-4" />
-            {save.isPending ? 'Saving…' : 'Save default'}
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
           </Button>
-        </div>
+        )}
+      </div>
+
+      {/* Read first, edit on request — the same shape as every other
+          guideline entry in Sections & guidelines. */}
+      {!editing ? (
+        content.replace(/<[^>]*>/g, '').trim() ? (
+          <GuidanceHtml html={content} className="text-sm text-muted-foreground" />
+        ) : (
+          <p className="text-sm italic text-muted-foreground">No default guidance yet.</p>
+        )
+      ) : (
+        <>
+          <AdminRichTextField
+            value={content}
+            onChange={(html) => {
+              setContent(html);
+              setDirty(true);
+            }}
+            minHeight="4rem"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <Button size="sm" variant="ghost" className="gap-2" onClick={cancel}>
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={!dirty || save.isPending}
+              onClick={() => save.mutate()}
+            >
+              <Save className="h-4 w-4" />
+              {save.isPending ? 'Saving…' : 'Save default'}
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );
