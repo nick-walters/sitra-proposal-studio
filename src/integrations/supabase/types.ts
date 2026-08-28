@@ -4787,6 +4787,7 @@ export type Database = {
           links: Json
           payload: Json
           proposal_id: string
+          purge_after: string | null
           row_id: string
           table_name: string
           updated_at: string
@@ -4799,6 +4800,7 @@ export type Database = {
           links?: Json
           payload: Json
           proposal_id: string
+          purge_after?: string | null
           row_id: string
           table_name: string
           updated_at?: string
@@ -4811,6 +4813,7 @@ export type Database = {
           links?: Json
           payload?: Json
           proposal_id?: string
+          purge_after?: string | null
           row_id?: string
           table_name?: string
           updated_at?: string
