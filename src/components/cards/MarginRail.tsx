@@ -4,11 +4,9 @@ import { cn } from '@/lib/utils';
 /**
  * The page-margin control rail.
  *
- * Every block and module control — and every comment button — lives in the
- * margin to the RIGHT of the page frame, in one vertical line across the whole
- * application. The reference position is the deliverable row's delete button,
- * which sits `RAIL_DELETE_LEFT` past the frame edge; the comment button follows
- * it at `RAIL_COMMENT_LEFT`.
+ * Every block and module control — and every comment button — sits in one
+ * vertical line across the whole application, tucked into the page's own
+ * 1.5 cm right margin. Nothing extends past the page's right edge.
  *
  * Controls run gaplessly right to left: comment, delete, visibility, restore,
  * add. A block that lacks a control simply does not reserve its slot, so its
