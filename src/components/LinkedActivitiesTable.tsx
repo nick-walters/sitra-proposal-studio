@@ -312,13 +312,19 @@ function SortableActivityRow({
         {/* Row actions live in their own narrow column so they are always
             visible; a bare <div> child of <tr> is not laid out as a cell and
             could only be positioned against the drag transform. */}
-        <td data-noresize="" className={`${cellStyles} !px-0 w-[28px] text-right`}>
+        <td data-noresize="" className={`${cellStyles} !px-0 w-[28px] relative`}>
           {canEdit && (
-            <DeleteConfirmDialog
-              itemLabel="this linked activity"
-              tooltip="Delete this linked activity"
-              onConfirm={() => onDelete(activity.id)}
-            />
+            /* On the shared margin rail, at the deliverable delete button's
+               horizontal position, rather than a hand-set column offset. */
+            <MarginRailAbsolute nudge={RAIL_DELIVERABLE_DELETE_NUDGE}>
+              <DeleteConfirmDialog
+                itemLabel="this linked activity"
+                tooltip="Delete this linked activity"
+                buttonClassName="h-6 w-6 text-red-600 hover:text-red-700"
+                iconSize="h-4 w-4"
+                onConfirm={() => onDelete(activity.id)}
+              />
+            </MarginRailAbsolute>
           )}
         </td>
 
