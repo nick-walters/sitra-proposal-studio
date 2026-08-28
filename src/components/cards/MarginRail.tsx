@@ -22,13 +22,17 @@ import { cn } from '@/lib/utils';
 export const RAIL_DELETE_LEFT = -65;
 
 /** Where the comment button starts, measured from the frame edge. */
-export const RAIL_COMMENT_LEFT = -41;
+export const RAIL_COMMENT_LEFT = -36;
+
+/** How far the comment button sits below its control row's centre line. */
+export const RAIL_COMMENT_TOP = 2;
 
 /**
  * How far a control row is pulled out of the frame so its last control lands
  * immediately to the left of the comment button. Negative pulls it back in.
  */
 export const RAIL_SHIFT = -41;
+
 
 /**
  * Pulls a trailing control group into the margin rail. `padding` is the
