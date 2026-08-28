@@ -125,6 +125,15 @@ interface CaseDraftEditorProps {
 export function CaseDraftEditor(props: CaseDraftEditorProps) {
   return (
     <MethodologyEditorFocusProvider>
+      {/* Case drafts are not a template section, so lock rows carry no section
+          id and streaming uses a case-wide channel — the same arrangement WP
+          drafts use. */}
+      <CardLockProvider
+        proposalId={props.proposalId}
+        sectionId={null}
+        channelKey={`case-draft:${props.caseId}`}
+        enabled
+      >
       <PageSearchProvider>
       {/* Module-anchored comments; a case draft is its own comment surface. */}
       <ModuleCommentsProvider
@@ -134,10 +143,18 @@ export function CaseDraftEditor(props: CaseDraftEditorProps) {
         isCoordinator={props.isCoordinator}
       >
         <CaseDraftEditorInner {...props} />
+        <CaseLockTimeoutWarning />
       </ModuleCommentsProvider>
       </PageSearchProvider>
+      </CardLockProvider>
     </MethodologyEditorFocusProvider>
   );
+}
+
+/** Idle-timeout warning for whichever case field this client currently holds. */
+function CaseLockTimeoutWarning() {
+  const { warning } = useCardLocks();
+  return warning ? <LockTimeoutWarning secondsLeft={warning.secondsLeft} /> : null;
 }
 
 function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
@@ -500,7 +517,57 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
   // Project-wide subsection templates
-  const { templates: subsectionTemplates } = useCaseSubsectionTemplates(proposalId);
+  const { templates: subsectionTemplates, addRow: addSubsection, reorder: reorderSubsections } =
+    useCaseSubsectionTemplates(proposalId);
+
+  /* Per-user collapse state for the subsection blocks, in the same store WP
+     blocks and Part B modules use, so Collapse all behaves identically. */
+  const { collapsedKeys, setCollapsed } = useKeyedCollapse(proposalId);
+  const toggleCollapsed = useCallback(
+    (key: string) => setCollapsed.mutate({ keys: [key], collapsed: !collapsedKeys.has(key) }),
+    [collapsedKeys, setCollapsed],
+  );
+  const allCollapseKeys = useMemo(
+    () => subsectionTemplates.map((sub) => caseSubsectionCollapseKey(caseId, sub.key)),
+    [subsectionTemplates, caseId],
+  );
+  const allCollapsed =
+    allCollapseKeys.length > 0 && allCollapseKeys.every((k) => collapsedKeys.has(k));
+
+  // Version history for whichever field owns the toolbar (data-version-target).
+  const versionTarget = useFocusedVersionTarget();
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  /* Guidance is never printed on a block: it is reached through the Guidelines
+     button while a field has focus, keyed `drafts.case.<subsection key>`. */
+  const focusedGuidelineKey = useFocusedGuidelineKey();
+  const { data: caseTemplateVersionId } = useProposalTemplateVersion(proposalId);
+  const { data: blockGuidelines = [] } = useCardGuidelines(
+    focusedGuidelineKey && focusedGuidelineKey.startsWith('drafts.') ? focusedGuidelineKey : null,
+    'drafts',
+    caseTemplateVersionId,
+    proposalId,
+  );
+  const officialGuidelines = blockGuidelines.filter((g) => g.type !== 'sitra_tip');
+  const authoredTips = blockGuidelines.filter((g) => g.type === 'sitra_tip');
+
+  // 90-day recycle bin. A binned subsection hangs off the proposal, because the
+  // subsection set is project-wide rather than owned by one case.
+  const [binOpen, setBinOpen] = useState(false);
+  const binCount = useWPBinCount(proposalId, 'case_subsection', 'proposal');
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const handleSubsectionDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = subsectionTemplates.map((t) => t.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = [...subsectionTemplates];
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    reorderSubsections.mutate(next);
+  }, [subsectionTemplates, reorderSubsections]);
 
   // Offers back text refused by the version guard.
   const { reportConflict, dialog: conflictDialog } = useVersionConflict();
@@ -581,6 +648,19 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         return;
       }
       subsectionBaseline.current[key] = safe;
+      /* Snapshot into the shared version store. PostgREST builders are lazy
+         thenables, so the promise must be consumed for the request to go out. */
+      void supabase
+        .rpc('save_target_version', {
+          p_target_type: 'case_draft_subsection',
+          p_target_id: caseId,
+          p_text_box: key,
+          p_value: safe,
+          p_is_auto_save: true,
+        })
+        .then(({ error }) => {
+          if (error) console.error('save_target_version failed', key, error);
+        });
       setLastSaved(new Date());
       setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
