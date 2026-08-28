@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { AdminRichTextField } from '@/components/admin/AdminRichTextField';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { saveCaseGuidanceOverride, type ResolvedCaseGuidance } from '@/hooks/useCaseGuidance';
@@ -24,13 +24,15 @@ export function CaseGuidanceEditDialog({ isOpen, onClose, guidance, onSaved }: P
     if (isOpen) setText(guidance?.content ?? '');
   }, [isOpen, guidance?.content]);
 
+  const isBlank = (v: string) => !v.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
   const save = async (value: string) => {
     if (!guidance?.templateId) return;
     setSaving(true);
     const ok = await saveCaseGuidanceOverride(guidance.templateId, value);
     setSaving(false);
     if (!ok) return;
-    toast.success(value.trim() ? 'Guidance saved for this proposal' : 'Reverted to the default guidance');
+    toast.success(!isBlank(value) ? 'Guidance saved for this proposal' : 'Reverted to the default guidance');
     onSaved();
     onClose();
   };
@@ -45,10 +47,10 @@ export function CaseGuidanceEditDialog({ isOpen, onClose, guidance, onSaved }: P
           This guidance applies to this proposal only. Other proposals keep the default, and your
           text survives template version changes. Clear the box to fall back to the default.
         </p>
-        <Textarea
+        <AdminRichTextField
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={8}
+          onChange={setText}
+          minHeight="8rem"
           placeholder="Write guidance suited to this project's cases…"
         />
         <DialogFooter className="gap-2">
