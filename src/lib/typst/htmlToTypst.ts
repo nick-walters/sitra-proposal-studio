@@ -563,16 +563,31 @@ export function htmlToTypstBlocks(html: string | null | undefined, ctx: ConvertC
   return out;
 }
 
-/**
- * Converts a single-line HTML fragment (block titles, module headers) to ONE
- * inline Typst expression, keeping character-level marks — notably font
- * colour — on the individual runs instead of flattening them onto the whole
- * heading.
- */
+/** Tags that stand as their own paragraph when they appear at top level. */
+const INLINE_BLOCK_TAGS = new Set([
+  'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'ul', 'ol', 'pre',
+]);
+
 export function htmlToTypstInline(html: string | null | undefined, ctx: ConvertContext): string {
   const raw = (html ?? '').toString().trim();
   if (!raw) return lit('');
   const tpl = document.createElement('template');
   tpl.innerHTML = raw;
+  const nodes = Array.from(tpl.content.childNodes);
+  // Multi-paragraph content reaches this function through the table emitters
+  // (WP objectives, the field before tasks, task descriptions). Walking its
+  // children inline ran the paragraphs together on one line; each top-level
+  // block therefore contributes a `parbreak()`, giving cells the same
+  // paragraphing the block converter gives body copy.
+  const blockCount = nodes.filter(
+    (n) => n.nodeType === Node.ELEMENT_NODE && INLINE_BLOCK_TAGS.has((n as Element).tagName.toLowerCase()),
+  ).length;
+  if (blockCount > 1) {
+    const parts = nodes
+      .map((n) => convertInline(n, ctx))
+      .filter((p) => p && p.trim() && p !== lit(''));
+    return parts.length ? parts.join(' + parbreak() + ') : lit('');
+  }
   return convertInlineChildren(tpl.content, ctx);
 }
+
