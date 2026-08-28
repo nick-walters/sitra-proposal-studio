@@ -1422,7 +1422,7 @@ function CaseSubsectionModule({
       <ModuleCommentAnchor
         targetKey={caseTarget(caseId, subsectionKey)}
         label={heading}
-        controlClassName="translate-y-[5px]"
+        >
       >
       <div className={WP_BLOCK_HEADER}>
         <div className={WP_CONTROL_STACK}>
