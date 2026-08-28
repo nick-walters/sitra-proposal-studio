@@ -75,6 +75,25 @@ export function BlockControlRow({
 
       <div className="min-w-0 flex-1 truncate text-draft font-medium">{title}</div>
 
+      {/* The page-margin rail, read right to left: comment (floating),
+          delete, visibility, restore, add. No reserved gaps. */}
+      <MarginRail>
+      {onAdd && (
+        <Tip label={addLabel}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onAdd}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </Tip>
+      )}
+
+      {onRestore && (
+        <Tip label={restoreLabel}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRestore}>
+            <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
+          </Button>
+        </Tip>
+      )}
+
       {onToggleVisible && (
         <Tip label={isVisible ? 'Hide this block from Part B' : 'Show this block in Part B'}>
           <Button
@@ -93,22 +112,6 @@ export function BlockControlRow({
         </Tip>
       )}
 
-      {onAdd && (
-        <Tip label={addLabel}>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onAdd}>
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </Tip>
-      )}
-
-      {onRestore && (
-        <Tip label={restoreLabel}>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onRestore}>
-            <Recycle className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
-          </Button>
-        </Tip>
-      )}
-
       {onDelete && (
         <Tip label={deleteLabel}>
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={onDelete}>
@@ -116,6 +119,7 @@ export function BlockControlRow({
           </Button>
         </Tip>
       )}
+      </MarginRail>
 
       {trailing}
     </div>
