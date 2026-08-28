@@ -254,10 +254,9 @@ function leadInBlocks(chip: string, html: string, ctx: ConvertContext): string[]
   return out;
 }
 
-const PARAGRAPH_FIELDS: Record<
-  'capacity' | 'value-chain' | 'international',
-  { field: keyof B32TypstData['descriptions'] extends never ? never : string; toggle: string }[]
-> = {
+type ParagraphSlotKey = 'capacity' | 'value-chain' | 'international';
+
+const PARAGRAPH_FIELDS: Record<ParagraphSlotKey, { field: string; toggle: string }[]> = {
   capacity: [{ field: 'contribution_resources', toggle: 'capacity' }],
   'value-chain': [
     { field: 'value_chain', toggle: 'value_chain' },
@@ -267,7 +266,7 @@ const PARAGRAPH_FIELDS: Record<
 };
 
 function emitParagraphSlot(
-  slotKey: 'capacity' | 'value-chain' | 'international',
+  slotKey: ParagraphSlotKey,
   data: B32TypstData,
   ctx: ConvertContext,
 ): string[] {
@@ -372,7 +371,7 @@ export function emitB32Slot(
     case 'capacity':
     case 'value-chain':
     case 'international':
-      return emitParagraphSlot(slotKey as 'capacity', data, ctx);
+      return emitParagraphSlot(slotKey as ParagraphSlotKey, data, ctx);
     default:
       ctx.unsupported.add(`B3.2 mirror slot ${slotKey || '—'}`);
       return [];
