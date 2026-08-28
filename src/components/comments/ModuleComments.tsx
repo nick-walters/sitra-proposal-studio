@@ -46,6 +46,7 @@ import {
   UserPlus,
   UserCheck,
 } from 'lucide-react';
+import { RAIL_COMMENT_LEFT } from '@/components/cards/MarginRail';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -347,7 +348,7 @@ export function ModuleCommentsProvider({
  * enclosing block edge (`[data-comment-rail-edge]`, falling back to the page
  * frame) and push the control 8 px beyond it.
  */
-const RAIL_GAP = 8;
+const RAIL_GAP = RAIL_COMMENT_LEFT;
 const RAIL_EDGE_SELECTOR = '[data-comment-rail-edge],.wp-block-frame,.doc-surface-page';
 
 function useRailOffset(ref: React.RefObject<HTMLElement>) {
