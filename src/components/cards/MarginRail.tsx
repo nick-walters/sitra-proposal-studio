@@ -15,20 +15,23 @@ import { cn } from '@/lib/utils';
  * remaining controls sit further right.
  */
 
-/** Where a row-level delete button starts, measured from the frame edge. */
-export const RAIL_DELETE_LEFT = 4;
+/**
+ * Where a row-level delete button starts, measured from the frame edge.
+ * Negative: the rail sits INSIDE the page, within its 1.5 cm right margin.
+ */
+export const RAIL_DELETE_LEFT = -53;
 
 /** Where the comment button starts, measured from the frame edge. */
-export const RAIL_COMMENT_LEFT = 28;
+export const RAIL_COMMENT_LEFT = -29;
 
 /**
  * How far a control row is pulled out of the frame so its last control lands
- * immediately to the left of the comment button.
+ * immediately to the left of the comment button. Negative pulls it back in.
  */
-export const RAIL_SHIFT = 28;
+export const RAIL_SHIFT = -29;
 
 /**
- * Pulls a trailing control group out into the margin rail. `padding` is the
+ * Pulls a trailing control group into the margin rail. `padding` is the
  * host row's own right padding, which is cancelled first: pass `'13px'` for a
  * block header and `'1.5cm'` for a page-margin row.
  */
@@ -43,6 +46,7 @@ export function MarginRail({
 }) {
   return (
     <div
+      data-rail-row=""
       className={cn('flex shrink-0 items-center gap-0.5', className)}
       style={{ marginRight: `calc(-${padding} - ${RAIL_SHIFT}px)` }}
     >
@@ -50,5 +54,6 @@ export function MarginRail({
     </div>
   );
 }
+
 
 export default MarginRail;
