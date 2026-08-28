@@ -429,6 +429,7 @@ export function WPTableSection({
                   documentSurface
                   shouldStayMounted={shouldStayMounted}
                 />
+                </ModuleCommentAnchor>
               )}
             </div>
           </div>
