@@ -783,8 +783,11 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
 
 
   return (
+    <TooltipProvider>
     <div className="h-full">
-      <div className="space-y-3 p-4">
+      {/* One 21 cm column — 18 cm of text plus 1.5 cm margins each side —
+          identical to WP drafts and the Part B board. */}
+      <div className="mx-auto w-full max-w-[calc(21cm+3rem)] space-y-3 p-6">
         {/* Lock warning banner */}
         {isLocked && !canEdit && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
@@ -822,8 +825,19 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         <EditorToolbars
           proposalId={proposalId}
           save={{ saving: updateMutation.isPending, lastSaved, onSaveNow: () => {} }}
-          topBar={{ onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined }}
-          fieldBar={{ onOpenGuidelines: () => setGuidelinesOpen(true) }}
+          topBar={{
+            onFindReplace: pageSearch ? () => pageSearch.setOpen(true) : undefined,
+            collapseAll: {
+              allCollapsed,
+              disabled: setCollapsed.isPending || allCollapseKeys.length === 0,
+              onToggle: () =>
+                setCollapsed.mutate({ keys: allCollapseKeys, collapsed: !allCollapsed }),
+            },
+          }}
+          fieldBar={{
+            onOpenGuidelines: () => setGuidelinesOpen(true),
+            onOpenVersionHistory: versionTarget ? () => setHistoryOpen(true) : undefined,
+          }}
           formatting={{
             proposalId,
             canManageCustomColors: isCoordinator,
