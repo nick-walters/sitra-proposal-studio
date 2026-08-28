@@ -12,6 +12,15 @@
  * Storage: the existing `section_comments` table, with `anchor_type = 'module'`
  * and `anchor_payload = { targetKey, label }`. Threading, replies, resolve and
  * realtime all come from `useSectionComments` unchanged.
+ *
+ * Tagging and assignment:
+ *  - a @tag lives INSIDE the comment text, as `@[Full Name](user-uuid)` — the
+ *    same encoding the message board uses. It survives editing (the editor
+ *    round-trips the raw form) and it never breaks if the person later loses
+ *    their role on the proposal: the stored name still renders, the id simply
+ *    stops matching anyone in the picker.
+ *  - an assignment is a column, `section_comments.assigned_to`, so exactly one
+ *    person owns a comment. It is untouched by resolving or reopening.
  */
 import {
   createContext,
@@ -33,9 +42,28 @@ import {
   CornerDownRight,
   RotateCcw,
   Pencil,
+  UserPlus,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  MentionTextarea,
+  extractMentionedUserIds,
+  renderMentionContent,
+} from '@/components/MentionTextarea';
+import { useProposalMembers, type ProposalMember } from '@/hooks/useProposalMembers';
+import {
+  notifyCommentAssignment,
+  notifyCommentTags,
+} from '@/lib/commentNotifications';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
 import { useSectionComments, type Comment } from '@/hooks/useSectionComments';
