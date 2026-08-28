@@ -11,7 +11,6 @@ import type { Editor } from '@tiptap/react';
  * Owning-heading map:
  *   interdisciplinarity → interdisciplinarity heading (primary: interdisciplinarity)
  *   capacity           → capacity heading            (primary: capacity)
- *   infrastructure     → capacity heading            (secondary, after capacity)
  *   value-chain        → value-chain heading         (primary: value-chain)
  *   industrial         → value-chain heading         (secondary, after value-chain)
  *   international      → international heading       (primary: international)
@@ -32,7 +31,6 @@ import type { Editor } from '@tiptap/react';
 const SLOT_KEYS = [
   'interdisciplinarity',
   'capacity',
-  'infrastructure',
   'value-chain',
   'industrial',
   'international',
@@ -45,7 +43,6 @@ type PrimaryKey = 'interdisciplinarity' | 'capacity' | 'value-chain' | 'internat
 const OWNER: Record<SlotKey, PrimaryKey> = {
   interdisciplinarity: 'interdisciplinarity',
   capacity: 'capacity',
-  infrastructure: 'capacity',
   'value-chain': 'value-chain',
   industrial: 'value-chain',
   international: 'international',
@@ -54,7 +51,7 @@ const OWNER: Record<SlotKey, PrimaryKey> = {
 // Order of slot keys under each owning heading (first → last).
 const ORDER_UNDER_HEADING: Record<PrimaryKey, SlotKey[]> = {
   interdisciplinarity: ['interdisciplinarity'],
-  capacity: ['capacity', 'infrastructure'],
+  capacity: ['capacity'],
   'value-chain': ['value-chain', 'industrial'],
   international: ['international'],
 };

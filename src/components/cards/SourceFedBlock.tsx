@@ -29,7 +29,6 @@ import { B11ParticipantListTable } from '@/components/B11ParticipantListTable';
  */
 
 const B32_SLOTS: Record<string, B32SlotKey> = {
-  'b32.infrastructure': 'infrastructure',
   'b32.roles': 'capacity',
   'b32.value_chain': 'value-chain',
   'b32.commercial': 'industrial',
