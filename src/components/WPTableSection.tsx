@@ -657,7 +657,7 @@ function TaskModule({
             value={ensureRichHtml(task.title)}
             placeholder="Task title…"
             minHeight="24px"
-            readOnly={readOnly}
+            disabled={readOnly}
             staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
             className="font-['Times_New_Roman',Times,serif] text-[11pt] font-bold [&_p]:m-0"
             onChange={(html) => { void onUpdate(task.id, { title: html }); }}
