@@ -921,7 +921,19 @@ export function PanelEvaluator({ proposalId }: Props) {
         },
       });
 
-      if (error) throw error;
+      // `functions.invoke` turns a non-2xx into an opaque FunctionsHttpError,
+      // so read the body the function actually returned.
+      if (error) {
+        let detail = error.message || String(error);
+        try {
+          const body = await (error as any)?.context?.json?.();
+          if (body?.error) detail = String(body.error);
+        } catch {
+          /* body already consumed or not JSON — keep the generic message */
+        }
+        throw new Error(detail);
+      }
+
       if (data?.error) throw new Error(data.error);
       if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
