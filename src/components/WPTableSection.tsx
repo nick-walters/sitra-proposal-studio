@@ -648,13 +648,19 @@ function TaskModule({
           data-version-label={`${formatTaskNumber(task.number)} title`}
           data-version-target={versionTargetAttr('wp_draft_task', task.id, 'title')}
         >
-          <DebouncedInput
-            value={task.title || ''}
-            onDebouncedChange={(val) => { void onUpdate(task.id, { title: val }); }}
+          {/* Single-line rich title — same treatment as block titles and module
+              headers, so tracked-change marks survive on task titles. Legacy
+              plain strings are upgraded on read by `ensureRichHtml`. */}
+          <LazyRichField
+            singleLine
+            proposalId={proposalId || ''}
+            value={ensureRichHtml(task.title)}
             placeholder="Task title…"
-            className="h-6 w-full border-0 bg-transparent px-1 font-bold text-foreground shadow-none outline-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-            disabled={readOnly}
+            minHeight="24px"
+            readOnly={readOnly}
+            staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
+            className="font-['Times_New_Roman',Times,serif] text-[11pt] font-bold [&_p]:m-0"
+            onChange={(html) => { void onUpdate(task.id, { title: html }); }}
           />
         </div>
         <MarginRail>
