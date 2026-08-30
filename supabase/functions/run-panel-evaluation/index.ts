@@ -1593,11 +1593,16 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     if (error instanceof Response) return error;
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("run-panel-evaluation error:", message);
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
+    const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+    const stack = error instanceof Error ? error.stack : undefined;
+    // A short correlation code so a reported failure can be tied to the exact
+    // log line, and the message itself so the client toast is diagnosable.
+    const errorCode = `PE-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+    console.error(`run-panel-evaluation error [${errorCode}]:`, message, stack ?? "");
+    return new Response(JSON.stringify({ error: `${message} (ref ${errorCode})`, errorCode }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
 });
