@@ -24,9 +24,18 @@ interface Props {
 }
 
 /* ── Read-only rich-text renderer (Times New Roman 11pt, justified) ── */
-function ReadOnlyRichText({ html, placeholder }: { html: string | null | undefined; placeholder?: string }) {
+function ReadOnlyRichText({
+  html,
+  placeholder,
+  inline = false,
+}: {
+  html: string | null | undefined;
+  placeholder?: string;
+  /** Single-line title mirrors: no block margins, inherits the caller's type. */
+  inline?: boolean;
+}) {
   const refData = useRefSnapshot();
-  const raw = (html ?? '').toString();
+  const raw = ensureRichHtml(html);
   const isEmpty = !raw || raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() === '';
   if (isEmpty) {
     return placeholder ? (
@@ -34,6 +43,9 @@ function ReadOnlyRichText({ html, placeholder }: { html: string | null | undefin
     ) : null;
   }
   const safe = renderRefBadges(String(DOMPurify.sanitize(raw, CROSS_REF_RICH_TEXT_CONFIG)), refData);
+  if (inline) {
+    return <span className="[&_p]:m-0 [&_p]:inline" dangerouslySetInnerHTML={{ __html: safe }} />;
+  }
   return (
     <div
       className="font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[3pt] [&_p]:mb-[3pt] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-[calc(1.5em-4pt)] [&_ol]:pl-[calc(1.5em-4pt)] [&_li::marker]:text-[0.85em] [&_li]:my-[1pt]"
