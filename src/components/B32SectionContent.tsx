@@ -338,8 +338,11 @@ export function B32SectionContent({ proposalId }: Props) {
         <thead>
           <tr style={{ height: `${effectiveHeaderHeightPx}px` }}>
             <th
-              className="cell-pl-0 py-0 text-[10pt] text-left align-bottom"
-              style={{ position: 'relative' }}
+              className="cell-pl-0 py-0 text-[10pt] text-left"
+              // `.platform-table > thead > tr > th { vertical-align: middle }`
+              // out-specifies Tailwind's `align-bottom`, so set it inline to sit
+              // level with the base of the rotated participant badges.
+              style={{ position: 'relative', verticalAlign: 'bottom' }}
             >
               <span>Expertise</span>
               {canResize && 0 < lastColIdx && (
