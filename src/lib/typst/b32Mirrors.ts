@@ -265,7 +265,7 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
   // Participant headers are rotated a quarter turn, as on the board, so many
   // narrow tick columns fit inside the 18cm table width.
   const headerCells = [
-    cell(`strong(${lit('Expertise')})`),
+    `table.cell(align: left + bottom, par(justify: false, strong(${lit('Expertise')})))`,
     ...m.cols.map((c) => {
       const inner =
         c.kind === 'participant'
@@ -281,7 +281,18 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
       cells.push(cell(m.checked.has(`${row.id}|${col.id}`) ? lit('\u2713') : lit(''), 'center'));
     }
   }
-  const columns = `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+  // Mirror the editor's own column geometry (`table_column_widths`, key
+  // `b32-expertise-matrix`, CSS px at 96dpi → points). Without it the tick
+  // columns took an equal `1fr` share of the 18cm block and rendered far wider
+  // than on the board. Fallback only when no widths are stored or the stored
+  // array no longer matches the column count.
+  const stored = data.matrixWidthsPx;
+  const expected = 1 + m.cols.length;
+  const columns =
+    stored.length === expected
+      ? `(${stored.map((px) => `${(px * 0.75).toFixed(2)}pt`).join(', ')},)`
+      : `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+
   const caption = data.captions.get('b32-expertise-matrix') || 'Expertise of participants';
   return [
     `he-caption(${typstString('Table 3.2.a.')}, ${lit(caption)})`,
