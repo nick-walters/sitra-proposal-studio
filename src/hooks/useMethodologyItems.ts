@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createMethodologyAssignmentNotification } from '@/hooks/useNotifications';
+import { toast } from 'sonner';
+
 
 export interface MethodologyItem {
   id: string;
@@ -123,13 +125,20 @@ export function useMethodologyItems(proposalId: string) {
       // Notify only when an assignment is SET (clearing sends nothing, and the
       // previous organisation is not told — matching section assignments).
       if (participantId && user?.id) {
-        await createMethodologyAssignmentNotification({
+        const result = await createMethodologyAssignmentNotification({
           proposalId,
           participantId,
           assignedBy: user.id,
           methodologyHeading: item?.heading ?? null,
         });
+        if (result.status === 'no-access') {
+          toast.warning('Assignment saved, but no notification sent', {
+            description: `${result.personLabel} has no access to this proposal, so they cannot be notified. Grant them a role on the proposal if they should see it.`,
+            duration: 8000,
+          });
+        }
       }
+
     },
     onSuccess: invalidate,
   });

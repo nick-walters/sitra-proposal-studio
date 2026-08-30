@@ -313,6 +313,10 @@ export async function createAssignmentNotification(params: {
     console.error('Error creating assignment notification:', error);
   }
 }
+export type MethodologyNotificationResult =
+  | { status: 'sent' }
+  | { status: 'skipped'; reason: 'no-contact' | 'no-account' | 'self' | 'error' }
+  | { status: 'no-access'; personLabel: string };
 
 /**
  * Notify a participant organisation's main contact that a methodology item has
@@ -323,6 +327,9 @@ export async function createAssignmentNotification(params: {
  * main-contact email against profiles.email (lowercased). If no profile exists,
  * the main contact has no account and this is a legitimate no-op.
  *
+ * A resolved contact who holds no role on the proposal cannot open it at all,
+ * so no notification is written; the caller is told instead.
+ *
  * Never throws — failures are logged only, so an assignment is never blocked.
  */
 export async function createMethodologyAssignmentNotification(params: {
@@ -330,7 +337,7 @@ export async function createMethodologyAssignmentNotification(params: {
   participantId: string;
   assignedBy: string;
   methodologyHeading: string | null;
-}) {
+}): Promise<MethodologyNotificationResult> {
   const { proposalId, participantId, assignedBy, methodologyHeading } = params;
 
   try {
@@ -342,28 +349,50 @@ export async function createMethodologyAssignmentNotification(params: {
 
     if (participantError) {
       console.error('Error loading participant for methodology notification:', participantError);
-      return;
+      return { status: 'skipped', reason: 'error' };
     }
 
     const email = participant?.main_contact_email?.trim().toLowerCase();
-    if (!email) return; // No main contact recorded — no-op.
+    if (!email) return { status: 'skipped', reason: 'no-contact' };
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, first_name, last_name, email')
       .eq('email', email)
       .maybeSingle();
 
     if (profileError) {
       console.error('Error resolving main contact profile:', profileError);
-      return;
+      return { status: 'skipped', reason: 'error' };
     }
 
     // Main contact has no account yet — legitimate no-op.
-    if (!profile?.id) return;
+    if (!profile?.id) return { status: 'skipped', reason: 'no-account' };
 
     // Never notify a user of their own action.
-    if (profile.id === assignedBy) return;
+    if (profile.id === assignedBy) return { status: 'skipped', reason: 'self' };
+
+    // The recipient must hold a role on this proposal, both because the
+    // notifications policy requires it and because without one they cannot
+    // open the proposal the notification points at.
+    const { data: hasRole, error: roleError } = await supabase.rpc('has_any_proposal_role', {
+      _user_id: profile.id,
+      _proposal_id: proposalId,
+    });
+
+    if (roleError) {
+      console.error('Error checking main contact proposal role:', roleError);
+      return { status: 'skipped', reason: 'error' };
+    }
+
+    if (!hasRole) {
+      const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
+      const org = participant?.organisation_short_name || participant?.organisation_name || null;
+      const personLabel = [name || profile.email, org ? `(${org})` : null]
+        .filter(Boolean)
+        .join(' ');
+      return { status: 'no-access', personLabel };
+    }
 
     const heading = methodologyHeading?.trim();
     const label = heading ? `"${heading}"` : 'an unnamed methodology';
@@ -385,11 +414,16 @@ export async function createMethodologyAssignmentNotification(params: {
 
     if (error) {
       console.error('Error creating methodology assignment notification:', error);
+      return { status: 'skipped', reason: 'error' };
     }
+
+    return { status: 'sent' };
   } catch (err) {
     console.error('Error creating methodology assignment notification:', err);
+    return { status: 'skipped', reason: 'error' };
   }
 }
+
 
 // Helper to create due date reminder notifications
 export async function createDueDateNotification(params: {
