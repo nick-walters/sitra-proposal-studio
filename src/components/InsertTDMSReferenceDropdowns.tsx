@@ -242,7 +242,7 @@ export function InsertTDMSReferenceDropdowns({
             allTasks.push({
               id: t.id,
               number: t.number,
-              title: t.title || '',
+              title: htmlToPlainText(t.title || ''),
               wp_number: wpNum,
               wp_short_name: wpShortNameMap.get(wpNum) ?? null,
               wp_color: wpColorMap.get(wpNum) || '#000000',
@@ -414,7 +414,7 @@ export function InsertTDMSReferenceDropdowns({
                     )}
                   >
                     <TaskPill label={`T${task.wp_number}.${task.number}`} color={task.wp_color} />
-                    <span className="text-sm truncate">{task.title || '—'}</span>
+                    <span className="text-sm truncate">{htmlToPlainText(task.title || '') || '—'}</span>
                   </button>
                 ))}
               </div>

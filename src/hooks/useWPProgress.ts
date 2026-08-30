@@ -51,7 +51,7 @@ function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
   const objectives = countWords(wp.objectives) >= 30;
   const description = countWords(wp.description_before_tasks) >= 30;
 
-  const validTasks = (wp.tasks || []).filter(t => t.title && t.title.trim().length > 0);
+  const validTasks = (wp.tasks || []).filter(t => htmlToPlainText(t.title || '').trim().length > 0);
   const tasksWithTiming = validTasks.filter(t => t.start_month !== null && t.end_month !== null);
   const tasks = validTasks.length > 0 && tasksWithTiming.length > 0;
 
@@ -89,7 +89,7 @@ export function useWPProgress(wpDrafts: WPDraft[]) {
       title: wp.title,
       color: wp.color,
       completion: checkWPCompletion(wp),
-      taskCount: (wp.tasks || []).filter(t => t.title && t.title.trim().length > 0).length,
+      taskCount: (wp.tasks || []).filter(t => htmlToPlainText(t.title || '').trim().length > 0).length,
       deliverableCount: (wp.deliverables || []).filter(d => d.title && d.title.trim().length > 0).length,
       totalEffort: calculateTotalEffort(wp),
       hasLead: wp.lead_participant_id !== null,

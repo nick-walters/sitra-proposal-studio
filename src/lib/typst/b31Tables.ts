@@ -194,7 +194,7 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
       const head =
         taskChip(wp.number, task.number, wp.color) +
         CHIP_GAP +
-        bold(lit(task.title || '')) +
+        bold(lit(htmlToPlainText(task.title || '').trim())) +
         ` + linebreak() + ` +
         participantChip(byId.get(task.lead_participant_id || '')) +
         (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +

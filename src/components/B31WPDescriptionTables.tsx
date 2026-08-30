@@ -134,7 +134,7 @@ function TaskGroup({
               T{wp.number}.{task.number}
             </B31Pill>
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1">
-              <ReadOnlyText value={task.title} placeholder="Untitled task" />
+              <ReadOnlyRichText html={task.title} placeholder="Untitled task" inline />
             </span>
           </div>
         </td>

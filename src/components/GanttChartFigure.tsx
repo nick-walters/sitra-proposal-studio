@@ -483,7 +483,7 @@ export function GanttChartFigure({
         id: t.id,
         wpNumber: wp.number,
         taskNumber: t.number,
-        name: t.title || '',
+        name: htmlToPlainText(t.title || ''),
         startMonth: t.start_month!,
         endMonth: t.end_month!,
       }));
@@ -950,7 +950,7 @@ export function GanttChartFigure({
                         className="shrink-0 flex items-center overflow-hidden"
                         style={{ width: titleWidth, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
-                        <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+                        <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{htmlToPlainText(task.title || '')}</span>
                       </div>
                       <div className="flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => (
