@@ -46,6 +46,7 @@ function SortableInfraRow({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(infra.name);
   const [editDesc, setEditDesc] = useState(infra.description || '');
+  const [editSupport, setEditSupport] = useState(infra.projectSupport || '');
 
   const {
     attributes,
@@ -64,13 +65,14 @@ function SortableInfraRow({
 
   const handleSave = () => {
     if (!editName.trim()) return;
-    onUpdate(infra.id, { name: editName, description: editDesc });
+    onUpdate(infra.id, { name: editName, description: editDesc, projectSupport: editSupport });
     setEditing(false);
   };
 
   const handleCancel = () => {
     setEditName(infra.name);
     setEditDesc(infra.description || '');
+    setEditSupport(infra.projectSupport || '');
     setEditing(false);
   };
 
@@ -83,7 +85,18 @@ function SortableInfraRow({
         </div>
         <div className="space-y-2">
           <Label>Description</Label>
-          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="min-h-[80px]" />
+          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} maxLength={500} className="min-h-[80px]" />
+          <p className="text-right text-xs text-muted-foreground">{editDesc.length}/500</p>
+        </div>
+        <div className="space-y-2">
+          <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+          <Textarea
+            value={editSupport}
+            onChange={(e) => setEditSupport(e.target.value.slice(0, 200))}
+            maxLength={200}
+            className="min-h-[60px]"
+          />
+          <p className="text-right text-xs text-muted-foreground">{editSupport.length}/200</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -114,6 +127,9 @@ function SortableInfraRow({
         {infra.description && (
           <p className="text-sm text-muted-foreground mt-1">{infra.description}</p>
         )}
+        {infra.projectSupport && (
+          <p className="text-sm text-muted-foreground mt-1 italic">{infra.projectSupport}</p>
+        )}
       </div>
       {canEdit && (
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -142,7 +158,7 @@ export function InfrastructureSection({
   canEdit,
 }: InfrastructureSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newInfra, setNewInfra] = useState({ name: '', description: '' });
+  const [newInfra, setNewInfra] = useState({ name: '', description: '', projectSupport: '' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -152,7 +168,7 @@ export function InfrastructureSection({
   const handleAdd = () => {
     if (!newInfra.name.trim()) return;
     onAdd({ ...newInfra, participantId: '', orderIndex: infrastructure.length });
-    setNewInfra({ name: '', description: '' });
+    setNewInfra({ name: '', description: '', projectSupport: '' });
     setShowAddForm(false);
   };
 
@@ -192,7 +208,19 @@ export function InfrastructureSection({
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })} placeholder="Brief description of the infrastructure/equipment and its relevance..." className="min-h-[80px]" />
+                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })} placeholder="Brief description of the infrastructure/equipment and its relevance..." maxLength={500} className="min-h-[80px]" />
+                <p className="text-right text-xs text-muted-foreground">{newInfra.description.length}/500</p>
+              </div>
+              <div className="space-y-2">
+                <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+                <Textarea
+                  value={newInfra.projectSupport}
+                  onChange={(e) => setNewInfra({ ...newInfra, projectSupport: e.target.value.slice(0, 200) })}
+                  maxLength={200}
+                  placeholder="How this infrastructure will support the project..."
+                  className="min-h-[60px]"
+                />
+                <p className="text-right text-xs text-muted-foreground">{newInfra.projectSupport.length}/200</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
