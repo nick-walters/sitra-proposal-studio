@@ -99,6 +99,13 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
       .eq('proposal_id', proposalId),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
     supabase
+      .from('table_column_widths')
+      .select('column_widths')
+      .eq('proposal_id', proposalId)
+      .eq('table_key', 'b32-expertise-matrix')
+      .maybeSingle(),
+
+    supabase
       .from('expertise_matrix_rows')
       .select('id, label, order_index')
       .eq('proposal_id', proposalId)
