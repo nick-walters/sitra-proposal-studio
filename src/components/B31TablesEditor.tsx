@@ -517,7 +517,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
     { label: 'WP', fit: true, defaultWidth: 44 },
     { label: 'Lead', fit: true, defaultWidth: 60 },
     { label: 'Type', fit: true, defaultWidth: 46 },
-    { label: 'Diss.', fit: true, defaultWidth: 42 },
+    { label: 'Level', fit: true, defaultWidth: 42 },
     { label: 'Due', fit: true, defaultWidth: 40 },
 
   ];

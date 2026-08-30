@@ -58,7 +58,10 @@ import { wpTargetId, wpTaskTargetId } from '@/hooks/useCardLocks';
 import {
   WP_OBJECTIVES_FIELD_EXTENSIONS,
   WP_DRAFT_FIELD_EXTENSIONS,
+  HEADING_TITLE_FIELD_EXTENSIONS,
 } from '@/components/wp/wpDraftFieldExtensions';
+import { LazyRichField } from '@/components/participant/LazyRichField';
+import { ensureRichHtml } from '@/lib/richTextUpgrade';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 
