@@ -170,6 +170,9 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
       })),
       checked,
     },
+    matrixWidthsPx: (((widthsR.data as any)?.column_widths ?? []) as unknown[]).filter(
+      (w): w is number => typeof w === 'number' && Number.isFinite(w) && w > 0,
+    ),
     captions,
   };
 }
