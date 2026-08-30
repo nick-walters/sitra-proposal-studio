@@ -42,6 +42,14 @@ const STYLE_WORDS = new Set([
   'rtl',
   'linebreak',
   'smart',
+  'contain',
+  'cover',
+  'a4',
+  'a5',
+  'letter',
+  '|',
+  'page',
+  'of',
 ]);
 
 const FONT_LIKE =
@@ -56,6 +64,8 @@ function isStyling(literal: string): boolean {
   if (FONT_LIKE.test(s)) return true;
   if (LENGTH_LIKE.test(s)) return true;
   if (COLOUR_LIKE.test(s) && !/\s/.test(s)) return true;
+  // Asset references: figure bitmaps, logos, participant marks.
+  if (/^\/?assets\//.test(s) || /\.(png|jpe?g|svg|webp)$/i.test(s)) return true;
   return false;
 }
 
