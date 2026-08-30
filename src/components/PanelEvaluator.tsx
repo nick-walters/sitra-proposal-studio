@@ -933,7 +933,6 @@ export function PanelEvaluator({ proposalId }: Props) {
         }
         throw new Error(detail);
       }
-
       if (data?.error) throw new Error(data.error);
       if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
 
@@ -949,7 +948,6 @@ export function PanelEvaluator({ proposalId }: Props) {
       toast.error(`Evaluation failed to start: ${e.message || e}`);
       setStage("panelReview");
     }
-
   }
 
 

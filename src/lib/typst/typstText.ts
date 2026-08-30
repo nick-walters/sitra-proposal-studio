@@ -10,7 +10,7 @@
  * So the extraction walks the source, collects string literals in document
  * order, and drops the ones that are plainly styling (font names, weights,
  * alignments, colours, lengths). Headings keep their markdown level from the
- * `he-h1-plain` / `he-h2-plain` / `he-h3-plain` call that carries them.
+ * `he-hN-plain` call that carries them.
  */
 
 /** Literals that are styling arguments, never authored content. */
@@ -42,9 +42,18 @@ const STYLE_WORDS = new Set([
   'rtl',
   'linebreak',
   'smart',
+  'contain',
+  'cover',
+  'a4',
+  'a5',
+  'letter',
+  '|',
+  'page',
+  'of',
 ]);
 
-const FONT_LIKE = /^(times new roman|archivo black|new computer modern|liberation|nimbus|dejavu|helvetica|arial|linux libertine)/i;
+const FONT_LIKE =
+  /^(times new roman|archivo black|new computer modern|liberation|nimbus|dejavu|helvetica|arial|linux libertine)/i;
 const LENGTH_LIKE = /^-?\d+(\.\d+)?(pt|mm|cm|in|em|fr|%|deg)$/i;
 const COLOUR_LIKE = /^#?[0-9a-f]{3,8}$/i;
 
@@ -55,6 +64,8 @@ function isStyling(literal: string): boolean {
   if (FONT_LIKE.test(s)) return true;
   if (LENGTH_LIKE.test(s)) return true;
   if (COLOUR_LIKE.test(s) && !/\s/.test(s)) return true;
+  // Asset references: figure bitmaps, logos, participant marks.
+  if (/^\/?assets\//.test(s) || /\.(png|jpe?g|svg|webp)$/i.test(s)) return true;
   return false;
 }
 
@@ -100,7 +111,7 @@ export function typstSourceToText(source: string, options: TypstTextOptions = {}
   while (i < src.length) {
     const ch = src[i];
 
-    // Line comments and block comments never carry content.
+    // Comments never carry content.
     if (ch === '/' && src[i + 1] === '/') {
       const nl = src.indexOf('\n', i);
       i = nl === -1 ? src.length : nl + 1;
@@ -117,7 +128,6 @@ export function typstSourceToText(source: string, options: TypstTextOptions = {}
       continue;
     }
 
-    // Read the literal.
     let j = i + 1;
     let raw = '';
     while (j < src.length) {

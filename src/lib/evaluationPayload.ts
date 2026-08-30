@@ -25,7 +25,6 @@ import { typstSourceToText } from '@/lib/typst/typstText';
 export interface EvaluationPayload {
   /** Markdown-shaped text of the live Part B document. */
   text: string;
-  /** Diagnostics, surfaced in the UI and useful when a run misbehaves. */
   characters: number;
   words: number;
   /** Same arithmetic the edge function uses: 500 words/page + 1 front matter. */
