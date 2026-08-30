@@ -79,7 +79,7 @@ function isBlank(html: string | null | undefined): boolean {
 
 /** Every query the B3.2 mirror NodeViews make, issued once for the export. */
 export async function fetchB32TypstData(proposalId: string): Promise<B32TypstData> {
-  const [propR, partsR, descR, capR, mRowsR, mColsR] = await Promise.all([
+  const [propR, partsR, descR, capR, widthsR, mRowsR, mColsR] = await Promise.all([
     supabase
       .from('proposals')
       .select(
