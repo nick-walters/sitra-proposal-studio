@@ -63,8 +63,11 @@ export interface B32TypstData {
   /** Rows for the one-column "Access to critical infrastructure" table. */
   infraTable: B32InfraTableData;
   matrix: B32MatrixData;
+  /** Editor column widths (px) stored under `b32-expertise-matrix`, if any. */
+  matrixWidthsPx: number[];
   captions: Map<string, string>;
 }
+
 
 
 
@@ -76,7 +79,7 @@ function isBlank(html: string | null | undefined): boolean {
 
 /** Every query the B3.2 mirror NodeViews make, issued once for the export. */
 export async function fetchB32TypstData(proposalId: string): Promise<B32TypstData> {
-  const [propR, partsR, descR, capR, mRowsR, mColsR] = await Promise.all([
+  const [propR, partsR, descR, capR, widthsR, mRowsR, mColsR] = await Promise.all([
     supabase
       .from('proposals')
       .select(
@@ -95,6 +98,13 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
       )
       .eq('proposal_id', proposalId),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
+    supabase
+      .from('table_column_widths')
+      .select('column_widths')
+      .eq('proposal_id', proposalId)
+      .eq('table_key', 'b32-expertise-matrix')
+      .maybeSingle(),
+
     supabase
       .from('expertise_matrix_rows')
       .select('id, label, order_index')
@@ -160,6 +170,9 @@ export async function fetchB32TypstData(proposalId: string): Promise<B32TypstDat
       })),
       checked,
     },
+    matrixWidthsPx: (((widthsR.data as any)?.column_widths ?? []) as unknown[]).filter(
+      (w): w is number => typeof w === 'number' && Number.isFinite(w) && w > 0,
+    ),
     captions,
   };
 }
@@ -252,7 +265,7 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
   // Participant headers are rotated a quarter turn, as on the board, so many
   // narrow tick columns fit inside the 18cm table width.
   const headerCells = [
-    cell(`strong(${lit('Expertise')})`),
+    `table.cell(align: left + bottom, par(justify: false, strong(${lit('Expertise')})))`,
     ...m.cols.map((c) => {
       const inner =
         c.kind === 'participant'
@@ -268,7 +281,18 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
       cells.push(cell(m.checked.has(`${row.id}|${col.id}`) ? lit('\u2713') : lit(''), 'center'));
     }
   }
-  const columns = `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+  // Mirror the editor's own column geometry (`table_column_widths`, key
+  // `b32-expertise-matrix`, CSS px at 96dpi → points). Without it the tick
+  // columns took an equal `1fr` share of the 18cm block and rendered far wider
+  // than on the board. Fallback only when no widths are stored or the stored
+  // array no longer matches the column count.
+  const stored = data.matrixWidthsPx;
+  const expected = 1 + m.cols.length;
+  const columns =
+    stored.length === expected
+      ? `(${stored.map((px) => `${(px * 0.75).toFixed(2)}pt`).join(', ')},)`
+      : `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+
   const caption = data.captions.get('b32-expertise-matrix') || 'Expertise of participants';
   return [
     `he-caption(${typstString('Table 3.2.a.')}, ${lit(caption)})`,
