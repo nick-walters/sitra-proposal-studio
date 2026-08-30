@@ -1158,6 +1158,14 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             isOpen={historyOpen}
             canEdit={canEdit}
             onClose={() => setHistoryOpen(false)}
+            /* A restore rewrites the subsection row underneath us: drop the
+               per-key baselines so the next edit is not rejected as a
+               conflict, then pull the rows this page actually reads. */
+            onReverted={() => {
+              subsectionBaseline.current = {};
+              queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
+              queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
+            }}
           />
         )}
 
