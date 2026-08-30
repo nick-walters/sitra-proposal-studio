@@ -667,7 +667,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
     for (const task of wpDraft.tasks ?? []) {
       const label = `T${wpDraft.number}.${task.number}`;
       const anchor = `wp-task-row-${task.id}`;
-      push('wp_draft_tasks', task.id, task.version, 'title', `${label} › title`, task.title, 'text', anchor);
+      push('wp_draft_tasks', task.id, task.version, 'title', `${label} › title`, task.title, 'html', anchor);
       push('wp_draft_tasks', task.id, task.version, 'description', `${label} › description`, task.description, 'html', anchor);
     }
     for (const d of wpDraft.deliverables ?? []) {

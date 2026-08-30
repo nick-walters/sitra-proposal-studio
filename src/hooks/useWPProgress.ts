@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { WPDraft } from './useWPDrafts';
+import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
 export interface WPCompletionStatus {
   objectives: boolean;
