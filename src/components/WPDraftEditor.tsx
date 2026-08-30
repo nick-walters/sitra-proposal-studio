@@ -1027,6 +1027,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             isOpen={historyOpen}
             canEdit={canEdit}
             onClose={() => setHistoryOpen(false)}
+            /* The WP draft is fetched imperatively, not through React Query,
+               so a restore has to pull the row again for the text to change. */
+            onReverted={() => { void refetchDraft(); }}
           />
         )}
 

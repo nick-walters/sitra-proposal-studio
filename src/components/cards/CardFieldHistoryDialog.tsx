@@ -56,7 +56,14 @@ export function CardFieldHistoryDialog({
       invalidateKeys:
         targetType === 'card_field'
           ? [['card-fields-batch'], ['card-fields']]
-          : [['wp-drafts'], ['case-drafts']],
+          : [
+              ['wp-drafts'],
+              ['case-drafts'],
+              ['case-draft-detail'],
+              ['case-draft-subsections'],
+              ['wp-drafts-management'],
+              ['case-drafts-management'],
+            ],
     },
   );
 
