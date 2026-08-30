@@ -9,6 +9,7 @@ import { EditableCaption } from '@/components/EditableCaption';
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { TABLE_FONT_FAMILY, TABLE_FONT_SIZE } from '@/lib/tableStyleSpec';
+import { ensureRichHtml } from '@/lib/richTextUpgrade';
 
 /* DECLARED EXCEPTION: the WP description table keeps its own layout and
    borders, but takes the font and size from the shared spec so it stays
