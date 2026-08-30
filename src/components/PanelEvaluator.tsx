@@ -938,9 +938,8 @@ export function PanelEvaluator({ proposalId }: Props) {
     } catch (e: any) {
       toast.error(`Evaluation failed to start: ${e.message || e}`);
       setStage("panelReview");
-    } finally {
-      if (cleanup) cleanup();
     }
+
   }
 
 
