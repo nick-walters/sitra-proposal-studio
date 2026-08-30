@@ -74,7 +74,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
         supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
-        supabase.from('proposals').select('proposal_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
+        supabase.from('proposals').select('type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
 
       const results: ValidationRule[] = [];
@@ -130,7 +130,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
           const out = computeBudgetRow({
             ...r,
             totalPersonMonths: pmTotals.get(r.participant_id) || 0,
-            proposalType: (proposal as any)?.proposal_type ?? null,
+            proposalType: (proposal as any)?.type ?? null,
             organisationCategory: partById.get(r.participant_id)?.organisation_category ?? null,
           });
           return sum + out.requestedEuContribution;
