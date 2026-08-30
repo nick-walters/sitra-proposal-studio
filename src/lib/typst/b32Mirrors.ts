@@ -63,8 +63,11 @@ export interface B32TypstData {
   /** Rows for the one-column "Access to critical infrastructure" table. */
   infraTable: B32InfraTableData;
   matrix: B32MatrixData;
+  /** Editor column widths (px) stored under `b32-expertise-matrix`, if any. */
+  matrixWidthsPx: number[];
   captions: Map<string, string>;
 }
+
 
 
 
