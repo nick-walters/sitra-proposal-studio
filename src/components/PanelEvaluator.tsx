@@ -873,108 +873,68 @@ export function PanelEvaluator({ proposalId }: Props) {
 
     setStage("stageB");
 
-    let cleanup: (() => void) | null = null;
     try {
-      if (!proposalData || !allSections || allSections.length === 0) {
+      if (!proposalData) {
         throw new Error("Proposal content is still loading — please retry in a moment.");
       }
 
-      toast.info("Rendering proposal for evaluator payload…");
+      toast.info("Assembling proposal for evaluator payload…");
 
-      // 1) Fetch the section_content rows (same shape the PDF/Word export uses).
-      const { data: sectionRows } = await supabase
-        .from("section_content")
-        .select("id, section_id, content")
-        .eq("proposal_id", proposalId);
-      const sectionContents = (sectionRows || []).map((sc: any) => ({
-        id: sc.id,
-        sectionId: sc.section_id,
-        content: sc.content || "",
-      }));
+      // The live document is the card store. The Typst assembly already reads
+      // it for the whole of Part B (front matter, cases, B3.1 tables, B3.2
+      // mirrors), so the payload is extracted from that source — the legacy
+      // section_content print path knew nothing about cards.
+      const { buildEvaluationPayload } = await import("@/lib/evaluationPayload");
+      const payload = await buildEvaluationPayload(proposalId);
+      const renderedProposal = payload.text;
 
-      // 2) Prepare the offscreen export container exactly as the PDF export
-      //    does (Part A mirror, B3.1 / B3.2 / B1.2 React mounts, real
-      //    figures). The visual container keeps real figures.
-      const prepared = await prepareExportContainer(
-        {
-          proposal: {
-            id: proposalData.id,
-            title: proposalData.title || "",
-            acronym: proposalData.acronym || "",
-            submissionStage: (proposalData as any).submissionStage ?? null,
-            topicId: (proposalData as any).topicId ?? null,
-            topicTitle: (proposalData as any).topicTitle ?? null,
-            type: (proposalData as any).type ?? null,
-          },
-          sections: allSections as any,
-          sectionContents,
-          participants,
-        },
-        undefined,
-        appQueryClient,
-      );
-      cleanup = prepared.cleanup;
-
-      // 3) Clone, swap figures to text on the clone, extract markdown.
-      const clone = prepared.container.cloneNode(true) as HTMLElement;
-      // The clone must be attached to render text measurements / innerText
-      // consistently — keep it off-screen.
-      clone.style.position = "absolute";
-      clone.style.left = "-99999px";
-      clone.style.top = "0";
-      document.body.appendChild(clone);
-      try {
-        await replaceFiguresWithText(clone, proposalId);
-        const renderedProposal = extractEvaluationText(clone);
-
-        if (!renderedProposal || renderedProposal.length < 200) {
-          throw new Error("Rendered proposal payload is empty — aborting.");
-        }
-
-        const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
-          body: {
-            action: "start",
-            proposalId,
-            selectedEvaluators,
-            instrumentCode,
-            proposalStage,
-            budgetType: proposalStage === "stage1" ? null : budgetType,
-            eligibilityFlags,
-            renderedProposal,
-            modelOverride: modelChoice,
-            // Only sent when the model is not a configured option, so the
-            // server can cost the run exactly instead of guessing.
-            modelOverridePrices:
-              oneOffModel && oneOffModel.modelId === modelChoice
-                ? {
-                    input_per_mtok: oneOffModel.priceInputPerMTok,
-                    output_per_mtok: oneOffModel.priceOutputPerMTok,
-                  }
-                : null,
-
-            haikuUsage,
-            haikuModel,
-          },
-
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
-
-        toast.info("Evaluation running in background. You can leave this page and return.");
-        // Remove the panel_proposed row now that the real run is queued —
-        // exactly one active row per proposal.
-        if (panelProposedRowId) {
-          await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
-          setPanelProposedRowId(null);
-        }
-        startPolling(data.evaluationId, new Date().toISOString());
-
-
-      } finally {
-        if (clone.parentNode) clone.parentNode.removeChild(clone);
+      if (!renderedProposal || renderedProposal.length < 200) {
+        throw new Error("Rendered proposal payload is empty — aborting.");
       }
+
+      console.info(
+        `[PanelEvaluator] payload: ${payload.characters} chars, ${payload.words} words, ` +
+          `~${payload.estimatedPages} pages, ${payload.sectionCount} sections, ${payload.blockCount} blocks`,
+      );
+
+      const { data, error } = await supabase.functions.invoke("run-panel-evaluation", {
+        body: {
+          action: "start",
+          proposalId,
+          selectedEvaluators,
+          instrumentCode,
+          proposalStage,
+          budgetType: proposalStage === "stage1" ? null : budgetType,
+          eligibilityFlags,
+          renderedProposal,
+          modelOverride: modelChoice,
+          // Only sent when the model is not a configured option, so the
+          // server can cost the run exactly instead of guessing.
+          modelOverridePrices:
+            oneOffModel && oneOffModel.modelId === modelChoice
+              ? {
+                  input_per_mtok: oneOffModel.priceInputPerMTok,
+                  output_per_mtok: oneOffModel.priceOutputPerMTok,
+                }
+              : null,
+
+          haikuUsage,
+          haikuModel,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.evaluationId) throw new Error("Edge function did not return an evaluationId");
+
+      toast.info("Evaluation running in background. You can leave this page and return.");
+      // Remove the panel_proposed row now that the real run is queued —
+      // exactly one active row per proposal.
+      if (panelProposedRowId) {
+        await supabase.from("proposal_analyses").delete().eq("id", panelProposedRowId);
+        setPanelProposedRowId(null);
+      }
+      startPolling(data.evaluationId, new Date().toISOString());
     } catch (e: any) {
       toast.error(`Evaluation failed to start: ${e.message || e}`);
       setStage("panelReview");
@@ -982,6 +942,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       if (cleanup) cleanup();
     }
   }
+
 
 
 
