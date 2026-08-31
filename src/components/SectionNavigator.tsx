@@ -405,7 +405,7 @@ function SectionItem({
               <span
                 className={
                   isPartBHeading
-                    ? 'font-bold text-muted-foreground'
+                    ? 'font-bold text-foreground'
                     : 'font-medium text-muted-foreground'
                 }
               >
