@@ -203,6 +203,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
   useEffect(() => { setLockWarningDismissed(false); }, [wpId]);
 
   // Fetch locker's name
+  /** Bumped after a version restore to remount the authoring surfaces. */
+  const [restoreTick, setRestoreTick] = useState(0);
+
   const { data: lockerProfile } = useQuery({
     queryKey: ['profile-name', lockedById],
     queryFn: async () => {
@@ -1029,7 +1032,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             onClose={() => setHistoryOpen(false)}
             /* The WP draft is fetched imperatively, not through React Query,
                so a restore has to pull the row again for the text to change. */
-            onReverted={() => { void refetchDraft(); }}
+            onReverted={() => {
+              void refetchDraft().then(() => setRestoreTick((n) => n + 1));
+            }}
           />
         )}
 
@@ -1112,6 +1117,11 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
 
         {/* WP Table (Objectives & Tasks) */}
         <WPTableSection
+          /* A version restore rewrites the row underneath the mounted rich
+             fields, which keep their own draft state and deliberately ignore
+             remote value changes. Remounting on `restoreTick` is what makes a
+             restored value appear without a page reload. */
+          key={`wp-table-${restoreTick}`}
           wpNumber={wpDraft.number}
           wpColor={effectiveColor}
           objectives={wpDraft.objectives}
