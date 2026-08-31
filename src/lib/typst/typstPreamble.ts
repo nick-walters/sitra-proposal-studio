@@ -442,7 +442,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
         else if y == rows.len() { none }
         else { 0.5pt + rgb("#e5e7eb") },
     ),
-    ..header.map(cell => text(weight: "bold", cell)),
+    // A real \`table.header\`: Typst repeats it at the top of every
+    // continuation page and never leaves it alone at the foot of a page.
+    table.header(..header.map(cell => text(weight: "bold", cell))),
     ..rows.flatten(),
   ),
 )
