@@ -2177,6 +2177,9 @@ function BoardInner({
     },
     [saveTextBox, proposalId],
   );
+  persistFieldRef.current = persistField;
+
+
 
   const handleContentChange = (field: CardField, html: string) => {
     dirtyRef.current[field.id] = { cardId: field.cardId, html };
