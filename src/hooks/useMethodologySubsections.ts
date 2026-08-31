@@ -96,28 +96,40 @@ export function useMethodologySubsections(proposalId: string) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  /** Writes one subsection's content, reporting any failure to the user. */
-  const writeContent = useCallback(async (id: string, contentHtml: string) => {
-    pendingRef.current += 1;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('methodology_subsections')
-        .update({ content_html: contentHtml })
-        .eq('id', id);
-      if (error) throw error;
-      setLastSaved(new Date());
-    } catch (err) {
-      // Previously this threw inside an async setTimeout: the rejection was
-      // unhandled, the indicator still read "Saved", and nothing was written.
-      toast.error('Change not saved', {
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
-    } finally {
-      pendingRef.current -= 1;
-      if (pendingRef.current <= 0) setSaving(false);
-    }
-  }, []);
+  /**
+   * Writes one subsection's content through the shared version-guarded save,
+   * so a second author's write cannot silently overwrite the first — the
+   * rejected text is offered back through the global lost-text dialog.
+   */
+  const writeContent = useCallback(
+    async (id: string, contentHtml: string) => {
+      pendingRef.current += 1;
+      setSaving(true);
+      try {
+        const res = await saveVersionedRow<{ version: number }>(
+          'methodology_subsections',
+          id,
+          { content_html: contentHtml },
+          versionsRef.current[id] ?? null,
+        );
+        if (res.version) versionsRef.current[id] = res.version;
+        if (!res.ok) {
+          if (res.conflict) {
+            queryClient.invalidateQueries({ queryKey: ['methodology-subsections', proposalId] });
+          } else {
+            toast.error('Change not saved', { description: res.error || 'Please try again.' });
+          }
+          return;
+        }
+        setLastSaved(new Date());
+      } finally {
+        pendingRef.current -= 1;
+        if (pendingRef.current <= 0) setSaving(false);
+      }
+    },
+    [queryClient, proposalId],
+  );
+
 
   /** Writes every pending value at once (unmount, tab hidden, tab closed). */
   const flushPending = useCallback(() => {
