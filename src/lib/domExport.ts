@@ -29,8 +29,12 @@ async function waitForRenderableAssets(root: HTMLElement) {
 
 function createDetachedSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
-  const width = Math.max(rect.width, element.scrollWidth, element.offsetWidth);
-  const height = Math.max(rect.height, element.scrollHeight, element.offsetHeight);
+  // Round UP: a fractional box (the Gantt is 680.3125px = 18cm) otherwise loses
+  // its final sub-pixel column, which is exactly where the WP banner arrow tip
+  // is painted, so the tip came out blunt/clipped in the raster.
+  const width = Math.ceil(Math.max(rect.width, element.scrollWidth, element.offsetWidth));
+  const height = Math.ceil(Math.max(rect.height, element.scrollHeight, element.offsetHeight));
+
 
   const wrapper = document.createElement('div');
   wrapper.setAttribute('aria-hidden', 'true');
