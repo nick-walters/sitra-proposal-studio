@@ -603,11 +603,12 @@ export function emitSubcontracting(
 ): string[] {
   if (!data.subcontracting.length) return [];
   const grouped = groupCosts([{ participants: data.subcontracting }], data.participants);
-  const { cells, nrows } = costCells(grouped, ctx, [
+  const { cells, nrows, rows } = costCells(grouped, ctx, [
     lit('Participant'),
     lit('Cost (€)'),
     lit('Justification'),
   ]);
+  if (!rows) return [];
   return [
     caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
     `he-cell-table(${costCols(data, 'subcontracting')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
