@@ -175,7 +175,7 @@ export function useNotifications() {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications:${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -228,7 +228,7 @@ export function useNotifications() {
 
     // Also listen for profile changes to auto-clear the notification
     const profileChannel = supabase
-      .channel('profile-name-check')
+      .channel(`profile-name-check:${user.id}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',

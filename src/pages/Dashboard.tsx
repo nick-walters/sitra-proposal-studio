@@ -124,30 +124,37 @@ export function Dashboard() {
     fetchProposals();
   }, [fetchProposals]);
 
-  // Real-time subscription for proposals
+  // Real-time subscription for proposals — one channel per proposal the user
+  // holds a role on, so no cross-proposal traffic can reach this client.
+  const proposalIdsKey = proposals.map(p => p.id).sort().join(',');
   useEffect(() => {
     if (!user) return;
+    const ids = proposalIdsKey ? proposalIdsKey.split(',') : [];
+    if (ids.length === 0) return;
 
-    const channel = supabase
-      .channel('proposals-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'proposals',
-        },
-        (payload) => {
-          // Refetch proposals on any change
-          fetchProposals();
-        }
-      )
-      .subscribe();
+    const channels = ids.map(id =>
+      supabase
+        .channel(`proposals-realtime:${id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'proposals',
+            filter: `id=eq.${id}`,
+          },
+          () => {
+            fetchProposals();
+          }
+        )
+        .subscribe()
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      channels.forEach(channel => { void supabase.removeChannel(channel); });
     };
-  }, [user, fetchProposals]);
+  }, [user, fetchProposals, proposalIdsKey]);
+
   
   // Multi-select filter states
   // Combined status filter: 'draft_critical', 'draft_due_soon', 'draft_on_track', 'submitted', 'funded', 'not_funded'
