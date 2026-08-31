@@ -787,7 +787,7 @@ export function PanelEvaluator({ proposalId }: Props) {
         buildComputedBudget(proposalId),
         // The live card document, so the compliance check counts the same
         // pages the editor shows rather than the legacy section store.
-        buildEvaluationPayload(proposalId),
+        (await import("@/lib/evaluationPayload")).buildEvaluationPayload(proposalId),
       ]);
 
       setStageAStatus("Running compliance check and assembling panel...");
