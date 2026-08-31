@@ -47,10 +47,15 @@ export function markCompiledPageCountStale(qc: QueryClient) {
 }
 
 /**
- * The proposal's own page limit, which already carries any modifier delta:
- * `useProposalTemplateCreation` writes `base_page_limit + pageLimitDelta` onto
- * `proposal_templates` at seeding, so a lump sum or CBE JU proposal is stored
- * with its adjusted limit rather than the template type's base.
+ * The proposal's own page limit.
+ *
+ * `useProposalTemplateCreation` freezes `base_page_limit + pageLimitDelta`
+ * onto `proposal_templates` at seeding, and that frozen number goes WRONG the
+ * moment the template type's base is corrected afterwards: SUSIE-Q was seeded
+ * against a 45-page RIA/IA base, so the lump sum +5 landed it on 50 and stayed
+ * there after the base was fixed to 40. So the limit is DERIVED here — type
+ * base plus the deltas of the applied modifiers — and the stored value is used
+ * only when the template has been customised by hand.
  */
 export function useProposalPageLimit(proposalId: string) {
   const { data } = useQuery({
@@ -60,24 +65,46 @@ export function useProposalPageLimit(proposalId: string) {
     queryFn: async () => {
       const { data: tpl } = await supabase
         .from('proposal_templates')
-        .select('base_page_limit')
+        .select('base_page_limit, is_customized, applied_modifier_ids, source_template_type_id')
         .eq('proposal_id', proposalId)
         .maybeSingle();
-      if (tpl?.base_page_limit) return tpl.base_page_limit as number;
 
-      const { data: proposal } = await supabase
-        .from('proposals')
-        .select('template_type_id')
-        .eq('id', proposalId)
-        .maybeSingle();
-      if (!proposal?.template_type_id) return DEFAULT_BASE_PAGE_LIMIT;
+      if (tpl?.is_customized && tpl.base_page_limit) return tpl.base_page_limit as number;
+
+      const typeId =
+        tpl?.source_template_type_id ??
+        (
+          await supabase
+            .from('proposals')
+            .select('template_type_id')
+            .eq('id', proposalId)
+            .maybeSingle()
+        ).data?.template_type_id;
+
+      if (!typeId) return (tpl?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
 
       const { data: type } = await supabase
         .from('template_types')
         .select('base_page_limit')
-        .eq('id', proposal.template_type_id)
+        .eq('id', typeId)
         .maybeSingle();
-      return (type?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
+
+      const base = (type?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
+
+      const ids = (tpl?.applied_modifier_ids as string[] | null) ?? [];
+      if (!ids.length) return base;
+
+      const { data: mods } = await supabase
+        .from('template_modifiers')
+        .select('effects')
+        .in('id', ids);
+
+      const delta = (mods ?? []).reduce((sum, m) => {
+        const effects = (m.effects ?? {}) as { page_limit_delta?: number };
+        return sum + (Number(effects.page_limit_delta ?? 0) || 0);
+      }, 0);
+
+      return base + delta;
     },
   });
   return data ?? DEFAULT_BASE_PAGE_LIMIT;
