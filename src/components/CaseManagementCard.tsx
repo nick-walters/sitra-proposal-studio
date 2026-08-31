@@ -218,8 +218,9 @@ function SortableCaseRow({ caseItem, participants, casePrefix, caseTypeLabel, ca
       </div>
 
       <Badge
-        className="rounded-full font-bold justify-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] bg-white whitespace-nowrap gap-0 px-2"
+        className="rounded-full font-bold justify-start justify-self-start text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] bg-white whitespace-nowrap gap-0 px-2"
         style={{ borderColor: outlineColor || '#000000', color: outlineColor || '#000000' }}
+
       >
         {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
         {includeNumber && <span>{caseItem.number}</span>}
