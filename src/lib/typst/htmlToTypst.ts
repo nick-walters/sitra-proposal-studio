@@ -187,7 +187,28 @@ function convertInline(node: Node, ctx: ConvertContext): string {
   // rendered as it stood BEFORE the tracked editing — every pending change
   // rejected: an insertion is omitted, a deletion is restored as ordinary
   // text. A change only shows once it has been accepted in the editor.
-  if (el.hasAttribute('data-track-insertion')) return '';
+  //
+  // EXCEPTION: a chip is an inline ATOM, not authored prose. Re-baking a
+  // reference rewrites the chip's markup in place, which the tracked-change
+  // extension records as an insertion around it — so B3.1's intro acronym,
+  // written long before any tracked editing, was being dropped from the
+  // output. When an insertion wraps nothing but chips (and whitespace), the
+  // chips are kept; any insertion carrying real text is still rejected.
+  if (el.hasAttribute('data-track-insertion')) {
+    const chips = Array.from(el.querySelectorAll('*')).filter((n) => chipKind(n));
+    if (!chips.length) return '';
+    const chipText = chips.map((n) => (n.textContent || '').trim()).join('');
+    const ownText = (el.textContent || '').replace(/\s+/g, '').trim();
+    if (ownText !== chipText.replace(/\s+/g, '')) return '';
+    return join(
+      chips.map((n) => {
+        const kind = chipKind(n)!;
+        const chip = reduceChip(n, kind, ctx.data);
+        return chip ? chipToTypst(chip) : '';
+      }),
+    );
+  }
+
   if (el.hasAttribute('data-track-deletion')) {
     return convertInlineChildren(el, ctx);
   }
