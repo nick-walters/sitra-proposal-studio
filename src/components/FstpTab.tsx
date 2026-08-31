@@ -90,16 +90,24 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     isInitRef.current = false;
   }, [fstpType]);
 
-  // Sync content from DB once loading finishes
+  // Sync content from DB once loading finishes. A refetch must never replace
+  // what the user is writing: skip when the incoming value already matches the
+  // editor, and never overwrite while the field has focus.
   useEffect(() => {
-    if (editor && !loading && !isInitRef.current) {
-      editor.commands.setContent(data.responseContent || '<p></p>');
+    if (editor && !loading) {
+      const incoming = data.responseContent || '<p></p>';
+      if (isInitRef.current) {
+        if (editor.isFocused) return;
+        if (incoming === editor.getHTML()) return;
+      }
+      editor.commands.setContent(incoming);
       // Use a microtask to ensure setContent completes before enabling tracking
       queueMicrotask(() => {
         isInitRef.current = true;
       });
     }
   }, [editor, loading, data.responseContent, fstpType]);
+
 
   // Update editable state
   useEffect(() => {

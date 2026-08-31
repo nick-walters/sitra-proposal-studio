@@ -77,6 +77,9 @@ export function EditableCaption({
   // Legacy table_captions store — only when tableKey is used (no figureId).
   useEffect(() => {
     if (!proposalId || !tableKey || figureId) return;
+    // A late response for a previous tableKey must not populate state that a
+    // subsequent save would then write back under the new key.
+    let cancelled = false;
     const load = async () => {
       const { data } = await supabase
         .from('table_captions')
@@ -84,10 +87,15 @@ export function EditableCaption({
         .eq('proposal_id', proposalId)
         .eq('table_key', tableKey)
         .maybeSingle();
+      if (cancelled) return;
       if (data?.caption) setCaption(data.caption);
     };
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [proposalId, tableKey, figureId]);
+
 
   const startEdit = () => {
     if (!canEdit) return;
