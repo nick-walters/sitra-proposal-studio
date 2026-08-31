@@ -213,7 +213,6 @@ export function useProposalTemplateCreation() {
         if (!existingTypes.has('pert')) {
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            figure_number: '3.1.a',
             section_id: b31SectionId,
             title: 'PERT chart',
             figure_type: 'pert',
@@ -225,7 +224,6 @@ export function useProposalTemplateCreation() {
         if (!existingTypes.has('gantt')) {
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            figure_number: '3.1.b',
             section_id: b31SectionId,
             title: 'Gantt chart, showing WP, task, deliverable & milestone timings',
             figure_type: 'gantt',
@@ -235,19 +233,16 @@ export function useProposalTemplateCreation() {
         }
 
         if (!existingTypes.has('impact-canvas')) {
-          // Compulsory figure fixed at the end of B2.1. Compute the next
-          // available letter within section 2.1 so it participates in the
-          // normal figure-numbering scheme (a, b, c…) instead of the
-          // legacy 'z' placeholder.
+          // Compulsory figure fixed at the end of B2.1. Its number is derived
+          // from the block that places it (see figureNumbering.ts); only the
+          // order index is stored.
           const { data: b21Figures } = await supabase
             .from('figures')
             .select('id')
             .eq('proposal_id', proposalId)
             .eq('section_id', '2.1');
-          const nextLetter = String.fromCharCode(97 + (b21Figures?.length ?? 0));
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            figure_number: `2.1.${nextLetter}`,
             section_id: '2.1',
             title: 'Impact canvas',
             caption: 'Impact canvas',

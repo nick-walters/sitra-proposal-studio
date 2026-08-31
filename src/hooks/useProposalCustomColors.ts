@@ -88,7 +88,7 @@ async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
       : Promise.resolve({ data: [] as Array<Record<string, string | null>> }),
     supabase
       .from('case_drafts')
-      .select('description, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders, subsection_content')
+      .select('description, background_context, proposed_solutions, expected_outcomes, replicability, key_stakeholders')
       .eq('proposal_id', proposalId),
     supabase
       .from('participant_descriptions')
@@ -116,9 +116,8 @@ async function fetchProposalUsedColors(proposalId: string): Promise<string[]> {
       const v = r[k];
       if (typeof v === 'string') addFromHtml(v);
     }
-    const strings: string[] = [];
-    collectStringsFromJson(r.subsection_content, strings);
-    for (const s of strings) addFromHtml(s);
+    // Subsection bodies come from `case_draft_subsections` (fetched below);
+    // the legacy `subsection_content` jsonb is no longer read (prompt 179).
   }
   for (const r of (pdescRes.data as Array<Record<string, unknown>> | null) || []) {
     for (const k of ['contribution_resources', 'value_chain', 'industrial_involvement', 'participation_justification'] as const) {

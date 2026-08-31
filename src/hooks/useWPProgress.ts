@@ -62,12 +62,12 @@ function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
   return { objectives, description, tasks, deliverables, lead, overall };
 }
 
+// Effort is authored per WP and participant in `wp_draft_effort` — the same
+// source the board, the budget and the Typst output sum. The per-task
+// `wp_draft_task_effort` table was never populated, so summing it reported
+// zero everywhere (prompt 179).
 function calculateTotalEffort(wp: WPDraft): number {
-  if (!wp.tasks) return 0;
-  return wp.tasks.reduce((total, task) => {
-    if (!task.effort) return total;
-    return total + task.effort.reduce((taskTotal, e) => taskTotal + (e.person_months || 0), 0);
-  }, 0);
+  return (wp.wp_effort || []).reduce((total, e) => total + (e.person_months || 0), 0);
 }
 
 function countTasksWithTiming(wp: WPDraft): number {

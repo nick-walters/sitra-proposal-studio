@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 
 export interface B31Task {
@@ -132,11 +133,17 @@ export function useB31SectionData(proposalId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figures')
-        .select('id, figure_number, figure_type, title, caption, content')
+        .select('id, figure_type, title, caption, content')
         .eq('proposal_id', proposalId)
         .in('figure_type', ['pert', 'gantt']);
       if (error) throw error;
-      return data as B31Figure[];
+      // Figure numbers are DERIVED from the placing block (prompt 179); the
+      // stored `figures.figure_number` column is dead and often blank.
+      const numbers = await fetchDerivedFigureNumbers(proposalId);
+      return (data || []).map((f: any) => ({
+        ...f,
+        figure_number: numbers.get(f.id) ?? '',
+      })) as B31Figure[];
     },
   });
 
