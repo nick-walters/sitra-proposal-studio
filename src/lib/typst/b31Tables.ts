@@ -779,7 +779,10 @@ export function emitFigure(
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
-    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
+    // −2.25pt = 3px at 96dpi: pulls the Gantt raster back onto the column's
+    // left edge so its right edge is no longer clipped.
+    native ||
+      `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0${kind === 'gantt' ? ', dx: -2.25pt' : ''})`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }

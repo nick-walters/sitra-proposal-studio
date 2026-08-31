@@ -204,10 +204,10 @@ export async function buildPartBTypstDocument(
     for (const item of built.unsupported) unsupported.add(item);
     blockCount += built.blockCount;
 
-    // Every section starts a fresh page and tags itself for the footer.
+    // Sections run on continuously — no page break — and each tags itself for
+    // the running footer.
     const marker = `#metadata(${typstString(built.meta.partLabel || section.number)}) <part-marker>`;
-    const lead = bodies.length ? '#pagebreak(weak: true)\n' : '';
-    bodies.push(`${lead}${marker}\n\n${built.source}`);
+    bodies.push(`${marker}\n\n${built.source}`);
     sectionSources.push({ id: section.id, label, source: built.source });
   }
 
