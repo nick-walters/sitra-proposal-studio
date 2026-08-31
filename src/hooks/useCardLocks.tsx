@@ -528,6 +528,9 @@ export function useTargetLock(targetId: string) {
   const { locks, myUserId } = useCardLocks();
   const holder = locks[targetId] ?? null;
   const isMine = !!holder && holder.userId === myUserId;
-  const lockedByOther = !!holder && !isMine;
+  // Never block on a row this user holds — whatever session or tab took it —
+  // and never block while the signed-in user is unknown.
+  const lockedByOther = !!holder && !!myUserId && !isMine;
   return { holder, isMine, lockedByOther };
 }
+
