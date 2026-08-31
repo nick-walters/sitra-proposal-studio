@@ -291,28 +291,36 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
       cells.push(cell(m.checked.has(`${row.id}|${col.id}`) ? lit('\u2713') : lit(''), 'center'));
     }
   }
-  // Mirror the editor's own column geometry (`table_column_widths`, key
-  // `b32-expertise-matrix`, CSS px at 96dpi → points, floored and scaled to
-  // the 18cm block exactly as every other emitted table).
+  // Mirror the editor's own column geometry EXACTLY (B32SectionContent.tsx).
   //
-  // The stored row is written when a column is dragged and is NOT rewritten
-  // when a participant column is later added, so it is routinely SHORTER than
-  // the current column count (SUSIE-Q: 10 stored widths, 12 columns). The old
-  // exact-length test therefore fell through to `1fr` tick columns, which is
-  // why the participant columns still printed far wider than on the board.
-  // A short row is now extended with its last tick width instead.
+  // The stored row (`table_column_widths`, key `b32-expertise-matrix`) is only
+  // honoured by the editor when its length equals the CURRENT column count —
+  // a stale short row (SUSIE-Q: 10 stored widths, 12 columns) is ignored there
+  // and the auto geometry is used instead. Extending a short row with its last
+  // tick width, as this emitter used to do, therefore produced widths the board
+  // never uses, which is the remaining divergence. Now: stored widths only on
+  // an exact length match, else the editor's auto rule.
   const stored = data.matrixWidthsPx;
   const expected = 1 + m.cols.length;
-  const columns = stored.length
-    ? ptTrack(
-        pointWidths(
-          Array.from(
-            { length: expected },
-            (_, i) => stored[i] ?? stored[stored.length - 1] ?? MIN_COL_PX,
-          ),
-        ),
-      )
-    : `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+  const ONE_CM_PX = 38;
+  const ROTATED_COL_MIN_PX = 22;
+  const CONTAINER_PX = 680; // 18cm block at 96dpi, the editor's measured width
+  const widthsPx = (() => {
+    if (stored.length === expected && stored.every((w) => Number.isFinite(w))) return stored;
+    const maxChars = m.rows.reduce(
+      (acc, r) => Math.max(acc, (r.label || '').length),
+      'Expertise'.length,
+    );
+    const expertisePx = Math.min(420, Math.max(80, Math.ceil(maxChars * 6.5) + 16));
+    const n = m.cols.length;
+    const checkPx = Math.max(
+      ROTATED_COL_MIN_PX,
+      Math.min(ONE_CM_PX, n > 0 ? Math.floor((CONTAINER_PX - expertisePx) / n) : ONE_CM_PX),
+    );
+    return Array.from({ length: expected }, (_, i) => (i === 0 ? expertisePx : checkPx));
+  })();
+  const columns = ptTrack(pointWidths(widthsPx));
+
 
   const caption = data.captions.get('b32-expertise-matrix') || 'Expertise of participants';
   return [
