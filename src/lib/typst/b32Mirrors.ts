@@ -231,7 +231,6 @@ function emitParagraphSlot(
   if (!configs.length) return [];
 
   const out: string[] = [];
-  let emittedAny = false;
   for (const p of data.participants) {
     const desc = data.descriptions.get(p.id);
     const htmls = configs
@@ -256,8 +255,9 @@ function emitParagraphSlot(
     // The badge itself draws, so the FIRST block always counts as visible;
     // the entry is kept only when something beyond the badge line survives.
     if (!trimmed.length || (trimmed.length === 1 && !htmlHasInk(htmls[0]))) continue;
-    if (emittedAny) out.push('v(3pt, weak: true)');
-    emittedAny = true;
+    // No extra gap between participants: each description is ordinary body
+    // copy, so the document's own 3pt paragraph spacing applies, exactly as
+    // the editor renders it.
     out.push(...trimmed);
   }
   return out;

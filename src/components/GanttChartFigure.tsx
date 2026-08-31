@@ -805,7 +805,7 @@ export function GanttChartFigure({
 
             // Estimate the WP title text's right edge in OVERLAY coordinates
             // (overlay origin = labelWidth from the row's left edge).
-            const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' – ' : ''}${wp.title || ''}`;
+            const wpTitleStr = `WP${wp.number}: ${wp.shortName || ''}${wp.shortName && wp.title ? ' — ' : ''}${wp.title || ''}`;
             const wpTitleTextPx = wpTitleStr.length * 6.4;
             const titleBuffer = 4;
             const titleRightInOverlay = (6 + wpTitleTextPx) - labelWidth + titleBuffer;
@@ -883,7 +883,7 @@ export function GanttChartFigure({
                         clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
                       }}
                     >
-                      WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
+                      WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' — ' : ''}{wp.title || ''}
                     </div>
                   </div>
 

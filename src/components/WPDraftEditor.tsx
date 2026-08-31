@@ -968,7 +968,7 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
                 }}
               >
                 WP{wpDraft.number}:&nbsp;{wpDraft.short_name?.trim() || ''}
-                {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' – ' : ''}
+                {Boolean(wpDraft.short_name?.trim()) && Boolean(wpDraft.title?.trim()) ? ' — ' : ''}
                 {wpDraft.title?.trim() || ''}
               </span>
             </div>

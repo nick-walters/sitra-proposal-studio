@@ -22,7 +22,7 @@
  * "not converted" note.
  */
 const DRAWING =
-  /\b(?:chip-pill|chip-run|chip-acronym|case-name-pill|wp-name-pill|he-[a-z-]+|not-converted|image|table|line|rect|polygon|figure|rotate|linebreak|bubble)\s*\(/;
+  /\b(?:chip-pill|chip-pill-crown|chip-pill-primary|chip-run|chip-acronym|case-name-pill|wp-name-pill|he-[a-z-]+|not-converted|image|table|line|rect|polygon|figure|rotate|linebreak|bubble)\s*\(/;
 
 /** Every `t("…")` literal in the expression, unescaped. */
 function literals(expr: string): string[] {

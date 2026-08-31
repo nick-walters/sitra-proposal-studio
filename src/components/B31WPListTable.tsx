@@ -124,7 +124,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     wpColor={wp.color || '#666'}
                     style={{ whiteSpace: 'normal', height: 'auto', maxWidth: '100%', padding: '1px 5px', lineHeight: 1.15 }}
                   >
-                    WP{wp.number}: {shortName}{shortName && title ? ' – ' : ''}{title}
+                    WP{wp.number}: {shortName}{shortName && title ? ' — ' : ''}{title}
                   </WPBubble>
                 </td>
                 <td className={`${sized ? cellStyles : tightCellStyles} break-words`}>
