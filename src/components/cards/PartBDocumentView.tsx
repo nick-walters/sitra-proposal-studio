@@ -48,13 +48,14 @@ interface Stats {
 export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, onWordExport }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: refData } = useReferenceData(proposalId);
+  const { data: refData, isPending: refPending } = useReferenceData(proposalId);
   const { ganttFigure, loading: b31Loading } = useB31SectionData(proposalId);
   // The off-screen Gantt host has to be PAINTED before the raster is taken.
   // Without this gate the first compile ran in the same tick the host mounted,
   // `captureOne` found an element of zero height, and the document showed
   // "the chart was not on screen …" until you navigated away and back.
   const [ganttPainted, setGanttPainted] = useState(false);
+  const [ganttStalled, setGanttStalled] = useState(false);
   const ganttHostRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -65,7 +66,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const { data: sections = [] } = useQuery({
+  const { data: sections = [], isPending: sectionsPending } = useQuery({
     queryKey: ['partb-sections', proposalId],
     enabled: !!proposalId,
     queryFn: () => fetchPartBSections(proposalId),
@@ -84,7 +85,9 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     let frame = 0;
     let tries = 0;
     // Two frames after layout is the usual case; poll a little longer because
-    // the chart measures itself and reflows once its fonts resolve.
+    // the chart measures itself and reflows once its fonts resolve. There is
+    // deliberately NO "compile anyway" escape: a partial document must never
+    // be shown or offered for export.
     const check = () => {
       if (cancelled) return;
       const el = ganttHostRef.current?.querySelector<HTMLElement>('[data-figure-chart="gantt"]');
@@ -92,7 +95,11 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         setGanttPainted(true);
         return;
       }
-      if (tries++ > 120) return; // ~2s at 60fps: give up and compile without it
+      if (tries++ > 1800) {
+        // ~30s: something is wrong. Surface it rather than compile without it.
+        setGanttStalled(true);
+        return;
+      }
       frame = requestAnimationFrame(check);
     };
     frame = requestAnimationFrame(check);
@@ -101,6 +108,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
       cancelAnimationFrame(frame);
     };
   }, [ganttFigure]);
+
 
   const compile = useCallback(
     async (selection: PartBExportSelection, watermark: boolean) => {
@@ -118,6 +126,11 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         watermark,
         figureAssets: captured.assets,
       });
+      // A document that rendered no blocks, or fewer sections than the
+      // proposal has, is a PARTIAL document. Never show or export one.
+      if (!built.blockCount || built.sectionCount < sections.length - (selection.sections?.length ?? 0)) {
+        throw new Error('The document assembled incompletely. Reload the page and try again.');
+      }
       const { pdf, compileMs } = await compileTypstToPdf(built.source, built.assets);
       return { pdf, compileMs, built, started };
     },
@@ -151,13 +164,16 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     }
   }, [compile, sections.length, queryClient, proposalId]);
 
-  // Compile only once the figure data has settled AND, when there is a Gantt,
-  // its off-screen host has actually painted.
-  const figuresReady = !b31Loading && (!ganttFigure || ganttPainted);
+  // Compile only once EVERY input has settled: the section list, the shared
+  // reference snapshot, the B3.1 figure data and — when there is a Gantt —
+  // its off-screen host actually painted. No timeout compiles without them.
+  const inputsReady =
+    !sectionsPending && !refPending && !b31Loading && (!ganttFigure || ganttPainted);
 
   useEffect(() => {
-    if (status === 'idle' && sections.length && figuresReady) void runPreview();
-  }, [status, sections.length, figuresReady, runPreview]);
+    if (status === 'idle' && sections.length && inputsReady) void runPreview();
+  }, [status, sections.length, inputsReady, runPreview]);
+
 
   const handleExport = async (selection: PartBExportSelection, watermark: boolean) => {
     setExporting(true);
@@ -222,7 +238,9 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         )}
         <Button
           className="gap-2 shadow"
-          disabled={status === 'running' || !sections.length}
+          // Only ever exportable from a COMPLETE compile.
+          disabled={status !== 'done' || exporting}
+          title={status !== 'done' ? 'Available once the full document has compiled' : undefined}
           onClick={() => setExportOpen(true)}
         >
           <Download className="h-4 w-4" />
@@ -230,12 +248,22 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         </Button>
       </div>
 
-      {status === 'running' && (
+      {(status === 'running' || (status === 'idle' && !ganttStalled)) && (
         <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Compiling the full Part B document&hellip;
+          {status === 'running'
+            ? 'Compiling the full Part B document…'
+            : 'Gathering the document’s content and figures…'}
         </div>
       )}
+
+      {status === 'idle' && ganttStalled && (
+        <div className="p-6 text-sm text-muted-foreground">
+          The Gantt chart did not finish drawing, so the document was not compiled. Reload the page
+          to try again.
+        </div>
+      )}
+
 
       {status === 'error' && (
         <div className="space-y-3 p-6">
