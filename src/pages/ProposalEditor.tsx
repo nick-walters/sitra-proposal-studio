@@ -454,12 +454,6 @@ export function ProposalEditor() {
     }
   };
 
-  // TEMP DIAGNOSTIC (dev only) — remove after export inspection.
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      (window as unknown as Record<string, unknown>).__exportProposal = handleExport;
-    }
-  });
 
 
 
