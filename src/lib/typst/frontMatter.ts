@@ -160,7 +160,9 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
         ? buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: true, includeAbbreviation: settings?.include_abbreviation !== false, withShortName: false })
         : c.short_name || buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: false, includeAbbreviation: false, withShortName: false }),
       color: '#000000',
-      filled: false,
+      // Solid black, like every other role bubble in the list: the outlined
+      // form belongs to case cross-reference chips in prose, not here.
+      filled: true,
     });
   }
 

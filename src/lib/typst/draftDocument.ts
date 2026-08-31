@@ -96,7 +96,7 @@ export async function buildWpDraftTypstDocument(
 
   const ctx: ConvertContext = { data: options.refData, unsupported: new Set<string>() };
   const blocks = [
-    ...withoutCaptions(emitWpDescriptions(scoped, ctx)),
+    ...withoutCaptions(emitWpDescriptions(scoped, ctx, { fullWidthHeader: true })),
     ...withoutCaptions(emitDeliverables(scoped, ctx)),
   ];
 
@@ -128,7 +128,7 @@ export async function buildCaseDraftTypstDocument(
 
   const ctx: ConvertContext = { data: options.refData, unsupported: new Set<string>() };
   // `null` caption: a fragment prints no "Table 1.2.a." label.
-  const blocks = emitCasesTable(scoped, '', null, ctx);
+  const blocks = emitCasesTable(scoped, '', null, ctx, { fullWidthHeader: true });
 
   const label = one.chipLabel || one.title || 'Case';
   const meta = await draftMeta(options.proposalId, label, options.refData);

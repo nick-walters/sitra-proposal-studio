@@ -154,7 +154,11 @@ export function emitWpList(data: B31TypstData): string[] {
 
 /* ─────────────────── Table 3.1.b — WP description tables ────────────────── */
 
-export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): string[] {
+export function emitWpDescriptions(
+  data: B31TypstData,
+  ctx: ConvertContext,
+  options?: { fullWidthHeader?: boolean },
+): string[] {
   if (!data.wps.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
   const out: string[] = [
@@ -208,11 +212,13 @@ export function emitWpDescriptions(data: B31TypstData, ctx: ConvertContext): str
     // The board closes every work package with a trailing rule.
     rows.push([sep]);
 
-    // The work-package name sits in a FULL-WIDTH pill (18 cm), like the case
-    // name pill, rather than a content-width chip.
-    const heading = `wp-name-pill(${typstString(
-      `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`,
-    )}, rgb(${typstString(wp.color)}))`;
+    // The full-width (18 cm) pill was asked for in the WP DRAFT HEADER only.
+    // Inside B3.1's work-package list the same name is an ordinary
+    // content-width chip, exactly as the board draws it.
+    const headingLabel = `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`;
+    const heading = options?.fullWidthHeader
+      ? `wp-name-pill(${typstString(headingLabel)}, rgb(${typstString(wp.color)}))`
+      : `chip-pill(${typstString(headingLabel)}, rgb(${typstString(wp.color)}), filled: true)`;
     const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
     out.push(`he-wp-table(${heading}, ${rowsSrc}, rgb(${typstString(wp.color)}))`);
 

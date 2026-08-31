@@ -197,6 +197,7 @@ export function emitCasesTable(
   caseTypeId: string | null,
   captionLabel: string | null,
   ctx: ConvertContext,
+  options?: { fullWidthHeader?: boolean },
 ): string[] {
   const group = data.byType.get(caseTypeId || '');
   if (!group || !group.cases.length) return [];
@@ -209,10 +210,14 @@ export function emitCasesTable(
   group.cases.forEach((c, caseIndex) => {
     // Roughly one blank line between consecutive cases.
     if (caseIndex > 0) out.push('v(11pt)');
-    // The case name sits in the long white pill with a black outline, matching
-    // the case draft editor and the B1.2 cases table exactly; the lead badge
-    // keeps its filled black chip, on the row beneath.
-    out.push(`case-name-pill(${lit(c.chipLabel)})`);
+    // The long 18 cm pill belongs to the CASE DRAFT HEADER only. In the B1.2
+    // pilots table the case name is a content-width outlined chip, the same
+    // shape a case cross-reference takes in running prose.
+    out.push(
+      options?.fullWidthHeader
+        ? `case-name-pill(${lit(c.chipLabel)})`
+        : `chip-pill(${typstString(c.chipLabel)}, black, filled: false)`,
+    );
     if (c.title) out.push(`par(justify: false, strong(${lit(c.title)}))`);
     if (c.leadLabel) {
       out.push(
