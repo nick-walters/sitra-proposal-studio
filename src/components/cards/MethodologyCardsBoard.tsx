@@ -37,6 +37,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import { useUnloadFlush } from '@/lib/unloadFlush';
 import { unloadRpc } from '@/lib/unloadRpc';
 import { Button } from '@/components/ui/button';
@@ -1999,6 +2000,10 @@ function BoardInner({
   const [isDirty, setIsDirty] = useState(false);
   const dirtyRef = useRef<Record<string, { cardId: string; html: string }>>({});
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Read synchronously by the keepalive unload writer.
+  const { session } = useAuth();
+  const accessTokenRef = useRef<string | null>(null);
+  accessTokenRef.current = session?.access_token ?? null;
 
   const { data: caseTypes } = useQuery({
     queryKey: ['card-board-case-types', proposalId],
