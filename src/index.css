@@ -740,10 +740,6 @@ table.first-col-flush td:first-child {
   padding-left: 0 !important;
 }
 
-/* B3.1.f matrix uses border-spacing; shift left so first col is flush */
-table.b31-effort-matrix.first-col-flush {
-  margin-left: -5pt;
-}
 
 
 /* Inline reference bubbles (Task, Deliverable, Milestone) */
@@ -1606,33 +1602,6 @@ body.table-col-resizing * {
   vertical-align: middle !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
-}
-
-/* Table 3.1.f (staff effort) — the generic B3.1 rule above collapses borders,
-   which also kills the 5pt horizontal column gap the matrix uses on screen.
-   Restore the separated model and the gap. The selectors must out-specify
-   `.print-export-container .b31-tables-container table` (0,2,1) and
-   `.print-export-container .ProseMirror table` (0,2,1) — a bare
-   `.print-export-container .b31-effort-matrix` (0,2,0) loses to both even
-   with !important. */
-.print-export-container table.b31-effort-matrix,
-.print-export-container .b31-tables-container table.b31-effort-matrix,
-.print-export-container .ProseMirror table.b31-effort-matrix {
-  width: 100% !important;
-  table-layout: fixed !important;
-  border-collapse: separate !important;
-  border-spacing: 5pt 0 !important;
-}
-
-
-.print-export-container .b31-effort-matrix th:first-child,
-.print-export-container .b31-effort-matrix td:first-child {
-  width: 22% !important;
-}
-
-.print-export-container .b31-effort-matrix th:last-child,
-.print-export-container .b31-effort-matrix td:last-child {
-  width: 8% !important;
 }
 
 /* Ensure ProseMirror content in print container uses correct styles */
