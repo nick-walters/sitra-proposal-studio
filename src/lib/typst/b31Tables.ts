@@ -14,6 +14,7 @@ import { getInstrumentAbbreviation, getInstrumentFullName, formatDurationShort }
 import { htmlHasInk } from './emptyBlocks';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { captionLetter } from '@/lib/cards/captionSlots';
+import { storedColumnTrack, pointWidths, ptTrack, PX_TO_PT, MIN_COL_PX } from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
 import { FIGURE_ASSET_PATH } from './typstFigures';
 import { emitPertChart } from './pertTypst';
@@ -87,6 +88,22 @@ function caption(data: B31TypstData, key: string, label: string, fallback: strin
   return `he-caption(${typstString(label)}, ${lit(text)})`;
 }
 
+/**
+ * The caption LETTER is derived from position among the tables actually
+ * emitted, exactly as `CaptionAutoNumber` does on the board: a suppressed
+ * table (an empty 3.1.g, say) must not leave a permanent gap in the sequence.
+ * Called only once an emitter has decided it WILL print, so the counter never
+ * advances for a table that is left out. The literal is the fallback for a
+ * standalone preview assembled without section numbering.
+ */
+function tableLabel(ctx: ConvertContext, fallback: string): string {
+  const numbering = ctx.captionNumbering;
+  if (!numbering) return fallback;
+  return `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
+    numbering.tableIndex++,
+  )}.`;
+}
+
 function table(
   cols: string,
   header: string[],
@@ -116,7 +133,7 @@ function wpDuration(wp: TypstWP): string {
 
 const wpPm = (wp: TypstWP) => wp.effort.reduce((s, e) => s + e.person_months, 0);
 
-export function emitWpList(data: B31TypstData): string[] {
+export function emitWpList(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.wps.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
   const rows = data.wps.map((wp) => {
@@ -135,7 +152,7 @@ export function emitWpList(data: B31TypstData): string[] {
   rows.push([bold(lit('Total')), lit(''), bold(lit(totalPm > 0 ? String(totalPm) : '—')), lit('')]);
 
   return [
-    caption(data, 'wp-list', 'Table 3.1.a.', 'List of work packages (PM = person month)'),
+    caption(data, 'wp-list', tableLabel(ctx, 'Table 3.1.a.'), 'List of work packages (PM = person month)'),
     // The three metadata columns shrink to their content and the work-package
     // column takes ALL the remaining width (`1fr`), so a WP pill keeps one
     // line; with four `auto` columns the pill column was squeezed by the
@@ -163,7 +180,7 @@ export function emitWpDescriptions(
   if (!data.wps.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
   const out: string[] = [
-    caption(data, 'wp-descriptions', 'Table 3.1.b.', 'Work package descriptions'),
+    caption(data, 'wp-descriptions', tableLabel(ctx, 'Table 3.1.b.'), 'Work package descriptions'),
   ];
 
   for (const wp of data.wps) {
@@ -253,14 +270,18 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
     lit(monthLabel(d.due_month)),
   ]);
   return [
-    caption(data, 'deliverables', 'Table 3.1.c.', 'List of deliverables'),
+    caption(data, 'deliverables', tableLabel(ctx, 'Table 3.1.c.'), 'List of deliverables'),
     table(
-      // The Lead column carries a participant badge, which is an unbreakable
-      // pill: scaling it to the editor's stored pixel fraction squeezed the
-      // label and wrapped it. Every column except the title is therefore
-      // content-sized — the badge gets the width it needs, while Type shrinks
-      // to its two- or three-letter code.
-      '(auto, 1fr, auto, auto, auto, auto, auto)',
+      // The editor's own stored widths (`b31-3-1-c-deliverables`). The Lead
+      // column used to be forced to `auto` to stop the participant badge
+      // wrapping; `chip-pill` now measures its label and cannot wrap, so that
+      // protection is gone and the printed columns match the board exactly.
+      storedCols(
+        data,
+        'b31-3-1-c-deliverables',
+        7,
+        '(auto, 1fr, auto, auto, auto, auto, auto)',
+      ),
 
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
       rows,
@@ -319,34 +340,20 @@ function storedCols(
   keys: string | string[],
   count: number,
   fallback: string,
+  minPx?: number | number[],
 ): string {
-  for (const key of Array.isArray(keys) ? keys : [keys]) {
-    const widths = data.columnWidths[key];
-    if (widths && widths.length === count && widths.every((w) => w > 0)) {
-      const min = Math.min(...widths);
-      return `(${widths.map((w) => `${(w / min).toFixed(3)}fr`).join(', ')})`;
-    }
-  }
-  return fallback;
+  return storedColumnTrack(data.columnWidths, keys, count, fallback, minPx);
 }
 
 /**
- * Columns for the grouped cost tables (3.1.g / h). The participant column
- * carries a badge, which is a `box` and therefore neither wraps nor shrinks:
- * scaling it to the editor's stored fraction pushed the pill out of its cell
- * and over the cost column. That column is therefore always `auto` — sized to
- * the widest badge — while the remaining two keep the authored proportions.
+ * Columns for the grouped cost tables (3.1.g / h / i). All three widths come
+ * from the editor's own store: `chip-pill` measures its label and cannot wrap,
+ * so the participant column no longer needs forcing to `auto` to protect the
+ * badge — the stored width is honoured like any other.
  */
 function costCols(data: B31TypstData, key: string): string {
-  const widths = data.columnWidths[key];
-  if (widths && widths.length === 3 && widths.slice(1).every((w) => w > 0)) {
-    const [, cost, just] = widths;
-    const min = Math.min(cost, just);
-    return `(auto, ${(cost / min).toFixed(3)}fr, ${(just / min).toFixed(3)}fr)`;
-  }
-  return '(auto, auto, 1fr)';
+  return storedCols(data, key, 3, '(auto, auto, 1fr)');
 }
-
 
 function storedHeaders(data: B31TypstData, key: string, defaults: string[]): string[] {
   const stored = data.columnHeaders[key] || {};
@@ -385,9 +392,18 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   ]);
   const milestoneCaption = data.captions.milestones || MILESTONES_CAPTION;
   return [
-    `he-caption(${typstString('Table 3.1.d.')}, ${captionWithVectorStar(milestoneCaption)})`,
+    `he-caption(${typstString(tableLabel(ctx, 'Table 3.1.d.'))}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
-      storedCols(data, ['b31-3-1-d-milestones', 'b31-milestones-v2'], 4, '(32fr, 34fr, 22fr, 12fr)'),
+      // Widths and headers must come from the SAME editor: the live milestones
+      // manager stores widths under `b31-milestones-v2` and headers under
+      // `b31-milestones`. The older keys stay as fallbacks for proposals last
+      // resized in the retired editor.
+      storedCols(
+        data,
+        ['b31-milestones-v2', 'b31-milestones', 'b31-3-1-d-milestones'],
+        4,
+        '(32fr, 34fr, 22fr, 12fr)',
+      ),
       headers.map((h) => lit(h)),
       rows,
       undefined,
@@ -417,9 +433,9 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
     'Mitigation & adaptation measures',
   ]);
   return [
-    caption(data, 'risks', 'Table 3.1.e.', RISKS_CAPTION),
+    caption(data, 'risks', tableLabel(ctx, 'Table 3.1.e.'), RISKS_CAPTION),
     table(
-      storedCols(data, ['b31-3-1-e-risks', 'b31-risks'], 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
+      storedCols(data, ['b31-risks', 'b31-3-1-e-risks'], 5, '(28fr, 7fr, 7fr, 22fr, 36fr)'),
       headers.map((h) => lit(h)),
       rows,
       undefined,
@@ -451,7 +467,7 @@ function plainCell(body: string, al: 'left' | 'center' = 'center'): string {
  * badge down the left and a plain bold Total column. `he-grid` reproduces
  * exactly that instead of forcing it through the ruled table furniture.
  */
-export function emitEffortMatrix(data: B31TypstData): string[] {
+export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.wps.length || !data.participants.length) return [];
   const cells: string[] = [
     plainCell(lit(''), 'left'),
@@ -491,8 +507,9 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
   const stored = data.columnWidths['effort-matrix'];
   let widthsPt: number[];
   if (stored && stored.length === n + 2 && stored.every((w) => w > 0)) {
-    const sum = stored.reduce((s, w) => s + w, 0);
-    widthsPt = stored.map((w) => (w / sum) * usable);
+    // Same per-column floor the editor enforces while dragging: without it a
+    // squeezed WP column printed narrower than its own figures.
+    widthsPt = pointWidths(stored, MIN_COL_PX, usable);
   } else {
     const wpWidth = Math.max(18, (usable - 72 - 40) / n);
     widthsPt = [72, ...data.wps.map(() => wpWidth), 40];
@@ -501,7 +518,7 @@ export function emitEffortMatrix(data: B31TypstData): string[] {
 
 
   return [
-    caption(data, 'effort-matrix', 'Table 3.1.f.', 'Staff effort in person months'),
+    caption(data, 'effort-matrix', tableLabel(ctx, 'Table 3.1.f.'), 'Staff effort in person months'),
     `he-grid(${cols}, (${cells.join(', ')},))`,
   ];
 }
@@ -610,7 +627,7 @@ export function emitSubcontracting(
   ]);
   if (!rows) return [];
   return [
-    caption(data, 'subcontracting', label, 'Subcontracting cost justifications'),
+    caption(data, 'subcontracting', tableLabel(ctx, label), 'Subcontracting cost justifications'),
     `he-cell-table(${costCols(data, 'subcontracting')}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
 
   ];
@@ -635,7 +652,7 @@ export function emitMergedJustification(
   // `SILENT_WHEN_EMPTY` leaves out a cost block with no rows at all.
   if (!rows) return [];
   return [
-    caption(data, tableKey, label, defaultCaption),
+    caption(data, tableKey, tableLabel(ctx, label), defaultCaption),
     // `tableKey` is the same key the editor's own resizable table stores under
     // (`purchase-costs`, `equipment`, `other-direct-costs`, …).
     `he-cell-table(${costCols(data, tableKey)}, (${cells.join(', ')},), ${nrows}, aligns: (left, right, left))`,
@@ -701,18 +718,12 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
   // fall back to the same default the editor shows, and take the letter from
   // the running caption counter so editor and preview agree.
   const out: string[] = [];
-  const numbering = ctx.captionNumbering;
-  if (numbering) {
-    const label = `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
-      numbering.tableIndex++,
-    )}.`;
-    out.push(caption(data, 'b12.linked_activities', label, LINKED_ACTIVITIES_CAPTION));
-  } else {
-    // This relational B1.2 emitter must never lose its code-side caption merely
-    // because section metadata was unavailable while a standalone preview was
-    // assembled. B1.2 has one generated linked-activities table.
-    out.push(caption(data, 'b12.linked_activities', 'Table 1.2.a.', LINKED_ACTIVITIES_CAPTION));
-  }
+  // Position-derived letter, with the code-side default caption: this table's
+  // caption is rarely stored, and dropping it because metadata was missing
+  // during a standalone preview would lose it entirely.
+  out.push(
+    caption(data, 'b12.linked_activities', tableLabel(ctx, 'Table 1.2.a.'), LINKED_ACTIVITIES_CAPTION),
+  );
   out.push(
     table(
       cols,
