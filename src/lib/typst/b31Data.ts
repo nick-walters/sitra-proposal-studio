@@ -27,7 +27,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
+import { fetchDerivedFigureNumbers, fetchB31SystemFigureNumbers } from '@/lib/figureNumbering';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { fetchPertChartData, type PertChartData } from './pertTypst';
 
@@ -431,9 +431,19 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   // Figure numbers are DERIVED from the block that places the figure
   // (prompt 179); the stored `figures.figure_number` column is gone.
   const derivedFigureNumbers = await fetchDerivedFigureNumbers(proposalId);
+  // The Pert and Gantt are source-fed B3.1 blocks with no `card_figure`
+  // placement, so the derived map never holds them; they take B3.1's own
+  // sequence instead (identical rule to `useB31SectionData`).
+  const systemFigureNumbers = await fetchB31SystemFigureNumbers(proposalId);
   const figures = ((figureRows as any[]) || []).map((f) => ({
     ...f,
-    figure_number: derivedFigureNumbers.get(f.id) ?? '',
+    figure_number:
+      derivedFigureNumbers.get(f.id) ??
+      (f.figure_type === 'pert'
+        ? systemFigureNumbers.pert
+        : f.figure_type === 'gantt'
+          ? systemFigureNumbers.gantt
+          : ''),
   }));
   const pertFigureRow = figures.find((f) => f.figure_type === 'pert') || null;
   const pertChart = pertFigureRow

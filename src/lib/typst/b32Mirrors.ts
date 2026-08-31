@@ -288,7 +288,9 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
   for (const row of m.rows) {
     cells.push(cell(lit(row.label)));
     for (const col of m.cols) {
-      cells.push(cell(m.checked.has(`${row.id}|${col.id}`) ? lit('\u2713') : lit(''), 'center'));
+      // U+2713 has no glyph in the embedded Nimbus Roman faces, so the tick was
+      // typeset as nothing. Draw it as a vector instead (`he-tick`).
+      cells.push(cell(m.checked.has(`${row.id}|${col.id}`) ? 'he-tick' : lit(''), 'center'));
     }
   }
   // Mirror the editor's own column geometry EXACTLY (B32SectionContent.tsx).
