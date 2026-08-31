@@ -1,5 +1,6 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { markCompiledPageCountStale } from '@/hooks/usePageCount';
 import { mapField, type CardField } from '@/types/cards';
 
 export const cardFieldsKey = (cardId: string) => ['card-fields', cardId];
