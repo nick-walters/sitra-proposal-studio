@@ -176,3 +176,45 @@ export function usePageCount(proposalId: string): PageCountResult {
     isLoading,
   };
 }
+
+export interface SectionPageCountResult {
+  pages: number | null;
+  isCompiled: boolean;
+  isStale: boolean;
+  words: number;
+}
+
+/**
+ * One section's own page cost: the real count when that section has been
+ * previewed through Typst in this session, otherwise a word-derived estimate
+ * with NO front matter allowance (front matter is a document-level cost, not
+ * the section's).
+ */
+export function useSectionPageCount(
+  proposalId: string,
+  sectionId: string | null | undefined,
+): SectionPageCountResult {
+  const qc = useQueryClient();
+  const { sectionWords } = usePageEstimate(proposalId);
+
+  const { data: compiled } = useQuery<CompiledPageCount | null>({
+    queryKey: compiledSectionPageCountKey(proposalId, sectionId || 'none'),
+    enabled: !!proposalId && !!sectionId,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    queryFn: () =>
+      qc.getQueryData<CompiledPageCount>(
+        compiledSectionPageCountKey(proposalId, sectionId || 'none'),
+      ) ?? null,
+  });
+
+  const words = (sectionId && sectionWords[sectionId]) || 0;
+  const estimated = words ? Math.max(1, Math.ceil(words / WORDS_PER_PAGE)) : null;
+
+  return {
+    pages: compiled?.pages ?? estimated,
+    isCompiled: !!compiled,
+    isStale: !!compiled?.stale,
+    words,
+  };
+}
