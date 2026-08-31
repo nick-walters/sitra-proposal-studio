@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, FileType, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { publishCompiledPageCount } from '@/hooks/usePageCount';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferenceData } from '@/lib/referenceData';
