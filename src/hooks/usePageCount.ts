@@ -16,6 +16,7 @@
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
+import { WORDS_PER_PAGE } from '@/lib/wordCount';
 import { usePageEstimate } from './usePageEstimate';
 
 export interface CompiledPageCount {
@@ -28,10 +29,37 @@ export interface CompiledPageCount {
 
 export const compiledPageCountKey = (proposalId: string) => ['compiled-page-count', proposalId];
 
+/**
+ * A single section's compiled count, published by the per-section Typst
+ * preview. Kept under the same `compiled-page-count` prefix so one call marks
+ * the whole family stale after a content change.
+ */
+export const compiledSectionPageCountKey = (proposalId: string, sectionId: string) => [
+  'compiled-page-count',
+  proposalId,
+  'section',
+  sectionId,
+];
+
 /** Called by the document view after every successful compile. */
 export function publishCompiledPageCount(qc: QueryClient, proposalId: string, pages: number) {
   if (!proposalId || !pages) return;
   qc.setQueryData<CompiledPageCount>(compiledPageCountKey(proposalId), {
+    pages,
+    at: Date.now(),
+    stale: false,
+  });
+}
+
+/** Called by the single-section preview after every successful compile. */
+export function publishCompiledSectionPageCount(
+  qc: QueryClient,
+  proposalId: string,
+  sectionId: string,
+  pages: number,
+) {
+  if (!proposalId || !sectionId || !pages) return;
+  qc.setQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, sectionId), {
     pages,
     at: Date.now(),
     stale: false,
@@ -46,11 +74,17 @@ export function markCompiledPageCountStale(qc: QueryClient) {
   );
 }
 
+
 /**
- * The proposal's own page limit, which already carries any modifier delta:
- * `useProposalTemplateCreation` writes `base_page_limit + pageLimitDelta` onto
- * `proposal_templates` at seeding, so a lump sum or CBE JU proposal is stored
- * with its adjusted limit rather than the template type's base.
+ * The proposal's own page limit.
+ *
+ * `useProposalTemplateCreation` freezes `base_page_limit + pageLimitDelta`
+ * onto `proposal_templates` at seeding, and that frozen number goes WRONG the
+ * moment the template type's base is corrected afterwards: SUSIE-Q was seeded
+ * against a 45-page RIA/IA base, so the lump sum +5 landed it on 50 and stayed
+ * there after the base was fixed to 40. So the limit is DERIVED here — type
+ * base plus the deltas of the applied modifiers — and the stored value is used
+ * only when the template has been customised by hand.
  */
 export function useProposalPageLimit(proposalId: string) {
   const { data } = useQuery({
@@ -60,24 +94,46 @@ export function useProposalPageLimit(proposalId: string) {
     queryFn: async () => {
       const { data: tpl } = await supabase
         .from('proposal_templates')
-        .select('base_page_limit')
+        .select('base_page_limit, is_customized, applied_modifier_ids, source_template_type_id')
         .eq('proposal_id', proposalId)
         .maybeSingle();
-      if (tpl?.base_page_limit) return tpl.base_page_limit as number;
 
-      const { data: proposal } = await supabase
-        .from('proposals')
-        .select('template_type_id')
-        .eq('id', proposalId)
-        .maybeSingle();
-      if (!proposal?.template_type_id) return DEFAULT_BASE_PAGE_LIMIT;
+      if (tpl?.is_customized && tpl.base_page_limit) return tpl.base_page_limit as number;
+
+      const typeId =
+        tpl?.source_template_type_id ??
+        (
+          await supabase
+            .from('proposals')
+            .select('template_type_id')
+            .eq('id', proposalId)
+            .maybeSingle()
+        ).data?.template_type_id;
+
+      if (!typeId) return (tpl?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
 
       const { data: type } = await supabase
         .from('template_types')
         .select('base_page_limit')
-        .eq('id', proposal.template_type_id)
+        .eq('id', typeId)
         .maybeSingle();
-      return (type?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
+
+      const base = (type?.base_page_limit as number) || DEFAULT_BASE_PAGE_LIMIT;
+
+      const ids = (tpl?.applied_modifier_ids as string[] | null) ?? [];
+      if (!ids.length) return base;
+
+      const { data: mods } = await supabase
+        .from('template_modifiers')
+        .select('effects')
+        .in('id', ids);
+
+      const delta = (mods ?? []).reduce((sum, m) => {
+        const effects = (m.effects ?? {}) as { page_limit_delta?: number };
+        return sum + (Number(effects.page_limit_delta ?? 0) || 0);
+      }, 0);
+
+      return base + delta;
     },
   });
   return data ?? DEFAULT_BASE_PAGE_LIMIT;
@@ -119,5 +175,47 @@ export function usePageCount(proposalId: string): PageCountResult {
     limit,
     overLimit: pages !== null && pages > limit,
     isLoading,
+  };
+}
+
+export interface SectionPageCountResult {
+  pages: number | null;
+  isCompiled: boolean;
+  isStale: boolean;
+  words: number;
+}
+
+/**
+ * One section's own page cost: the real count when that section has been
+ * previewed through Typst in this session, otherwise a word-derived estimate
+ * with NO front matter allowance (front matter is a document-level cost, not
+ * the section's).
+ */
+export function useSectionPageCount(
+  proposalId: string,
+  sectionId: string | null | undefined,
+): SectionPageCountResult {
+  const qc = useQueryClient();
+  const { sectionWords } = usePageEstimate(proposalId);
+
+  const { data: compiled } = useQuery<CompiledPageCount | null>({
+    queryKey: compiledSectionPageCountKey(proposalId, sectionId || 'none'),
+    enabled: !!proposalId && !!sectionId,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    queryFn: () =>
+      qc.getQueryData<CompiledPageCount>(
+        compiledSectionPageCountKey(proposalId, sectionId || 'none'),
+      ) ?? null,
+  });
+
+  const words = (sectionId && sectionWords[sectionId]) || 0;
+  const estimated = words ? Math.max(1, Math.ceil(words / WORDS_PER_PAGE)) : null;
+
+  return {
+    pages: compiled?.pages ?? estimated,
+    isCompiled: !!compiled,
+    isStale: !!compiled?.stale,
+    words,
   };
 }

@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useReferenceData } from '@/lib/referenceData';
+import { publishCompiledSectionPageCount } from '@/hooks/usePageCount';
 
 interface Props {
   open: boolean;
@@ -43,6 +45,7 @@ export function TypstPreviewDialog({
   sectionLabel,
 }: Props) {
   const { data: refData } = useReferenceData(proposalId);
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -100,6 +103,9 @@ export function TypstPreviewDialog({
       const { renderPdfToContainer } = await import('@/lib/typst/pdfCanvasPreview');
       const pages = await renderPdfToContainer(pdf, previewContainer);
       setPageCount(pages);
+      // The section's REAL page cost, shown in the editor chrome next to the
+      // whole-document count.
+      publishCompiledSectionPageCount(queryClient, proposalId, sectionId, pages);
       setStats({
         compileMs,
         totalMs: Math.round(performance.now() - started),
