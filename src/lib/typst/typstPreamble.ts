@@ -559,51 +559,15 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 )
 }
 
-/// A rule-free grid whose cells carry their own fills — the staff-effort
-/// matrix, which on screen is a block of coloured cells separated by a 5pt
-/// gutter, not a ruled table. Cell padding lives INSIDE the coloured block so
-/// the fill hugs the figure exactly as the board draws it.
-#let he-grid(cols, cells) = {
-  // Table content is LEFT ALIGNED: the document sets justify globally,
-  // which stretches short cell lines. Tables opt out locally.
-  set text(hyphenate: false)
-  set par(justify: false)
-  // Unbreakable: the effort matrix is a compact band of coloured cells with
-  // rounded top and bottom edges — splitting it across pages would cut the
-  // band open. Typst pushes the whole grid to the next page instead, and the
-  // sticky caption above it travels with it.
-  block(
-  width: he-table-width,
-  above: 0pt,
-  below: 6pt,
-  breakable: false,
-  table(
-    columns: cols,
-    inset: 0pt,
-    column-gutter: 5pt,
-    stroke: none,
-    align: left + horizon,
-    ..cells,
-  ),
-)
+/// The pale band behind an even-numbered row of the staff-effort table
+/// (3.1.f). Drawn from the row's FIRST cell as one placed rounded pill of an
+/// explicit width — the summed width of the columns it spans — so it reads as
+/// a single continuous shape rather than a run of filled cells. Placed first,
+/// so every cell's content paints on top of it.
+#let effort-band(w, body) = {
+  place(left + horizon, dx: 0pt, box(width: w, height: 13pt, radius: 6.5pt, fill: rgb("#f4f4f5")))
+  body
 }
-
-/// One coloured cell of the staff-effort matrix. \`pos\` rounds the outer
-/// corners of the band: "top" for the header row, "bottom" for the totals row.
-#let effort-cell(colour, body, pos) = block(
-  width: 100%,
-  fill: colour,
-  radius: if pos == "top" { (top: 9pt) } else if pos == "bottom" { (bottom: 9pt) } else { 0pt },
-  inset: (x: 3pt, y: 1.5pt),
-  align(center, text(fill: white, body)),
-)
-
-/// An unfilled cell of the staff-effort matrix (participant column, totals).
-#let effort-plain(body, al) = block(
-  width: 100%,
-  inset: (x: 3pt, y: 1.5pt),
-  align(al, body),
-)
 
 /// The WP-coloured hairline the board draws between the sections of a work
 /// package description, with the same clear space above and below.
