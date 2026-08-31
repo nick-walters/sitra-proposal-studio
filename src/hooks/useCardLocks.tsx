@@ -402,15 +402,25 @@ export function CardLockProvider({
   // keep the lock.
   useEffect(() => {
     if (!enabled) return;
+    // Release EVERY row this client took, not just the current target: a
+    // field that unmounted mid-claim can leave a held row behind.
+    const heldTargets = () => {
+      const all = new Set(heldRef.current);
+      if (myTargetRef.current) all.add(myTargetRef.current);
+      return [...all];
+    };
     const unloadRelease = () => {
-      const target = myTargetRef.current;
-      if (!target) return;
+      const targets = heldTargets();
+      if (!targets.length) return;
       myTargetRef.current = null;
-      unloadRpc(
-        'release_card_lock',
-        { p_target_type: 'text_box', p_target_id: target },
-        accessTokenRef.current,
-      );
+      heldRef.current.clear();
+      for (const target of targets) {
+        unloadRpc(
+          'release_card_lock',
+          { p_target_type: 'text_box', p_target_id: target },
+          accessTokenRef.current,
+        );
+      }
     };
     window.addEventListener('pagehide', unloadRelease);
     window.addEventListener('beforeunload', unloadRelease);
@@ -419,15 +429,17 @@ export function CardLockProvider({
       window.removeEventListener('beforeunload', unloadRelease);
       // In-app teardown (navigating away from the board): the page survives, so
       // the ordinary RPC can complete normally.
-      const target = myTargetRef.current;
-      if (target) {
-        myTargetRef.current = null;
+      const targets = heldTargets();
+      myTargetRef.current = null;
+      heldRef.current.clear();
+      for (const target of targets) {
         void supabase.rpc('release_card_lock', {
           p_target_type: 'text_box' as LockTargetType,
           p_target_id: target,
         });
       }
     };
+
   }, [enabled]);
 
 
