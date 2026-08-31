@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, FileType, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +31,8 @@ interface Props {
   proposalAcronym?: string;
   /** Coordinators and above may export without a watermark. */
   isCoordinator: boolean;
+  /** Opens the legacy Word/print export dialog (draft circulation). */
+  onWordExport?: () => void;
 }
 
 interface Stats {
@@ -42,7 +44,7 @@ interface Stats {
   unsupported: string[];
 }
 
-export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator }: Props) {
+export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, onWordExport }: Props) {
   const { user } = useAuth();
   const { data: refData } = useReferenceData(proposalId);
   const { ganttFigure } = useB31SectionData(proposalId);
@@ -164,7 +166,13 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator }
     <div className="relative flex-1 overflow-hidden bg-muted/30">
       {ganttHost}
 
-      <div className="absolute right-6 top-4 z-20">
+      <div className="absolute right-6 top-4 z-20 flex items-center gap-2">
+        {onWordExport && (
+          <Button variant="outline" className="gap-2 shadow" onClick={onWordExport}>
+            <FileType className="h-4 w-4" />
+            Word draft
+          </Button>
+        )}
         <Button
           className="gap-2 shadow"
           disabled={status === 'running' || !sections.length}
