@@ -159,7 +159,7 @@ function SortableActivityRow({
   return (
     /* One <tr> per activity: every column, description included, on a single
        row so the sortable unit is a real table row. */
-    <tr ref={setNodeRef} style={style} className="border-b border-gray-200 last:border-b-0">
+    <tr ref={setNodeRef} style={style}>
 
         <td className={`${firstCellStyles} relative break-words`}>
           {canEdit ? (
