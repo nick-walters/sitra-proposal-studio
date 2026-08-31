@@ -112,12 +112,14 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         blockCount: built.blockCount,
         unsupported: built.unsupported,
       });
+      // The authoritative count for the whole editor chrome.
+      publishCompiledPageCount(queryClient, proposalId, pages);
       setStatus('done');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus('error');
     }
-  }, [compile, sections.length]);
+  }, [compile, sections.length, queryClient, proposalId]);
 
   useEffect(() => {
     if (status === 'idle' && sections.length) void runPreview();
