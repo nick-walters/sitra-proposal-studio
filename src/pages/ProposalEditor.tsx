@@ -1,3 +1,4 @@
+import { jumpToElementId } from '@/lib/jumpToElement';
 import { Header } from "@/components/Header";
 import { getCaseTypePrefix } from "@/lib/caseTypeLabels";
 import { StorageImage } from "@/components/StorageImage";
@@ -274,7 +275,12 @@ export function ProposalEditor() {
     // this clean-up — clearing every parameter here was what made comment
     // notifications appear to do nothing.
     const urlComment = searchParams.get('comment');
+    // Cross-section review deep links name the module to scroll to.
+    const urlModule = searchParams.get('module');
     if (!urlSection && !urlComment) return;
+    if (urlModule) {
+      setTimeout(() => void jumpToElementId(urlModule), 400);
+    }
 
     // Legacy deep links: 'messaging' and 'backups' are now tabs on merged pages.
     let targetId = urlSection;
