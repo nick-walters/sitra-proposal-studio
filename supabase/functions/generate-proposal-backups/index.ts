@@ -2177,6 +2177,23 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
   return await packDocx(children);
 }
 
+/** Derives every figure number of a proposal from the block that places it. */
+async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<Map<string, string>> {
+  const [placementRes, cardRes] = await Promise.all([
+    supabase.from("card_figure").select("card_id, figure_id").eq("proposal_id", proposalId),
+    supabase.from("proposal_cards").select("id, section_id, order_index").eq("proposal_id", proposalId).is("deleted_at", null),
+  ]);
+  const sectionIds = [...new Set((cardRes.data ?? []).map((c: any) => c.section_id).filter(Boolean))];
+  const sectionRes = sectionIds.length
+    ? await supabase.from("proposal_template_sections").select("id, section_number, order_index").in("id", sectionIds)
+    : { data: [] };
+  return computeFigureNumbers(
+    (placementRes.data ?? []) as any[],
+    (cardRes.data ?? []) as any[],
+    (sectionRes.data ?? []) as any[],
+  );
+}
+
 async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participants: any[]): Promise<Uint8Array> {
   const lead = cd.lead_participant_id ? participants.find((p) => p.id === cd.lead_participant_id) : null;
   const children: (Paragraph | Table)[] = [
@@ -2186,8 +2203,9 @@ async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participa
   ];
   if (cd.description) { children.push(H(HeadingLevel.HEADING_2, "Description")); children.push(...htmlToDocxChildren(cd.description)); }
 
-  // Subsections now live as rows in case_draft_subsections; the legacy columns
-  // and the subsection_content jsonb remain a read-only fallback.
+  // Subsections live as rows in case_draft_subsections. The legacy
+  // `subsection_content` jsonb is no longer written or read (prompt 179); the
+  // named columns below remain only for pre-subsection cases.
   const { data: subRows } = await _supabase
     .from("case_draft_subsections")
     .select("subsection_key, content_html, heading, order_index")
@@ -2445,12 +2463,16 @@ Deno.serve(async (req) => {
       // `proposal-backups/{proposal_id}/_figures-cache/{figure_id}.png`.
       const { data: figures } = await supabase
         .from("figures")
-        .select("id, figure_number, figure_type, content, title, caption")
+        .select("id, figure_type, content, title, caption, order_index")
         .eq("proposal_id", proposal.id)
-        .order("figure_number", { ascending: true });
+        .order("order_index", { ascending: true });
+
+      // File names use the DERIVED figure number (prompt 179). The stored
+      // `figures.figure_number` column is dead and blank on newer figures.
+      const figureFileNumbers = await deriveFigureNumbers(supabase, proposal.id);
 
       for (const fig of figures ?? []) {
-        const num = String(fig.figure_number || fig.id).replace(/[\/\\:*?"<>|]/g, "_");
+        const num = String(figureFileNumbers.get(fig.id) || fig.id).replace(/[\/\\:*?"<>|]/g, "_");
         let bytes: Uint8Array | null = null;
         let ext = "png";
         const imageUrl: string | undefined = fig.content?.imageUrl;
