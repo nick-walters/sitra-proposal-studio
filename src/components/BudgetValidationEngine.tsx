@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Loader2,
+  MinusCircle,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
