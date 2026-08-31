@@ -289,7 +289,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   polygon(
     fill: colour,
     stroke: none,
-    // Lucide `crown`, mapped from its 24-unit box: 2,4 → 5,16 → 19,16 → 22,4,
+    // Lucide crown, mapped from its 24-unit box: 2,4 → 5,16 → 19,16 → 22,4,
     // with the three dips at 16,11 / 12,4 / 8,11.
     (8%, 17%), (21%, 67%), (79%, 67%), (92%, 17%), (67%, 46%), (50%, 17%), (33%, 46%),
   ),
@@ -597,9 +597,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     inset: (x: 0pt, y: 1.5pt),
     align: left + top,
     stroke: none,
-    // The WP name banner is an ORDINARY first row, not a `table.header`: a
+    // The WP name banner is an ORDINARY first row, not a table.header: a
     // repeating header reprinted the WP title at the top of every
-    // continuation page. `sticky` still stops it being stranded alone at the
+    // continuation page. sticky still stops it being stranded alone at the
     // foot of a page, while the content below it splits normally.
     block(breakable: false, sticky: true, header),
     ..rows.flatten(),
