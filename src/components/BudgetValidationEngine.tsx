@@ -320,15 +320,17 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
     }
   }, [open]);
 
-  const passedCount = rules.filter(r => r.passed).length;
-  const percentage = rules.length > 0 ? Math.round((passedCount / rules.length) * 100) : 0;
+  const passedCount = rules.filter(r => r.status === 'passed').length;
+  const applicableCount = rules.filter(r => r.status !== 'skipped').length;
+  const failedCount = rules.filter(r => r.status === 'failed').length;
+  const percentage = applicableCount > 0 ? Math.round((passedCount / applicableCount) * 100) : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Budget validation</DialogTitle>
-          <DialogDescription>Automated compliance checks for budget data</DialogDescription>
+          <DialogDescription>Every compliance check applied to the budget, and its current state</DialogDescription>
         </DialogHeader>
 
         {loading && (
@@ -340,32 +342,52 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         {!loading && hasRun && (
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{passedCount}/{rules.length} checks passed</span>
+              <span>
+                {passedCount}/{applicableCount} checks passed
+                {failedCount > 0 ? ` · ${failedCount} to address` : ''}
+                {rules.length > applicableCount ? ` · ${rules.length - applicableCount} not applicable` : ''}
+              </span>
               <Button variant="ghost" size="sm" onClick={runValidation} className="gap-1.5 h-7 text-xs">
                 <RefreshCw className="w-3 h-3" />
                 Re-validate
               </Button>
             </div>
             <Progress value={percentage} className="h-2" />
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
               {rules.map(rule => (
                 <div
                   key={rule.id}
                   className={`flex items-start gap-2 p-2 rounded-md text-sm ${
-                    rule.passed
+                    rule.status === 'passed'
                       ? 'bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400'
-                      : rule.severity === 'error'
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                      : rule.status === 'skipped'
+                        ? 'bg-muted text-muted-foreground'
+                        : rule.severity === 'error'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
                   }`}
                 >
-                  {rule.passed ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />}
-                  <div><span className="font-medium">{rule.name}:</span> {rule.message}</div>
+                  {rule.status === 'passed' ? (
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                  ) : rule.status === 'skipped' ? (
+                    <MinusCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  )}
+                  <div className="space-y-0.5">
+                    <div>
+                      <span className="font-medium">{rule.name}</span>
+                      {rule.status === 'skipped' && <span className="ml-1.5 text-xs">(not applicable)</span>}
+                    </div>
+                    <div className="text-xs opacity-80">{rule.criterion}</div>
+                    <div>{rule.message}</div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
       </DialogContent>
     </Dialog>
   );
