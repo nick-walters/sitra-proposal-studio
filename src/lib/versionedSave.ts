@@ -25,7 +25,10 @@ export type VersionedTable =
   | 'wp_draft_deliverables'
   | 'proposal_milestones'
   | 'proposal_risks'
-  | 'case_drafts';
+  | 'case_drafts'
+  | 'methodology_subsections'
+  | 'methodology_items'
+  | 'methodology_linked_activities';
 
 export interface VersionedSaveResult<T = any> {
   ok: boolean;
