@@ -126,6 +126,11 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         watermark,
         figureAssets: captured.assets,
       });
+      // A document that rendered no blocks, or fewer sections than the
+      // proposal has, is a PARTIAL document. Never show or export one.
+      if (!built.blockCount || built.sectionCount < sections.length - (selection.sections?.length ?? 0)) {
+        throw new Error('The document assembled incompletely. Reload the page and try again.');
+      }
       const { pdf, compileMs } = await compileTypstToPdf(built.source, built.assets);
       return { pdf, compileMs, built, started };
     },
@@ -159,13 +164,16 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     }
   }, [compile, sections.length, queryClient, proposalId]);
 
-  // Compile only once the figure data has settled AND, when there is a Gantt,
-  // its off-screen host has actually painted.
-  const figuresReady = !b31Loading && (!ganttFigure || ganttPainted);
+  // Compile only once EVERY input has settled: the section list, the shared
+  // reference snapshot, the B3.1 figure data and — when there is a Gantt —
+  // its off-screen host actually painted. No timeout compiles without them.
+  const inputsReady =
+    !sectionsPending && !refPending && !b31Loading && (!ganttFigure || ganttPainted);
 
   useEffect(() => {
-    if (status === 'idle' && sections.length && figuresReady) void runPreview();
-  }, [status, sections.length, figuresReady, runPreview]);
+    if (status === 'idle' && sections.length && inputsReady) void runPreview();
+  }, [status, sections.length, inputsReady, runPreview]);
+
 
   const handleExport = async (selection: PartBExportSelection, watermark: boolean) => {
     setExporting(true);
