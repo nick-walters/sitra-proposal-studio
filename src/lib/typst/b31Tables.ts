@@ -133,6 +133,15 @@ function wpDuration(wp: TypstWP): string {
 
 const wpPm = (wp: TypstWP) => wp.effort.reduce((s, e) => s + e.person_months, 0);
 
+/**
+ * Person months print to at most one decimal place. Summing floats produces
+ * values like 118.00000000000001, which used to print raw.
+ */
+const fmtPm = (n: number) => {
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
 export function emitWpList(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.wps.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
@@ -144,12 +153,12 @@ export function emitWpList(data: B31TypstData, ctx: ConvertContext): string[] {
     return [
       wpChip(wp.number, wp.color, label),
       participantChip(byId.get(wp.lead_participant_id || '')),
-      lit(pm > 0 ? String(pm) : '—'),
+      lit(pm > 0 ? fmtPm(pm) : '—'),
       lit(wpDuration(wp)),
     ];
   });
   const totalPm = data.wps.reduce((s, wp) => s + wpPm(wp), 0);
-  rows.push([bold(lit('Total')), lit(''), bold(lit(totalPm > 0 ? String(totalPm) : '—')), lit('')]);
+  rows.push([bold(lit('Total')), lit(''), bold(lit(totalPm > 0 ? fmtPm(totalPm) : '—')), lit('')]);
 
   return [
     caption(data, 'wp-list', tableLabel(ctx, 'Table 3.1.a.'), 'List of work packages (PM = person month)'),

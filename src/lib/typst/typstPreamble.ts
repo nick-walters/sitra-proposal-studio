@@ -598,6 +598,13 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 )
 
 
+/// Tick mark for the expertise matrix. Drawn as two strokes rather than the
+/// U+2713 character, which the embedded Nimbus Roman faces do not carry.
+#let he-tick = box(width: 7pt, height: 7pt, baseline: 1pt, {
+  place(line(start: (0.4pt, 3.8pt), end: (2.6pt, 6.2pt), stroke: 0.9pt + black))
+  place(line(start: (2.6pt, 6.2pt), end: (6.8pt, 0.6pt), stroke: 0.9pt + black))
+})
+
 /// Full-width raster figure (Gantt / Pert), scaled to the table width.
 /// Sticky and unbreakable: the image is one unit and keeps the caption that
 /// follows it on the same page.

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
+import { fetchDerivedFigureNumbers, fetchB31SystemFigureNumbers } from '@/lib/figureNumbering';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 
 export interface B31Task {
@@ -140,9 +140,14 @@ export function useB31SectionData(proposalId: string) {
       // Figure numbers are DERIVED from the placing block (prompt 179); the
       // stored `figures.figure_number` column is dead and often blank.
       const numbers = await fetchDerivedFigureNumbers(proposalId);
+      // Pert and Gantt are source-fed blocks, not `card_figure` placements, so
+      // they have no derived placement number of their own.
+      const system = await fetchB31SystemFigureNumbers(proposalId);
       return (data || []).map((f: any) => ({
         ...f,
-        figure_number: numbers.get(f.id) ?? '',
+        figure_number:
+          numbers.get(f.id) ??
+          (f.figure_type === 'pert' ? system.pert : f.figure_type === 'gantt' ? system.gantt : ''),
       })) as B31Figure[];
     },
   });
