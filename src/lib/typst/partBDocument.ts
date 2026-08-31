@@ -20,13 +20,7 @@ import type { CardField, ProposalCard } from '@/types/cards';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
 import type { TypstAsset } from './typstCompiler';
-import {
-  buildSectionTypstBody,
-  fetchSectionBlockTree,
-  fetchSectionTypstReferences,
-  fetchTypstDocMeta,
-  type SectionBlockTree,
-} from './sectionToTypst';
+import type { SectionBlockTree } from './sectionToTypst';
 import { typstString } from './htmlToTypst';
 
 /** The six Part B subsections, in document order. */
