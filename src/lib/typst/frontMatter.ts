@@ -265,9 +265,6 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
     return `(${short}, ${name}, ${logo}, ${roles}, t(${typstString(p.organisationType || '—')}), t(${typstString(p.country || '—')}))`;
   });
   const shares = fm.columnWidths.length ? fm.columnWidths : B11_PARTICIPANT_COLUMN_SHARES;
-  // Ratios, not rounded pixels: `Math.round` on a dragged width (e.g. 61.4px
-  // beside 61.6px) quantised neighbouring columns to the same `fr` and lost
-  // small drags. Dividing by the narrowest column keeps the exact proportions.
   // Stored pixel widths become an absolute point track on the same 18 cm, with
   // the editor's per-column floor applied, so Table 1.1.a prints the geometry
   // the author dragged rather than a re-derived fractional approximation.

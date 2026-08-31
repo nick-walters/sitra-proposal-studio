@@ -483,8 +483,6 @@ function convertTable(el: Element, ctx: ConvertContext): string {
     0,
   );
   const widths = columnWidths(el, colCount);
-  // Fractions rather than absolute widths: the table is placed in an 18cm
-  // block, so proportional columns are exactly the capped geometry.
   // Trailing commas are load-bearing: `(x)` is a plain parenthesised value in
   // Typst, and spreading it raises "cannot spread content". `(x,)` is a
   // one-element array, and `()` an empty one.
