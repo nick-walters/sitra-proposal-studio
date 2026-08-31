@@ -111,13 +111,17 @@ function table(
   aligns?: string[],
   firstFlush = false,
   tight = false,
+  rules?: { hairlines?: boolean; ruleAbove?: number },
 ): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
   const alignSrc = aligns ? `, aligns: (${aligns.join(', ')},)` : '';
   const flushSrc = firstFlush ? ', first-flush: true' : '';
   const tightSrc = tight ? ', tight: true' : '';
-  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc})`;
+  const ruleSrc =
+    (rules?.hairlines === false ? ', hairlines: false' : '') +
+    (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '');
+  return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc}${ruleSrc})`;
 }
 
 const bold = (s: string) => `strong(${s})`;
@@ -240,8 +244,8 @@ export function emitWpDescriptions(
       // A sticky, unbreakable block cannot repeat — it moves whole — while
       // the description below it still splits normally.
       const head =
-        `block(breakable: false, sticky: true, below: 1.5pt, ${titleLine})` +
-        ` + block(breakable: false, sticky: true, above: 0pt, below: 0pt, ${metaLine})`;
+        `block(breakable: false, sticky: true, below: 2.25pt, ${titleLine})` +
+        ` + block(breakable: false, sticky: true, above: 0pt, below: 2.25pt, ${metaLine})`;
       rows.push([sep]);
       // The task header and its description live in ONE cell, so a page break
       // can never fall between the header and its first paragraph. The cell
