@@ -402,7 +402,13 @@ function SectionItem({
             {/* Part headings keep their "B1"/"B2"/"B3" prefix as well as the
                 bold weight — the bold change must not drop the number. */}
             {showNumber && (!isTopLevelBold || isPartBHeading) && (
-              <span className="font-medium text-muted-foreground">
+              <span
+                className={
+                  isPartBHeading
+                    ? 'font-bold text-muted-foreground'
+                    : 'font-medium text-muted-foreground'
+                }
+              >
                 {formatSectionNumber(section.number, depth)}
               </span>
             )}

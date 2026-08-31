@@ -540,6 +540,8 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // Version history for whichever field owns the toolbar (data-version-target).
   const versionTarget = useFocusedVersionTarget();
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** Bumped after a version restore to remount the subsection editors. */
+  const [restoreTick, setRestoreTick] = useState(0);
   const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
 
   /* Guidance is never printed on a block: it is reached through the Guidelines
@@ -1111,7 +1113,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   // Keyed by case AND subsection: switching cases must build fresh
                   // fields rather than rebind a live editor to another case's row.
                   <CaseSubsectionModule
-                    key={`${caseId}:${sub.id}`}
+                    key={`${caseId}:${sub.id}:${restoreTick}`}
                     caseId={caseId}
                     proposalId={proposalId}
                     subsectionId={sub.id}
@@ -1163,8 +1165,13 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                conflict, then pull the rows this page actually reads. */
             onReverted={() => {
               subsectionBaseline.current = {};
-              queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
-              queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
+              void Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] }),
+                queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] }),
+                /* The subsection editors hold their own draft state and ignore
+                   remote value changes, so the refreshed rows only reach the
+                   screen when the surfaces remount. */
+              ]).then(() => setRestoreTick((n) => n + 1));
             }}
           />
         )}

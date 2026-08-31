@@ -28,6 +28,11 @@ export const wpTaskTarget = (taskId: string, box = 'description') =>
 export const wpDeliverableTarget = (deliverableId: string, box = 'title') =>
   `wp_deliverable:${deliverableId}:${box}`;
 
+/* --- B1.2 linked activities ------------------------------------------- */
+/** One comment target per linked-activity row. */
+export const linkedActivityTarget = (activityId: string) =>
+  `linked_activity:${activityId}`;
+
 /* --- Case (pilot) drafts ------------------------------------------------ */
 export const caseTarget = (caseId: string, key: string) => `case:${caseId}:${key}`;
 
