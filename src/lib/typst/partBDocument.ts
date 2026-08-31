@@ -20,13 +20,7 @@ import type { CardField, ProposalCard } from '@/types/cards';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
 import type { TypstAsset } from './typstCompiler';
-import {
-  buildSectionTypstBody,
-  fetchSectionBlockTree,
-  fetchSectionTypstReferences,
-  fetchTypstDocMeta,
-  type SectionBlockTree,
-} from './sectionToTypst';
+import type { SectionBlockTree } from './sectionToTypst';
 import { typstString } from './htmlToTypst';
 
 /** The six Part B subsections, in document order. */
@@ -170,33 +164,21 @@ export async function buildPartBTypstDocument(
   const excludedSections = new Set(selection.sections);
   const sections = options.sections.filter((s) => !excludedSections.has(s.id));
 
-  const [
-    { fetchB31TypstData },
-    { fetchTypstFrontMatter },
-    { fetchCasesTypstData },
-    { fetchB32TypstData },
-    { fetchAuthoredFigures },
-  ] = await Promise.all([
-    import('./b31Data'),
-    import('./frontMatter'),
-    import('./casesData'),
-    import('./b32Mirrors'),
-    import('./authoredFigures'),
-  ]);
+  const { fetchSharedRenderData, renderSectionBody } = await import('./sectionRender');
 
-  const [sourceData, casesData, b32Data] = await Promise.all([
-    fetchB31TypstData(proposalId),
-    fetchCasesTypstData(proposalId),
-    fetchB32TypstData(proposalId),
-  ]);
+  // Proposal-wide inputs, fetched (and the charts captured) exactly as a
+  // single-section preview fetches them. The caller may hand in figure assets
+  // it captured itself; those take precedence over a fresh capture.
+  const shared = await fetchSharedRenderData(proposalId);
+  if (options.figureAssets?.length) {
+    shared.figureAssets = options.figureAssets;
+    shared.figuresAvailable = {
+      pert: options.figureAssets.some((a) => a.path.includes('pert')),
+      gantt: options.figureAssets.some((a) => a.path.includes('gantt')),
+    };
+  }
 
-  const figureAssets = options.figureAssets ?? [];
-  const figuresAvailable = {
-    pert: figureAssets.some((a) => a.path.includes('pert')),
-    gantt: figureAssets.some((a) => a.path.includes('gantt')),
-  };
-
-  const assets: TypstAsset[] = [...figureAssets];
+  const assets: TypstAsset[] = [...shared.figureAssets];
   const unsupported = new Set<string>();
   const bodies: string[] = [];
   let blockCount = 0;
@@ -204,47 +186,29 @@ export async function buildPartBTypstDocument(
   let documentMeta: TypstDocMeta | null = null;
 
   for (const section of sections) {
-    const [tree, meta, references, authored] = await Promise.all([
-      fetchSectionBlockTree(proposalId, section.id),
-      fetchTypstDocMeta(proposalId, section.id, refData?.acronymSegments),
-      fetchSectionTypstReferences(proposalId, section.id, refData?.citationNumbers),
-      fetchAuthoredFigures(proposalId, section.id),
-    ]);
-    assets.push(...authored.assets);
-
-    // Page-one furniture belongs to the document, not to each section: only
-    // the section carrying the banner (B1.1) pulls it in.
-    const frontMatter = meta.banner ? await fetchTypstFrontMatter(proposalId) : null;
-    if (frontMatter) assets.push(...(frontMatter.assets ?? []));
+    const label = `${section.number} ${section.title}`.trim();
+    const built = await renderSectionBody({
+      proposalId,
+      sectionId: section.id,
+      sectionLabel: label,
+      refData,
+      shared,
+      filterTree: (tree) => filterTree(tree, selection),
+    });
+    assets.push(...built.assets);
 
     // The preamble is written once, from the FIRST section's meta: it holds
     // the acronym chip, the running header and the footer's default label.
-    if (!documentMeta) documentMeta = { ...meta, watermark: options.watermark };
+    if (!documentMeta) documentMeta = { ...built.meta, watermark: options.watermark };
 
-    const built = buildSectionTypstBody(filterTree(tree, selection), {
-      sectionLabel: `${section.number} ${section.title}`.trim(),
-      data: refData,
-      meta,
-      sourceData,
-      references,
-      frontMatter,
-      casesData,
-      b32Data,
-      authoredFigures: authored.blocks,
-      figuresAvailable,
-    });
     for (const item of built.unsupported) unsupported.add(item);
     blockCount += built.blockCount;
 
     // Every section starts a fresh page and tags itself for the footer.
-    const marker = `#metadata(${typstString(meta.partLabel || section.number)}) <part-marker>`;
+    const marker = `#metadata(${typstString(built.meta.partLabel || section.number)}) <part-marker>`;
     const lead = bodies.length ? '#pagebreak(weak: true)\n' : '';
     bodies.push(`${lead}${marker}\n\n${built.source}`);
-    sectionSources.push({
-      id: section.id,
-      label: `${section.number} ${section.title}`.trim(),
-      source: built.source,
-    });
+    sectionSources.push({ id: section.id, label, source: built.source });
   }
 
   const preambleMeta: TypstDocMeta = documentMeta ?? { watermark: options.watermark };

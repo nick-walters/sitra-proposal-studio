@@ -611,17 +611,12 @@ export function buildSectionTypstBody(
   };
 }
 
-/** One section, compiled on its own: the preamble plus that section's body. */
-export function buildSectionTypstDocument(
-  tree: SectionBlockTree,
-  options: BuildTypstOptions = {},
-): BuiltTypstDocument {
-  const built = buildSectionTypstBody(tree, options);
-  return {
-    ...built,
-    source: `${buildTypstPreamble(options.meta || {})}\n${built.source}\n`,
-  };
-}
+/*
+ * There is deliberately no "build one section as its own document" helper
+ * here any more: a single-section preview and the full Part B document both go
+ * through `sectionRender.ts`, which adds the preamble itself. A second wrapper
+ * is how the two paths drifted apart in the first place.
+ */
 
 
 /**

@@ -62,63 +62,29 @@ export function TypstPreviewDialog({
     setError(null);
     const started = performance.now();
     try {
-      const [
-        {
-          fetchSectionBlockTree,
-          buildSectionTypstDocument,
-          fetchTypstDocMeta,
-          fetchB31TypstData,
-          fetchSectionTypstReferences,
-        },
-        { compileTypstToPdf },
-        { captureFigureAssets },
-        { fetchAuthoredFigures },
-      ] = await Promise.all([
-        import('@/lib/typst/sectionToTypst'),
-        import('@/lib/typst/typstCompiler'),
-        import('@/lib/typst/typstFigures'),
-        import('@/lib/typst/authoredFigures'),
-      ]);
-      // The Pert is emitted natively from its own layout data, so only the
-      // Gantt — CSS-drawn nested divs — is still captured from the live board
-      // with the same snapshot utility as the PNG download.
-      const { fetchTypstFrontMatter } = await import('@/lib/typst/frontMatter');
-      const { fetchCasesTypstData } = await import('@/lib/typst/casesData');
-      const { fetchB32TypstData } = await import('@/lib/typst/b32Mirrors');
-      const [tree, meta, sourceData, captured, references, casesData, b32Data, authored] = await Promise.all([
-        fetchSectionBlockTree(proposalId, sectionId),
-        fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
-        fetchB31TypstData(proposalId),
-        captureFigureAssets(['gantt']),
-        fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
-        fetchCasesTypstData(proposalId),
-        fetchB32TypstData(proposalId),
-        // Uploads, AI images and rasterised canvases placed on figure blocks.
-        fetchAuthoredFigures(proposalId, sectionId),
-      ]);
-      // Page-one furniture is only fetched for the section that carries the
-      // banner (B1.1); every other section starts on plain margins.
-      const frontMatter = meta.banner ? await fetchTypstFrontMatter(proposalId) : null;
-      const built = buildSectionTypstDocument(tree, {
+      // ONE render path: a section is assembled here exactly as the full Part
+      // B document assembles it (`sectionRender.ts`). The only difference is
+      // that this preview wraps the single body in its own preamble.
+      const [{ fetchSharedRenderData, renderSectionBody }, { buildTypstPreamble }, { compileTypstToPdf }] =
+        await Promise.all([
+          import('@/lib/typst/sectionRender'),
+          import('@/lib/typst/typstPreamble'),
+          import('@/lib/typst/typstCompiler'),
+        ]);
+
+      const shared = await fetchSharedRenderData(proposalId);
+      const built = await renderSectionBody({
+        proposalId,
+        sectionId,
         sectionLabel,
-        data: refData,
-        meta,
-        sourceData,
-        references,
-        frontMatter,
-        casesData,
-        b32Data,
-        authoredFigures: authored.blocks,
-        figuresAvailable: {
-          pert: captured.assets.some((a) => a.path.includes('pert')),
-          gantt: captured.assets.some((a) => a.path.includes('gantt')),
-        },
+        refData,
+        shared,
       });
 
-      const { pdf, compileMs } = await compileTypstToPdf(built.source, [
-        ...captured.assets,
-        ...authored.assets,
-        ...(frontMatter?.assets ?? []),
+      const source = `${buildTypstPreamble(built.meta)}\n${built.source}\n`;
+      const { pdf, compileMs } = await compileTypstToPdf(source, [
+        ...shared.figureAssets,
+        ...built.assets,
       ]);
 
       const blob = new Blob([pdf as BlobPart], { type: 'application/pdf' });
