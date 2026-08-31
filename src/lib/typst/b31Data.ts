@@ -27,6 +27,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { fetchPertChartData, type PertChartData } from './pertTypst';
 
@@ -216,7 +217,7 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .order('number'),
     supabase
       .from('figures')
-      .select('id, figure_number, figure_type, title, caption, content')
+      .select('id, figure_type, title, caption, content')
       .eq('proposal_id', proposalId)
       .in('figure_type', ['pert', 'gantt']),
     supabase
@@ -427,7 +428,13 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   }
 
 
-  const figures = (figureRows as any[]) || [];
+  // Figure numbers are DERIVED from the block that places the figure
+  // (prompt 179); the stored `figures.figure_number` column is gone.
+  const derivedFigureNumbers = await fetchDerivedFigureNumbers(proposalId);
+  const figures = ((figureRows as any[]) || []).map((f) => ({
+    ...f,
+    figure_number: derivedFigureNumbers.get(f.id) ?? '',
+  }));
   const pertFigureRow = figures.find((f) => f.figure_type === 'pert') || null;
   const pertChart = pertFigureRow
     ? await fetchPertChartData(
