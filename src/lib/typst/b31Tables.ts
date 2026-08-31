@@ -779,14 +779,11 @@ export function emitFigure(
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
-    // −2.25pt = 3px at 96dpi: pulls the Gantt raster back onto the column's
-    // left edge so its right edge is no longer clipped. 17.2cm rather than the
-    // full 18cm table width: the raster carries a little trailing white of its
-    // own, so drawing it at the full width still overhung the column.
-    native ||
-      `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0${
-        kind === 'gantt' ? ', dx: -2.25pt, w: 17.2cm' : ''
-      })`,
+    // The capture is exactly the chart — 680.3 CSS px = 18cm at 96dpi, with no
+    // leading or trailing white — so it is drawn at the full 18cm text column
+    // with no nudge. Earlier widths (17.7/17.2cm) and the −2.25pt shift only
+    // shrank it away from the right margin.
+    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }

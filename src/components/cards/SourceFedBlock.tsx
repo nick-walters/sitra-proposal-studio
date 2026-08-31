@@ -189,7 +189,11 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.gantt':
       return ganttFigure ? (
         <FigureCapture kind="gantt">
-          <div data-figure-chart="gantt">
+          {/* Shrink to the chart: a block wrapper takes the board column's
+              width, so a narrow column both padded the capture with white and
+              (via the chart's own `max-width: 100%` + `overflow: hidden`)
+              clipped its right-hand months. */}
+          <div data-figure-chart="gantt" style={{ width: 'fit-content' }}>
             <GanttChartFigure
               figureId={ganttFigure.id}
               proposalId={proposalId}
