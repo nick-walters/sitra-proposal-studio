@@ -202,6 +202,22 @@ export function useLinkedActivities(proposalId: string) {
     }
   }, [queryClient, queryKey]);
 
+  /** Writes every pending patch at once (unmount, tab hidden, tab closed). */
+  const flushPending = useCallback(() => {
+    const timers = timersRef.current;
+    const pending = pendingPatchesRef.current;
+    pendingPatchesRef.current = {};
+    for (const [key, timer] of Object.entries(timers)) {
+      clearTimeout(timer);
+      delete timers[key];
+    }
+    for (const { id, patch } of Object.values(pending)) void writeNow(id, patch);
+  }, [writeNow]);
+
+  // Unmount used to clear the timers outright, losing up to 800 ms of typing.
+  useEffect(() => () => flushPending(), [flushPending]);
+  useUnloadFlush(flushPending);
+
   /**
    * Optimistically patches the cache in place (never remounts editors), then
    * writes: debounced for free-text/HTML fields, immediate for selects.
