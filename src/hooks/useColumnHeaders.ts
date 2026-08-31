@@ -47,34 +47,42 @@ export function useColumnHeaders(
   const setHeader = useCallback(
     async (index: number, value: string) => {
       if (!proposalId || !tableKey) return;
+      // Capture the key this edit belongs to, so a table switch mid-flight
+      // cannot land the result under a different table.
+      const keyAtWrite = tableKey;
       const trimmed = value.trim();
-      const next = { ...overrides };
       // Typing the template default back in clears the override, so the column
       // resumes following the template.
-      if (!trimmed || trimmed === defaults[index]) delete next[String(index)];
-      else next[String(index)] = trimmed;
-      setOverrides(next);
+      const clearing = !trimmed || trimmed === defaults[index];
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error } = await (supabase as any).from('table_column_headers').upsert(
-        {
-          proposal_id: proposalId,
-          table_key: tableKey,
-          headers: next,
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id ?? null,
-        },
-        { onConflict: 'proposal_id,table_key' },
-      );
+      setOverrides((prev) => {
+        const next = { ...prev };
+        if (clearing) delete next[String(index)];
+        else next[String(index)] = trimmed;
+        return next;
+      });
+
+      // Merge server-side: only this column is written, so a co-author's edit
+      // to another column of the same table is not replaced by a stale map.
+      const { data, error } = await (supabase as any).rpc('save_table_column_header', {
+        p_proposal_id: proposalId,
+        p_table_key: keyAtWrite,
+        p_index: index,
+        p_value: clearing ? '' : trimmed,
+      });
       if (error) {
         toast.error('Column header not saved', { description: error.message });
+        return;
+      }
+      if (keyAtWrite !== tableKeyRef.current) return;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        setOverrides(data as Record<string, string>);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [proposalId, tableKey, overrides, defaults.join('\u0000')],
+    [proposalId, tableKey, defaults.join('\u0000')],
   );
+
 
   return { headers, setHeader };
 }
