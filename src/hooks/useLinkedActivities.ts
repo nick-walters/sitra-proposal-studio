@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUnloadFlush } from '@/lib/unloadFlush';
 
 export interface LinkedActivity {
   id: string;
@@ -173,16 +174,11 @@ export function useLinkedActivities(proposalId: string) {
 
   // --- Saving state + debounced writes (per id, per field) ---
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /** Newest un-written patch per `${id}:${field}` key, so it can be flushed. */
+  const pendingPatchesRef = useRef<Record<string, { id: string; patch: Record<string, unknown> }>>({});
   const pendingRef = useRef(0);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => {
-      Object.values(timers).forEach(clearTimeout);
-    };
-  }, []);
 
   const writeNow = useCallback(async (id: string, dbPatch: Record<string, unknown>) => {
     pendingRef.current += 1;
@@ -222,9 +218,11 @@ export function useLinkedActivities(proposalId: string) {
       for (const [field, value] of entries) {
         if (DEBOUNCED_FIELDS.has(field)) {
           const timerKey = `${id}:${field}`;
+          pendingPatchesRef.current[timerKey] = { id, patch: { [COLUMN[field]]: value } };
           if (timersRef.current[timerKey]) clearTimeout(timersRef.current[timerKey]);
           timersRef.current[timerKey] = setTimeout(() => {
             delete timersRef.current[timerKey];
+            delete pendingPatchesRef.current[timerKey];
             void writeNow(id, { [COLUMN[field]]: value });
           }, 800);
         } else {

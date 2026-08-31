@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createMethodologyAssignmentNotification } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
+import { useUnloadFlush } from '@/lib/unloadFlush';
 
 
 export interface MethodologyItem {
@@ -160,16 +161,55 @@ export function useMethodologyItems(proposalId: string) {
 
   // --- Debounced text saves (per item id, per field) ---
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /** Newest un-written value per `${id}:${field}` key, so it can be flushed. */
+  const pendingValuesRef = useRef<
+    Record<string, { id: string; field: 'heading' | 'content_html'; value: string }>
+  >({});
   const pendingRef = useRef(0);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  useEffect(() => {
+  /** Writes one field, reporting failure instead of rejecting unhandled. */
+  const writeField = useCallback(
+    async (id: string, field: 'heading' | 'content_html', value: string) => {
+      pendingRef.current += 1;
+      setSaving(true);
+      try {
+        let q = supabase
+          .from('methodology_items')
+          .update(field === 'heading' ? { heading: value } : { content_html: value })
+          .eq('id', id);
+        // Heading writes stay restricted to real methodology rows.
+        if (field === 'heading') q = q.eq('kind', 'methodology');
+        const { error } = await q;
+        if (error) throw error;
+        setLastSaved(new Date());
+      } catch (err) {
+        toast.error('Change not saved', {
+          description: err instanceof Error ? err.message : 'Please try again.',
+        });
+      } finally {
+        pendingRef.current -= 1;
+        if (pendingRef.current <= 0) setSaving(false);
+      }
+    },
+    [],
+  );
+
+  /** Writes every pending value at once (unmount, tab hidden, tab closed). */
+  const flushPending = useCallback(() => {
     const timers = timersRef.current;
-    return () => {
-      Object.values(timers).forEach(clearTimeout);
-    };
-  }, []);
+    const pending = pendingValuesRef.current;
+    pendingValuesRef.current = {};
+    for (const [key, timer] of Object.entries(timers)) {
+      clearTimeout(timer);
+      delete timers[key];
+    }
+    for (const { id, field, value } of Object.values(pending)) void writeField(id, field, value);
+  }, [writeField]);
+
+  useEffect(() => () => flushPending(), [flushPending]);
+  useUnloadFlush(flushPending);
 
   const debouncedSave = useCallback(
     (
@@ -185,32 +225,16 @@ export function useMethodologyItems(proposalId: string) {
       );
 
       const timerKey = `${id}:${field}`;
+      pendingValuesRef.current[timerKey] = { id, field, value };
       if (timersRef.current[timerKey]) clearTimeout(timersRef.current[timerKey]);
-      timersRef.current[timerKey] = setTimeout(async () => {
+      timersRef.current[timerKey] = setTimeout(() => {
         delete timersRef.current[timerKey];
-        pendingRef.current += 1;
-        setSaving(true);
-        try {
-          let q = supabase
-            .from('methodology_items')
-            .update(
-              field === 'heading' ? { heading: value } : { content_html: value },
-            )
-            .eq('id', id);
-          // Heading writes stay restricted to real methodology rows.
-          if (field === 'heading') q = q.eq('kind', 'methodology');
-          const { error } = await q;
-          if (error) throw error;
-
-          setLastSaved(new Date());
-        } finally {
-          pendingRef.current -= 1;
-          if (pendingRef.current <= 0) setSaving(false);
-        }
+        delete pendingValuesRef.current[timerKey];
+        void writeField(id, field, value);
       }, 800);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, proposalId],
+    [queryClient, proposalId, writeField],
   );
 
 
