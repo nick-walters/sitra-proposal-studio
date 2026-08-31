@@ -204,19 +204,7 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
     for (const p of partRes.data ?? []) snap.participantById.set(p.id, p);
     // Figure numbers are DERIVED from the placing block, exactly as the client
     // does. Unplaced figures get no entry, so their chips keep stored labels.
-    const [placementRes, cardRes] = await Promise.all([
-      supabase.from("card_figure").select("card_id, figure_id").eq("proposal_id", proposalId),
-      supabase.from("proposal_cards").select("id, section_id, order_index").eq("proposal_id", proposalId).is("deleted_at", null),
-    ]);
-    const sectionIds = [...new Set((cardRes.data ?? []).map((c: any) => c.section_id).filter(Boolean))];
-    const sectionRes = sectionIds.length
-      ? await supabase.from("proposal_template_sections").select("id, section_number, order_index").in("id", sectionIds)
-      : { data: [] };
-    const figureNumbers = computeFigureNumbers(
-      (placementRes.data ?? []) as any[],
-      (cardRes.data ?? []) as any[],
-      (sectionRes.data ?? []) as any[],
-    );
+    const figureNumbers = await deriveFigureNumbers(supabase, proposalId);
     for (const f of figRes.data ?? []) {
       const derived = figureNumbers.get(f.id);
       if (derived) snap.figureById.set(f.id, { id: f.id, figure_number: derived });
