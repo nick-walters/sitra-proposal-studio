@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileType, Loader2 } from 'lucide-react';
+import { Download, FileType, ListChecks, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { publishCompiledPageCount } from '@/hooks/usePageCount';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { useReferenceData } from '@/lib/referenceData';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
 import { PartBExportDialog } from '@/components/cards/PartBExportDialog';
+import { PartBReviewPanel } from '@/components/cards/PartBReviewPanel';
 import {
   buildPartBTypstDocument,
   exportFileStem,
@@ -65,6 +66,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const [stats, setStats] = useState<Stats | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const { data: sections = [], isPending: sectionsPending } = useQuery({
     queryKey: ['partb-sections', proposalId],
