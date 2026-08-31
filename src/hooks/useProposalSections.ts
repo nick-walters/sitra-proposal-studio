@@ -527,7 +527,12 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'task-allocator', number: '', title: 'Assignments & message board' },
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
-        { id: 'snapshots', number: '', title: 'Snapshots & backups' },
+        // Snapshots & backups is a coordinator/admin surface: standard users
+        // do not see the entry at all, rather than reaching a page that turns
+        // them away.
+        ...(isCoordinator
+          ? [{ id: 'snapshots', number: '', title: 'Snapshots & backups' }]
+          : []),
         { id: 'mock-evaluation', number: '', title: 'Mock evaluation' },
 
       ],
