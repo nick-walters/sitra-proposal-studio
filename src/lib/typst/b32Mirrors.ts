@@ -21,6 +21,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { dropBlankBlocks, htmlHasInk } from './emptyBlocks';
 import { fetchB32InfraTableData, type B32InfraTableData } from './b32InfraData';
 import {
   htmlToTypstBlocks,
@@ -238,17 +239,25 @@ function emitParagraphSlot(
         // "No" to the value-chain relevance question hides the text; it is
         // never deleted, and returns the moment "Yes" is chosen again.
         if (c.field === 'value_chain' && desc?.value_chain_applicable === false) return null;
-        return isBlank(raw) ? null : (raw as string);
+        return isBlank(raw) || !htmlHasInk(raw) ? null : (raw as string);
       })
       .filter((h): h is string => h !== null);
     if (!htmls.length) continue;
 
+    // Buffered, then trimmed: a participant whose mirrored text converts to
+    // nothing but empty paragraphs must not print a badge over a blank region.
+    const entry: string[] = [];
+    htmls.forEach((html, i) => {
+      if (i === 0) entry.push(...leadInBlocks(participantChip(p), html, ctx));
+      else entry.push(...htmlToTypstBlocks(html, ctx));
+    });
+    const trimmed = dropBlankBlocks(entry);
+    // The badge itself draws, so the FIRST block always counts as visible;
+    // the entry is kept only when something beyond the badge line survives.
+    if (!trimmed.length || (trimmed.length === 1 && !htmlHasInk(htmls[0]))) continue;
     if (emittedAny) out.push('v(3pt, weak: true)');
     emittedAny = true;
-    htmls.forEach((html, i) => {
-      if (i === 0) out.push(...leadInBlocks(participantChip(p), html, ctx));
-      else out.push(...htmlToTypstBlocks(html, ctx));
-    });
+    out.push(...trimmed);
   }
   return out;
 }
