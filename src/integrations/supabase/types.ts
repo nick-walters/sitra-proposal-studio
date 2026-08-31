@@ -2989,6 +2989,7 @@ export type Database = {
           order_index: number
           proposal_id: string
           updated_at: string
+          version: number
         }
         Insert: {
           assigned_participant_id?: string | null
@@ -3001,6 +3002,7 @@ export type Database = {
           order_index?: number
           proposal_id: string
           updated_at?: string
+          version?: number
         }
         Update: {
           assigned_participant_id?: string | null
@@ -3013,6 +3015,7 @@ export type Database = {
           order_index?: number
           proposal_id?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -3053,6 +3056,7 @@ export type Database = {
           proposal_id: string
           responsible_participant_id: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           acronym?: string
@@ -3068,6 +3072,7 @@ export type Database = {
           proposal_id: string
           responsible_participant_id?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           acronym?: string
@@ -3083,6 +3088,7 @@ export type Database = {
           proposal_id?: string
           responsible_participant_id?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -3112,6 +3118,7 @@ export type Database = {
           proposal_id: string
           title: string
           updated_at: string
+          version: number
         }
         Insert: {
           content_html?: string | null
@@ -3123,6 +3130,7 @@ export type Database = {
           proposal_id: string
           title?: string
           updated_at?: string
+          version?: number
         }
         Update: {
           content_html?: string | null
@@ -3134,6 +3142,7 @@ export type Database = {
           proposal_id?: string
           title?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -7374,10 +7383,6 @@ export type Database = {
         Args: { p_card_id: string; p_expected_version: number; p_title: string }
         Returns: Json
       }
-      save_case_draft: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
-        Returns: Json
-      }
       save_case_draft_subsection: {
         Args: {
           p_body: string
@@ -7394,14 +7399,6 @@ export type Database = {
       }
       save_milestone_and_resequence: {
         Args: { p_expected_version?: number; p_id: string; p_patch: Json }
-        Returns: Json
-      }
-      save_proposal_milestone: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
-        Returns: Json
-      }
-      save_proposal_risk: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: Json
       }
       save_target_version: {
@@ -7421,18 +7418,6 @@ export type Database = {
           p_patch: Json
           p_table: string
         }
-        Returns: Json
-      }
-      save_wp_draft: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
-        Returns: Json
-      }
-      save_wp_draft_deliverable: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
-        Returns: Json
-      }
-      save_wp_draft_task: {
-        Args: { p_expected_version: number; p_id: string; p_patch: Json }
         Returns: Json
       }
       seed_proposal_cards: { Args: { p_proposal_id: string }; Returns: number }

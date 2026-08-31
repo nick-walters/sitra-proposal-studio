@@ -2057,7 +2057,13 @@ function BoardInner({
     }
   }, [cards]);
 
+  /** Late-bound so the flush helper can run before `persistField` exists. */
+  const persistFieldRef = useRef<
+    (fieldId: string, cardId: string, html: string, isAutoSave?: boolean) => Promise<void>
+  >(async () => {});
+
   /**
+
    * Writes every pending text box at once. `keepalive` is used when the page
    * itself is going away: an ordinary supabase fetch is cancelled with the
    * document, so the last keystrokes would be lost exactly when it matters.
@@ -2086,11 +2092,12 @@ function BoardInner({
             accessTokenRef.current,
           );
         } else {
-          void persistField(fieldId, entry.cardId, entry.html);
+          void persistFieldRef.current(fieldId, entry.cardId, entry.html);
         }
       }
     },
-    [persistField],
+    [],
+
   );
 
   // Unmounting (route change, block swap) writes the pending text instead of
@@ -2170,6 +2177,9 @@ function BoardInner({
     },
     [saveTextBox, proposalId],
   );
+  persistFieldRef.current = persistField;
+
+
 
   const handleContentChange = (field: CardField, html: string) => {
     dirtyRef.current[field.id] = { cardId: field.cardId, html };

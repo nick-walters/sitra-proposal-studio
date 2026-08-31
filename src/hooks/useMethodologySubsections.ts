@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnloadFlush } from '@/lib/unloadFlush';
+import { saveVersionedRow } from '@/lib/versionedSave';
 
 
 export interface MethodologySubsection {
@@ -13,11 +14,14 @@ export interface MethodologySubsection {
   orderIndex: number;
   isVisible: boolean;
   contentHtml: string | null;
+  version: number;
 }
 
 export function useMethodologySubsections(proposalId: string) {
   const queryClient = useQueryClient();
   const queryKey = ['methodology-subsections', proposalId];
+  /** Stored row version last seen per subsection, for the save-time check. */
+  const versionsRef = useRef<Record<string, number>>({});
 
   const { data: subsections = [], isLoading } = useQuery({
     queryKey,
@@ -25,24 +29,29 @@ export function useMethodologySubsections(proposalId: string) {
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('methodology_subsections')
-        .select('id, proposal_id, key, title, order_index, is_visible, content_html')
+        .select('id, proposal_id, key, title, order_index, is_visible, content_html, version')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
-      return (data || []).map((r) => ({
-        id: r.id,
-        proposalId: r.proposal_id,
-        key: r.key,
-        title: r.title,
-        orderIndex: r.order_index,
-        isVisible: r.is_visible,
-        contentHtml: r.content_html,
-      }));
+      return (data || []).map((r) => {
+        versionsRef.current[r.id] = r.version;
+        return {
+          id: r.id,
+          proposalId: r.proposal_id,
+          key: r.key,
+          title: r.title,
+          orderIndex: r.order_index,
+          isVisible: r.is_visible,
+          contentHtml: r.content_html,
+          version: r.version,
+        };
+      });
     },
     enabled: !!proposalId,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
+
 
   const updateTitleMutation = useMutation({
     mutationFn: async ({ id, title }: { id: string; title: string }) => {
@@ -87,28 +96,40 @@ export function useMethodologySubsections(proposalId: string) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  /** Writes one subsection's content, reporting any failure to the user. */
-  const writeContent = useCallback(async (id: string, contentHtml: string) => {
-    pendingRef.current += 1;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('methodology_subsections')
-        .update({ content_html: contentHtml })
-        .eq('id', id);
-      if (error) throw error;
-      setLastSaved(new Date());
-    } catch (err) {
-      // Previously this threw inside an async setTimeout: the rejection was
-      // unhandled, the indicator still read "Saved", and nothing was written.
-      toast.error('Change not saved', {
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
-    } finally {
-      pendingRef.current -= 1;
-      if (pendingRef.current <= 0) setSaving(false);
-    }
-  }, []);
+  /**
+   * Writes one subsection's content through the shared version-guarded save,
+   * so a second author's write cannot silently overwrite the first — the
+   * rejected text is offered back through the global lost-text dialog.
+   */
+  const writeContent = useCallback(
+    async (id: string, contentHtml: string) => {
+      pendingRef.current += 1;
+      setSaving(true);
+      try {
+        const res = await saveVersionedRow<{ version: number }>(
+          'methodology_subsections',
+          id,
+          { content_html: contentHtml },
+          versionsRef.current[id] ?? null,
+        );
+        if (res.version) versionsRef.current[id] = res.version;
+        if (!res.ok) {
+          if (res.conflict) {
+            queryClient.invalidateQueries({ queryKey: ['methodology-subsections', proposalId] });
+          } else {
+            toast.error('Change not saved', { description: res.error || 'Please try again.' });
+          }
+          return;
+        }
+        setLastSaved(new Date());
+      } finally {
+        pendingRef.current -= 1;
+        if (pendingRef.current <= 0) setSaving(false);
+      }
+    },
+    [queryClient, proposalId],
+  );
+
 
   /** Writes every pending value at once (unmount, tab hidden, tab closed). */
   const flushPending = useCallback(() => {
