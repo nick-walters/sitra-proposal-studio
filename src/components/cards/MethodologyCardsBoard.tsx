@@ -2057,7 +2057,13 @@ function BoardInner({
     }
   }, [cards]);
 
+  /** Late-bound so the flush helper can run before `persistField` exists. */
+  const persistFieldRef = useRef<
+    (fieldId: string, cardId: string, html: string, isAutoSave?: boolean) => Promise<void>
+  >(async () => {});
+
   /**
+
    * Writes every pending text box at once. `keepalive` is used when the page
    * itself is going away: an ordinary supabase fetch is cancelled with the
    * document, so the last keystrokes would be lost exactly when it matters.
