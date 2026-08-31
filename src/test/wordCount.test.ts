@@ -45,7 +45,7 @@ describe('estimatePages', () => {
     expect(estimatePages(WORDS_PER_PAGE + 1)).toBe(2 + FRONT_MATTER_PAGES);
   });
 
-  it('matches the live Susie-Q figure of 42 pages for 20,155 words', () => {
-    expect(estimatePages(20_155)).toBe(42);
+  it('uses the 640 words/page calibration for Susie-Q’s 20,155 words', () => {
+    expect(estimatePages(20_155)).toBe(33);
   });
 });
