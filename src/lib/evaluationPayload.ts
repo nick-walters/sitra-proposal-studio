@@ -33,7 +33,7 @@ export interface EvaluationPayload {
   sectionCount: number;
   blockCount: number;
   /** Plain text per emitted section, for prompts that quote one section. */
-  sections: { id: string; label: string; text: string }[];
+  sections: { id: string; number: string; label: string; text: string }[];
 }
 
 export async function buildEvaluationPayload(proposalId: string): Promise<EvaluationPayload> {
@@ -62,6 +62,7 @@ export async function buildEvaluationPayload(proposalId: string): Promise<Evalua
     blockCount: built.blockCount,
     sections: built.sectionSources.map((s) => ({
       id: s.id,
+      number: s.number,
       label: s.label,
       text: typstSourceToText(s.source),
     })),

@@ -2880,6 +2880,7 @@ function BoardInner({
             }}
             proposalId={proposalId}
             sectionId={sectionId}
+            sectionNumber={sectionNumber}
           />
         )}
 

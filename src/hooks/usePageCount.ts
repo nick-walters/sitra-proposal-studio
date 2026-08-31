@@ -17,6 +17,7 @@ import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-quer
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
 import { WORDS_PER_PAGE } from '@/lib/wordCount';
+import { normalizeSectionNumber } from '@/lib/sectionNumber';
 import { usePageEstimate } from './usePageEstimate';
 
 export interface CompiledPageCount {
@@ -34,11 +35,11 @@ export const compiledPageCountKey = (proposalId: string) => ['compiled-page-coun
  * preview. Kept under the same `compiled-page-count` prefix so one call marks
  * the whole family stale after a content change.
  */
-export const compiledSectionPageCountKey = (proposalId: string, sectionId: string) => [
+export const compiledSectionPageCountKey = (proposalId: string, sectionNumber: string) => [
   'compiled-page-count',
   proposalId,
   'section',
-  sectionId,
+  normalizeSectionNumber(sectionNumber) || 'none',
 ];
 
 /** Called by the document view after every successful compile. */
@@ -55,11 +56,11 @@ export function publishCompiledPageCount(qc: QueryClient, proposalId: string, pa
 export function publishCompiledSectionPageCount(
   qc: QueryClient,
   proposalId: string,
-  sectionId: string,
+  sectionNumber: string,
   pages: number,
 ) {
-  if (!proposalId || !sectionId || !pages) return;
-  qc.setQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, sectionId), {
+  if (!proposalId || !sectionNumber || !pages) return;
+  qc.setQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, sectionNumber), {
     pages,
     at: Date.now(),
     stale: false,
@@ -193,23 +194,22 @@ export interface SectionPageCountResult {
  */
 export function useSectionPageCount(
   proposalId: string,
-  sectionId: string | null | undefined,
+  sectionNumber: string | null | undefined,
 ): SectionPageCountResult {
   const qc = useQueryClient();
   const { sectionWords } = usePageEstimate(proposalId);
+  const key = normalizeSectionNumber(sectionNumber);
 
   const { data: compiled } = useQuery<CompiledPageCount | null>({
-    queryKey: compiledSectionPageCountKey(proposalId, sectionId || 'none'),
-    enabled: !!proposalId && !!sectionId,
+    queryKey: compiledSectionPageCountKey(proposalId, key),
+    enabled: !!proposalId && !!key,
     staleTime: Infinity,
     gcTime: Infinity,
     queryFn: () =>
-      qc.getQueryData<CompiledPageCount>(
-        compiledSectionPageCountKey(proposalId, sectionId || 'none'),
-      ) ?? null,
+      qc.getQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, key)) ?? null,
   });
 
-  const words = (sectionId && sectionWords[sectionId]) || 0;
+  const words = (key && sectionWords[key]) || 0;
   const estimated = words ? Math.max(1, Math.ceil(words / WORDS_PER_PAGE)) : null;
 
   return {

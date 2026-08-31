@@ -780,9 +780,13 @@ export function emitFigure(
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
     // −2.25pt = 3px at 96dpi: pulls the Gantt raster back onto the column's
-    // left edge so its right edge is no longer clipped.
+    // left edge so its right edge is no longer clipped. 17.7cm rather than the
+    // full 18cm table width: the raster carries a little trailing white of its
+    // own, so drawing it at the full width still overhung the column.
     native ||
-      `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0${kind === 'gantt' ? ', dx: -2.25pt' : ''})`,
+      `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0${
+        kind === 'gantt' ? ', dx: -2.25pt, w: 17.7cm' : ''
+      })`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
