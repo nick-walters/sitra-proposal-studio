@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { createMethodologyAssignmentNotification } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { useUnloadFlush } from '@/lib/unloadFlush';
+import { saveVersionedRow } from '@/lib/versionedSave';
 
 
 export interface MethodologyItem {
@@ -16,6 +17,7 @@ export interface MethodologyItem {
   contentHtml: string | null;
   assignedParticipantId: string | null;
   orderIndex: number;
+  version: number;
 }
 
 export const methodologyItemsQueryKey = (proposalId: string | undefined | null) => [
@@ -40,7 +42,7 @@ export function useMethodologyItemsQuery(
       const { data, error } = await supabase
         .from('methodology_items')
         .select(
-          'id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index',
+          'id, proposal_id, kind, case_type_id, heading, content_html, assigned_participant_id, order_index, version',
         )
         .eq('proposal_id', proposalId)
         .order('order_index');
@@ -54,6 +56,7 @@ export function useMethodologyItemsQuery(
         contentHtml: r.content_html,
         assignedParticipantId: r.assigned_participant_id,
         orderIndex: r.order_index,
+        version: r.version,
       }));
     },
   });
@@ -166,34 +169,45 @@ export function useMethodologyItems(proposalId: string) {
     Record<string, { id: string; field: 'heading' | 'content_html'; value: string }>
   >({});
   const pendingRef = useRef(0);
+  /** Stored row version last seen per item, for the save-time check. */
+  const versionsRef = useRef<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  /** Writes one field, reporting failure instead of rejecting unhandled. */
+  /**
+   * Writes one field through the shared version-guarded save. A rejected write
+   * hands the typed text back through the global lost-text dialog rather than
+   * overwriting another author's edit.
+   */
   const writeField = useCallback(
     async (id: string, field: 'heading' | 'content_html', value: string) => {
+      // Headings only exist on real methodology rows.
+      const current = queryClient.getQueryData<MethodologyItem[]>(queryKey) || [];
+      const row = current.find((i) => i.id === id);
+      if (field === 'heading' && row && row.kind !== 'methodology') return;
       pendingRef.current += 1;
       setSaving(true);
       try {
-        let q = supabase
-          .from('methodology_items')
-          .update(field === 'heading' ? { heading: value } : { content_html: value })
-          .eq('id', id);
-        // Heading writes stay restricted to real methodology rows.
-        if (field === 'heading') q = q.eq('kind', 'methodology');
-        const { error } = await q;
-        if (error) throw error;
+        const res = await saveVersionedRow<{ version: number }>(
+          'methodology_items',
+          id,
+          field === 'heading' ? { heading: value } : { content_html: value },
+          versionsRef.current[id] ?? row?.version ?? null,
+        );
+        if (res.version) versionsRef.current[id] = res.version;
+        if (!res.ok) {
+          if (res.conflict) queryClient.invalidateQueries({ queryKey });
+          else toast.error('Change not saved', { description: res.error || 'Please try again.' });
+          return;
+        }
         setLastSaved(new Date());
-      } catch (err) {
-        toast.error('Change not saved', {
-          description: err instanceof Error ? err.message : 'Please try again.',
-        });
       } finally {
         pendingRef.current -= 1;
         if (pendingRef.current <= 0) setSaving(false);
       }
     },
-    [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, proposalId],
   );
 
   /** Writes every pending value at once (unmount, tab hidden, tab closed). */
