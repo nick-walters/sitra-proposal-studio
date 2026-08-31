@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useUnloadFlush } from '@/lib/unloadFlush';
 
 
 export interface MethodologySubsection {
@@ -79,16 +81,51 @@ export function useMethodologySubsections(proposalId: string) {
 
   // --- Debounced content autosave (per subsection id) ---
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  /** The newest un-written value per subsection, so it can be flushed. */
+  const pendingValuesRef = useRef<Record<string, string>>({});
   const pendingRef = useRef(0);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => {
-      Object.values(timers).forEach(clearTimeout);
-    };
+  /** Writes one subsection's content, reporting any failure to the user. */
+  const writeContent = useCallback(async (id: string, contentHtml: string) => {
+    pendingRef.current += 1;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('methodology_subsections')
+        .update({ content_html: contentHtml })
+        .eq('id', id);
+      if (error) throw error;
+      setLastSaved(new Date());
+    } catch (err) {
+      // Previously this threw inside an async setTimeout: the rejection was
+      // unhandled, the indicator still read "Saved", and nothing was written.
+      toast.error('Change not saved', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
+    } finally {
+      pendingRef.current -= 1;
+      if (pendingRef.current <= 0) setSaving(false);
+    }
   }, []);
+
+  /** Writes every pending value at once (unmount, tab hidden, tab closed). */
+  const flushPending = useCallback(() => {
+    const timers = timersRef.current;
+    const pending = pendingValuesRef.current;
+    pendingValuesRef.current = {};
+    for (const [id, timer] of Object.entries(timers)) {
+      clearTimeout(timer);
+      delete timers[id];
+    }
+    for (const [id, html] of Object.entries(pending)) void writeContent(id, html);
+  }, [writeContent]);
+
+  // Unmounting used to CLEAR the timers, throwing away up to 800 ms of typing
+  // on a route change. It now writes them.
+  useEffect(() => () => flushPending(), [flushPending]);
+  useUnloadFlush(flushPending);
 
   const updateContent = useCallback(
     (id: string, contentHtml: string) => {
@@ -97,26 +134,16 @@ export function useMethodologySubsections(proposalId: string) {
         (prev || []).map((s) => (s.id === id ? { ...s, contentHtml } : s)),
       );
 
+      pendingValuesRef.current[id] = contentHtml;
       if (timersRef.current[id]) clearTimeout(timersRef.current[id]);
-      timersRef.current[id] = setTimeout(async () => {
+      timersRef.current[id] = setTimeout(() => {
         delete timersRef.current[id];
-        pendingRef.current += 1;
-        setSaving(true);
-        try {
-          const { error } = await supabase
-            .from('methodology_subsections')
-            .update({ content_html: contentHtml })
-            .eq('id', id);
-          if (error) throw error;
-          setLastSaved(new Date());
-        } finally {
-          pendingRef.current -= 1;
-          if (pendingRef.current <= 0) setSaving(false);
-        }
+        delete pendingValuesRef.current[id];
+        void writeContent(id, contentHtml);
       }, 800);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, proposalId],
+    [queryClient, proposalId, writeContent],
   );
 
   return {
