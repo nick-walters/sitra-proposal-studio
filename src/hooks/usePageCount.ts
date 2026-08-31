@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
 import { WORDS_PER_PAGE } from '@/lib/wordCount';
 import { normalizeSectionNumber } from '@/lib/sectionNumber';
-import { usePageEstimate } from './usePageEstimate';
+import { pageEstimateKey, usePageEstimate } from './usePageEstimate';
 
 export interface CompiledPageCount {
   pages: number;
@@ -73,6 +73,8 @@ export function markCompiledPageCountStale(qc: QueryClient) {
     { queryKey: ['compiled-page-count'] },
     (old) => (old ? { ...old, stale: true } : old),
   );
+  // The word estimate is held for ever until exactly this moment.
+  qc.invalidateQueries({ queryKey: ['page-estimate'] });
 }
 
 
@@ -156,7 +158,6 @@ export interface PageCountResult {
 export function usePageCount(proposalId: string): PageCountResult {
   const qc = useQueryClient();
   const limit = useProposalPageLimit(proposalId);
-  const { estimatedPages, totalWords, isLoading } = usePageEstimate(proposalId);
 
   const { data: compiled } = useQuery<CompiledPageCount | null>({
     queryKey: compiledPageCountKey(proposalId),
@@ -165,6 +166,12 @@ export function usePageCount(proposalId: string): PageCountResult {
     gcTime: Infinity,
     queryFn: () => qc.getQueryData<CompiledPageCount>(compiledPageCountKey(proposalId)) ?? null,
   });
+
+  // Only assembled while there is no compiled count to show.
+  const { estimatedPages, totalWords, isLoading } = usePageEstimate(
+    proposalId,
+    !compiled?.pages,
+  );
 
   const pages = compiled?.pages ?? estimatedPages ?? null;
 
@@ -197,7 +204,6 @@ export function useSectionPageCount(
   sectionNumber: string | null | undefined,
 ): SectionPageCountResult {
   const qc = useQueryClient();
-  const { sectionWords } = usePageEstimate(proposalId);
   const key = normalizeSectionNumber(sectionNumber);
 
   const { data: compiled } = useQuery<CompiledPageCount | null>({
@@ -208,6 +214,8 @@ export function useSectionPageCount(
     queryFn: () =>
       qc.getQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, key)) ?? null,
   });
+
+  const { sectionWords } = usePageEstimate(proposalId, !compiled?.pages);
 
   const words = (key && sectionWords[key]) || 0;
   const estimated = words ? Math.max(1, Math.ceil(words / WORDS_PER_PAGE)) : null;

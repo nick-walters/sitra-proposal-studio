@@ -26,15 +26,23 @@ interface UsePageEstimateResult {
   isLoading: boolean;
 }
 
-export function usePageEstimate(proposalId: string): UsePageEstimateResult {
+export const pageEstimateKey = (proposalId: string) => ['page-estimate', proposalId];
+
+/**
+ * `enabled: false` when a real compiled count already answers the question —
+ * the caller then reads the cache and pays nothing.
+ */
+export function usePageEstimate(proposalId: string, enabled = true): UsePageEstimateResult {
   const { data, isLoading } = useQuery({
-    queryKey: ['page-estimate', proposalId],
+    queryKey: pageEstimateKey(proposalId),
     queryFn: () => buildEvaluationPayload(proposalId),
-    enabled: !!proposalId,
-    // Assembling the live document is heavier than a single select, so the
-    // estimate is cached for a minute rather than recomputed on every mount.
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    enabled: !!proposalId && enabled,
+    // The assembly is text-only now, but it is still dozens of selects, so it
+    // is computed ONCE per proposal and held until the content changes:
+    // `markCompiledPageCountStale` invalidates this key alongside the compiled
+    // counts. Navigating between screens re-reads the cache and costs nothing.
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const sectionWords = useMemo(() => {
