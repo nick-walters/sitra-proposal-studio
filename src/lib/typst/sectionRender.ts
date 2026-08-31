@@ -18,8 +18,8 @@
  *     authored figures, page-one furniture) plus the emit itself.
  *
  * What legitimately remains caller-specific: the preamble (written once, from
- * the first section's meta), the page break and `<part-marker>` between
- * sections, and the export selection filter. Nothing else.
+ * the first section's meta), the `<part-marker>` emitted before each section,
+ * and the export selection filter. Nothing else.
  */
 
 import type { RefSnapshot } from '@/lib/referenceData';
