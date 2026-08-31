@@ -13,6 +13,7 @@
  * followed by its body, separated by hairlines.
  */
 
+import { dropBlankBlocks, hasVisibleBlocks } from './emptyBlocks';
 import { supabase } from '@/integrations/supabase/client';
 import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -207,9 +208,46 @@ export function emitCasesTable(
     out.push(`he-caption(${typstString(captionLabel)}, ${lit(group.captionText)})`);
   }
 
-  group.cases.forEach((c, caseIndex) => {
-    // Roughly one blank line between consecutive cases.
-    if (caseIndex > 0) out.push('v(11pt)');
+  group.cases.forEach((c) => {
+    // The entry is buffered: a case whose subsections are all empty prints
+    // NOTHING — not the name pill, not the title, not the lead badge. A
+    // heading, a subtitle and a participant chip with no body beneath them is
+    // an unwritten case, and an unwritten case has no place in the document.
+    const entry: string[] = [];
+    c.subsections.forEach((s) => {
+      const heading = s.heading.trim();
+      // A stored body often opens with an empty paragraph left behind by the
+      // editor; converted, it printed as a blank line between the heading and
+      // the text. Leading and trailing empties are dropped here.
+      const body = s.bodyHtml
+        .replace(/^(?:\s*<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '')
+        .replace(/(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
+      const tpl = document.createElement('template');
+      tpl.innerHTML = body;
+      const children = Array.from(tpl.content.children);
+      // The heading RUNS IN: it opens the first paragraph rather than forming a
+      // block of its own, which is what pushed the body onto the next line no
+      // matter how many empty paragraphs were stripped. Same shape as B1.2's
+      // methodology items.
+      const lead = heading ? `strong(emph(${lit(`${heading}:`)})) + h(4pt) + ` : '';
+      const sub: string[] = [];
+      if (children.length) {
+        sub.push(`par(justify: true, ${lead}${htmlToTypstInline(children[0].outerHTML, ctx)})`);
+        for (const child of children.slice(1)) {
+          sub.push(...htmlToTypstBlocks(child.outerHTML, ctx));
+        }
+      }
+      // A subsection with a heading and no body is not printed at all.
+      const trimmed = dropBlankBlocks(sub);
+      if (!hasVisibleBlocks(trimmed)) return;
+      entry.push(...trimmed, RULE('0.5pt'));
+    });
+
+    if (!entry.length) return;
+    // The last rule of the entry is the heavy one that closes the case.
+    entry[entry.length - 1] = RULE('2pt');
+
+    if (out.length > (captionLabel ? 1 : 0)) out.push('v(11pt)');
     // The long 18 cm pill belongs to the CASE DRAFT HEADER only. In the B1.2
     // pilots table the case name is a content-width outlined chip, the same
     // shape a case cross-reference takes in running prose.
@@ -225,36 +263,7 @@ export function emitCasesTable(
       );
     }
     out.push(RULE('2pt'));
-
-    c.subsections.forEach((s, index) => {
-      const heading = s.heading.trim();
-      // A stored body often opens with an empty paragraph left behind by the
-      // editor; converted, it printed as a blank line between the heading and
-      // the text. Leading and trailing empties are dropped here.
-      const body = s.bodyHtml
-        .replace(/^(?:\s*<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>)+/i, '')
-        .replace(/(?:<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, '');
-      // The heading RUNS IN: it opens the first paragraph rather than forming a
-      // block of its own, which is what pushed the body onto the next line no
-      // matter how many empty paragraphs were stripped. Same shape as B1.2's
-      // methodology items.
-      const lead = heading ? `strong(emph(${lit(`${heading}:`)})) + h(4pt) + ` : '';
-      const tpl = document.createElement('template');
-      tpl.innerHTML = body;
-      const children = Array.from(tpl.content.children);
-      if (children.length === 0) {
-        if (heading) out.push(`par(justify: true, ${lead.slice(0, -3)})`);
-      } else {
-        out.push(
-          `par(justify: true, ${lead}${htmlToTypstInline(children[0].outerHTML, ctx)})`,
-        );
-        for (const child of children.slice(1)) {
-          out.push(...htmlToTypstBlocks(child.outerHTML, ctx));
-        }
-      }
-      out.push(RULE(index === c.subsections.length - 1 ? '2pt' : '0.5pt'));
-    });
-
+    out.push(...entry);
   });
   return out;
 }
