@@ -139,7 +139,7 @@ export interface PartBBuildResult {
   /** Sections actually emitted (after the selection filter). */
   sectionCount: number;
   /** Per-section source, so callers can derive per-section text. */
-  sectionSources: { id: string; label: string; source: string }[];
+  sectionSources: { id: string; number: string; label: string; source: string }[];
 }
 
 export interface PartBBuildOptions {
@@ -182,7 +182,7 @@ export async function buildPartBTypstDocument(
   const unsupported = new Set<string>();
   const bodies: string[] = [];
   let blockCount = 0;
-  const sectionSources: { id: string; label: string; source: string }[] = [];
+  const sectionSources: { id: string; number: string; label: string; source: string }[] = [];
   let documentMeta: TypstDocMeta | null = null;
 
   for (const section of sections) {
@@ -208,7 +208,7 @@ export async function buildPartBTypstDocument(
     // the running footer.
     const marker = `#metadata(${typstString(built.meta.partLabel || section.number)}) <part-marker>`;
     bodies.push(`${marker}\n\n${built.source}`);
-    sectionSources.push({ id: section.id, label, source: built.source });
+    sectionSources.push({ id: section.id, number: section.number, label, source: built.source });
   }
 
   const preambleMeta: TypstDocMeta = documentMeta ?? { watermark: options.watermark };

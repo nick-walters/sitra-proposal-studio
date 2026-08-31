@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { buildEvaluationPayload } from '@/lib/evaluationPayload';
 import { countWords } from '@/lib/wordCount';
+import { normalizeSectionNumber } from '@/lib/sectionNumber';
 
 /**
  * In-editor page estimate.
@@ -15,7 +16,12 @@ import { countWords } from '@/lib/wordCount';
 interface UsePageEstimateResult {
   estimatedPages: number | null;
   totalWords: number;
-  /** Words per emitted Part B section, keyed by section id. */
+  /**
+   * Words per emitted Part B section, keyed by NORMALISED SECTION NUMBER
+   * ("B1.1"). Not by id: the navigation carries `template_sections.id` while
+   * the document carries `proposal_template_sections.id`, so an id key never
+   * matched and the badge's section half was always blank.
+   */
   sectionWords: Record<string, number>;
   isLoading: boolean;
 }
@@ -33,7 +39,8 @@ export function usePageEstimate(proposalId: string): UsePageEstimateResult {
 
   const sectionWords = useMemo(() => {
     const out: Record<string, number> = {};
-    for (const section of data?.sections ?? []) out[section.id] = countWords(section.text);
+    for (const section of data?.sections ?? [])
+      out[normalizeSectionNumber(section.number)] = countWords(section.text);
     return out;
   }, [data]);
 

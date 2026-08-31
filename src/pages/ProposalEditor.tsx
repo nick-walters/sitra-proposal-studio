@@ -1193,17 +1193,17 @@ export function ProposalEditor() {
           <div className="flex items-center gap-2">
 
             {/* Real compiled Part B page count against the proposal's limit */}
-            <PageCountBadge
-              proposalId={id || ''}
-              sectionId={activeSection && !activeSection.isPartA ? activeSection.id : null}
-              sectionLabel={
-                activeSection && !activeSection.isPartA
-                  ? (activeSection as Section).number
+            {activeSection && !activeSection.isPartA && (
+              <PageCountBadge
+                proposalId={id || ''}
+                sectionNumber={(activeSection as Section).number || null}
+                sectionLabel={
+                  (activeSection as Section).number
                     ? `Part ${(activeSection as Section).number}`
                     : activeSection.title
-                  : null
-              }
-            />
+                }
+              />
+            )}
 
             {/* Read-only indicator for non-draft proposals */}
             {!isDraft && (

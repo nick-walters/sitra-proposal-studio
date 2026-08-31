@@ -49,7 +49,13 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: refData } = useReferenceData(proposalId);
-  const { ganttFigure } = useB31SectionData(proposalId);
+  const { ganttFigure, loading: b31Loading } = useB31SectionData(proposalId);
+  // The off-screen Gantt host has to be PAINTED before the raster is taken.
+  // Without this gate the first compile ran in the same tick the host mounted,
+  // `captureOne` found an element of zero height, and the document showed
+  // "the chart was not on screen …" until you navigated away and back.
+  const [ganttPainted, setGanttPainted] = useState(false);
+  const ganttHostRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const urlRef = useRef<string | null>(null);
 
@@ -71,6 +77,30 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     },
     [],
   );
+
+  useEffect(() => {
+    if (!ganttFigure) return;
+    let cancelled = false;
+    let frame = 0;
+    let tries = 0;
+    // Two frames after layout is the usual case; poll a little longer because
+    // the chart measures itself and reflows once its fonts resolve.
+    const check = () => {
+      if (cancelled) return;
+      const el = ganttHostRef.current?.querySelector<HTMLElement>('[data-figure-chart="gantt"]');
+      if (el && el.offsetHeight > 0 && el.offsetWidth > 0) {
+        setGanttPainted(true);
+        return;
+      }
+      if (tries++ > 120) return; // ~2s at 60fps: give up and compile without it
+      frame = requestAnimationFrame(check);
+    };
+    frame = requestAnimationFrame(check);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [ganttFigure]);
 
   const compile = useCallback(
     async (selection: PartBExportSelection, watermark: boolean) => {
@@ -121,9 +151,13 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     }
   }, [compile, sections.length, queryClient, proposalId]);
 
+  // Compile only once the figure data has settled AND, when there is a Gantt,
+  // its off-screen host has actually painted.
+  const figuresReady = !b31Loading && (!ganttFigure || ganttPainted);
+
   useEffect(() => {
-    if (status === 'idle' && sections.length) void runPreview();
-  }, [status, sections.length, runPreview]);
+    if (status === 'idle' && sections.length && figuresReady) void runPreview();
+  }, [status, sections.length, figuresReady, runPreview]);
 
   const handleExport = async (selection: PartBExportSelection, watermark: boolean) => {
     setExporting(true);
@@ -149,6 +183,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
       ganttFigure ? (
         <div
           aria-hidden
+          ref={ganttHostRef}
           style={{ position: 'fixed', left: -20000, top: 0, width: 1400, pointerEvents: 'none' }}
         >
           {/*

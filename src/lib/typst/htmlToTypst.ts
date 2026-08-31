@@ -61,8 +61,46 @@ export interface ConvertContext {
   };
 }
 
+/**
+ * Characters with no glyph in the embedded fonts.
+ *
+ * A missing glyph does not fail the compile — Typst draws the notdef box, and
+ * SUSIE-Q's title (`Quantum\u2011ready`, a NON-BREAKING HYPHEN U+2011) came out as a
+ * checked box followed by a space. Normalising on the way OUT covers every
+ * authored string at once — titles, headings, table cells, chips, captions —
+ * whatever route the text took into the database.
+ */
+const GLYPH_FALLBACKS: Record<string, string> = {
+  '\u2010': '-', // hyphen
+  '\u2011': '-', // non-breaking hyphen
+  '\u2012': '\u2013', // figure dash -> en dash
+  '\u2015': '\u2014', // horizontal bar -> em dash
+  '\u2212': '-', // minus sign
+  '\u00ad': '', // soft hyphen
+  '\u200b': '', // zero-width space
+  '\u200c': '',
+  '\u200d': '',
+  '\ufeff': '',
+  '\u2007': ' ', // figure space
+  '\u2008': ' ',
+  '\u2009': ' ', // thin space
+  '\u200a': ' ',
+  '\u202f': '\u00a0', // narrow no-break space -> no-break space
+  '\u2044': '/', // fraction slash
+  '\u02bc': '\u2019', // modifier apostrophe
+  '\u2027': '\u00b7',
+};
+
+/** Replaces glyphs the embedded fonts cannot draw with ones they can. */
+export function normalizeTypstText(s: string): string {
+  const composed = s.normalize('NFC');
+  let out = '';
+  for (const ch of composed) out += ch in GLYPH_FALLBACKS ? GLYPH_FALLBACKS[ch] : ch;
+  return out;
+}
+
 export function typstString(s: string): string {
-  return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  return `"${normalizeTypstText(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 const lit = (s: string) => `t(${typstString(s)})`;

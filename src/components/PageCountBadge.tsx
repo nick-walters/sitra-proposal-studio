@@ -15,20 +15,24 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   proposalId: string;
-  /** The section currently open, so its own cost can be shown beside the total. */
-  sectionId?: string | null;
+  /**
+   * The section currently open, as its NUMBER ("B1.1"), so its own cost can be
+   * shown beside the total. Numbers, not ids: navigation and the compiled
+   * document identify the same section by different primary keys.
+   */
+  sectionNumber?: string | null;
   /** Its display label, e.g. "Part B1.1" or "B3.1". */
   sectionLabel?: string | null;
 }
 
-export function PageCountBadge({ proposalId, sectionId, sectionLabel }: Props) {
+export function PageCountBadge({ proposalId, sectionNumber, sectionLabel }: Props) {
   const { pages, isCompiled, isStale, words, limit, overLimit, isLoading } = usePageCount(proposalId);
-  const section = useSectionPageCount(proposalId, sectionId);
+  const section = useSectionPageCount(proposalId, sectionNumber);
 
   if (!proposalId || (isLoading && pages === null)) return null;
   if (pages === null) return null;
 
-  const showSection = !!sectionId && !!sectionLabel && section.pages !== null;
+  const showSection = !!sectionNumber && !!sectionLabel && section.pages !== null;
 
   return (
     <Tooltip>

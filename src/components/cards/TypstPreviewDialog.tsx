@@ -26,6 +26,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   proposalId: string;
   sectionId: string;
+  /** Section NUMBER ("B1.1") — the key the page-count cache uses. */
+  sectionNumber?: string;
   sectionLabel?: string;
 }
 
@@ -42,6 +44,7 @@ export function TypstPreviewDialog({
   onOpenChange,
   proposalId,
   sectionId,
+  sectionNumber,
   sectionLabel,
 }: Props) {
   const { data: refData } = useReferenceData(proposalId);
@@ -105,7 +108,7 @@ export function TypstPreviewDialog({
       setPageCount(pages);
       // The section's REAL page cost, shown in the editor chrome next to the
       // whole-document count.
-      publishCompiledSectionPageCount(queryClient, proposalId, sectionId, pages);
+      if (sectionNumber) publishCompiledSectionPageCount(queryClient, proposalId, sectionNumber, pages);
       setStats({
         compileMs,
         totalMs: Math.round(performance.now() - started),
