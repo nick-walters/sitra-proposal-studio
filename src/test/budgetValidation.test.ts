@@ -1,223 +1,125 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { computeBudgetRow } from '@/lib/budgetCompute';
+import { parseIndicativeMaximum } from '@/components/BudgetValidationEngine';
 
-// Extract the budget validation logic for testing
-interface BudgetRow {
-  participant_id: string;
-  personnel_costs: number;
-  purchase_equipment: number;
-  purchase_travel: number;
-  purchase_other_goods: number;
-  subcontracting_costs: number;
-  internally_invoiced: number;
-  is_locked: boolean;
-}
+/**
+ * These tests import the real application code. The previous version of this
+ * file defined its own copy of the validation logic, so it kept passing while
+ * the shipped rule was broken (prompt 149).
+ */
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string | null;
-  participant_number: number;
-}
+describe('computeBudgetRow — 25% flat-rate indirect base', () => {
+  const row = {
+    personnel_costs: 400_000,
+    purchase_travel: 20_000,
+    purchase_equipment: 30_000,
+    purchase_other_goods: 10_000,
+    procurement: 40_000,
+    // Categories that must NOT attract indirect costs:
+    subcontracting_costs: 250_000,
+    financial_support_third_parties: 1_000_000,
+    internally_invoiced: 75_000,
+  };
 
-interface ValidationRule {
-  id: string;
-  name: string;
-  severity: 'error' | 'warning' | 'info';
-  message: string;
-  passed: boolean;
-}
-
-function runBudgetValidation(rows: BudgetRow[], parts: Participant[]): ValidationRule[] {
-  const results: ValidationRule[] = [];
-
-  const totalDirect = rows.reduce((s, r) => s + r.personnel_costs + r.purchase_equipment + r.purchase_travel + r.purchase_other_goods + r.subcontracting_costs + r.internally_invoiced, 0);
-  const subcontractingTotal = rows.reduce((s, r) => s + r.subcontracting_costs, 0);
-  const personnelTotal = rows.reduce((s, r) => s + r.personnel_costs, 0);
-
-  const byParticipant: Record<string, number> = {};
-  rows.forEach(r => {
-    const total = r.personnel_costs + r.purchase_equipment + r.purchase_travel + r.purchase_other_goods + r.subcontracting_costs + r.internally_invoiced;
-    byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + total;
+  it('applies 25% to personnel + travel + equipment + other + procurement only', () => {
+    const out = computeBudgetRow(row);
+    const expectedBase = 400_000 + 20_000 + 30_000 + 10_000 + 40_000;
+    expect(out.indirect).toBe(Math.round(expectedBase * 0.25 * 100) / 100);
+    expect(out.indirect).toBe(125_000);
   });
 
-  if (rows.length === 0) {
-    results.push({ id: 'empty-budget', name: 'Budget populated', severity: 'error', message: 'No budget data has been entered', passed: false });
-  }
+  it('excludes subcontracting, FSTP and internally invoiced from the base', () => {
+    const withExclusions = computeBudgetRow(row).indirect;
+    const withoutExclusions = computeBudgetRow({
+      ...row,
+      subcontracting_costs: 0,
+      financial_support_third_parties: 0,
+      internally_invoiced: 0,
+    }).indirect;
+    expect(withExclusions).toBe(withoutExclusions);
+  });
 
-  if (totalDirect > 0 && subcontractingTotal > 0) {
-    const ratio = subcontractingTotal / totalDirect;
-    const tooHigh = ratio > 0.3;
-    results.push({
-      id: 'subcontracting-ratio', name: 'Subcontracting ratio',
-      severity: tooHigh ? 'warning' : 'info',
-      message: tooHigh ? `Subcontracting is ${(ratio * 100).toFixed(1)}% of direct costs (>30% requires justification)` : `Subcontracting is ${(ratio * 100).toFixed(1)}% of direct costs`,
-      passed: !tooHigh,
-    });
-  }
+  it('still counts every category in direct and total eligible costs', () => {
+    const out = computeBudgetRow(row);
+    expect(out.directCosts).toBe(400_000 + 250_000 + 20_000 + 30_000 + 10_000 + 1_000_000 + 75_000 + 40_000);
+    expect(out.totalEligible).toBe(out.directCosts + out.indirect);
+  });
 
-  const zeroParts = parts.filter(p => (byParticipant[p.id] || 0) === 0);
-  if (zeroParts.length > 0) {
-    results.push({
-      id: 'zero-budget', name: 'Zero-budget participants', severity: 'warning',
-      message: `${zeroParts.length} participant(s) have no budget: ${zeroParts.map(p => p.organisation_short_name || p.organisation_name).join(', ')}`,
-      passed: false,
-    });
-  }
+  it('honours an explicit indirect costs override', () => {
+    expect(computeBudgetRow({ ...row, indirect_costs_override: 1 }).indirect).toBe(1);
+  });
 
-  if (totalDirect > 0 && parts.length > 1) {
-    const over = Object.entries(byParticipant).find(([, amount]) => amount / totalDirect > 0.5);
-    if (over) {
-      const p = parts.find(p => p.id === over[0]);
-      results.push({
-        id: 'concentration', name: 'Budget concentration', severity: 'warning',
-        message: `${p?.organisation_short_name || 'A partner'} holds ${((over[1] / totalDirect) * 100).toFixed(0)}% of total budget`,
-        passed: false,
-      });
-    }
-  }
+  it('derives personnel from pm_rate × person months when a rate is set', () => {
+    const out = computeBudgetRow({ personnel_costs: 999, pm_rate: 8_000, totalPersonMonths: 12.5 });
+    expect(out.personnel).toBe(100_000);
+    expect(out.indirect).toBe(25_000);
+  });
 
-  if (totalDirect > 0 && personnelTotal === 0) {
-    results.push({ id: 'no-personnel', name: 'Personnel costs', severity: 'warning', message: 'No personnel costs have been entered', passed: false });
-  }
+  it('applies the 70% IA rate to large enterprises only', () => {
+    const base = { personnel_costs: 100_000 };
+    expect(computeBudgetRow({ ...base, proposalType: 'IA', organisationCategory: 'LE' }).fundingRate).toBe(70);
+    expect(computeBudgetRow({ ...base, proposalType: 'IA', organisationCategory: 'SME' }).fundingRate).toBe(100);
+    expect(computeBudgetRow({ ...base, proposalType: 'RIA', organisationCategory: 'LE' }).fundingRate).toBe(100);
+  });
 
-  const unlockedCount = rows.filter(r => !r.is_locked).length;
-  if (unlockedCount > 0 && rows.length > 0) {
-    results.push({
-      id: 'unlocked-rows', name: 'Budget finalisation', severity: 'info',
-      message: `${unlockedCount} of ${rows.length} budget row(s) are still unlocked`,
-      passed: unlockedCount === 0,
-    });
-  }
-
-  if (results.length === 0) {
-    results.push({ id: 'all-ok', name: 'Budget populated', severity: 'info', message: 'Budget data looks good', passed: true });
-  }
-
-  return results;
-}
-
-const mkRow = (overrides: Partial<BudgetRow> = {}): BudgetRow => ({
-  participant_id: 'p1',
-  personnel_costs: 0,
-  purchase_equipment: 0,
-  purchase_travel: 0,
-  purchase_other_goods: 0,
-  subcontracting_costs: 0,
-  internally_invoiced: 0,
-  is_locked: false,
-  ...overrides,
+  it('caps a manually requested contribution at the maximum', () => {
+    const out = computeBudgetRow({ personnel_costs: 100_000, requested_eu_contribution: 999_999 });
+    expect(out.requestedEuContribution).toBe(out.maxEuContribution);
+  });
 });
 
-const mkPart = (id: string, num: number, shortName: string): Participant => ({
-  id,
-  organisation_short_name: shortName,
-  organisation_name: shortName,
-  participant_number: num,
+describe('generate-proposal-backups edge function agrees with computeBudgetRow', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'supabase/functions/generate-proposal-backups/index.ts'),
+    'utf8',
+  );
+
+  const indirectBaseLine = source.match(/const indirectBase = ([^;]+);/);
+
+  it('declares an indirect base', () => {
+    expect(indirectBaseLine).not.toBeNull();
+  });
+
+  it('sums exactly the same five categories', () => {
+    const terms = indirectBaseLine![1].split('+').map(t => t.trim()).sort();
+    expect(terms).toEqual(['equipment', 'otherGoods', 'personnelCosts', 'procurement', 'travel'].sort());
+    expect(terms).not.toContain('subcontracting');
+    expect(terms).not.toContain('fstp');
+    expect(terms).not.toContain('internally');
+  });
+
+  it('uses the same 25% flat rate and cent rounding', () => {
+    expect(source).toContain('Math.round(indirectBase * 0.25 * 100) / 100');
+  });
+
+  it('uses the same Excel formula base in the export (D + F + G + H)', () => {
+    expect(source).toContain('=ROUND((D${r}+F${r}+G${r}+H${r})*0.25,2)');
+  });
 });
 
-describe('Budget Validation Engine', () => {
-  it('flags empty budget', () => {
-    const results = runBudgetValidation([], [mkPart('p1', 1, 'Org1')]);
-    expect(results).toHaveLength(2); // empty-budget + zero-budget
-    expect(results[0].id).toBe('empty-budget');
-    expect(results[0].severity).toBe('error');
-    expect(results[0].passed).toBe(false);
+describe('parseIndicativeMaximum', () => {
+  it('returns null when nothing is stored', () => {
+    expect(parseIndicativeMaximum(null)).toBeNull();
+    expect(parseIndicativeMaximum('')).toBeNull();
+    expect(parseIndicativeMaximum('to be confirmed')).toBeNull();
   });
 
-  it('passes with valid budget data', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 50000, is_locked: true }),
-      mkRow({ participant_id: 'p2', personnel_costs: 50000, is_locked: true }),
-    ];
-    const parts = [mkPart('p1', 1, 'A'), mkPart('p2', 2, 'B')];
-    const results = runBudgetValidation(rows, parts);
-    // Should only have info-level results, all passed
-    const failures = results.filter(r => !r.passed);
-    expect(failures).toHaveLength(0);
+  it('reads a plain amount', () => {
+    expect(parseIndicativeMaximum('15000000')).toBe(15_000_000);
   });
 
-  it('warns on high subcontracting ratio (>30%)', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 50000, subcontracting_costs: 40000 }),
-    ];
-    const parts = [mkPart('p1', 1, 'Org1')];
-    const results = runBudgetValidation(rows, parts);
-    const subRule = results.find(r => r.id === 'subcontracting-ratio');
-    expect(subRule).toBeDefined();
-    expect(subRule!.severity).toBe('warning');
-    expect(subRule!.passed).toBe(false);
+  it('handles separators and currency symbols', () => {
+    expect(parseIndicativeMaximum('€3 500 000')).toBe(3_500_000);
+    expect(parseIndicativeMaximum('EUR 4,000,000')).toBe(4_000_000);
   });
 
-  it('passes subcontracting ratio at exactly 30%', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 70000, subcontracting_costs: 30000 }),
-    ];
-    const parts = [mkPart('p1', 1, 'Org1')];
-    const results = runBudgetValidation(rows, parts);
-    const subRule = results.find(r => r.id === 'subcontracting-ratio');
-    expect(subRule).toBeDefined();
-    expect(subRule!.passed).toBe(true);
+  it('takes the upper bound of a range', () => {
+    expect(parseIndicativeMaximum('3,000,000–4,000,000')).toBe(4_000_000);
   });
 
-  it('flags zero-budget participants', () => {
-    const rows = [mkRow({ participant_id: 'p1', personnel_costs: 100000 })];
-    const parts = [mkPart('p1', 1, 'A'), mkPart('p2', 2, 'B')];
-    const results = runBudgetValidation(rows, parts);
-    const zeroRule = results.find(r => r.id === 'zero-budget');
-    expect(zeroRule).toBeDefined();
-    expect(zeroRule!.message).toContain('B');
-  });
-
-  it('flags budget concentration >50%', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 80000 }),
-      mkRow({ participant_id: 'p2', personnel_costs: 20000 }),
-    ];
-    const parts = [mkPart('p1', 1, 'BigOrg'), mkPart('p2', 2, 'SmallOrg')];
-    const results = runBudgetValidation(rows, parts);
-    const concRule = results.find(r => r.id === 'concentration');
-    expect(concRule).toBeDefined();
-    expect(concRule!.message).toContain('BigOrg');
-    expect(concRule!.message).toContain('80');
-  });
-
-  it('does not flag concentration when single participant', () => {
-    const rows = [mkRow({ participant_id: 'p1', personnel_costs: 100000 })];
-    const parts = [mkPart('p1', 1, 'Solo')];
-    const results = runBudgetValidation(rows, parts);
-    const concRule = results.find(r => r.id === 'concentration');
-    expect(concRule).toBeUndefined();
-  });
-
-  it('flags missing personnel costs', () => {
-    const rows = [mkRow({ participant_id: 'p1', purchase_equipment: 50000 })];
-    const parts = [mkPart('p1', 1, 'Org1')];
-    const results = runBudgetValidation(rows, parts);
-    const persRule = results.find(r => r.id === 'no-personnel');
-    expect(persRule).toBeDefined();
-  });
-
-  it('tracks unlocked rows', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 50000, is_locked: false }),
-      mkRow({ participant_id: 'p1', personnel_costs: 30000, is_locked: true }),
-    ];
-    const parts = [mkPart('p1', 1, 'Org1')];
-    const results = runBudgetValidation(rows, parts);
-    const lockRule = results.find(r => r.id === 'unlocked-rows');
-    expect(lockRule).toBeDefined();
-    expect(lockRule!.message).toContain('1 of 2');
-    expect(lockRule!.passed).toBe(false);
-  });
-
-  it('does not flag concentration at exactly 50%', () => {
-    const rows = [
-      mkRow({ participant_id: 'p1', personnel_costs: 50000 }),
-      mkRow({ participant_id: 'p2', personnel_costs: 50000 }),
-    ];
-    const parts = [mkPart('p1', 1, 'A'), mkPart('p2', 2, 'B')];
-    const results = runBudgetValidation(rows, parts);
-    const concRule = results.find(r => r.id === 'concentration');
-    expect(concRule).toBeUndefined();
+  it('keeps trailing decimals', () => {
+    expect(parseIndicativeMaximum('1000.50')).toBe(1_000.5);
   });
 });
