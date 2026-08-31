@@ -455,6 +455,138 @@ export function buildSectionTypstBody(
     const isGenerated =
       card.isSourceFed || (card.sourceKey && RELATIONAL_KEYS.has(card.sourceKey));
 
+    // The card's own output is buffered, so a block whose body turns out to be
+    // empty can be dropped WITH its title. A heading standing alone over
+    // nothing ("Interdisciplinarity", "Intellectual property management") is
+    // never printed.
+    const cardOut: string[] = [];
+
+    const emitCard = (): void => {
+      if (isGenerated) {
+        const emitted = sourceData
+          ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures)
+          : null;
+        if (emitted && emitted.length) {
+          cardOut.push(...emitted);
+        } else if (emitted && SILENT_WHEN_EMPTY.has(card.sourceKey || '')) {
+          // Nothing cited / no costs of this category: the block exists in the
+          // board so the author can see it, but it is left out of the document
+          // entirely rather than printing a placeholder note.
+          return;
+        } else if (emitted) {
+          // Recognised block with nothing in it yet — say so rather than
+          // silently dropping the block from the document.
+          cardOut.push(
+            placeholder(
+              `[${titleText(card.title) || card.sourceKey} — no content has been entered yet]`,
+            ),
+          );
+        } else {
+          ctx.unsupported.add(`source-fed block ${card.sourceKey || card.templateKey || ''}`.trim());
+          cardOut.push(
+            placeholder(
+              `[source-fed block “${titleText(card.title) || card.sourceKey || card.templateKey || 'untitled'}” — not rendered]`,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (card.kind === 'figure') {
+        // The figure keeps its slot in the section's caption sequence whether or
+        // not a bitmap could be resolved, so a broken figure never renumbers the
+        // ones after it.
+        const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+        const placed = options.authoredFigures?.get(card.id) ?? null;
+        const fallbackLabel =
+          ctx.captionNumbering && slot != null
+            ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+            : '';
+        cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
+        return;
+      }
+
+      // B3.2 auto-attached mirrors. On the board these slots are NOT part of the
+      // stored HTML: `B32BlockMirrors` renders them above the block's modules
+      // for every slot the migrated HTML does not already embed. The export must
+      // do the same, or the mirrored A2 content is missing from the document.
+      if (options.b32Data) {
+        const blockKeys = B32_BLOCK_SLOTS[card.templateKey || ''] || [];
+        if (blockKeys.length) {
+          const html = (tree.fieldsByCard[card.id] || [])
+            .map((f) => f.contentHtml || '')
+            .join('');
+          for (const key of blockKeys) {
+            if (html.includes(`data-b32-slot-key="${key}"`)) continue;
+            cardOut.push(...emitB32Slot(key, options.b32Data as B32TypstData, ctx));
+          }
+        }
+      }
+
+      for (const field of tree.fieldsByCard[card.id] || []) {
+        // The B1.2 pilots table is NOT stored as HTML at all: on the block board
+        // it is a field with `field_role = 'case_placeholder'` and an empty
+        // `content_html`, rendered live by `CasesTableLiveView` from
+        // `case_drafts`. Walking its HTML therefore yields nothing, so the rows
+        // are emitted here from the fetched case data instead.
+        if (field.fieldRole === 'case_placeholder') {
+          const numbering = ctx.captionNumbering;
+          const label = numbering
+            ? `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
+                numbering.tableIndex++,
+              )}.`
+            : null;
+          if (options.casesData) {
+            cardOut.push(
+              ...emitCasesTable(
+                options.casesData as CasesTypstData,
+                field.placeholderCaseTypeId,
+                label,
+                ctx,
+              ),
+            );
+          } else {
+            ctx.unsupported.add('cases table');
+          }
+          continue;
+        }
+        // The body is converted FIRST: a module heading is printed only when
+        // something follows it. Blank paragraphs left by the editor are
+        // trimmed, so an "empty" module reads as empty here too.
+        const body = dropBlankBlocks(htmlToTypstBlocks(field.contentHtml, ctx));
+        if (field.headingEnabled && field.heading && body.length) {
+          // A module boundary is NOT a structural break: the heading gets the
+          // ordinary 3pt paragraph spacing, so items from two different modules
+          // sit exactly as far apart as two paragraphs in one module.
+          cardOut.push(
+            `block(above: 3pt, below: 3pt, sticky: true, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
+          );
+        }
+        cardOut.push(...body);
+
+        // Atom-backed case tables have no caption paragraph for the HTML walker
+        // to encounter, but still occupy a position-derived table slot.
+        if (ctx.captionNumbering) {
+          const slots = countCaptionSlots(field.contentHtml);
+          const parsedCaptions = typeof document === 'undefined'
+            ? 0
+            : (() => {
+                const holder = document.createElement('div');
+                holder.innerHTML = field.contentHtml || '';
+                let n = 0;
+                holder.querySelectorAll('p').forEach((p) => {
+                  if (captionKind(p) === 'table') n += 1;
+                });
+                return n;
+              })();
+          ctx.captionNumbering.tableIndex += Math.max(0, slots.tables - parsedCaptions);
+        }
+      }
+    };
+
+    emitCard();
+    if (!hasVisibleBlocks(cardOut)) continue;
+
     // Editor-only headers (B3.1) exist for navigation in the board and are
     // never emitted to the preview or the export.
     if (card.title && card.titleMode === 'mirrored') {
@@ -463,127 +595,9 @@ export function buildSectionTypstBody(
         `block(above: 3pt, below: 3pt, sticky: true, text(size: 12pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
       );
     }
-
-    if (isGenerated) {
-      const emitted = sourceData
-        ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures)
-        : null;
-      if (emitted && emitted.length) {
-        out.push(...emitted);
-      } else if (emitted && SILENT_WHEN_EMPTY.has(card.sourceKey || '')) {
-        // Nothing cited / no costs of this category: the block exists in the
-        // board so the author can see it, but it is left out of the document
-        // entirely rather than printing a placeholder note.
-        continue;
-
-      } else if (emitted) {
-        // Recognised block with nothing in it yet — say so rather than
-        // silently dropping the block from the document.
-        out.push(
-          placeholder(
-            `[${titleText(card.title) || card.sourceKey} — no content has been entered yet]`,
-          ),
-        );
-      } else {
-        ctx.unsupported.add(`source-fed block ${card.sourceKey || card.templateKey || ''}`.trim());
-        out.push(
-          placeholder(
-            `[source-fed block “${titleText(card.title) || card.sourceKey || card.templateKey || 'untitled'}” — not rendered]`,
-          ),
-        );
-      }
-      continue;
-    }
-
-    if (card.kind === 'figure') {
-      // The figure keeps its slot in the section's caption sequence whether or
-      // not a bitmap could be resolved, so a broken figure never renumbers the
-      // ones after it.
-      const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
-      const placed = options.authoredFigures?.get(card.id) ?? null;
-      const fallbackLabel =
-        ctx.captionNumbering && slot != null
-          ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
-          : '';
-      out.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
-      continue;
-    }
-
-    // B3.2 auto-attached mirrors. On the board these slots are NOT part of the
-    // stored HTML: `B32BlockMirrors` renders them above the block's modules
-    // for every slot the migrated HTML does not already embed. The export must
-    // do the same, or the mirrored A2 content is missing from the document.
-    if (options.b32Data) {
-      const blockKeys = B32_BLOCK_SLOTS[card.templateKey || ''] || [];
-      if (blockKeys.length) {
-        const html = (tree.fieldsByCard[card.id] || [])
-          .map((f) => f.contentHtml || '')
-          .join('');
-        for (const key of blockKeys) {
-          if (html.includes(`data-b32-slot-key="${key}"`)) continue;
-          out.push(...emitB32Slot(key, options.b32Data as B32TypstData, ctx));
-        }
-      }
-    }
-
-
-    for (const field of tree.fieldsByCard[card.id] || []) {
-      // The B1.2 pilots table is NOT stored as HTML at all: on the block board
-      // it is a field with `field_role = 'case_placeholder'` and an empty
-      // `content_html`, rendered live by `CasesTableLiveView` from
-      // `case_drafts`. Walking its HTML therefore yields nothing, so the rows
-      // are emitted here from the fetched case data instead.
-      if (field.fieldRole === 'case_placeholder') {
-        const numbering = ctx.captionNumbering;
-        const label = numbering
-          ? `Table ${numbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(
-              numbering.tableIndex++,
-            )}.`
-          : null;
-        if (options.casesData) {
-          out.push(
-            ...emitCasesTable(
-              options.casesData as CasesTypstData,
-              field.placeholderCaseTypeId,
-              label,
-              ctx,
-            ),
-          );
-        } else {
-          ctx.unsupported.add('cases table');
-        }
-        continue;
-      }
-      if (field.headingEnabled && field.heading) {
-        // A module boundary is NOT a structural break: the heading gets the
-        // ordinary 3pt paragraph spacing, so items from two different modules
-        // sit exactly as far apart as two paragraphs in one module.
-        out.push(
-          `block(above: 3pt, below: 3pt, sticky: true, text(size: 11pt, weight: "bold", style: "italic", ${htmlToTypstInline(field.heading, ctx)}))`,
-        );
-      }
-      out.push(...htmlToTypstBlocks(field.contentHtml, ctx));
-
-      // Atom-backed case tables have no caption paragraph for the HTML walker
-      // to encounter, but still occupy a position-derived table slot.
-      if (ctx.captionNumbering) {
-        const slots = countCaptionSlots(field.contentHtml);
-        const parsedCaptions = typeof document === 'undefined'
-          ? 0
-          : (() => {
-              const holder = document.createElement('div');
-              holder.innerHTML = field.contentHtml || '';
-              let n = 0;
-              holder.querySelectorAll('p').forEach((p) => {
-                if (captionKind(p) === 'table') n += 1;
-              });
-              return n;
-            })();
-        ctx.captionNumbering.tableIndex += Math.max(0, slots.tables - parsedCaptions);
-      }
-    }
-
+    out.push(...dropBlankBlocks(cardOut));
   }
+
 
   // Each block is emitted as a CODE BLOCK (`#{ … }`), not a bare `#expr`:
   // in markup mode a `#` expression ends at the first operator, so the `+`
