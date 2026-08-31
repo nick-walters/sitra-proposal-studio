@@ -488,7 +488,12 @@ export default function LinkedActivitiesTable({
             <table
               ref={tableRef}
               data-table-key="b12-linked-activities"
-              className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tbody_tr]:border-x-0 [&_tbody_tr]:border-t-0 [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-200 [&_tbody_tr:last-child]:border-b-0`}
+              /* Row rules are drawn on the CELLS, not on the <tr>: the trailing
+                 action column sits outside the table's visible width, so a
+                 row-level border ran past the table's right edge into the
+                 margin while the header rule (drawn on the <th>s, with the
+                 action header excluded) stopped correctly. */
+              className={`${tableStyles} w-full max-w-full bg-white [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b-[1.5px] [&_th]:border-black [&_td]:border-0 [&_tbody_tr]:border-0 [&_tbody_td:not([data-noresize])]:border-b [&_tbody_td:not([data-noresize])]:border-gray-200 [&_tbody_tr:last-child_td]:border-b-0`}
               style={{
                 tableLayout: 'fixed',
                 width: sized ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
