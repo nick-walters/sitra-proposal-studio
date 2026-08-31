@@ -45,6 +45,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { ModuleCommentAnchor } from '@/components/comments/ModuleComments';
+import { linkedActivityTarget } from '@/lib/moduleCommentTargets';
 import {
   MarginRailAbsolute,
   RAIL_LINKED_ACTIVITY_DELETE_NUDGE,
@@ -266,6 +268,10 @@ function SortableActivityRow({
             No min-height: the field hugs its own text so the cell's
             vertical-align: middle centres placeholder and content alike. */}
         <td className={`${cellStyles} break-words`}>
+          <ModuleCommentAnchor
+            targetKey={linkedActivityTarget(activity.id)}
+            label={`${projectLabel || 'Linked activity'} — linked activity`}
+          >
           <MethodologyRichEditor
             proposalId={proposalId}
             value={activity.linkDescriptionHtml ?? ''}
@@ -276,6 +282,7 @@ function SortableActivityRow({
             placeholder="How the project will be linked"
             cellSurface
           />
+          </ModuleCommentAnchor>
         </td>
 
 
