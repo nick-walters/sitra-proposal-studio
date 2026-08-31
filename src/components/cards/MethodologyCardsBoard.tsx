@@ -134,7 +134,7 @@ import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
-import { useCardFieldsForCards } from '@/hooks/useCardFields';
+import { useCardFieldsForCards, invalidateCardFieldsBatches } from '@/hooks/useCardFields';
 import { useCardMutations } from '@/hooks/useCardMutations';
 import { getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { jumpToElementId } from '@/lib/jumpToElement';
@@ -1877,6 +1877,9 @@ function BoardInner({
 
   const queryClient = useQueryClient();
   const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
+  // Read by the realtime handler without resubscribing the channel per change.
+  const cardIdsRef = useRef<string[]>(cardIds);
+  cardIdsRef.current = cardIds;
   const { fieldsByCard } = useCardFieldsForCards(cardIds);
   const { entries: binEntries } = useSectionRecycleBin(proposalId, sectionId);
 
@@ -1914,7 +1917,7 @@ function BoardInner({
     if (!proposalId) return;
     const invalidate = () => {
       queryClient.invalidateQueries({ queryKey: sectionCardsKey(proposalId, sectionId) });
-      queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+      invalidateCardFieldsBatches(queryClient, cardIdsRef.current);
       queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });
       // Citation numbers and per-section reference lists depend on card
       // visibility/order/deletion and field order/content as well as the card
@@ -2152,14 +2155,14 @@ function BoardInner({
           // reload the authoritative content. Nothing typed ⇒ no dialog.
           if (!isHtmlBlank(value)) setLostText({ text: value, reason: 'conflict' });
           delete dirtyRef.current[fieldId];
-          queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+          invalidateCardFieldsBatches(queryClient, [cardId]);
           setReloadNonce((n) => n + 1);
           return false;
         }
         delete dirtyRef.current[fieldId];
         setLastSaved(new Date());
         if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
-        queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+        invalidateCardFieldsBatches(queryClient, [cardId]);
         return true;
       } finally {
         setSaving(false);
@@ -2591,7 +2594,7 @@ function BoardInner({
       const res = (data ?? {}) as { ok?: boolean; version?: number };
       if (res.version) versionsRef.current[key] = res.version;
       if (!res.ok) return { ok: false, conflict: true };
-      queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+      invalidateCardFieldsBatches(queryClient, [cardId]);
       if (textBox === 'content') {
         scheduleCitationInstanceReconcile({ proposalId, fieldId, cardId, html: next });
       }

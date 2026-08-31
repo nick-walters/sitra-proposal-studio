@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cardFieldsKey } from './useCardFields';
+import { cardFieldsKey, invalidateCardFieldsBatches } from './useCardFields';
 import { sectionCardsKey } from './useSectionCards';
 import { mapCard, mapField, type CardAnchor, type CardField, type CardKind, type ProposalCard } from '@/types/cards';
 
@@ -33,7 +33,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   const invalidateCards = () => queryClient.invalidateQueries({ queryKey: cardsKey });
   const invalidateFields = (cardId: string) => {
     queryClient.invalidateQueries({ queryKey: cardFieldsKey(cardId) });
-    queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+    invalidateCardFieldsBatches(queryClient, [cardId]);
   };
   const invalidateBin = () =>
     queryClient.invalidateQueries({ queryKey: ['card-recycle-bin', proposalId] });

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -36,5 +36,16 @@ export function useCardFigureSummaries(cardIds: string[]) {
       }
       return map;
     },
+  });
+}
+
+/** Invalidates only the summary batches that contain `cardId`. */
+export function invalidateCardFigureSummaries(qc: QueryClient, cardId?: string | null) {
+  if (!cardId) return qc.invalidateQueries({ queryKey: ['card-figure-summaries'] });
+  return qc.invalidateQueries({
+    predicate: (q) =>
+      q.queryKey[0] === 'card-figure-summaries' &&
+      Array.isArray(q.queryKey[1]) &&
+      (q.queryKey[1] as string[]).includes(cardId),
   });
 }

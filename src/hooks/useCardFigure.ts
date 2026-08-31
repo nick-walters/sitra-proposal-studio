@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { invalidateCardFigureSummaries } from './useCardFigureSummaries';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
 import type {
@@ -82,7 +83,7 @@ export function useCardFigure(cardId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       // Collapsed blocks show the caption as their one-line summary.
-      queryClient.invalidateQueries({ queryKey: ['card-figure-summaries'] });
+      invalidateCardFigureSummaries(queryClient, cardId);
     },
     onError: (e: Error) => toast.error(e.message || 'Could not save the figure block'),
   });

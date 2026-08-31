@@ -646,7 +646,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     onSuccess: () => {
       setLastSaved(new Date());
       setSaveError(null);
-      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
@@ -655,7 +655,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
       setSaveError(err.message === 'conflict'
         ? 'This case was changed elsewhere — your change was not saved.'
         : 'Failed to save changes');
-      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
     },
   });
@@ -681,7 +681,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         reportConflict(safe);
         setSaveError('This subsection was changed elsewhere — your text was not saved.');
         subsectionBaseline.current[key] = res.value ?? '';
-        queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+        queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
         return;
       }
@@ -705,7 +705,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         });
       setLastSaved(new Date());
       setSaveError(null);
-      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     },
@@ -781,7 +781,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                 }
                 if (!res.ok) return { ok: false, conflict: false, error: res.error };
                 subsectionBaseline.current[sub.key] = next;
-                queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
+                queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
                 return { ok: true };
               },
