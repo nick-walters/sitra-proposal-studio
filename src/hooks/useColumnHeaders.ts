@@ -17,6 +17,10 @@ export function useColumnHeaders(
   defaults: string[],
 ) {
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const tableKeyRef = useRef(tableKey);
+  tableKeyRef.current = tableKey;
+
+
 
   useEffect(() => {
     if (!proposalId || !tableKey) return;
