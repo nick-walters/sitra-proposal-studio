@@ -634,10 +634,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Arial Black at 13pt / 12pt with 9-6 and 6-6 point spacing, matching the
 /// browser-print export. The face is already black, so no synthetic bold is
 /// requested on top of it.
-#let he-h1(body) = block(above: 9pt, below: 6pt, text(
+/// \`sticky: true\`: a heading is bound to the block that follows it, so it can
+/// never print as the last thing on a page.
+#let he-h1(body) = block(above: 9pt, below: 6pt, sticky: true, text(
   font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", body,
 ))
-#let he-h2(body) = block(above: 6pt, below: 6pt, text(
+#let he-h2(body) = block(above: 6pt, below: 6pt, sticky: true, text(
   font: "${TYPST_DISPLAY}", size: 12pt, weight: "regular", body,
 ))
 #let he-h1-plain(s) = he-h1(t(s))
