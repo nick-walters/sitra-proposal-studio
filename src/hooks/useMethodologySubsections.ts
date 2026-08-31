@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUnloadFlush } from '@/lib/unloadFlush';
+import { saveVersionedRow } from '@/lib/versionedSave';
 
 
 export interface MethodologySubsection {
@@ -13,11 +14,14 @@ export interface MethodologySubsection {
   orderIndex: number;
   isVisible: boolean;
   contentHtml: string | null;
+  version: number;
 }
 
 export function useMethodologySubsections(proposalId: string) {
   const queryClient = useQueryClient();
   const queryKey = ['methodology-subsections', proposalId];
+  /** Stored row version last seen per subsection, for the save-time check. */
+  const versionsRef = useRef<Record<string, number>>({});
 
   const { data: subsections = [], isLoading } = useQuery({
     queryKey,
@@ -25,24 +29,29 @@ export function useMethodologySubsections(proposalId: string) {
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('methodology_subsections')
-        .select('id, proposal_id, key, title, order_index, is_visible, content_html')
+        .select('id, proposal_id, key, title, order_index, is_visible, content_html, version')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
-      return (data || []).map((r) => ({
-        id: r.id,
-        proposalId: r.proposal_id,
-        key: r.key,
-        title: r.title,
-        orderIndex: r.order_index,
-        isVisible: r.is_visible,
-        contentHtml: r.content_html,
-      }));
+      return (data || []).map((r) => {
+        versionsRef.current[r.id] = r.version;
+        return {
+          id: r.id,
+          proposalId: r.proposal_id,
+          key: r.key,
+          title: r.title,
+          orderIndex: r.order_index,
+          isVisible: r.is_visible,
+          contentHtml: r.content_html,
+          version: r.version,
+        };
+      });
     },
     enabled: !!proposalId,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
+
 
   const updateTitleMutation = useMutation({
     mutationFn: async ({ id, title }: { id: string; title: string }) => {
