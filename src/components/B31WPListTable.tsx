@@ -49,6 +49,10 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
     return `M${String(min).padStart(2, '0')}–M${String(max).padStart(2, '0')}`;
   };
 
+  /** One decimal at most, as the Typst side prints it. */
+  const formatPM = (value: number) =>
+    Number.isInteger(value) ? String(value) : value.toFixed(1);
+
   const getComputedPM = (wp: B31WPData) => {
     // Auto-calculated from A3 staff effort total (wp_draft_effort) per WP.
     return (wp.wp_effort || []).reduce((sum, e) => sum + (e.person_months || 0), 0);
@@ -111,7 +115,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
           {wpData.map(wp => {
             const computedPM = getComputedPM(wp);
             const computedDuration = getComputedDuration(wp);
-            const displayPM = computedPM > 0 ? computedPM : '';
+            const displayPM = computedPM > 0 ? formatPM(computedPM) : '';
             const displayDuration = wp.manual_duration || computedDuration || '';
             const shortName = wp.short_name || '';
             const title = wp.title || '';
@@ -147,7 +151,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
               <tr>
                 <td className={`${firstCellStyles} font-bold`}>Total</td>
                 <td className={sized ? cellStyles : tightCellStyles} />
-                <td className={`${sized ? cellStyles : tightCellStyles} font-bold`}>{totalPM > 0 ? totalPM : '—'}</td>
+                <td className={`${sized ? cellStyles : tightCellStyles} font-bold`}>{totalPM > 0 ? formatPM(totalPM) : '—'}</td>
                 <td className={`${sized ? cellStyles : tightCellStyles} !pr-0`} />
               </tr>
             );
