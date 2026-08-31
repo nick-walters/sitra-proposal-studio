@@ -221,7 +221,12 @@ export function CardLockProvider({
 
   const doRelease = useCallback(
     async (targetId: string, opts?: { save?: boolean }) => {
-      if (myTargetRef.current !== targetId) return;
+      // Release whenever this client took the row — not only when it is the
+      // CURRENT target. Guarding on `myTargetRef` alone silently skipped the
+      // release for a field that lost focus or unmounted before its claim
+      // resolved, stranding the row for the full 300s window (or forever,
+      // while the heartbeat kept renewing it).
+      if (myTargetRef.current !== targetId && !heldRef.current.has(targetId)) return;
       if (opts?.save !== false) {
         // Never release before the holder's content is safely stored.
         const saver = saversRef.current.get(targetId);
@@ -233,7 +238,8 @@ export function CardLockProvider({
           }
         }
       }
-      myTargetRef.current = null;
+      heldRef.current.delete(targetId);
+      if (myTargetRef.current === targetId) myTargetRef.current = null;
       setWarning(null);
       await supabase.rpc('release_card_lock', {
         p_target_type: 'text_box' as LockTargetType,
@@ -275,8 +281,13 @@ export function CardLockProvider({
           avatar_url?: string | null;
           expires_at?: string;
         };
-        if (result.acquired) {
+        // A row already held by THIS USER — an earlier session, another tab,
+        // or this field before a remount — is never a blocker. The server
+        // takes the same view; this keeps the client from disagreeing with it.
+        const mine = !!result.acquired || result.user_id === myUserId;
+        if (mine) {
           myTargetRef.current = targetId;
+          heldRef.current.add(targetId);
           lastKeystrokeRef.current = Date.now();
         }
         if (result.user_id && result.expires_at) {
@@ -291,13 +302,14 @@ export function CardLockProvider({
             },
           }));
         }
-        return !!result.acquired;
+        return mine;
       })().finally(() => claimingRef.current.delete(targetId));
 
       claimingRef.current.set(targetId, p);
       return p;
     },
     [enabled, myUserId, proposalId, sectionId, doRelease],
+
   );
 
   const noteKeystroke = useCallback(
