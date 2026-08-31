@@ -2399,13 +2399,10 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
-          figure_number: string
           figure_type: string
           id: string
-          order_index: number
           proposal_id: string
           purge_after: string | null
-          section_id: string
           title: string
           updated_at: string
         }
@@ -2415,13 +2412,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
-          figure_number?: string
           figure_type?: string
           id?: string
-          order_index?: number
           proposal_id: string
           purge_after?: string | null
-          section_id?: string
           title: string
           updated_at?: string
         }
@@ -2431,13 +2425,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
-          figure_number?: string
           figure_type?: string
           id?: string
-          order_index?: number
           proposal_id?: string
           purge_after?: string | null
-          section_id?: string
           title?: string
           updated_at?: string
         }
