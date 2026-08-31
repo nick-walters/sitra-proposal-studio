@@ -148,7 +148,7 @@ export function emitWpList(data: B31TypstData, ctx: ConvertContext): string[] {
   const rows = data.wps.map((wp) => {
     const shortName = wp.short_name || '';
     const title = wp.title || '';
-    const label = `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`;
+    const label = `WP${wp.number}: ${shortName}${shortName && title ? ' — ' : ''}${title}`;
     const pm = wpPm(wp);
     return [
       wpChip(wp.number, wp.color, label),
@@ -247,7 +247,7 @@ export function emitWpDescriptions(
     // The full-width (18 cm) pill was asked for in the WP DRAFT HEADER only.
     // Inside B3.1's work-package list the same name is an ordinary
     // content-width chip, exactly as the board draws it.
-    const headingLabel = `WP${wp.number}: ${shortName}${shortName && title ? ' – ' : ''}${title}`;
+    const headingLabel = `WP${wp.number}: ${shortName}${shortName && title ? ' — ' : ''}${title}`;
     const heading = options?.fullWidthHeader
       ? `wp-name-pill(${typstString(headingLabel)}, rgb(${typstString(wp.color)}))`
       : `chip-pill(${typstString(headingLabel)}, rgb(${typstString(wp.color)}), filled: true)`;

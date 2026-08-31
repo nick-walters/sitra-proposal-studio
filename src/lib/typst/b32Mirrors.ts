@@ -231,7 +231,6 @@ function emitParagraphSlot(
   if (!configs.length) return [];
 
   const out: string[] = [];
-  let emittedAny = false;
   for (const p of data.participants) {
     const desc = data.descriptions.get(p.id);
     const htmls = configs
@@ -259,7 +258,6 @@ function emitParagraphSlot(
     // No extra gap between participants: each description is ordinary body
     // copy, so the document's own 3pt paragraph spacing applies, exactly as
     // the editor renders it.
-    emittedAny = true;
     out.push(...trimmed);
   }
   return out;

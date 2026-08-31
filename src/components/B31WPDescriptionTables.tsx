@@ -262,7 +262,7 @@ function B31WPDescriptionTablesInner({ wpData, participants, proposalId }: Props
                     >
                       <span className="text-white">
                         WP{wp.number}: {shortName}
-                        {shortName && title ? ' – ' : ''}{title}
+                        {shortName && title ? ' — ' : ''}{title}
                       </span>
                     </WPBubble>
                   </td>
