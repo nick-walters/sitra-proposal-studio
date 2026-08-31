@@ -279,6 +279,43 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   )
 }
 
+/// Crown drawn as geometry rather than text: the embedded Nimbus Roman faces
+/// carry no crown glyph, so a literal one is dropped by the compiler. The
+/// outline follows the Lucide crown the editor uses for lead badges.
+#let chip-crown(colour, size: 7pt) = box(
+  baseline: 1.2pt,
+  width: size,
+  height: size,
+  polygon(
+    fill: colour,
+    stroke: none,
+    (6%, 82%), (6%, 22%), (28%, 52%), (50%, 14%), (72%, 52%), (94%, 22%), (94%, 82%),
+  ),
+)
+
+/// Filled pill with a leading crown, as the editor draws lead badges
+/// (\`ParticipantBubble showCrown\`): crown, then the organisation short name
+/// with NO participant number.
+#let chip-pill-crown(label, colour) = context {
+  let body = chip-label(label, white)
+  let m = measure(body)
+  let crown-size = 7pt
+  let crown-gap = 1.5pt
+  let w = m.width + 2 * chip-pad + crown-size + crown-gap
+  box(
+    baseline: 2.4pt,
+    width: w,
+    height: chip-height,
+    radius: 999pt,
+    fill: colour,
+    stroke: 1pt + colour,
+    {
+      place(horizon + left, dx: chip-pad, dy: 1.9pt, chip-crown(white, size: crown-size))
+      place(horizon + left, dx: chip-pad + crown-size + crown-gap, dy: chip-label-shift, body)
+    },
+  )
+}
+
 /// Shared polygon chip: \`kind\` is "pentagon" (deliverable) or "chevron"
 /// (milestone). The box reserves only the label's own height, and the shape is
 /// PLACED over it, so — like the pill — it leaves the leading untouched.
