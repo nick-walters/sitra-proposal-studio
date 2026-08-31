@@ -23,7 +23,7 @@ import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { dropBlankBlocks, htmlHasInk } from './emptyBlocks';
 import { fetchB32InfraTableData, type B32InfraTableData } from './b32InfraData';
-import { MIN_COL_PX, pointWidths, ptTrack } from './tableColumns';
+import { pointWidths, ptTrack } from './tableColumns';
 import {
   htmlToTypstBlocks,
   htmlToTypstInline,

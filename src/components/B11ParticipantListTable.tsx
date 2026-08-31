@@ -167,7 +167,13 @@ function Bubble({ bubble }: { bubble: RoleBubble }) {
       style={
         bubble.filled
           ? { background: bubble.color, color: '#ffffff' }
-          : { background: '#ffffff', color: bubble.color, border: `1.5px solid ${bubble.color}` }
+          : {
+              background: '#ffffff',
+              color: bubble.color,
+              // Inset shadow, not a border: a real border adds 3px to the box
+              // and made outlined (case/pilot) chips taller than filled ones.
+              boxShadow: `inset 0 0 0 1.5px ${bubble.color}`,
+            }
       }
     >
       {bubble.label}

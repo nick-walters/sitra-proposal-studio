@@ -644,7 +644,9 @@ function TaskModule({
           {formatTaskNumber(task.number)}
         </span>
         <div
-          className="min-w-0 flex-1"
+          /* 15px shorter than the row so the field never runs under the
+             visibility toggle, which is positioned by MarginRail. */
+          className="min-w-0 flex-1 mr-[15px]"
           data-version-label={`${formatTaskNumber(task.number)} title`}
           data-version-target={versionTargetAttr('wp_draft_task', task.id, 'title')}
         >
