@@ -61,6 +61,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Lightbulb, Table2, Image as ImageLucide, Crown, ChevronsUpDown, Check, Lock, BookOpen } from 'lucide-react';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { cn } from '@/lib/utils';
 import { markBadgeElement, markBadgeTree } from '@/lib/refBadgeMarkup';
 import { toast } from 'sonner';
@@ -507,11 +508,11 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
       const { data } = await supabase
         .from('figures')
         .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
-      
+        .eq('proposal_id', proposalId);
+
       if (data) {
-        setFigures(data);
+        const numbers = await fetchDerivedFigureNumbers(proposalId);
+        setFigures(data.map((f: any) => ({ ...f, figure_number: numbers.get(f.id) ?? '' })));
       }
     };
 

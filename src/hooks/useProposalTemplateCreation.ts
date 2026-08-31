@@ -193,13 +193,9 @@ export function useProposalTemplateCreation() {
         }
       }
 
-      // 7. Auto-create PERT and Gantt figures for full proposals
+      // 7. Auto-create PERT and Gantt figures for full proposals. Their number
+      // and position are derived from the block that places them.
       if (submissionStage === 'full') {
-        // Find the B3.1 section (section_number '3.1' or section_tag 'b3_1')
-        const b31Section = (sourceSections || []).find(
-          s => s.section_number === '3.1' || s.section_tag === 'b3_1'
-        );
-        const b31SectionId = b31Section ? (sectionIdMap.get(b31Section.id) || '3.1') : '3.1';
 
         // Check if PERT/Gantt/Impact-canvas already exist (shouldn't for new proposals, but be safe)
         const { data: existingFigures } = await supabase
@@ -213,42 +209,31 @@ export function useProposalTemplateCreation() {
         if (!existingTypes.has('pert')) {
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            section_id: b31SectionId,
             title: 'PERT chart',
             figure_type: 'pert',
             content: null,
-            order_index: 0,
           });
         }
 
         if (!existingTypes.has('gantt')) {
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            section_id: b31SectionId,
             title: 'Gantt chart, showing WP, task, deliverable & milestone timings',
             figure_type: 'gantt',
             content: null,
-            order_index: 1,
           });
         }
 
         if (!existingTypes.has('impact-canvas')) {
           // Compulsory figure fixed at the end of B2.1. Its number is derived
-          // from the block that places it (see figureNumbering.ts); only the
-          // order index is stored.
-          const { data: b21Figures } = await supabase
-            .from('figures')
-            .select('id')
-            .eq('proposal_id', proposalId)
-            .eq('section_id', '2.1');
+          // from the block that places it (see figureNumbering.ts); nothing
+          // positional is stored on the figure row.
           await supabase.from('figures').insert({
             proposal_id: proposalId,
-            section_id: '2.1',
             title: 'Impact canvas',
             caption: 'Impact canvas',
             figure_type: 'impact-canvas',
             content: null,
-            order_index: (b21Figures?.length ?? 0),
           });
         }
       }

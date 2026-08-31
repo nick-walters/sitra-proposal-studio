@@ -603,6 +603,7 @@ export function ProposalEditor() {
           proposalId={id || ''}
           proposalAcronym={proposal?.acronym || ''}
           isCoordinator={isCoordinator}
+          onWordExport={canEdit ? () => setIsExportOpen(true) : undefined}
         />
       ),
 

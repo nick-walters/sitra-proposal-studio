@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { BarChart3, Network, Image, Check, Sparkles, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { StorageImage } from '@/components/StorageImage';
@@ -49,13 +50,13 @@ export function InsertFigureDialog({
       const { data, error } = await supabase
         .from('figures')
         .select('*')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
+        .eq('proposal_id', proposalId);
       if (error) throw error;
+      const numbers = await fetchDerivedFigureNumbers(proposalId);
       return data.map((f) => ({
         id: f.id,
-        figureNumber: f.figure_number,
-        sectionId: f.section_id,
+        figureNumber: numbers.get(f.id) ?? '',
+        sectionId: null,
         title: f.title,
         figureType: f.figure_type,
         content: f.content,

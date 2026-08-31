@@ -2399,13 +2399,10 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
-          figure_number: string
           figure_type: string
           id: string
-          order_index: number
           proposal_id: string
           purge_after: string | null
-          section_id: string
           title: string
           updated_at: string
         }
@@ -2415,13 +2412,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
-          figure_number?: string
           figure_type?: string
           id?: string
-          order_index?: number
           proposal_id: string
           purge_after?: string | null
-          section_id?: string
           title: string
           updated_at?: string
         }
@@ -2431,13 +2425,10 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
-          figure_number?: string
           figure_type?: string
           id?: string
-          order_index?: number
           proposal_id?: string
           purge_after?: string | null
-          section_id?: string
           title?: string
           updated_at?: string
         }
@@ -6905,6 +6896,12 @@ export type Database = {
         }
         Returns: string
       }
+      cron_purge_deleted_cards: { Args: never; Returns: number }
+      cron_thin_proposal_snapshots: {
+        Args: { p_keep_auto?: number; p_keep_manual?: number }
+        Returns: number
+      }
+      cron_thin_target_versions: { Args: never; Returns: number }
       delete_and_resequence: {
         Args: { p_expected_version?: number; p_id: string; p_table: string }
         Returns: Json
