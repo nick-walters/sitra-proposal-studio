@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUnloadFlush } from '@/lib/unloadFlush';
+import { saveVersionedRow } from '@/lib/versionedSave';
 
 export interface LinkedActivity {
   id: string;
@@ -16,6 +17,7 @@ export interface LinkedActivity {
   responsibleParticipantId: string | null;
   orderIndex: number;
   deletedAt: string | null;
+  version: number;
 }
 
 export interface LinkedActivityPatch {
@@ -40,6 +42,7 @@ type Row = {
   responsible_participant_id: string | null;
   order_index: number;
   deleted_at: string | null;
+  version: number;
 };
 
 const TABLE = 'methodology_linked_activities';
@@ -74,11 +77,12 @@ function mapRow(r: Row): LinkedActivity {
     responsibleParticipantId: r.responsible_participant_id,
     orderIndex: r.order_index,
     deletedAt: r.deleted_at,
+    version: r.version,
   };
 }
 
 const COLUMNS =
-  'id, proposal_id, acronym, instrument_code, instrument_custom, duration_start, duration_end, link_description_html, responsible_participant_id, order_index, deleted_at';
+  'id, proposal_id, acronym, instrument_code, instrument_custom, duration_start, duration_end, link_description_html, responsible_participant_id, order_index, deleted_at, version';
 
 export function useLinkedActivities(proposalId: string) {
   const queryClient = useQueryClient();
@@ -177,30 +181,46 @@ export function useLinkedActivities(proposalId: string) {
   /** Newest un-written patch per `${id}:${field}` key, so it can be flushed. */
   const pendingPatchesRef = useRef<Record<string, { id: string; patch: Record<string, unknown> }>>({});
   const pendingRef = useRef(0);
+  /** Stored row version last seen per activity, for the save-time check. */
+  const versionsRef = useRef<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const writeNow = useCallback(async (id: string, dbPatch: Record<string, unknown>) => {
-    pendingRef.current += 1;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from(TABLE)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update(dbPatch as any)
-        .eq('id', id);
-      if (error) throw error;
-      setLastSaved(new Date());
-    } catch (err) {
-      toast.error('Change not saved', {
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
-      queryClient.invalidateQueries({ queryKey });
-    } finally {
-      pendingRef.current -= 1;
-      if (pendingRef.current <= 0) setSaving(false);
-    }
-  }, [queryClient, queryKey]);
+  /**
+   * Version-guarded write: the server refuses the update when another author
+   * has changed the row since this client loaded it, and the rejected text is
+   * offered back through the global lost-text dialog.
+   */
+  const writeNow = useCallback(
+    async (id: string, dbPatch: Record<string, unknown>) => {
+      pendingRef.current += 1;
+      setSaving(true);
+      try {
+        const cached = queryClient.getQueryData<LinkedActivity[]>(queryKey) || [];
+        const expected = versionsRef.current[id] ?? cached.find((a) => a.id === id)?.version ?? null;
+        const res = await saveVersionedRow<{ version: number }>(
+          'methodology_linked_activities',
+          id,
+          dbPatch,
+          expected,
+        );
+        if (res.version) versionsRef.current[id] = res.version;
+        if (!res.ok) {
+          if (!res.conflict) {
+            toast.error('Change not saved', { description: res.error || 'Please try again.' });
+          }
+          queryClient.invalidateQueries({ queryKey });
+          return;
+        }
+        setLastSaved(new Date());
+      } finally {
+        pendingRef.current -= 1;
+        if (pendingRef.current <= 0) setSaving(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, proposalId],
+  );
 
   /** Writes every pending patch at once (unmount, tab hidden, tab closed). */
   const flushPending = useCallback(() => {
