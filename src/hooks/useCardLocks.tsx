@@ -79,6 +79,8 @@ interface CardLockContextValue {
   noteKeystroke: (targetId: string) => void;
   /** Release, optionally saving first (always used by the idle timeout). */
   release: (targetId: string, opts?: { save?: boolean }) => Promise<void>;
+  /** True when THIS client took the lock — synchronous, not polled state. */
+  holdsTarget: (targetId: string) => boolean;
   /** Registers the flush-to-database routine for a target. */
   registerSaver: (targetId: string, saver: () => Promise<void>) => () => void;
   /** Registers a getter for the target's current HTML (for stream snapshots). */
@@ -89,6 +91,7 @@ interface CardLockContextValue {
   useStreamedValue: (targetId: string, active: boolean) => string | null;
   warning: { targetId: string; secondsLeft: number } | null;
 }
+
 
 const CardLockContext = createContext<CardLockContextValue | null>(null);
 
