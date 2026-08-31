@@ -317,7 +317,9 @@ function convertCaption(el: Element, ctx: ConvertContext): string {
   return `${helper}(${typstString(label)}, ${rest})`;
 }
 
-const HEADING_SIZES: Record<number, string> = { 1: '14pt', 2: '13pt', 3: '12pt', 4: '11pt' };
+// H1/H2 are the document's structural headings; H3 and below are block
+// subheadings and sit at the 11pt body size (prompt 187).
+const HEADING_SIZES: Record<number, string> = { 1: '14pt', 2: '13pt', 3: '11pt', 4: '11pt' };
 
 function convertHeading(el: Element, level: number, ctx: ConvertContext): string {
   // The number comes from the `data-heading-number` span, never from parsing
