@@ -494,76 +494,64 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
 /** The board prints a bare 0, and one decimal only when there is one. */
 const pm = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-/** A cell painted in the WP colour with white text, as the board draws it. */
-function wpCell(colour: string, body: string, pos: 'top' | 'mid' | 'bottom'): string {
-  return `effort-cell(rgb(${typstString(colour)}), ${body}, ${typstString(pos)})`;
-}
-
-/** An unfilled cell — the participant column and the Total column. */
-function plainCell(body: string, al: 'left' | 'center' = 'center'): string {
-  return `effort-plain(${body}, ${al})`;
-}
-
 /**
- * On screen this is not a ruled table at all: it is a band of WP-coloured
- * cells with white figures, rounded at the top of the header row and the
- * bottom of the totals row, separated by a 5pt gutter, with a participant
- * badge down the left and a plain bold Total column. `he-grid` reproduces
- * exactly that instead of forcing it through the ruled table furniture.
+ * Table 3.1.f is an ORDINARY table: the shared `he-table` furniture, the same
+ * 18 cm block, the same header rule and hairlines, the same stored column
+ * widths (`effort-matrix`). Only two things are specific to it: the column
+ * headers are WP chips, and every even-numbered participant row carries a very
+ * pale rounded pill running from behind the participant badge to the right
+ * edge of the last WP column. The pill is drawn by `effort-band`, placed from
+ * the row's first cell at an explicit width — the sum of the point widths of
+ * the columns it spans — so it is one continuous rounded shape rather than a
+ * run of separately filled cells.
  */
 export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.wps.length || !data.participants.length) return [];
-  const cells: string[] = [
-    plainCell(lit(''), 'left'),
-    ...data.wps.map((wp) => wpCell(wp.color, bold(lit(`WP${wp.number}`)), 'top')),
-    plainCell(bold(lit('Total'))),
-  ];
 
-  for (const p of data.participants) {
+  const n = data.wps.length;
+  const count = n + 2;
+  const stored = data.columnWidths['effort-matrix'];
+  // The editor's own default when a table has never been resized: 22 % for the
+  // participant column, 8 % for Total, the rest shared equally between the WP
+  // columns — expressed here in the same 768 px board pixels it stores.
+  const defaultPx = [22, ...data.wps.map(() => 70 / n), 8].map((pct) => pct * 7.68);
+  const widthsPt =
+    stored && stored.length === count && stored.every((w) => w > 0)
+      ? pointWidths(stored, MIN_COL_PX)
+      : pointWidths(defaultPx, MIN_COL_PX);
+  const bandPt = widthsPt.slice(0, n + 1).reduce((s, w) => s + w, 0);
+
+  const header = [lit(''), ...data.wps.map((wp) => wpChip(wp.number, wp.color)), lit('Total')];
+
+  const rows: string[][] = data.participants.map((p, index) => {
     let rowTotal = 0;
-    const rowCells = data.wps.map((wp) => {
+    const values = data.wps.map((wp) => {
       const value = wp.effort
         .filter((e) => e.participant_id === p.id)
         .reduce((s, e) => s + e.person_months, 0);
       rowTotal += value;
-      return wpCell(wp.color, lit(pm(value)), 'mid');
+      return lit(pm(value));
     });
-    cells.push(plainCell(participantChip(p), 'left'), ...rowCells, plainCell(bold(lit(pm(rowTotal)))));
-  }
+    // Rows 2, 4, 6 … as the reader counts them.
+    const banded = index % 2 === 1;
+    const first = banded
+      ? `effort-band(${bandPt.toFixed(2)}pt, ${participantChip(p)})`
+      : participantChip(p);
+    return [first, ...values, bold(lit(pm(rowTotal)))];
+  });
 
   const colTotals = data.wps.map((wp) => wp.effort.reduce((s, e) => s + e.person_months, 0));
-  cells.push(
-    plainCell(bold(lit('Total')), 'left'),
-    ...data.wps.map((wp, i) => wpCell(wp.color, bold(lit(pm(colTotals[i]))), 'bottom')),
-    plainCell(bold(lit(pm(colTotals.reduce((s, v) => s + v, 0))))),
-  );
+  rows.push([
+    bold(lit('Total')),
+    ...colTotals.map((v) => bold(lit(pm(v)))),
+    bold(lit(pm(colTotals.reduce((s, v) => s + v, 0)))),
+  ]);
 
-  // Explicit widths, not `1fr`: a cell whose content is a `block(width: 100%)`
-  // measures as zero inside a fractional column, so the coloured bands would
-  // vanish entirely. 18cm = 510.24pt, less the 5pt gutters between every pair.
-  // Where the author has resized the matrix in the editor (`effort-matrix`),
-  // those pixel widths are scaled proportionally onto the same 18 cm; where
-  // they have not, the editor's own default of a 72pt name column, a 40pt
-  // total column and equal work-package columns applies.
-  const n = data.wps.length;
-  const gutters = (n + 1) * 5;
-  const usable = 510.24 - gutters;
-  const stored = data.columnWidths['effort-matrix'];
-  let widthsPt: number[];
-  if (stored && stored.length === n + 2 && stored.every((w) => w > 0)) {
-    // Same per-column floor the editor enforces while dragging: without it a
-    // squeezed WP column printed narrower than its own figures.
-    widthsPt = pointWidths(stored, MIN_COL_PX, usable);
-  } else {
-    const wpWidth = Math.max(18, (usable - 72 - 40) / n);
-    widthsPt = [72, ...data.wps.map(() => wpWidth), 40];
-  }
-  const cols = `(${widthsPt.map((w) => `${w.toFixed(2)}pt`).join(', ')})`;
-
+  const aligns = ['left', ...data.wps.map(() => 'center'), 'center'];
 
   return [
     caption(data, 'effort-matrix', tableLabel(ctx, 'Table 3.1.f.'), 'Staff effort in person months'),
-    `he-grid(${cols}, (${cells.join(', ')},))`,
+    table(ptTrack(widthsPt), header, rows, aligns),
   ];
 }
 
