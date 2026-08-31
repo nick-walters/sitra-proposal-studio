@@ -734,14 +734,17 @@ function DocumentEditorInner({
         found.set(number, caption);
       }
       if (found.size === 0) return;
+      // Figure numbers are derived from the placing block, so match on the
+      // derived number rather than a stored column.
+      const numbers = await fetchDerivedFigureNumbers(proposalId);
       const { data: figs } = await supabase
         .from('figures')
-        .select('id, figure_number, caption')
-        .eq('proposal_id', proposalId)
-        .in('figure_number', Array.from(found.keys()));
+        .select('id, caption')
+        .eq('proposal_id', proposalId);
       if (!figs) return;
       for (const f of figs) {
-        const newCap = found.get(f.figure_number);
+        const derived = numbers.get(f.id);
+        const newCap = derived ? found.get(derived) : undefined;
         if (!newCap || newCap === (f.caption || '')) continue;
         await supabase.from('figures').update({ caption: newCap }).eq('id', f.id);
         queryClient.invalidateQueries({ queryKey: ['figure-caption', f.id] });
