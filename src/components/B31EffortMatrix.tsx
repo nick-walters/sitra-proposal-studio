@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from 'react';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
@@ -45,7 +44,7 @@ interface Props {
  */
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({
+  const { colWidths, setColWidths, tableRef, saveWidths } = useColumnResize({
     proposalId,
     tableKey: 'effort-matrix',
     canResize: isAdminOrOwner,
@@ -64,26 +63,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
-
-  const autoFitColumns = useCallback(() => {
-    const table = tableRef.current;
-    if (!table) return;
-    const widths = computeAutoFitSmart(table);
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
-    }
-  }, [tableRef, setColWidths, saveWidths]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
-      if (detail?.tableId !== 'b31-effort') return;
-      autoFitColumns();
-    };
-    window.addEventListener('b31-table-autoresize', handler as EventListener);
-    return () => window.removeEventListener('b31-table-autoresize', handler as EventListener);
-  }, [autoFitColumns]);
 
   const dispatchToolbarFocus = useCallback(() => {
     window.dispatchEvent(new CustomEvent('b31-table-focus', { detail: { tableId: 'b31-effort' } }));
