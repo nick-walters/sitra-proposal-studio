@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureOverviewCanvas } from '@/lib/overviewCanvas';
 import { ProposalType, BudgetType, SubmissionStage } from '@/types/proposal';
@@ -65,7 +66,7 @@ export function useProposalTemplateCreation() {
       const merged = mergeModifierEffects(applied);
 
       // 3. Create the proposal template
-      const effectivePageLimit = (sourceTemplate.base_page_limit || 45) + merged.pageLimitDelta;
+      const effectivePageLimit = (sourceTemplate.base_page_limit || DEFAULT_BASE_PAGE_LIMIT) + merged.pageLimitDelta;
 
       const { data: proposalTemplate, error: createError } = await supabase
         .from('proposal_templates')

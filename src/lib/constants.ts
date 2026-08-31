@@ -31,3 +31,10 @@ export const RISK_COLORS: Record<'H' | 'M' | 'L', string> = {
   M: '#f59e0b',
   L: '#22c55e',
 };
+
+/**
+ * Base Part B page limit used when a template type carries none. Single
+ * source for proposal creation and for the section-locking template copy,
+ * which used to hold their own duplicate 45.
+ */
+export const DEFAULT_BASE_PAGE_LIMIT = 45;

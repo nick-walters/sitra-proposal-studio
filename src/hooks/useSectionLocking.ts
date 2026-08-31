@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useUserRole } from './useUserRole';
@@ -161,7 +162,7 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
           .insert({
             proposal_id: proposalId,
             source_template_type_id: proposal.template_type_id,
-            base_page_limit: sourceTemplate?.base_page_limit || 45,
+            base_page_limit: sourceTemplate?.base_page_limit || DEFAULT_BASE_PAGE_LIMIT,
             includes_branding: sourceTemplate?.includes_branding ?? true,
             includes_participant_table: sourceTemplate?.includes_participant_table ?? true,
             is_customized: false,
