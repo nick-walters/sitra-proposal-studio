@@ -587,7 +587,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
     return fallbackSections;
 
-  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags]);
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, casesEnabled, caseTypeFlags, isCoordinator]);
 
 
   // Create a refetch function that can be called externally
