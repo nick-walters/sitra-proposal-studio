@@ -48,13 +48,14 @@ interface Stats {
 export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, onWordExport }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { data: refData } = useReferenceData(proposalId);
+  const { data: refData, isPending: refPending } = useReferenceData(proposalId);
   const { ganttFigure, loading: b31Loading } = useB31SectionData(proposalId);
   // The off-screen Gantt host has to be PAINTED before the raster is taken.
   // Without this gate the first compile ran in the same tick the host mounted,
   // `captureOne` found an element of zero height, and the document showed
   // "the chart was not on screen …" until you navigated away and back.
   const [ganttPainted, setGanttPainted] = useState(false);
+  const [ganttStalled, setGanttStalled] = useState(false);
   const ganttHostRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -65,7 +66,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const { data: sections = [] } = useQuery({
+  const { data: sections = [], isPending: sectionsPending } = useQuery({
     queryKey: ['partb-sections', proposalId],
     enabled: !!proposalId,
     queryFn: () => fetchPartBSections(proposalId),
@@ -84,7 +85,9 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     let frame = 0;
     let tries = 0;
     // Two frames after layout is the usual case; poll a little longer because
-    // the chart measures itself and reflows once its fonts resolve.
+    // the chart measures itself and reflows once its fonts resolve. There is
+    // deliberately NO "compile anyway" escape: a partial document must never
+    // be shown or offered for export.
     const check = () => {
       if (cancelled) return;
       const el = ganttHostRef.current?.querySelector<HTMLElement>('[data-figure-chart="gantt"]');
@@ -92,7 +95,11 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         setGanttPainted(true);
         return;
       }
-      if (tries++ > 120) return; // ~2s at 60fps: give up and compile without it
+      if (tries++ > 1800) {
+        // ~30s: something is wrong. Surface it rather than compile without it.
+        setGanttStalled(true);
+        return;
+      }
       frame = requestAnimationFrame(check);
     };
     frame = requestAnimationFrame(check);
@@ -101,6 +108,7 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
       cancelAnimationFrame(frame);
     };
   }, [ganttFigure]);
+
 
   const compile = useCallback(
     async (selection: PartBExportSelection, watermark: boolean) => {
