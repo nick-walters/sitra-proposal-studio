@@ -29,11 +29,30 @@ async function waitForRenderableAssets(root: HTMLElement) {
 
 function createDetachedSnapshot(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
-  // Round UP: a fractional box (the Gantt is 680.3125px = 18cm) otherwise loses
-  // its final sub-pixel column, which is exactly where the WP banner arrow tip
-  // is painted, so the tip came out blunt/clipped in the raster.
-  const width = Math.ceil(Math.max(rect.width, element.scrollWidth, element.offsetWidth));
-  const height = Math.ceil(Math.max(rect.height, element.scrollHeight, element.offsetHeight));
+  // Measure painted descendants as well as the container. Fixed-width and
+  // absolutely-positioned chart children can extend beyond a parent's box
+  // without increasing its scrollWidth, especially when the parent clips
+  // overflow. The detached clone is widened to the complete natural content
+  // bounds and then rasterised; the document renderer scales that full raster.
+  let naturalRight = rect.right;
+  let naturalBottom = rect.bottom;
+  for (const child of element.querySelectorAll<HTMLElement>('*')) {
+    const childRect = child.getBoundingClientRect();
+    naturalRight = Math.max(naturalRight, childRect.right);
+    naturalBottom = Math.max(naturalBottom, childRect.bottom);
+  }
+  const width = Math.ceil(Math.max(
+    rect.width,
+    element.scrollWidth,
+    element.offsetWidth,
+    naturalRight - rect.left,
+  ));
+  const height = Math.ceil(Math.max(
+    rect.height,
+    element.scrollHeight,
+    element.offsetHeight,
+    naturalBottom - rect.top,
+  ));
 
 
   const wrapper = document.createElement('div');
@@ -55,6 +74,7 @@ function createDetachedSnapshot(element: HTMLElement) {
   clone.style.margin = '0';
   clone.style.width = `${width}px`;
   clone.style.maxWidth = 'none';
+  clone.style.overflow = 'visible';
 
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);

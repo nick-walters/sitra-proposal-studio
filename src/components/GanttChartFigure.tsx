@@ -877,10 +877,7 @@ export function GanttChartFigure({
                         fontWeight: 700,
                         padding: '0 12px 0 6px',
                         pointerEvents: 'none',
-                        // 1px inset on the right so the arrow apex (and its
-                        // anti-aliasing) sits INSIDE the 18cm column rather than
-                        // exactly on its edge, where the raster clipped it.
-                        top: 0, bottom: 0, left: 0, right: 1,
+                        top: 0, bottom: 0, left: 0, right: 0,
 
                         borderRadius: `${ROW_HEIGHT / 2}px 0 0 ${ROW_HEIGHT / 2}px`,
                         clipPath: `polygon(0% 0%, calc(100% - 12.5px) 0%, 100% 50%, calc(100% - 12.5px) 100%, 0% 100%)`,
