@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import {
-  collectStringsFromJson,
   extractHexTextColorsFromHtml,
 } from '@/lib/extractHexTextColors';
 
