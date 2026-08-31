@@ -1,3 +1,4 @@
+import { countWords } from '@/lib/wordCount';
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +74,7 @@ export function WorkloadDashboard({ proposalId }: WorkloadDashboardProps) {
       const results: Assignment[] = assignedSections.map((sa: any) => {
         const sectionId = sa.section_number?.toLowerCase().replace(/\./g, '-') || '';
         const content = contentMap[sectionId] || '';
-        const wordCount = content.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+        const wordCount = countWords(content);
         const profile = sa.assigned_to ? profileMap[sa.assigned_to] : null;
         return {
           sectionNumber: sa.section_number || '',

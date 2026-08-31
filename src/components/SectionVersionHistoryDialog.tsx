@@ -1,3 +1,4 @@
+import { countWords } from '@/lib/wordCount';
 import { useState, useEffect, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { RICH_TEXT_WITH_IMAGES_CONFIG } from '@/lib/sanitizePresets';
@@ -75,15 +76,7 @@ function formatSize(bytes: number): string {
 }
 
 /** Get word count from HTML content */
-function getWordCount(content: string | null): number {
-  if (!content) return 0;
-  const plainText = content
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return plainText.split(/\s+/).filter(word => word.length > 0).length;
-}
+const getWordCount = (content: string | null) => countWords(content);
 
 /** Get time group label */
 function getTimeGroup(dateString: string): string {

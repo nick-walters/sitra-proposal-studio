@@ -21,6 +21,7 @@ import {
   EMPTY_SELECTION,
 } from '@/lib/typst/partBDocument';
 import { typstSourceToText } from '@/lib/typst/typstText';
+import { countWords, estimatePages } from '@/lib/wordCount';
 
 export interface EvaluationPayload {
   /** Markdown-shaped text of the live Part B document. */
@@ -31,6 +32,8 @@ export interface EvaluationPayload {
   estimatedPages: number;
   sectionCount: number;
   blockCount: number;
+  /** Plain text per emitted section, for prompts that quote one section. */
+  sections: { id: string; label: string; text: string }[];
 }
 
 export async function buildEvaluationPayload(proposalId: string): Promise<EvaluationPayload> {
@@ -48,14 +51,19 @@ export async function buildEvaluationPayload(proposalId: string): Promise<Evalua
   });
 
   const text = typstSourceToText(built.source);
-  const words = text.split(/\s+/).filter(Boolean).length;
+  const words = countWords(text);
 
   return {
     text,
     characters: text.length,
     words,
-    estimatedPages: Math.ceil(words / 500) + 1,
+    estimatedPages: estimatePages(words),
     sectionCount: built.sectionCount,
     blockCount: built.blockCount,
+    sections: built.sectionSources.map((s) => ({
+      id: s.id,
+      label: s.label,
+      text: typstSourceToText(s.source),
+    })),
   };
 }

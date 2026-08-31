@@ -1,3 +1,4 @@
+import { countWords } from '@/lib/wordCount';
 import { useMemo } from 'react';
 import type { WPDraft } from './useWPDrafts';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -36,13 +37,6 @@ export interface ProposalProgressTotals {
   overallProgress: number;
 }
 
-// Word count helper - strips HTML tags
-function countWords(text: string | null | undefined): number {
-  if (!text) return 0;
-  const plainText = text.replace(/<[^>]*>/g, '').trim();
-  if (!plainText) return 0;
-  return plainText.split(/\s+/).filter(word => word.length > 0).length;
-}
 
 // Only counts CURRENTLY-EDITABLE WP-draft fields: objectives, description_before_tasks,
 // tasks, deliverables, lead participant. Methodology and inputs/outputs/bottlenecks

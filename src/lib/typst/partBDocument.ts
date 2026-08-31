@@ -144,6 +144,8 @@ export interface PartBBuildResult {
   blockCount: number;
   /** Sections actually emitted (after the selection filter). */
   sectionCount: number;
+  /** Per-section source, so callers can derive per-section text. */
+  sectionSources: { id: string; label: string; source: string }[];
 }
 
 export interface PartBBuildOptions {
@@ -198,6 +200,7 @@ export async function buildPartBTypstDocument(
   const unsupported = new Set<string>();
   const bodies: string[] = [];
   let blockCount = 0;
+  const sectionSources: { id: string; label: string; source: string }[] = [];
   let documentMeta: TypstDocMeta | null = null;
 
   for (const section of sections) {
@@ -237,6 +240,11 @@ export async function buildPartBTypstDocument(
     const marker = `#metadata(${typstString(meta.partLabel || section.number)}) <part-marker>`;
     const lead = bodies.length ? '#pagebreak(weak: true)\n' : '';
     bodies.push(`${lead}${marker}\n\n${built.source}`);
+    sectionSources.push({
+      id: section.id,
+      label: `${section.number} ${section.title}`.trim(),
+      source: built.source,
+    });
   }
 
   const preambleMeta: TypstDocMeta = documentMeta ?? { watermark: options.watermark };
@@ -246,6 +254,7 @@ export async function buildPartBTypstDocument(
     unsupported: Array.from(unsupported).sort(),
     blockCount,
     sectionCount: sections.length,
+    sectionSources,
   };
 }
 
