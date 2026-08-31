@@ -170,9 +170,10 @@ export async function fetchTypstFrontMatter(
         ? buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: true, includeAbbreviation: settings?.include_abbreviation !== false, withShortName: false })
         : c.short_name || buildCaseLabel({ prefix, number: c.number, shortName: c.short_name, includeNumber: false, includeAbbreviation: false, withShortName: false }),
       color: '#000000',
-      // Solid black, like every other role bubble in the list: the outlined
-      // form belongs to case cross-reference chips in prose, not here.
-      filled: true,
+      // Pilot (case) badges are OUTLINED — black label on white with a black
+      // outline — exactly as the B1.1 editor draws them. Only WP and
+      // coordinator badges are filled.
+      filled: false,
     });
   }
 
