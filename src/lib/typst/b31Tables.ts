@@ -222,19 +222,30 @@ export function emitWpDescriptions(
           ? ' + h(1fr) + ' +
             bold(lit(`${monthLabel(task.start_month)}–${monthLabel(task.end_month)}`))
           : '';
-      const head =
+      // Title line, then the participants / duration line 2px (1.5pt) below
+      // it, as the editor spaces them. A block — not a `linebreak()` — because
+      // only a block can carry that gap.
+      const titleLine =
         taskChip(wp.number, task.number, wp.color) +
         CHIP_GAP +
-        bold(lit(htmlToPlainText(task.title || '').trim())) +
-        ` + linebreak() + ` +
+        bold(lit(htmlToPlainText(task.title || '').trim()));
+      const metaLine =
         participantChip(byId.get(task.lead_participant_id || '')) +
         (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
         months;
+      // `sticky: true` binds the title to the participants line that follows
+      // it. The header is its OWN block rather than the opening paragraph of
+      // a shared cell: a paragraph that straddles a page boundary was being
+      // reflowed with its title line reprinted at the top of the next page.
+      // A sticky, unbreakable block cannot repeat — it moves whole — while
+      // the description below it still splits normally.
+      const head =
+        `block(breakable: false, sticky: true, below: 1.5pt, ${titleLine})` +
+        ` + block(breakable: false, sticky: true, above: 0pt, below: 0pt, ${metaLine})`;
       rows.push([sep]);
-      // The task header (chip, title, participants, month range) and its
-      // description live in ONE cell, separated by a paragraph break, so a
-      // page break can never fall between the header and its first paragraph.
-      // The cell itself still breaks, so a long description splits normally.
+      // The task header and its description live in ONE cell, so a page break
+      // can never fall between the header and its first paragraph. The cell
+      // itself still breaks, so a long description splits normally.
       if (htmlToPlainText(task.description || '').trim()) {
         rows.push([`${head} + parbreak() + ` + rich(task.description, ctx)]);
       } else {
@@ -295,6 +306,10 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
         'b31-3-1-c-deliverables',
         7,
         '(auto, 1fr, auto, auto, auto, auto, auto)',
+        // The Lead column keeps its stored width exactly: proportional
+        // rescaling to 18 cm shaved a few points off it, and a participant
+        // badge — which cannot wrap — then spilled into the Type column.
+        leadFloorPx(data, 'b31-3-1-c-deliverables', 7, 3),
       ),
 
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
@@ -349,6 +364,21 @@ function wpChipList(
  * stored row of the right shape wins. `fallback` is the EDITOR's own default
  * proportions, used while a table has never been resized.
  */
+/**
+ * A per-column floor array that pins ONE column to its stored pixel width, so
+ * `pointWidths` rescales the other columns instead of shrinking this one.
+ */
+function leadFloorPx(
+  data: B31TypstData,
+  key: string,
+  count: number,
+  index: number,
+): number[] | undefined {
+  const widths = data.columnWidths[key];
+  if (!widths || widths.length !== count || !widths.every((w) => w > 0)) return undefined;
+  return widths.map((w, i) => (i === index ? w : MIN_COL_PX));
+}
+
 function storedCols(
   data: B31TypstData,
   keys: string | string[],
