@@ -27,7 +27,7 @@ export interface LockedBoxOptions {
  * keystroke, refreshed on every later one, and released on blur.
  */
 export function useLockedBox(targetId: string, opts: LockedBoxOptions) {
-  const { claim, noteKeystroke, release, registerSaver, registerSnapshotSource, stream, useStreamedValue } =
+  const { claim, noteKeystroke, release, holdsTarget, registerSaver, registerSnapshotSource, stream, useStreamedValue } =
     useCardLocks();
   const { holder, isMine, lockedByOther } = useTargetLock(targetId);
   const streamed = useStreamedValue(targetId, lockedByOther);
@@ -46,6 +46,25 @@ export function useLockedBox(targetId: string, opts: LockedBoxOptions) {
     return registerSnapshotSource(targetId, () => optsRef.current.snapshot!());
   }, [registerSnapshotSource, targetId]);
 
+  // A field can disappear while it still holds the lock: a collapsed module, a
+  // list re-render, a route change, a block swapped out. Without this the row
+  // survived — renewed by the heartbeat — and everyone else saw "another user
+  // is editing" a box nobody was in. Saving here first, then releasing without
+  // the registered saver, keeps this independent of effect-cleanup ordering.
+  useEffect(() => {
+    return () => {
+      if (!holdsTarget(targetId)) return;
+      void (async () => {
+        try {
+          await optsRef.current.save?.();
+        } catch {
+          /* the saver surfaces its own error */
+        }
+        await release(targetId, { save: false });
+      })();
+    };
+  }, [holdsTarget, release, targetId]);
+
   const onType = useCallback(() => {
     noteKeystroke(targetId);
     void claim(targetId).then((ok) => {
@@ -57,18 +76,23 @@ export function useLockedBox(targetId: string, opts: LockedBoxOptions) {
   // switch, clicking another browser). That must never surrender the lock —
   // only a genuine in-app focus move away from this box does. The deferred
   // `document.hasFocus()` check distinguishes the two.
+  //
+  // The guard is `holdsTarget`, not the polled `isMine`: blurring within a
+  // second of claiming left `isMine` still false, the release was skipped and
+  // the row was stranded.
   const onBlur = useCallback(() => {
-    if (!isMine) return;
+    if (!holdsTarget(targetId)) return;
     window.setTimeout(() => {
       if (!document.hasFocus()) return; // window/app blur — keep the lock
       void release(targetId, { save: true });
     }, 0);
-  }, [isMine, release, targetId]);
+  }, [holdsTarget, release, targetId]);
 
   const push = useCallback((html: string) => stream(targetId, html), [stream, targetId]);
 
   return { holder, isMine, lockedByOther, streamed, onType, onBlur, push };
 }
+
 
 /**
  * Chooses the right dialog for a lost race: the copy-to-backup dialog only
