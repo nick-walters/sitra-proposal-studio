@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useUnloadFlush } from '@/lib/unloadFlush';
 
 /**
  * 800 ms trailing debounce for free-typing fields — the same delay the cards
@@ -45,15 +46,11 @@ export function useDebouncedSave<T>(save: (value: T) => void, delay = 800) {
   );
 
   // Navigating away, closing the tab or backgrounding the page must not lose
-  // the last keystrokes.
-  useEffect(() => {
-    const onHide = () => flush();
-    window.addEventListener('pagehide', onHide);
-    return () => {
-      window.removeEventListener('pagehide', onHide);
-      flush();
-    };
-  }, [flush]);
+  // the last keystrokes. `useUnloadFlush` covers visibilitychange (the first
+  // signal, while the document is still alive and a fetch can complete),
+  // pagehide and beforeunload.
+  useUnloadFlush(flush);
+  useEffect(() => () => flush(), [flush]);
 
   return { push, flush };
 }
