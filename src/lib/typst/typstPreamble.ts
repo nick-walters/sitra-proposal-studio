@@ -479,7 +479,10 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
         else if y == nrows - 1 { none }
         else { 0.5pt + rgb("#e5e7eb") },
     ),
-    ..cells,
+    // The first grid row is the header row: repeated on continuation pages
+    // and never orphaned at the foot of a page.
+    table.header(..cells.slice(0, cols.len())),
+    ..cells.slice(cols.len()),
   ),
 )
 }
