@@ -1163,8 +1163,13 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                conflict, then pull the rows this page actually reads. */
             onReverted={() => {
               subsectionBaseline.current = {};
-              queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
-              queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
+              void Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] }),
+                queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] }),
+                /* The subsection editors hold their own draft state and ignore
+                   remote value changes, so the refreshed rows only reach the
+                   screen when the surfaces remount. */
+              ]).then(() => setRestoreTick((n) => n + 1));
             }}
           />
         )}

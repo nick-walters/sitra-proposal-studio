@@ -1033,7 +1033,9 @@ function WPDraftEditorInner({ wpId, proposalId, canEdit: canEditProp, isCoordina
             /* The WP draft is fetched imperatively, not through React Query,
                so a restore has to pull the row again for the text to change. */
             onReverted={() => {
-              void refetchDraft().then(() => setRestoreTick((n) => n + 1));
+              void Promise.resolve(refetchDraft()).then(() =>
+                setRestoreTick((n) => n + 1),
+              );
             }}
           />
         )}
