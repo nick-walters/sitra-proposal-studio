@@ -277,6 +277,26 @@ export function emitWpDescriptions(
 
 /* ───────────────────── Table 3.1.c — deliverables ───────────────────────── */
 
+/**
+ * The deliverables track. Participant badges cannot wrap, and at the stored
+ * proportions the Lead badge still ran into the Type column, so a fixed slice
+ * is moved OUT of the deliverable title column (the only elastic one) and INTO
+ * the Lead column before the widths are scaled to 18 cm.
+ */
+const DELIVERABLE_LEAD_GAIN_PX = 34;
+
+function deliverableCols(data: B31TypstData): string {
+  const key = 'b31-3-1-c-deliverables';
+  const stored = data.columnWidths[key];
+  if (!stored || stored.length !== 7 || !stored.every((w) => w > 0)) {
+    return '(auto, 1fr, auto, auto, auto, auto, auto)';
+  }
+  const shift = Math.min(DELIVERABLE_LEAD_GAIN_PX, Math.max(0, stored[1] - MIN_COL_PX * 3));
+  const widths = stored.map((w, i) => (i === 1 ? w - shift : i === 3 ? w + shift : w));
+  const floors = widths.map((w, i) => (i === 3 ? w : MIN_COL_PX));
+  return ptTrack(pointWidths(widths, floors));
+}
+
 export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.deliverables.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
@@ -305,16 +325,7 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
       // column used to be forced to `auto` to stop the participant badge
       // wrapping; `chip-pill` now measures its label and cannot wrap, so that
       // protection is gone and the printed columns match the board exactly.
-      storedCols(
-        data,
-        'b31-3-1-c-deliverables',
-        7,
-        '(auto, 1fr, auto, auto, auto, auto, auto)',
-        // The Lead column keeps its stored width exactly: proportional
-        // rescaling to 18 cm shaved a few points off it, and a participant
-        // badge — which cannot wrap — then spilled into the Type column.
-        leadFloorPx(data, 'b31-3-1-c-deliverables', 7, 3),
-      ),
+      deliverableCols(data),
 
       [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
       rows,
