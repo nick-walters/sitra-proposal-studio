@@ -256,7 +256,9 @@ function emitParagraphSlot(
     // The badge itself draws, so the FIRST block always counts as visible;
     // the entry is kept only when something beyond the badge line survives.
     if (!trimmed.length || (trimmed.length === 1 && !htmlHasInk(htmls[0]))) continue;
-    if (emittedAny) out.push('v(3pt, weak: true)');
+    // No extra gap between participants: each description is ordinary body
+    // copy, so the document's own 3pt paragraph spacing applies, exactly as
+    // the editor renders it.
     emittedAny = true;
     out.push(...trimmed);
   }

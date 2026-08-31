@@ -164,10 +164,10 @@ export async function fetchCasesTypstData(proposalId: string): Promise<CasesTyps
       }),
       colour: type?.outline_color || row.color || '#000000',
       title: (row.title || '').trim(),
+      // The editor's lead badge shows a CROWN and the short name only — no
+      // participant number. Matched here.
       leadLabel: lead
-        ? `${lead.participant_number != null ? `${lead.participant_number}. ` : ''}${
-            lead.organisation_short_name || lead.organisation_name || ''
-          }`
+        ? `${lead.organisation_short_name || lead.organisation_name || ''}`
         : null,
       subsections: subsectionsOf(row, templates),
     };
@@ -261,7 +261,7 @@ export function emitCasesTable(
     if (c.title) out.push(`par(justify: false, strong(${lit(c.title)}))`);
     if (c.leadLabel) {
       out.push(
-        `block(width: he-table-width, above: 2pt, below: 2pt, chip-pill(${typstString(c.leadLabel)}, black, filled: true))`,
+        `block(width: he-table-width, above: 2pt, below: 2pt, chip-pill-crown(${typstString(c.leadLabel)}, black))`,
       );
     }
     out.push(RULE('2pt'));

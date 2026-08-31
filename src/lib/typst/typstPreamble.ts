@@ -722,7 +722,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     set text(fill: white)
     set par(justify: false, leading: 2pt)
     if topic.len() > 0 {
-      block(below: 6pt, text(font: "${TYPST_SERIF}", size: 8pt, t-lines(topic)))
+      // Topic id, title and type are BOLD in the page-one banner; the running
+      // header on later pages keeps the same text unbolded.
+      block(below: 6pt, text(font: "${TYPST_SERIF}", size: 8pt, weight: "bold", t-lines(topic)))
     }
     if acronym.len() > 0 {
       block(below: 2pt, text(font: "${TYPST_DISPLAY}", size: 18pt, weight: "regular", t-lines(acronym)))
