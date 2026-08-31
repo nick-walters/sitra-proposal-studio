@@ -16,6 +16,7 @@
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_BASE_PAGE_LIMIT } from '@/lib/constants';
+import { WORDS_PER_PAGE } from '@/lib/wordCount';
 import { usePageEstimate } from './usePageEstimate';
 
 export interface CompiledPageCount {

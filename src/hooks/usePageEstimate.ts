@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { buildEvaluationPayload } from '@/lib/evaluationPayload';
+import { countWords } from '@/lib/wordCount';
 
 /**
  * In-editor page estimate.
@@ -13,6 +15,8 @@ import { buildEvaluationPayload } from '@/lib/evaluationPayload';
 interface UsePageEstimateResult {
   estimatedPages: number | null;
   totalWords: number;
+  /** Words per emitted Part B section, keyed by section id. */
+  sectionWords: Record<string, number>;
   isLoading: boolean;
 }
 
@@ -27,9 +31,16 @@ export function usePageEstimate(proposalId: string): UsePageEstimateResult {
     gcTime: 5 * 60_000,
   });
 
+  const sectionWords = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const section of data?.sections ?? []) out[section.id] = countWords(section.text);
+    return out;
+  }, [data]);
+
   return {
     estimatedPages: data?.estimatedPages ?? null,
     totalWords: data?.words ?? 0,
+    sectionWords,
     isLoading,
   };
 }
