@@ -275,7 +275,7 @@ function emitSourceFed(
       // Footnotes carry the references; no list is emitted.
       return [];
     case 'b31.table_a':
-      return emitWpList(data);
+      return emitWpList(data, ctx);
     case 'b31.table_b':
       return emitWpDescriptions(data, ctx);
     case 'b31.table_c':
@@ -285,7 +285,7 @@ function emitSourceFed(
     case 'b31.table_e':
       return emitRisks(data, ctx);
     case 'b31.table_f':
-      return emitEffortMatrix(data);
+      return emitEffortMatrix(data, ctx);
     case 'b31.table_g':
       return emitSubcontracting(data, ctx, 'Table 3.1.g.');
     case 'b31.table_h':

@@ -22,6 +22,7 @@
  * `buildSectionTypstDocument`.
  */
 
+import { pointWidths, ptTrack } from './tableColumns';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
@@ -267,9 +268,12 @@ export function emitParticipantList(fm: TypstFrontMatter): string[] {
   // Ratios, not rounded pixels: `Math.round` on a dragged width (e.g. 61.4px
   // beside 61.6px) quantised neighbouring columns to the same `fr` and lost
   // small drags. Dividing by the narrowest column keeps the exact proportions.
-  const minShare = Math.min(...shares.map((w) => Math.max(1, w)));
-  const cols = shares.map((w) => `${(Math.max(1, w) / minShare).toFixed(3)}fr`).join(', ');
-
+  // Stored pixel widths become an absolute point track on the same 18 cm, with
+  // the editor's per-column floor applied, so Table 1.1.a prints the geometry
+  // the author dragged rather than a re-derived fractional approximation.
+  const cols = ptTrack(pointWidths(shares.map((w) => Math.max(1, w))))
+    .replace(/^\(/, '')
+    .replace(/\)$/, '');
   out.push(`he-table((${cols},), (${header.join(', ')},), (${rows.join(', ')},))`);
   // 6pt of clear space under the table before the abbreviation legend, and the
   // same again after it, so the front matter does not run into what follows.

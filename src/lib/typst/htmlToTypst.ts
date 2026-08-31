@@ -13,6 +13,7 @@
 
 import type { RefSnapshot } from '@/lib/referenceData';
 import { captionLetter } from '@/lib/cards/captionSlots';
+import { pointWidths, ptTrack } from './tableColumns';
 import { chipKind, chipToTypst, reduceChip, toHex } from './typstChips';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 
@@ -487,8 +488,12 @@ function convertTable(el: Element, ctx: ConvertContext): string {
   // Trailing commas are load-bearing: `(x)` is a plain parenthesised value in
   // Typst, and spreading it raises "cannot spread content". `(x,)` is a
   // one-element array, and `()` an empty one.
+  // An authored table's stored `colwidth` pixels print as an absolute point
+  // track on the same 18 cm block — the editor's geometry, not a re-derived
+  // fractional approximation of it. Only a table with no stored widths at all
+  // falls back to equal fractional columns.
   const columns = widths
-    ? `(${widths.map((w) => `${(w / Math.min(...widths)).toFixed(3)}fr`).join(', ')},)`
+    ? `(${ptTrack(pointWidths(widths, MIN_COL_PX)).slice(1, -1)},)`
     : `(${Array.from({ length: colCount }, () => '1fr').join(', ')},)`;
 
   const emittedCells: string[] = [];
