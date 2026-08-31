@@ -609,13 +609,16 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Full-width raster figure (Gantt / Pert), scaled to the table width.
 /// Sticky and unbreakable: the image is one unit and keeps the caption that
 /// follows it on the same page.
-#let he-image(path, ratio) = block(
+/// \`dx\` nudges the raster horizontally: the captured Gantt carries a few
+/// pixels of leading white from its capture host, which pushed the drawn
+/// chart right of the text column and clipped its right edge.
+#let he-image(path, ratio, dx: 0pt) = block(
   width: he-table-width,
   above: 6pt,
   below: 0pt,
   breakable: false,
   sticky: true,
-  image(path, width: 100%),
+  move(dx: dx, image(path, width: 100%)),
 )
 
 /// Authored figure (an upload, an AI image or a rasterised canvas), scaled to
