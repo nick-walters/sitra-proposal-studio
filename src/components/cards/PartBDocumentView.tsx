@@ -47,6 +47,7 @@ interface Stats {
 
 export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, onWordExport }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: refData } = useReferenceData(proposalId);
   const { ganttFigure } = useB31SectionData(proposalId);
   const previewRef = useRef<HTMLDivElement | null>(null);
