@@ -226,10 +226,19 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   );
 
   return (
+    <div className="flex flex-1 overflow-hidden">
     <div className="relative flex-1 overflow-hidden bg-muted/30">
       {ganttHost}
 
       <div className="absolute right-6 top-4 z-20 flex items-center gap-2">
+        <Button
+          variant={reviewOpen ? 'secondary' : 'outline'}
+          className="gap-2 shadow"
+          onClick={() => setReviewOpen((v) => !v)}
+        >
+          <ListChecks className="h-4 w-4" />
+          Review
+        </Button>
         {onWordExport && (
           <Button variant="outline" className="gap-2 shadow" onClick={onWordExport}>
             <FileType className="h-4 w-4" />
