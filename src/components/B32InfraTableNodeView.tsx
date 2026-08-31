@@ -9,8 +9,9 @@ import {
   joinInfraNotes,
   B32_INFRA_TABLE_KEY,
   B32_INFRA_DEFAULT_CAPTION,
+  B32_INFRA_DEFAULT_HEADER,
 } from '@/lib/typst/b32InfraData';
-import { B32_INFRA_DEFAULT_HEADER } from '@/extensions/B32InfraTableNode';
+
 
 function proposalIdFromUrl(): string {
   if (typeof window === 'undefined') return '';
