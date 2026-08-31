@@ -238,7 +238,9 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         )}
         <Button
           className="gap-2 shadow"
-          disabled={status === 'running' || !sections.length}
+          // Only ever exportable from a COMPLETE compile.
+          disabled={status !== 'done' || exporting}
+          title={status !== 'done' ? 'Available once the full document has compiled' : undefined}
           onClick={() => setExportOpen(true)}
         >
           <Download className="h-4 w-4" />
@@ -246,12 +248,22 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         </Button>
       </div>
 
-      {status === 'running' && (
+      {(status === 'running' || (status === 'idle' && !ganttStalled)) && (
         <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Compiling the full Part B document&hellip;
+          {status === 'running'
+            ? 'Compiling the full Part B document…'
+            : 'Gathering the document’s content and figures…'}
         </div>
       )}
+
+      {status === 'idle' && ganttStalled && (
+        <div className="p-6 text-sm text-muted-foreground">
+          The Gantt chart did not finish drawing, so the document was not compiled. Reload the page
+          to try again.
+        </div>
+      )}
+
 
       {status === 'error' && (
         <div className="space-y-3 p-6">
