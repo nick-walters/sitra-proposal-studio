@@ -415,29 +415,36 @@ html, body {
 
 
 
+  /* Canonical heading metrics (prompt 178): H1 13pt / 9pt before / 6pt after,
+     H2 12pt / 6pt before / 6pt after, Arial Black on screen and in the print
+     export, Archivo Black in Typst. Kept identical in .document-h*,
+     .ProseMirror h*, and .print-export-container h*. */
   .document-h1 {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 12pt;
-    font-weight: 700;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 13pt;
+    font-weight: 400;
     line-height: 1;
     text-align: left;
-    margin-top: 6pt !important;
-    margin-bottom: 3pt !important;
+    margin-top: 9pt !important;
+    margin-bottom: 6pt !important;
     padding-top: 0 !important;
   }
 
   .document-h2 {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
-    font-weight: 700;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 12pt;
+    font-weight: 400;
     line-height: 1;
     text-align: left;
-    margin-top: 3pt !important;
-    margin-bottom: 3pt !important;
+    margin-top: 6pt !important;
+    margin-bottom: 6pt !important;
     padding-top: 0 !important;
   }
 
+  /* The heading owns the gap below it (6pt); the following paragraph adds none. */
+  .document-h1 + p,
   .document-h2 + p,
+  .ProseMirror h1 + p,
   .ProseMirror h2 + p {
     margin-top: 0 !important;
   }
@@ -873,17 +880,23 @@ table.b31-effort-matrix.first-col-flush {
 
 .ProseMirror h1 {
   text-align: left !important;
+  font-family: 'Arial Black', Arial, sans-serif !important;
+  font-size: 13pt !important;
+  font-weight: 400 !important;
   line-height: 1 !important;
-  margin-top: 6pt !important;
-  margin-bottom: 3pt !important;
+  margin-top: 9pt !important;
+  margin-bottom: 6pt !important;
   padding-top: 0 !important;
 }
 
 .ProseMirror h2 {
   text-align: left !important;
+  font-family: 'Arial Black', Arial, sans-serif !important;
+  font-size: 12pt !important;
+  font-weight: 400 !important;
   line-height: 1 !important;
-  margin-top: 3pt !important;
-  margin-bottom: 3pt !important;
+  margin-top: 6pt !important;
+  margin-bottom: 6pt !important;
 }
 
 .ProseMirror h3,
@@ -1269,19 +1282,19 @@ body.table-col-resizing * {
 .print-export-container .print-h1,
 .print-export-container h1:not(.print-title) {
   font-size: 13pt !important;
-  font-weight: bold !important;
+  font-weight: 400 !important;
   margin-top: 9pt !important;
   margin-bottom: 6pt !important;
-  font-family: 'Times New Roman', Times, serif !important;
+  font-family: 'Arial Black', Arial, sans-serif !important;
 }
 
 .print-export-container .print-h2,
 .print-export-container h2 {
   font-size: 12pt !important;
-  font-weight: bold !important;
+  font-weight: 400 !important;
   margin-top: 6pt !important;
-  margin-bottom: 0 !important;
-  font-family: 'Times New Roman', Times, serif !important;
+  margin-bottom: 6pt !important;
+  font-family: 'Arial Black', Arial, sans-serif !important;
 }
 
 .print-export-container h3 {
