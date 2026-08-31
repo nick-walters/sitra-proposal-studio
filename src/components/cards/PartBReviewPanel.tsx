@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
-import { formatSmartTimestamp } from '@/lib/smartTimestamp';
+import { smartTimestamp } from '@/lib/smartTimestamp';
 import { usePartBReview, type ReviewItem } from '@/hooks/usePartBReview';
 
 interface Props {
@@ -154,7 +154,7 @@ export function PartBReviewPanel({ proposalId }: Props) {
                       <MessageSquare className="h-3.5 w-3.5" />
                     )}
                     <span className="font-medium text-foreground">{item.authorName}</span>
-                    {item.timestamp && <span>{formatSmartTimestamp(item.timestamp)}</span>}
+                    {item.timestamp && <span>{smartTimestamp(new Date(item.timestamp))}</span>}
                     {item.kind === 'change' && (
                       <Badge variant="outline" className="text-[11px] font-bold">
                         {item.type === 'insertion' ? 'Insertion' : 'Deletion'}
