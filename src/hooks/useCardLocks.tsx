@@ -124,10 +124,17 @@ export function CardLockProvider({
   const [warning, setWarning] = useState<{ targetId: string; secondsLeft: number } | null>(null);
 
   const myTargetRef = useRef<string | null>(null);
+  /** Every target this client currently holds a server row for.
+   *  `myTargetRef` alone was not enough: a field that claimed on focus and
+   *  then unmounted (collapse, re-render, route change) left `myTargetRef`
+   *  pointing at it, the heartbeat kept the row alive indefinitely, and every
+   *  other user saw "another user is editing" a box nobody was in. */
+  const heldRef = useRef<Set<string>>(new Set());
   const lastKeystrokeRef = useRef<number>(0);
   const saversRef = useRef<Map<string, () => Promise<void>>>(new Map());
   const snapshotSourcesRef = useRef<Map<string, () => string>>(new Map());
   const claimingRef = useRef<Map<string, Promise<boolean>>>(new Map());
+
 
   /* ---------------- lock table: load + realtime ---------------- */
 
