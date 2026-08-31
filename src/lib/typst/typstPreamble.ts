@@ -282,14 +282,16 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Crown drawn as geometry rather than text: the embedded Nimbus Roman faces
 /// carry no crown glyph, so a literal one is dropped by the compiler. The
 /// outline follows the Lucide crown the editor uses for lead badges.
-#let chip-crown(colour, size: 7pt) = box(
-  baseline: 1.2pt,
+#let chip-crown(colour, size: 7.5pt) = box(
+  baseline: 0.2pt,
   width: size,
   height: size,
   polygon(
     fill: colour,
     stroke: none,
-    (6%, 82%), (6%, 22%), (28%, 52%), (50%, 14%), (72%, 52%), (94%, 22%), (94%, 82%),
+    // Lucide `crown`, mapped from its 24-unit box: 2,4 → 5,16 → 19,16 → 22,4,
+    // with the three dips at 16,11 / 12,4 / 8,11.
+    (8%, 17%), (21%, 67%), (79%, 67%), (92%, 17%), (67%, 46%), (50%, 17%), (33%, 46%),
   ),
 )
 
@@ -299,7 +301,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let chip-pill-crown(label, colour) = context {
   let body = chip-label(label, white)
   let m = measure(body)
-  let crown-size = 7pt
+  let crown-size = 7.5pt
   let crown-gap = 1.5pt
   let w = m.width + 2 * chip-pad + crown-size + crown-gap
   box(
@@ -310,7 +312,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     fill: colour,
     stroke: 1pt + colour,
     {
-      place(horizon + left, dx: chip-pad, dy: 1.9pt, chip-crown(white, size: crown-size))
+      place(horizon + left, dx: chip-pad, dy: 0.2pt, chip-crown(white, size: crown-size))
       place(horizon + left, dx: chip-pad + crown-size + crown-gap, dy: chip-label-shift, body)
     },
   )
@@ -448,7 +450,10 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// \`tight\` switches to the shared authored-table cell padding (3pt / 0.75pt),
 /// which is what the board's own tables use — 3.1.a is emitted tight so the
 /// editor and the preview allocate the same width to each column.
-#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false) = {
+/// \`hairlines: false\` removes EVERY row rule except the header rule.
+/// \`rule-above\` is a grid row index that carries the same 1.5pt black rule
+/// as the header (table 3.1.f's Total row).
+#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false, hairlines: true, rule-above: none) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
   set text(hyphenate: false)
@@ -476,7 +481,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
       right: none,
       top: none,
       bottom: if y == 0 { 1.5pt + black }
+        else if rule-above != none and y == rule-above - 1 { 1.5pt + black }
         else if y == rows.len() { none }
+        else if not hairlines { none }
         else { 0.5pt + rgb("#e5e7eb") },
     ),
     // A real \`table.header\`: Typst repeats it at the top of every
@@ -590,10 +597,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     inset: (x: 0pt, y: 1.5pt),
     align: left + top,
     stroke: none,
-    // The WP name banner is the table's header row: it repeats when a long
-    // work package runs on to the next page and can never be stranded as the
-    // last thing on a page with nothing but its objectives under it.
-    table.header(header),
+    // The WP name banner is an ORDINARY first row, not a `table.header`: a
+    // repeating header reprinted the WP title at the top of every
+    // continuation page. `sticky` still stops it being stranded alone at the
+    // foot of a page, while the content below it splits normally.
+    block(breakable: false, sticky: true, header),
     ..rows.flatten(),
   ),
 )
