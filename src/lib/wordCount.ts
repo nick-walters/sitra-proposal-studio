@@ -18,8 +18,12 @@ export function countWords(html: string | null | undefined): number {
   return text.split(' ').filter(Boolean).length;
 }
 
-/** A typical A4 page of 11pt Times New Roman body text. */
-export const WORDS_PER_PAGE = 500;
+/**
+ * Words per page, recalibrated from real compiled output (SUSIE-Q: ~20,155
+ * words over 32 compiled pages) rather than the earlier generic 500, which
+ * over-reported length by roughly a quarter. Only used before a compile.
+ */
+export const WORDS_PER_PAGE = 640;
 
 /** Title page, participant table and other page-one furniture. */
 export const FRONT_MATTER_PAGES = 1;
