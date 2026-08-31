@@ -222,9 +222,14 @@ export function emitWpDescriptions(
         (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
         months;
       rows.push([sep]);
-      rows.push([head]);
+      // The task header (chip, title, participants, month range) and its
+      // description live in ONE cell, separated by a paragraph break, so a
+      // page break can never fall between the header and its first paragraph.
+      // The cell itself still breaks, so a long description splits normally.
       if (htmlToPlainText(task.description || '').trim()) {
-        rows.push([rich(task.description, ctx)]);
+        rows.push([`${head} + parbreak() + ` + rich(task.description, ctx)]);
+      } else {
+        rows.push([head]);
       }
     }
     // The board closes every work package with a trailing rule.

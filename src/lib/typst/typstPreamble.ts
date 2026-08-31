@@ -442,7 +442,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
         else if y == rows.len() { none }
         else { 0.5pt + rgb("#e5e7eb") },
     ),
-    ..header.map(cell => text(weight: "bold", cell)),
+    // A real \`table.header\`: Typst repeats it at the top of every
+    // continuation page and never leaves it alone at the foot of a page.
+    table.header(..header.map(cell => text(weight: "bold", cell))),
     ..rows.flatten(),
   ),
 )
@@ -477,7 +479,10 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
         else if y == nrows - 1 { none }
         else { 0.5pt + rgb("#e5e7eb") },
     ),
-    ..cells,
+    // The first grid row is the header row: repeated on continuation pages
+    // and never orphaned at the foot of a page.
+    table.header(..cells.slice(0, cols.len())),
+    ..cells.slice(cols.len()),
   ),
 )
 }
@@ -584,7 +589,10 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     inset: (x: 0pt, y: 1.5pt),
     align: left + top,
     stroke: none,
-    header,
+    // The WP name banner is the table's header row: it repeats when a long
+    // work package runs on to the next page and can never be stranded as the
+    // last thing on a page with nothing but its objectives under it.
+    table.header(header),
     ..rows.flatten(),
   ),
 )
@@ -626,10 +634,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Arial Black at 13pt / 12pt with 9-6 and 6-6 point spacing, matching the
 /// browser-print export. The face is already black, so no synthetic bold is
 /// requested on top of it.
-#let he-h1(body) = block(above: 9pt, below: 6pt, text(
+/// \`sticky: true\`: a heading is bound to the block that follows it, so it can
+/// never print as the last thing on a page.
+#let he-h1(body) = block(above: 9pt, below: 6pt, sticky: true, text(
   font: "${TYPST_DISPLAY}", size: 13pt, weight: "regular", body,
 ))
-#let he-h2(body) = block(above: 6pt, below: 6pt, text(
+#let he-h2(body) = block(above: 6pt, below: 6pt, sticky: true, text(
   font: "${TYPST_DISPLAY}", size: 12pt, weight: "regular", body,
 ))
 #let he-h1-plain(s) = he-h1(t(s))
