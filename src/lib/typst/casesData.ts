@@ -13,7 +13,7 @@
  * followed by its body, separated by hairlines.
  */
 
-import { dropBlankBlocks, hasVisibleBlocks } from './emptyBlocks';
+import { dropBlankBlocks, hasVisibleBlocks, htmlHasInk } from './emptyBlocks';
 import { supabase } from '@/integrations/supabase/client';
 import { getCaseTypePrefix, buildCaseLabel, getCaseTypeLabel } from '@/lib/caseTypeLabels';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -231,7 +231,9 @@ export function emitCasesTable(
       // methodology items.
       const lead = heading ? `strong(emph(${lit(`${heading}:`)})) + h(4pt) + ` : '';
       const sub: string[] = [];
-      if (children.length) {
+      // The body is judged BEFORE conversion: the run-in heading's own text
+      // would otherwise make an empty subsection look non-empty.
+      if (children.length && htmlHasInk(body)) {
         sub.push(`par(justify: true, ${lead}${htmlToTypstInline(children[0].outerHTML, ctx)})`);
         for (const child of children.slice(1)) {
           sub.push(...htmlToTypstBlocks(child.outerHTML, ctx));

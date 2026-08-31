@@ -66,3 +66,25 @@ export function dropBlankBlocks(blocks: string[]): string[] {
   }
   return out;
 }
+
+/**
+ * True when a fragment of stored HTML would put ink on the page: any text, or
+ * any atom that draws (a chip, an image, a table, a figure, a mirror slot).
+ * Used where the heading and the body are emitted as ONE run-in paragraph, so
+ * the heading's own literal cannot be used to judge the body.
+ */
+const INK_SELECTOR =
+  'img, table, hr, svg, [data-cases-table-node], [data-b32-mirror-slot], [data-b32-infra-table],' +
+  ' [data-wp-reference], [data-task-reference], [data-deliverable-reference], [data-milestone-reference],' +
+  ' [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-citation]';
+
+export function htmlHasInk(html: string | null | undefined): boolean {
+  const raw = (html ?? '').toString();
+  if (!raw.trim()) return false;
+  if (typeof document === 'undefined') return raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = raw;
+  const text = (tpl.content.textContent || '').replace(/\u00a0/g, ' ').trim();
+  if (text.length > 0) return true;
+  return !!tpl.content.querySelector(INK_SELECTOR);
+}
