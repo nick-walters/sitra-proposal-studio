@@ -23,6 +23,7 @@ import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesR
 import MethodologiesPage from "@/components/MethodologiesPage";
 import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
 import PartBDocumentView from "@/components/cards/PartBDocumentView";
+import { PageCountBadge } from "@/components/PageCountBadge";
 
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { TrackChangeHoverTooltip } from '@/components/TrackChangeHoverTooltip';
@@ -1190,7 +1191,10 @@ export function ProposalEditor() {
           </div>
 
           <div className="flex items-center gap-2">
-            
+
+            {/* Real compiled Part B page count against the proposal's limit */}
+            <PageCountBadge proposalId={id || ''} />
+
             {/* Read-only indicator for non-draft proposals */}
             {!isDraft && (
               <Badge variant="outline" className="gap-1 bg-muted">

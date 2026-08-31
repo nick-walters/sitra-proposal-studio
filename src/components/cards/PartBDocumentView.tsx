@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, FileType, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { publishCompiledPageCount } from '@/hooks/usePageCount';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferenceData } from '@/lib/referenceData';
@@ -46,6 +47,7 @@ interface Stats {
 
 export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, onWordExport }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: refData } = useReferenceData(proposalId);
   const { ganttFigure } = useB31SectionData(proposalId);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -110,12 +112,14 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         blockCount: built.blockCount,
         unsupported: built.unsupported,
       });
+      // The authoritative count for the whole editor chrome.
+      publishCompiledPageCount(queryClient, proposalId, pages);
       setStatus('done');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus('error');
     }
-  }, [compile, sections.length]);
+  }, [compile, sections.length, queryClient, proposalId]);
 
   useEffect(() => {
     if (status === 'idle' && sections.length) void runPreview();

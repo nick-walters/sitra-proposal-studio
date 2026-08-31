@@ -1,5 +1,6 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { markCompiledPageCountStale } from '@/hooks/usePageCount';
 import { mapField, type CardField } from '@/types/cards';
 
 export const cardFieldsKey = (cardId: string) => ['card-fields', cardId];
@@ -19,6 +20,8 @@ export const cardFieldsBatchKey = (cardIds: string[]) => [
  * is correct for "everything changed" cases only.
  */
 export function invalidateCardFieldsBatches(qc: QueryClient, cardIds: (string | null | undefined)[]) {
+  // Any card field change invalidates the compiled page count as well.
+  markCompiledPageCountStale(qc);
   const ids = new Set(cardIds.filter((id): id is string => !!id));
   if (ids.size === 0) return qc.invalidateQueries({ queryKey: ['card-fields-batch'] });
   return qc.invalidateQueries({
