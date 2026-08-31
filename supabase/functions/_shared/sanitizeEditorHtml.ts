@@ -103,6 +103,13 @@ export const ALLOWED_DATA_ATTRS = new Set<string>([
   // B3.2 mirror slot binding (heading ↔ slot pairing)
   'data-b32-mirror-slot',
   'data-b32-slot-key',
+  // B3.2 "Access to critical infrastructure" table atom. Without these the
+  // load sanitiser strips the marker attribute, TipTap parses the stored
+  // <div data-b32-infra-table> as a bare div and drops it, so the module
+  // renders blank in the editor while the Typst output (which reads the
+  // stored HTML directly) still shows the table.
+  'data-b32-infra-table',
+  'data-header',
   // B1.2 Methodologies mirror slot binding (heading ↔ slot pairing). Without
   // these the load sanitiser turns the slot div into a bare <div> (TipTap then
   // drops it) and orphans the heading, so the reconciler appends a duplicate
