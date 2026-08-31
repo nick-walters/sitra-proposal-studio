@@ -612,12 +612,15 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Captures are cropped to the chart itself, so the raster is drawn at the
 /// full text-column width with no horizontal nudge.
 #let he-image(path, ratio, w: he-table-width) = block(
-  width: he-table-width,
+  width: w,
   above: 6pt,
   below: 0pt,
   breakable: false,
   sticky: true,
-  image(path, width: w),
+  // Contain the complete source raster inside the column. Using the same
+  // absolute width for both the outer block and image let the image's final
+  // edge fall outside the block after Typst's internal unit rounding.
+  image(path, width: 100%, height: auto, fit: "contain"),
 )
 
 /// Authored figure (an upload, an AI image or a rasterised canvas), scaled to
