@@ -309,6 +309,8 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
         onExport={(selection, watermark) => void handleExport(selection, watermark)}
       />
     </div>
+    {reviewOpen && <PartBReviewPanel proposalId={proposalId} />}
+    </div>
   );
 }
 
