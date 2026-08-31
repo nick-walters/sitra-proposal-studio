@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cardFieldsKey } from './useCardFields';
+import { cardFieldsKey, invalidateCardFieldsBatches } from './useCardFields';
 import { sectionCardsKey } from './useSectionCards';
 import type { CardDeletionEntry } from '@/types/cards';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
@@ -130,7 +130,8 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
       queryClient.invalidateQueries({ queryKey: ['section-cards', proposalId] });
     }
     if (cardId) queryClient.invalidateQueries({ queryKey: cardFieldsKey(cardId) });
-    queryClient.invalidateQueries({ queryKey: ['card-fields-batch'] });
+    // Restoring a whole section's cards has no single card to scope to.
+    invalidateCardFieldsBatches(queryClient, cardId ? [cardId] : []);
   };
 
   const restoreCard = useMutation({

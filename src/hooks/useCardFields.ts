@@ -1,8 +1,34 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { mapField, type CardField } from '@/types/cards';
 
 export const cardFieldsKey = (cardId: string) => ['card-fields', cardId];
+
+/** Batch key: the sorted card ids of one board, joined. */
+export const cardFieldsBatchKey = (cardIds: string[]) => [
+  'card-fields-batch',
+  [...cardIds].sort().join(','),
+];
+
+/**
+ * Invalidates only the batch queries that actually contain one of `cardIds`.
+ *
+ * Invalidating the `['card-fields-batch']` prefix refetches every cached
+ * section's whole field batch (137-154KB each) for a single field edit, so
+ * every caller scopes by card instead. With no ids the prefix is used, which
+ * is correct for "everything changed" cases only.
+ */
+export function invalidateCardFieldsBatches(qc: QueryClient, cardIds: (string | null | undefined)[]) {
+  const ids = new Set(cardIds.filter((id): id is string => !!id));
+  if (ids.size === 0) return qc.invalidateQueries({ queryKey: ['card-fields-batch'] });
+  return qc.invalidateQueries({
+    predicate: (q) => {
+      if (q.queryKey[0] !== 'card-fields-batch') return false;
+      const joined = q.queryKey[1];
+      return typeof joined === 'string' && joined.split(',').some((id) => ids.has(id));
+    },
+  });
+}
 
 /**
  * Live (non-deleted) fields of a single card, in display order.
@@ -30,9 +56,8 @@ export function useCardFields(cardId: string) {
  * Live fields for many cards at once (avoids one query per card).
  */
 export function useCardFieldsForCards(cardIds: string[]) {
-  const key = [...cardIds].sort().join(',');
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['card-fields-batch', key],
+    queryKey: cardFieldsBatchKey(cardIds),
     queryFn: async (): Promise<Record<string, CardField[]>> => {
       if (cardIds.length === 0) return {};
       const { data, error } = await supabase
