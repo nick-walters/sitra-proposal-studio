@@ -7401,6 +7401,15 @@ export type Database = {
         Args: { p_expected_version?: number; p_id: string; p_patch: Json }
         Returns: Json
       }
+      save_table_column_header: {
+        Args: {
+          p_index: number
+          p_proposal_id: string
+          p_table_key: string
+          p_value: string
+        }
+        Returns: Json
+      }
       save_target_version: {
         Args: {
           p_is_auto_save?: boolean
