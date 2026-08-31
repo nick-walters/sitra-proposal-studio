@@ -28,19 +28,26 @@ export const RAIL_BUTTON_SIZE = 28;
 
 /**
  * How far the comment button's right edge sits INSIDE the page frame's right
- * edge. Taken from the deliverable row, the reference for every other row.
+ * edge. This IS the deliverable comment line: every comment button on every
+ * surface lands here, and every other control is measured from it.
+ *
+ * The deliverable comment previously sat at 8.63 − 7.4 = 1.23 px inside the
+ * frame; it now sits 1 px further left, at 2.23 px, and every other surface
+ * was collapsed onto the same single line, so no per-surface nudge remains.
  */
-export const RAIL_COMMENT_RIGHT_INSET = 8.63;
+export const RAIL_COMMENT_RIGHT_INSET = 2.23;
 
-/** The gap between two controls on the rail, deliverable-row measured. */
-export const RAIL_CONTROL_GAP = 2.2;
+/** The gap between two adjacent controls on the rail, edge to edge. */
+export const RAIL_CONTROL_GAP = 4;
 
 /** Where the comment button starts, measured from the frame edge. */
 export const RAIL_COMMENT_LEFT = -(RAIL_COMMENT_RIGHT_INSET + RAIL_BUTTON_SIZE);
 
 /**
  * Where a control row's right edge lands, measured from the frame edge: one
- * control gap to the left of the comment button.
+ * button plus one gap to the left of the comment line, so a module reading
+ * comment | delete | visibility places delete 4 px left of the comment and
+ * visibility 4 px left of delete.
  */
 export const RAIL_ROW_RIGHT_INSET =
   RAIL_COMMENT_RIGHT_INSET + RAIL_BUTTON_SIZE + RAIL_CONTROL_GAP;
@@ -52,23 +59,19 @@ export const RAIL_COMMENT_TOP = 2;
 export const RAIL_SHIFT = -41;
 
 /**
- * The deliverable row's own offsets from the shared rail. The row sits in a
- * document table whose right edge is not the page frame, so its controls are
- * nudged onto their final position: the comment button by
- * `RAIL_DELIVERABLE_COMMENT_NUDGE`, the delete button by
- * `RAIL_DELIVERABLE_DELETE_NUDGE`.
+ * The deliverable row is the reference surface, so it carries no nudge at all:
+ * its comment button sits on the comment line and its delete button sits on
+ * the standard control-row line, one button plus one gap to its left.
  */
-export const RAIL_DELIVERABLE_COMMENT_NUDGE = 7.4;
-export const RAIL_DELIVERABLE_DELETE_NUDGE = 13.6;
+export const RAIL_DELIVERABLE_COMMENT_NUDGE = 0;
+export const RAIL_DELIVERABLE_DELETE_NUDGE = 0;
 
 /**
- * Linked activities' delete lands on the DELIVERABLE COMMENT button's vertical
- * line. It is a rail ROW, whose right edge is measured against
- * `RAIL_ROW_RIGHT_INSET`, so the comment button's own slot — one button plus
- * one gap — is added back before its nudge.
+ * Linked activities' delete lands on the DELIVERABLE DELETE line, which is the
+ * ordinary control-row line, so it too carries no nudge. Its per-row comment
+ * button uses the ordinary comment line.
  */
-export const RAIL_LINKED_ACTIVITY_DELETE_NUDGE =
-  RAIL_BUTTON_SIZE + RAIL_CONTROL_GAP + RAIL_DELIVERABLE_COMMENT_NUDGE;
+export const RAIL_LINKED_ACTIVITY_DELETE_NUDGE = 0;
 
 /**
  * The page frame a rail aligns to. The OUTERMOST match is used — a page
