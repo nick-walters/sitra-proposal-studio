@@ -11,6 +11,7 @@
 
 import { formatCurrency } from '@/lib/formatNumber';
 import { getInstrumentAbbreviation, getInstrumentFullName, formatDurationShort } from '@/lib/fundingInstruments';
+import { htmlHasInk } from './emptyBlocks';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { captionLetter } from '@/lib/cards/captionSlots';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
@@ -555,15 +556,20 @@ function costCells(
   grouped: ParticipantCosts[],
   ctx: ConvertContext,
   header: string[],
-): { cells: string[]; nrows: number; total: number } {
+): { cells: string[]; nrows: number; total: number; rows: number } {
   const cells: string[] = header.map((h) => `table.cell(text(weight: "bold", ${h}))`);
   let nrows = 1;
   let total = 0;
 
   for (const bucket of grouped) {
-    const lines = bucket.groups.flatMap((g) =>
-      g.items.map((item) => ({ item, categoryLabel: g.categoryLabel })),
-    );
+    const lines = bucket.groups
+      .flatMap((g) => g.items.map((item) => ({ item, categoryLabel: g.categoryLabel })))
+      // A cost line with neither money nor a justification is an untouched
+      // category, not a cost: it printed as "Travel:" over an empty cell, or
+      // "Other: —". Nothing to justify, nothing to print. A line carrying an
+      // amount is always kept, justified or not — money must never vanish.
+      .filter(({ item }) => Number(item.amount) !== 0 || htmlHasInk(item.justification));
+    if (!lines.length) continue;
     // Every line plus the participant's own subtotal row.
     const span = lines.length + 1;
     // The merged participant cell is TOP aligned: `he-cell-table` centres
@@ -587,7 +593,7 @@ function costCells(
 
   cells.push(bold(lit('Total')), bold(lit(formatCurrency(total))), lit(''));
   nrows += 1;
-  return { cells, nrows, total };
+  return { cells, nrows, total, rows: nrows - 2 };
 }
 
 export function emitSubcontracting(
@@ -619,11 +625,14 @@ export function emitMergedJustification(
 ): string[] {
   if (!blocks.length) return [];
   const grouped = groupCosts(blocks, data.participants);
-  const { cells, nrows } = costCells(grouped, ctx, [
+  const { cells, nrows, rows } = costCells(grouped, ctx, [
     lit('Participant'),
     lit('Cost (€)'),
     lit('Category & justification'),
   ]);
+  // Every line was empty: the table is left out entirely, exactly as
+  // `SILENT_WHEN_EMPTY` leaves out a cost block with no rows at all.
+  if (!rows) return [];
   return [
     caption(data, tableKey, label, defaultCaption),
     // `tableKey` is the same key the editor's own resizable table stores under

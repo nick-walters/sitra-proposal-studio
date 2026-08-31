@@ -21,7 +21,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { B32SlotKey } from '@/extensions/B32MirrorSlotNode';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
-import { dropBlankBlocks, hasVisibleBlocks, htmlHasInk } from './emptyBlocks';
+import { dropBlankBlocks, htmlHasInk } from './emptyBlocks';
 import { fetchB32InfraTableData, type B32InfraTableData } from './b32InfraData';
 import {
   htmlToTypstBlocks,
