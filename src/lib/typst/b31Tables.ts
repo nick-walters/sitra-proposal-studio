@@ -797,10 +797,12 @@ export function emitFigure(
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
-    // Diagnostic baseline: let Typst place the Gantt at its intrinsic raster
-    // size. There is deliberately no wrapper, width, offset, fit or scaling
-    // instruction here.
-    native || `image(${typstString(FIGURE_ASSET_PATH[kind])})`,
+    // A bare `image(path)` inherits Typst's DEFAULT `fit: "cover"`, which
+    // CROPS the raster to the region it is given — that is what clipped the
+    // WP banner tips and shifted the marker grid against the month columns.
+    // The capture is already the chart exactly as the board draws it, so it
+    // must be placed with `fit: "contain"` at the full column width.
+    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
