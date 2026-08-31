@@ -2086,11 +2086,12 @@ function BoardInner({
             accessTokenRef.current,
           );
         } else {
-          void persistField(fieldId, entry.cardId, entry.html);
+          void persistFieldRef.current(fieldId, entry.cardId, entry.html);
         }
       }
     },
-    [persistField],
+    [],
+
   );
 
   // Unmounting (route change, block swap) writes the pending text instead of
