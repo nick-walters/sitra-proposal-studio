@@ -20,6 +20,17 @@ import { typstString, type ConvertContext } from './htmlToTypst';
 export const B32_INFRA_TABLE_KEY = 'b32-infra-table';
 export const B32_INFRA_DEFAULT_CAPTION = 'Access to critical infrastructure';
 
+/**
+ * The editable header cell's default text. It lives HERE, not in the TipTap
+ * extension, because both the extension and its NodeView need it: importing it
+ * from the extension made those two modules a value cycle, which a bundler
+ * resolves by evaluating one of them first — the losing side then hit the
+ * constant in its temporal dead zone ("Cannot access 'ct' before
+ * initialization"). This module imports neither of them, so no cycle exists.
+ */
+export const B32_INFRA_DEFAULT_HEADER =
+  'Participants\u2019 critical infrastructure & how it will support the project\u2019s implementation';
+
 export interface B32InfraSupportRow {
   participantId: string;
   number: number | null;

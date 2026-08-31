@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { B32_INFRA_DEFAULT_HEADER } from '@/lib/typst/b32InfraData';
 import { B32InfraTableNodeView } from '@/components/B32InfraTableNodeView';
 
 /**
@@ -20,8 +21,9 @@ import { B32InfraTableNodeView } from '@/components/B32InfraTableNodeView';
  * `src/components/B32InfraTableNodeView.tsx` are part of the same unit.
  */
 
-export const B32_INFRA_DEFAULT_HEADER =
-  "Participants\u2019 critical infrastructure & how it will support the project\u2019s implementation";
+// Re-exported for existing importers. Defined in `b32InfraData.ts` so this
+// extension and its NodeView do not form an import cycle.
+export { B32_INFRA_DEFAULT_HEADER };
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
