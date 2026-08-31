@@ -291,16 +291,27 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
     }
   }
   // Mirror the editor's own column geometry (`table_column_widths`, key
-  // `b32-expertise-matrix`, CSS px at 96dpi → points). Without it the tick
-  // columns took an equal `1fr` share of the 18cm block and rendered far wider
-  // than on the board. Fallback only when no widths are stored or the stored
-  // array no longer matches the column count.
+  // `b32-expertise-matrix`, CSS px at 96dpi → points, floored and scaled to
+  // the 18cm block exactly as every other emitted table).
+  //
+  // The stored row is written when a column is dragged and is NOT rewritten
+  // when a participant column is later added, so it is routinely SHORTER than
+  // the current column count (SUSIE-Q: 10 stored widths, 12 columns). The old
+  // exact-length test therefore fell through to `1fr` tick columns, which is
+  // why the participant columns still printed far wider than on the board.
+  // A short row is now extended with its last tick width instead.
   const stored = data.matrixWidthsPx;
   const expected = 1 + m.cols.length;
-  const columns =
-    stored.length === expected
-      ? `(${stored.map((px) => `${(px * 0.75).toFixed(2)}pt`).join(', ')},)`
-      : `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
+  const columns = stored.length
+    ? ptTrack(
+        pointWidths(
+          Array.from(
+            { length: expected },
+            (_, i) => stored[i] ?? stored[stored.length - 1] ?? MIN_COL_PX,
+          ),
+        ),
+      )
+    : `(${['4fr', ...m.cols.map(() => '1fr')].join(', ')},)`;
 
   const caption = data.captions.get('b32-expertise-matrix') || 'Expertise of participants';
   return [
