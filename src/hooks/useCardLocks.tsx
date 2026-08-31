@@ -457,6 +457,13 @@ export function CardLockProvider({
     };
   }, []);
 
+  /** Synchronous "did I take this row?" — used instead of the polled lock
+   *  table, which can be up to one poll behind a claim made a moment ago. */
+  const holdsTarget = useCallback(
+    (targetId: string) => myTargetRef.current === targetId || heldRef.current.has(targetId),
+    [],
+  );
+
   const stream = useCallback(
     (targetId: string, html: string) => {
       if (!enabled || !streamKey) return;
@@ -494,6 +501,7 @@ export function CardLockProvider({
       claim,
       noteKeystroke,
       release: doRelease,
+      holdsTarget,
       registerSaver,
       registerSnapshotSource,
       stream,
@@ -502,8 +510,9 @@ export function CardLockProvider({
     }),
     // useStreamedValue is a stable closure over enabled/sectionId
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [enabled, myUserId, locks, claim, noteKeystroke, doRelease, registerSaver, registerSnapshotSource, stream, warning],
+    [enabled, myUserId, locks, claim, noteKeystroke, doRelease, holdsTarget, registerSaver, registerSnapshotSource, stream, warning],
   );
+
 
   return <CardLockContext.Provider value={value}>{children}</CardLockContext.Provider>;
 }
