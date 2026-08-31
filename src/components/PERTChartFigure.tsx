@@ -1289,7 +1289,7 @@ export function PERTChartFigure({
           style={canEdit ? { width: 'fit-content', maxWidth: '100%' } : undefined}
         >
           <div className="relative" style={canEdit ? { width: svgWidth * zoom, height: svgHeight * zoom } : undefined}>
-          <div ref={chartRef} className="bg-white">
+          <div ref={chartRef} data-figure-chart="pert" className="bg-white">
           <svg
             ref={svgRef}
             width={canEdit ? svgWidth * zoom : `${frameWidthCm}cm`}
