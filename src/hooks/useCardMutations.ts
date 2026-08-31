@@ -146,13 +146,16 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   });
 
 
+  /**
+   * Metadata-only field update. Content is deliberately NOT accepted here: it
+   * must go through `save_card_text`, which carries the version check.
+   */
   const updateField = useMutation({
     mutationFn: async ({
       fieldId,
       cardId: _cardId,
       heading,
       headingEnabled,
-      contentHtml,
       assignedParticipantId,
       isVisible,
     }: {
@@ -160,21 +163,18 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       cardId: string;
       heading?: string | null;
       headingEnabled?: boolean;
-      contentHtml?: string | null;
       assignedParticipantId?: string | null;
       isVisible?: boolean;
     }) => {
       const patch: Partial<{
         heading: string | null;
         heading_enabled: boolean;
-        content_html: string | null;
         assigned_participant_id: string | null;
         is_visible: boolean;
       }> = {};
       if (heading !== undefined) patch.heading = heading;
       if (headingEnabled !== undefined) patch.heading_enabled = headingEnabled;
       if (isVisible !== undefined) patch.is_visible = isVisible;
-      if (contentHtml !== undefined) patch.content_html = contentHtml;
       if (assignedParticipantId !== undefined) patch.assigned_participant_id = assignedParticipantId;
       if (Object.keys(patch).length === 0) return;
       const { error } = await supabase.from('card_fields').update(patch).eq('id', fieldId);
