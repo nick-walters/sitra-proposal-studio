@@ -1190,7 +1190,10 @@ export function ProposalEditor() {
           </div>
 
           <div className="flex items-center gap-2">
-            
+
+            {/* Real compiled Part B page count against the proposal's limit */}
+            <PageCountBadge proposalId={id || ''} />
+
             {/* Read-only indicator for non-draft proposals */}
             {!isDraft && (
               <Badge variant="outline" className="gap-1 bg-muted">
