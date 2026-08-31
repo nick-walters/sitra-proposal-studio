@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasFreeformRenderer } from '@/components/ImpactCanvasFreeformRenderer';
 import { ensureOverviewCanvas, OVERVIEW_CANVAS_FIGURE_TYPE, OVERVIEW_LAYOUT_OPTIONS, overviewCanvasTitle } from '@/lib/overviewCanvas';
@@ -34,15 +35,16 @@ export function OverviewCanvasSection({ proposalId, provision = true }: Props) {
           .maybeSingle(),
         supabase
           .from('figures')
-          .select('id, figure_number, caption, title, content')
+          .select('id, caption, title, content')
           .eq('proposal_id', proposalId)
           .eq('figure_type', OVERVIEW_CANVAS_FIGURE_TYPE)
           .maybeSingle(),
       ]);
+      const numbers = figure ? await fetchDerivedFigureNumbers(proposalId) : null;
       return {
         enabled: (proposal?.overview_canvas_enabled ?? true) as boolean,
         acronym: (proposal?.acronym ?? '') as string,
-        figure,
+        figure: figure ? { ...figure, figure_number: numbers?.get(figure.id) ?? '' } : null,
       };
     },
   });

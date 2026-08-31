@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDerivedFigureNumbers } from '@/lib/figureNumbering';
 import { EditableCaption } from '@/components/EditableCaption';
 import { ImpactCanvasGraphic } from '@/components/ImpactCanvasGraphic';
 
@@ -36,12 +37,14 @@ export function ImpactCanvasSection({ proposalId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figures')
-        .select('id, figure_number, caption, title, content')
+        .select('id, caption, title, content')
         .eq('proposal_id', proposalId)
         .eq('figure_type', 'impact-canvas')
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      const numbers = await fetchDerivedFigureNumbers(proposalId);
+      return { ...data, figure_number: numbers.get(data.id) ?? '' };
     },
   });
 

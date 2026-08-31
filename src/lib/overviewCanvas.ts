@@ -55,24 +55,15 @@ export async function ensureOverviewCanvas(
   let figureId = existing?.id ?? null;
 
   if (!figureId) {
-    const { data: sectionFigures } = await supabase
-      .from('figures')
-      .select('id')
-      .eq('proposal_id', proposalId)
-      .eq('section_id', '1.1');
-    const index = sectionFigures?.length ?? 0;
     const title = overviewCanvasTitle(acronym);
     const { data: inserted, error } = await supabase
       .from('figures')
       .insert({
         proposal_id: proposalId,
-        figure_number: `1.1.${String.fromCharCode(97 + index)}`,
-        section_id: '1.1',
         title,
         caption: title,
         figure_type: OVERVIEW_CANVAS_FIGURE_TYPE,
         content: null,
-        order_index: index,
       })
       .select('id')
       .maybeSingle();
