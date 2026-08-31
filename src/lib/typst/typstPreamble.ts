@@ -589,7 +589,10 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     inset: (x: 0pt, y: 1.5pt),
     align: left + top,
     stroke: none,
-    header,
+    // The WP name banner is the table's header row: it repeats when a long
+    // work package runs on to the next page and can never be stranded as the
+    // last thing on a page with nothing but its objectives under it.
+    table.header(header),
     ..rows.flatten(),
   ),
 )
