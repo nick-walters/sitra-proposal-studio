@@ -149,9 +149,17 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
       ganttFigure ? (
         <div
           aria-hidden
-          style={{ position: 'fixed', left: -20000, top: 0, width: 1200, pointerEvents: 'none' }}
+          style={{ position: 'fixed', left: -20000, top: 0, width: 1400, pointerEvents: 'none' }}
         >
-          <div data-figure-chart="gantt">
+          {/*
+            The chart is 18cm wide with `maxWidth: 100%`, so the wrapper must
+            SHRINK TO IT. A block wrapper took the host's full width and the
+            capture carried a broad white margin, which Typst then scaled to
+            the column — the Gantt looked narrow in the full document while
+            filling the column in B3.1's own preview. `fit-content` makes both
+            paths capture the same pixels.
+          */}
+          <div data-figure-chart="gantt" style={{ width: 'fit-content' }}>
             <GanttChartFigure
               figureId={ganttFigure.id}
               proposalId={proposalId}
