@@ -28,10 +28,37 @@ export interface CompiledPageCount {
 
 export const compiledPageCountKey = (proposalId: string) => ['compiled-page-count', proposalId];
 
+/**
+ * A single section's compiled count, published by the per-section Typst
+ * preview. Kept under the same `compiled-page-count` prefix so one call marks
+ * the whole family stale after a content change.
+ */
+export const compiledSectionPageCountKey = (proposalId: string, sectionId: string) => [
+  'compiled-page-count',
+  proposalId,
+  'section',
+  sectionId,
+];
+
 /** Called by the document view after every successful compile. */
 export function publishCompiledPageCount(qc: QueryClient, proposalId: string, pages: number) {
   if (!proposalId || !pages) return;
   qc.setQueryData<CompiledPageCount>(compiledPageCountKey(proposalId), {
+    pages,
+    at: Date.now(),
+    stale: false,
+  });
+}
+
+/** Called by the single-section preview after every successful compile. */
+export function publishCompiledSectionPageCount(
+  qc: QueryClient,
+  proposalId: string,
+  sectionId: string,
+  pages: number,
+) {
+  if (!proposalId || !sectionId || !pages) return;
+  qc.setQueryData<CompiledPageCount>(compiledSectionPageCountKey(proposalId, sectionId), {
     pages,
     at: Date.now(),
     stale: false,
@@ -45,6 +72,7 @@ export function markCompiledPageCountStale(qc: QueryClient) {
     (old) => (old ? { ...old, stale: true } : old),
   );
 }
+
 
 /**
  * The proposal's own page limit.
