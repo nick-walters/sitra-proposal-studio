@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -57,7 +58,7 @@ export function useColumnHeaders(
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      await (supabase as any).from('table_column_headers').upsert(
+      const { error } = await (supabase as any).from('table_column_headers').upsert(
         {
           proposal_id: proposalId,
           table_key: tableKey,
@@ -67,6 +68,9 @@ export function useColumnHeaders(
         },
         { onConflict: 'proposal_id,table_key' },
       );
+      if (error) {
+        toast.error('Column header not saved', { description: error.message });
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [proposalId, tableKey, overrides, defaults.join('\u0000')],

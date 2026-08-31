@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { RefreshCw } from 'lucide-react';
@@ -101,7 +102,14 @@ export function EditableCaption({
     setCaption(trimmed);
 
     if (figureId) {
-      await supabase.from('figures').update({ caption: trimmed }).eq('id', figureId);
+      const { error } = await supabase
+        .from('figures')
+        .update({ caption: trimmed })
+        .eq('id', figureId);
+      if (error) {
+        toast.error('Caption not saved', { description: error.message });
+        return;
+      }
       qc.invalidateQueries({ queryKey: ['figure-caption', figureId] });
       if (proposalId) qc.invalidateQueries({ queryKey: ['figures', proposalId] });
       return;
@@ -109,7 +117,7 @@ export function EditableCaption({
 
     if (!proposalId || !tableKey) return;
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase
+    const { error } = await supabase
       .from('table_captions')
       .upsert({
         proposal_id: proposalId,
@@ -118,6 +126,9 @@ export function EditableCaption({
         updated_at: new Date().toISOString(),
         updated_by: user?.id || null,
       }, { onConflict: 'proposal_id,table_key' });
+    if (error) {
+      toast.error('Caption not saved', { description: error.message });
+    }
   }, [editValue, caption, proposalId, tableKey, figureId, qc]);
 
   // Infer caption kind from the label prefix.

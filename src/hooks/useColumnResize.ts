@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -70,7 +71,7 @@ export function useColumnResize(options: {
     
     const { data: { user } } = await supabase.auth.getUser();
     
-    await supabase
+    const { error } = await supabase
       .from('table_column_widths')
       .upsert({
         proposal_id: proposalId,
@@ -79,6 +80,11 @@ export function useColumnResize(options: {
         updated_at: new Date().toISOString(),
         updated_by: user?.id || null,
       }, { onConflict: 'proposal_id,table_key' });
+    // Silently ignoring this made an RLS or network failure look identical to
+    // success: the widths stayed on screen until the next reload, then vanished.
+    if (error) {
+      toast.error('Column widths not saved', { description: error.message });
+    }
   }, [proposalId, tableKey]);
 
   const handleColResizeStart = useCallback((index: number) => (e: React.MouseEvent) => {
