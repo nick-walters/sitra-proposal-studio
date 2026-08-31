@@ -779,11 +779,10 @@ export function emitFigure(
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
   return [
-    // The capture is exactly the chart — 680.3 CSS px = 18cm at 96dpi, with no
-    // leading or trailing white — so it is drawn at the full 18cm text column
-    // with no nudge. Earlier widths (17.7/17.2cm) and the −2.25pt shift only
-    // shrank it away from the right margin.
-    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
+    // Diagnostic baseline: let Typst place the Gantt at its intrinsic raster
+    // size. There is deliberately no wrapper, width, offset, fit or scaling
+    // instruction here.
+    native || `image(${typstString(FIGURE_ASSET_PATH[kind])})`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
