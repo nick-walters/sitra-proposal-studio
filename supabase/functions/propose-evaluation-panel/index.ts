@@ -67,7 +67,8 @@ serve(async (req) => {
     const userId = auth.userId;
 
     const body = await req.json();
-    const { proposalId, instrumentCode, proposalStage, budgetType, computedBudget } = body || {};
+    const { proposalId, instrumentCode, proposalStage, budgetType, computedBudget, document } =
+      body || {};
     if (!proposalId || !instrumentCode || !proposalStage) {
       return new Response(
         JSON.stringify({ error: "proposalId, instrumentCode, proposalStage required" }),
@@ -87,13 +88,9 @@ serve(async (req) => {
     }
 
     // Gather data
-    const [proposalRes, sectionsRes, a1Res, participantsRes, instrumentsRes, personasRes, configRes] =
+    const [proposalRes, a1Res, participantsRes, instrumentsRes, personasRes, configRes] =
       await Promise.all([
         supabase.from("proposals").select("*").eq("id", proposalId).single(),
-        supabase
-          .from("section_content")
-          .select("section_id, content")
-          .eq("proposal_id", proposalId),
         supabase
           .from("part_a1")
           .select("abstract")
@@ -109,13 +106,20 @@ serve(async (req) => {
       ]);
 
     const proposal = proposalRes.data;
-    const sectionsRaw = sectionsRes.data || [];
-    // Replace the legacy A1 JSON blob with the clean abstract from part_a1
-    // so downstream word counts and prompts see prose, not JSON noise.
+    // The live document is the card store, assembled client-side by
+    // `evaluationPayload.ts` and passed in — `section_content` holds only
+    // pre-restructure remnants and understated the page count fourfold.
     const a1Abstract = String(a1Res.data?.abstract || "");
-    const sections = sectionsRaw
-      .filter((s: any) => s.section_id !== "a1")
-      .concat(a1Abstract ? [{ section_id: "a1", content: a1Abstract }] : []);
+    const sections: { section_id: string; label?: string; content: string }[] = [
+      ...(Array.isArray(document?.sections)
+        ? document.sections.map((s: any) => ({
+            section_id: String(s.id || ""),
+            label: String(s.label || s.id || ""),
+            content: String(s.text || ""),
+          }))
+        : []),
+      ...(a1Abstract ? [{ section_id: "a1", content: a1Abstract }] : []),
+    ];
     const participants = participantsRes.data || [];
     const instrument = instrumentsRes.data;
     const personas = personasRes.data || [];
@@ -133,12 +137,17 @@ serve(async (req) => {
     const eligibilityModel = configMap.eligibility_model || "claude-haiku-4-5-20251001";
     const assemblyModel = configMap.panel_selection_model || configMap.assembly_model || "claude-haiku-4-5-20251001";
 
-    // Estimate page count using platform formula (500 words/page + 1 front-matter page)
+    // Page count comes from the same live-document assembly the editor's page
+    // estimate uses; the local fallback only applies if the caller sent none.
     const WORDS_PER_PAGE = 500;
     const FRONT_MATTER_PAGES = 1;
     const allText = sections.map((s: any) => stripHtml(s.content)).join(" ");
-    const wordCount = allText.split(/\s+/).filter(Boolean).length;
-    const estimatedPages = Math.ceil(wordCount / WORDS_PER_PAGE) + FRONT_MATTER_PAGES;
+    const wordCount = Number(document?.words) > 0
+      ? Number(document.words)
+      : allText.split(/\s+/).filter(Boolean).length;
+    const estimatedPages = Number(document?.estimatedPages) > 0
+      ? Number(document.estimatedPages)
+      : Math.ceil(wordCount / WORDS_PER_PAGE) + FRONT_MATTER_PAGES;
 
     const pageLimit =
       proposalStage === "stage1"
@@ -148,7 +157,9 @@ serve(async (req) => {
         : instrument.page_limit_traditional;
 
     const countries = new Set(participants.map((p: any) => p.country).filter(Boolean));
-    const sectionList = sections.map((s: any) => `- ${s.section_id}: ${stripHtml(s.content).slice(0, 200)}`).join("\n");
+    const sectionList = sections
+      .map((s: any) => `- ${s.label || s.section_id}: ${stripHtml(s.content).slice(0, 200)}`)
+      .join("\n");
 
     // Map budgetType code → display label
     const budgetTypeLabel =
@@ -206,7 +217,7 @@ Output ONLY valid JSON. No preamble.`;
       .join("\n");
 
     const proposalBriefContext = stripHtml(
-      sections.find((s: any) => s.section_id === "b1-1")?.content || "",
+      sections.find((s: any) => s.section_id.startsWith("b1-1"))?.content || "",
     ).slice(0, 1500);
 
     const eligibilityUser = `PROPOSAL CONTEXT:
@@ -266,7 +277,7 @@ ${personasJson}`;
 - Stage: ${proposalStage}
 - Topic: ${proposal.topic_id || proposal.work_programme || "general"}
 - Title: ${proposal.title}
-- Brief context: ${stripHtml(sections.find((s: any) => s.section_id === "b1-1")?.content || "").slice(0, 1500)}
+- Brief context: ${proposalBriefContext}
 
 Return JSON array only.`;
 

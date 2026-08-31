@@ -783,7 +783,12 @@ export function PanelEvaluator({ proposalId }: Props) {
     setStageAStatus("Reading proposal content...");
     try {
       setStageAStatus("Computing budget totals...");
-      const computedBudget = await buildComputedBudget(proposalId);
+      const [computedBudget, livePayload] = await Promise.all([
+        buildComputedBudget(proposalId),
+        // The live card document, so the compliance check counts the same
+        // pages the editor shows rather than the legacy section store.
+        buildEvaluationPayload(proposalId),
+      ]);
 
       setStageAStatus("Running compliance check and assembling panel...");
       const { data, error } = await supabase.functions.invoke("propose-evaluation-panel", {
@@ -793,6 +798,15 @@ export function PanelEvaluator({ proposalId }: Props) {
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
           computedBudget,
+          document: {
+            words: livePayload.words,
+            estimatedPages: livePayload.estimatedPages,
+            sections: livePayload.sections.map((sec) => ({
+              id: sec.id,
+              label: sec.label,
+              text: sec.text.slice(0, 4000),
+            })),
+          },
         },
       });
       if (error) throw error;
