@@ -20,6 +20,7 @@ import { SaveIndicator } from './SaveIndicator';
 import { PartAPageLayout } from './PartAPageLayout';
 
 import { CountrySelect } from './CountrySelect';
+import { StorageImage } from './StorageImage';
 import { isEligibleForGEP } from '@/lib/countries';
 
 // Import new participant detail components
@@ -204,6 +205,17 @@ export function ParticipantDetailForm({
         <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
           <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
         </div>
+      }
+      titleRightSlot={
+        participant.logoUrl ? (
+          <div className="h-12 w-24 shrink-0 flex items-center justify-end">
+            <StorageImage
+              storedPath={participant.logoUrl}
+              alt={`${participant.organisationShortName || participant.organisationName || 'Participant'} logo`}
+              className="max-h-12 max-w-full object-contain"
+            />
+          </div>
+        ) : undefined
       }
       subtitle={
         <p className="text-sm text-muted-foreground">
