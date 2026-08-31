@@ -23,6 +23,7 @@ import { ProposalMilestonesRisksManager } from "@/components/ProposalMilestonesR
 import MethodologiesPage from "@/components/MethodologiesPage";
 import MethodologiesCardsPanel from "@/components/MethodologiesCardsPanel";
 import PartBDocumentView from "@/components/cards/PartBDocumentView";
+import { PageCountBadge } from "@/components/PageCountBadge";
 
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { TrackChangeHoverTooltip } from '@/components/TrackChangeHoverTooltip';
