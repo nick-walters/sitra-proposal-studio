@@ -37,6 +37,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUnloadFlush } from '@/lib/unloadFlush';
+import { unloadRpc } from '@/lib/unloadRpc';
 import { Button } from '@/components/ui/button';
 import {
   DELETE_DIALOG_ACTION_CLASS,
@@ -2050,10 +2052,50 @@ function BoardInner({
     }
   }, [cards]);
 
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => Object.values(timers).forEach(clearTimeout);
-  }, []);
+  /**
+   * Writes every pending text box at once. `keepalive` is used when the page
+   * itself is going away: an ordinary supabase fetch is cancelled with the
+   * document, so the last keystrokes would be lost exactly when it matters.
+   */
+  const flushDirty = useCallback(
+    (keepalive: boolean) => {
+      const timers = timersRef.current;
+      for (const [fieldId, timer] of Object.entries(timers)) {
+        clearTimeout(timer);
+        delete timers[fieldId];
+      }
+      const dirty = Object.entries(dirtyRef.current);
+      if (!dirty.length) return;
+      for (const [fieldId, entry] of dirty) {
+        if (!entry) continue;
+        if (keepalive) {
+          unloadRpc(
+            'save_card_text',
+            {
+              p_field_id: fieldId,
+              p_text_box: 'content',
+              p_value: entry.html,
+              p_expected_version: versionsRef.current[`${fieldId}:content`] ?? null,
+              p_is_auto_save: true,
+            },
+            accessTokenRef.current,
+          );
+        } else {
+          void persistField(fieldId, entry.cardId, entry.html);
+        }
+      }
+    },
+    [persistField],
+  );
+
+  // Unmounting (route change, block swap) writes the pending text instead of
+  // discarding the timer.
+  const flushOnUnmount = useRef(flushDirty);
+  flushOnUnmount.current = flushDirty;
+  useEffect(() => () => flushOnUnmount.current(false), []);
+
+  const flushOnUnload = useCallback(() => flushOnUnmount.current(true), []);
+  useUnloadFlush(flushOnUnload);
 
   useEffect(() => {
     setLocalOrder(null);
