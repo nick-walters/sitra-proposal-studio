@@ -1185,7 +1185,6 @@ export type Database = {
       }
       case_drafts: {
         Row: {
-          b12_populated: boolean
           background_context: string | null
           case_type: string
           case_type_id: string | null
@@ -1223,7 +1222,6 @@ export type Database = {
           version: number
         }
         Insert: {
-          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
           case_type_id?: string | null
@@ -1261,7 +1259,6 @@ export type Database = {
           version?: number
         }
         Update: {
-          b12_populated?: boolean
           background_context?: string | null
           case_type?: string
           case_type_id?: string | null
@@ -1461,47 +1458,6 @@ export type Database = {
           },
         ]
       }
-      comments: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          proposal_id: string
-          resolved: boolean | null
-          section_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          proposal_id: string
-          resolved?: boolean | null
-          section_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          proposal_id?: string
-          resolved?: boolean | null
-          section_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comments_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       common_figures: {
         Row: {
           category: string | null
@@ -1538,30 +1494,6 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      direct_messages: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          receiver_id: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          receiver_id: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          receiver_id?: string
-          sender_id?: string
         }
         Relationships: []
       }
@@ -2460,45 +2392,6 @@ export type Database = {
           },
         ]
       }
-      figure_references: {
-        Row: {
-          created_at: string
-          figure_id: string
-          id: string
-          position_in_text: number | null
-          section_content_id: string
-        }
-        Insert: {
-          created_at?: string
-          figure_id: string
-          id?: string
-          position_in_text?: number | null
-          section_content_id: string
-        }
-        Update: {
-          created_at?: string
-          figure_id?: string
-          id?: string
-          position_in_text?: number | null
-          section_content_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "figure_references_figure_id_fkey"
-            columns: ["figure_id"]
-            isOneToOne: false
-            referencedRelation: "figures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "figure_references_section_content_id_fkey"
-            columns: ["section_content_id"]
-            isOneToOne: false
-            referencedRelation: "section_content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       figures: {
         Row: {
           caption: string | null
@@ -2903,51 +2796,6 @@ export type Database = {
         }
         Relationships: []
       }
-      member_wp_allocations: {
-        Row: {
-          created_at: string
-          id: string
-          member_id: string
-          person_months: number
-          role: string | null
-          updated_at: string
-          work_package_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          member_id: string
-          person_months?: number
-          role?: string | null
-          updated_at?: string
-          work_package_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          member_id?: string
-          person_months?: number
-          role?: string | null
-          updated_at?: string
-          work_package_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "member_wp_allocations_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "participant_members"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "member_wp_allocations_work_package_id_fkey"
-            columns: ["work_package_id"]
-            isOneToOne: false
-            referencedRelation: "work_packages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       message_stars: {
         Row: {
           created_at: string
@@ -3240,7 +3088,6 @@ export type Database = {
       }
       part_a_data: {
         Row: {
-          additional_info: Json | null
           created_at: string
           declarations: string | null
           dependencies: string | null
@@ -3251,7 +3098,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          additional_info?: Json | null
           created_at?: string
           declarations?: string | null
           dependencies?: string | null
@@ -3262,7 +3108,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          additional_info?: Json | null
           created_at?: string
           declarations?: string | null
           dependencies?: string | null
@@ -3837,11 +3682,8 @@ export type Database = {
           legal_entity_type: string | null
           logo_url: string | null
           main_contact_access_granted: boolean | null
-          main_contact_access_granted_at: string | null
-          main_contact_access_granted_by: string | null
           main_contact_access_granted_role: string | null
           main_contact_access_requested: boolean | null
-          main_contact_access_requested_by: string | null
           main_contact_country: string | null
           main_contact_department: string | null
           main_contact_dept_same_as_org: boolean | null
@@ -3897,11 +3739,8 @@ export type Database = {
           legal_entity_type?: string | null
           logo_url?: string | null
           main_contact_access_granted?: boolean | null
-          main_contact_access_granted_at?: string | null
-          main_contact_access_granted_by?: string | null
           main_contact_access_granted_role?: string | null
           main_contact_access_requested?: boolean | null
-          main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
@@ -3957,11 +3796,8 @@ export type Database = {
           legal_entity_type?: string | null
           logo_url?: string | null
           main_contact_access_granted?: boolean | null
-          main_contact_access_granted_at?: string | null
-          main_contact_access_granted_by?: string | null
           main_contact_access_granted_role?: string | null
           main_contact_access_requested?: boolean | null
-          main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_department?: string | null
           main_contact_dept_same_as_org?: boolean | null
@@ -5192,19 +5028,16 @@ export type Database = {
       proposal_user_onboarding: {
         Row: {
           id: string
-          onboarded_at: string
           proposal_id: string
           user_id: string
         }
         Insert: {
           id?: string
-          onboarded_at?: string
           proposal_id: string
           user_id: string
         }
         Update: {
           id?: string
-          onboarded_at?: string
           proposal_id?: string
           user_id?: string
         }
@@ -5228,7 +5061,6 @@ export type Database = {
           b31_show_other_goods_justification: boolean
           b31_show_purchase_costs: boolean
           b31_show_travel_justification: boolean
-          b32_infrastructure_order: Json
           banner_title_override: string | null
           banner_topic_line_override: string | null
           budget_template_id: string | null
@@ -5305,7 +5137,6 @@ export type Database = {
           b31_show_other_goods_justification?: boolean
           b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
-          b32_infrastructure_order?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -5382,7 +5213,6 @@ export type Database = {
           b31_show_other_goods_justification?: boolean
           b31_show_purchase_costs?: boolean
           b31_show_travel_justification?: boolean
-          b32_infrastructure_order?: Json
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
           budget_template_id?: string | null
@@ -5611,45 +5441,6 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      section_footnotes: {
-        Row: {
-          created_at: string
-          id: string
-          position_in_text: number | null
-          reference_id: string
-          section_content_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          position_in_text?: number | null
-          reference_id: string
-          section_content_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          position_in_text?: number | null
-          reference_id?: string
-          section_content_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "section_footnotes_reference_id_fkey"
-            columns: ["reference_id"]
-            isOneToOne: false
-            referencedRelation: "proposal_references"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "section_footnotes_section_content_id_fkey"
-            columns: ["section_content_id"]
-            isOneToOne: false
-            referencedRelation: "section_content"
             referencedColumns: ["id"]
           },
         ]
@@ -6403,95 +6194,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      versions: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          proposal_id: string
-          snapshot: Json
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          proposal_id: string
-          snapshot: Json
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          proposal_id?: string
-          snapshot?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "versions_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      work_packages: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_month: number | null
-          id: string
-          lead_participant_id: string | null
-          number: number
-          proposal_id: string
-          start_month: number | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          number: number
-          proposal_id: string
-          start_month?: number | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_month?: number | null
-          id?: string
-          lead_participant_id?: string | null
-          number?: number
-          proposal_id?: string
-          start_month?: number | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_packages_lead_participant_id_fkey"
-            columns: ["lead_participant_id"]
-            isOneToOne: false
-            referencedRelation: "participants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_packages_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -7287,10 +6989,6 @@ export type Database = {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
       }
-      proposal_template_version: {
-        Args: { p_proposal_id: string }
-        Returns: string
-      }
       publish_template_version: {
         Args: {
           p_major?: boolean
@@ -7351,7 +7049,6 @@ export type Database = {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
       }
-      restore_scope_predicates: { Args: never; Returns: Json }
       restore_target_version: {
         Args: { p_expected_version?: number; p_version_id: string }
         Returns: Json
