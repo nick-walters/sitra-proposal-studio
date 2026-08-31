@@ -14,7 +14,14 @@ import { getInstrumentAbbreviation, getInstrumentFullName, formatDurationShort }
 import { htmlHasInk } from './emptyBlocks';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { captionLetter } from '@/lib/cards/captionSlots';
-import { storedColumnTrack, pointWidths, ptTrack, PX_TO_PT, MIN_COL_PX } from './tableColumns';
+import {
+  storedColumnTrack,
+  pointWidths,
+  ptTrack,
+  PX_TO_PT,
+  MIN_COL_PX,
+  HE_TABLE_WIDTH_PT,
+} from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
 import { FIGURE_ASSET_PATH } from './typstFigures';
 import { emitPertChart } from './pertTypst';
@@ -379,21 +386,6 @@ function wpChipList(
  * stored row of the right shape wins. `fallback` is the EDITOR's own default
  * proportions, used while a table has never been resized.
  */
-/**
- * A per-column floor array that pins ONE column to its stored pixel width, so
- * `pointWidths` rescales the other columns instead of shrinking this one.
- */
-function leadFloorPx(
-  data: B31TypstData,
-  key: string,
-  count: number,
-  index: number,
-): number[] | undefined {
-  const widths = data.columnWidths[key];
-  if (!widths || widths.length !== count || !widths.every((w) => w > 0)) return undefined;
-  return widths.map((w, i) => (i === index ? w : MIN_COL_PX));
-}
-
 function storedCols(
   data: B31TypstData,
   keys: string | string[],
@@ -530,11 +522,16 @@ export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): strin
   // participant column, 8 % for Total, the rest shared equally between the WP
   // columns — expressed here in the same 768 px board pixels it stores.
   const defaultPx = [22, ...data.wps.map(() => 70 / n), 8].map((pct) => pct * 7.68);
-  const widthsPt =
-    stored && stored.length === count && stored.every((w) => w > 0)
-      ? pointWidths(stored, MIN_COL_PX)
-      : pointWidths(defaultPx, MIN_COL_PX);
-  const bandPt = widthsPt.slice(0, n + 1).reduce((s, w) => s + w, 0);
+  // The editor caps the table at 18 cm but may leave it NARROWER; scaling the
+  // stored pixels to their own total (capped at 18 cm) mirrors it exactly.
+  const px = stored && stored.length === count && stored.every((w) => w > 0) ? stored : defaultPx;
+  const totalPt = Math.min(
+    px.reduce((s, w) => s + w, 0) * PX_TO_PT,
+    HE_TABLE_WIDTH_PT,
+  );
+  const widthsPt = pointWidths(px, MIN_COL_PX, totalPt);
+  // The pale pill runs to the END of the Total column.
+  const bandPt = widthsPt.reduce((s, w) => s + w, 0);
 
   const header = [lit(''), ...data.wps.map((wp) => wpChip(wp.number, wp.color)), lit('Total')];
 
@@ -566,7 +563,12 @@ export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): strin
 
   return [
     caption(data, 'effort-matrix', tableLabel(ctx, 'Table 3.1.f.'), 'Staff effort in person months'),
-    table(ptTrack(widthsPt), header, rows, aligns),
+    // No row rules at all beyond the header rule and the same 1.5pt rule
+    // above the Total row.
+    table(ptTrack(widthsPt), header, rows, aligns, false, false, {
+      hairlines: false,
+      ruleAbove: rows.length,
+    }),
   ];
 }
 
