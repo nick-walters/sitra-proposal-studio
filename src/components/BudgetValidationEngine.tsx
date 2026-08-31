@@ -27,10 +27,14 @@ interface BudgetValidationDialogProps {
 interface ValidationRule {
   id: string;
   name: string;
+  /** What the rule checks, shown to the author whether or not it fires. */
+  criterion: string;
   severity: 'error' | 'warning' | 'info';
   message: string;
-  passed: boolean;
+  /** `skipped` = the rule cannot be evaluated yet (no data to check against). */
+  status: 'passed' | 'failed' | 'skipped';
 }
+
 
 /**
  * The topic's indicative maximum budget per project is captured as free text on
