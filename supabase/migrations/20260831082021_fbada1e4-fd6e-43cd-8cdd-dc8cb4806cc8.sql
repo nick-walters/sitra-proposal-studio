@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.save_table_column_header(uuid, text, integer, text) FROM anon;
