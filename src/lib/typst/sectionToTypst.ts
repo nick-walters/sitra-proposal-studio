@@ -91,6 +91,7 @@ function titleText(value: string | null | undefined): string {
 
 
 
+import { dropBlankBlocks, hasVisibleBlocks } from './emptyBlocks';
 import { emitB32Slot, type B32TypstData } from './b32Mirrors';
 import { emitB32InfraTable } from './b32InfraData';
 import { B32_INFRA_DEFAULT_HEADER } from '@/extensions/B32InfraTableNode';
