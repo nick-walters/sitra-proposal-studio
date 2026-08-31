@@ -150,6 +150,12 @@ export interface PartBBuildOptions {
   watermark?: boolean;
   /** Gantt bitmap captured from a live chart, when one is on the page. */
   figureAssets?: TypstAsset[];
+  /**
+   * Assemble the SOURCE only — no chart capture, no figure downloads, no
+   * participant logos. For callers that read the text (word count, evaluator)
+   * rather than compiling a PDF.
+   */
+  textOnly?: boolean;
 }
 
 /**
@@ -169,7 +175,9 @@ export async function buildPartBTypstDocument(
   // Proposal-wide inputs, fetched (and the charts captured) exactly as a
   // single-section preview fetches them. The caller may hand in figure assets
   // it captured itself; those take precedence over a fresh capture.
-  const shared = await fetchSharedRenderData(proposalId);
+  const shared = await fetchSharedRenderData(proposalId, ['gantt'], {
+    textOnly: options.textOnly,
+  });
   if (options.figureAssets?.length) {
     shared.figureAssets = options.figureAssets;
     shared.figuresAvailable = {
@@ -193,6 +201,7 @@ export async function buildPartBTypstDocument(
       sectionLabel: label,
       refData,
       shared,
+      textOnly: options.textOnly,
       filterTree: (tree) => filterTree(tree, selection),
     });
     assets.push(...built.assets);

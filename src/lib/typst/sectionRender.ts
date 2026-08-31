@@ -49,6 +49,7 @@ export interface SharedRenderData {
 export async function fetchSharedRenderData(
   proposalId: string,
   figureKinds: FigureKind[] = ['gantt'],
+  opts: { textOnly?: boolean } = {},
 ): Promise<SharedRenderData> {
   const [{ fetchB31TypstData }, { fetchCasesTypstData }, { fetchB32TypstData }, { captureFigureAssets }] =
     await Promise.all([
@@ -61,7 +62,9 @@ export async function fetchSharedRenderData(
     fetchB31TypstData(proposalId),
     fetchCasesTypstData(proposalId),
     fetchB32TypstData(proposalId),
-    captureFigureAssets(figureKinds),
+    opts.textOnly
+      ? Promise.resolve({ assets: [] as TypstAsset[], missing: [] })
+      : captureFigureAssets(figureKinds),
   ]);
   return {
     sourceData,
@@ -69,8 +72,12 @@ export async function fetchSharedRenderData(
     b32Data,
     figureAssets: captured.assets,
     figuresAvailable: {
-      pert: captured.assets.some((a) => a.path.includes('pert')),
-      gantt: captured.assets.some((a) => a.path.includes('gantt')),
+      // Text-only callers rasterise nothing, so the charts are declared
+      // available: that keeps the emitted text on the real branch instead of
+      // the "chart was not on screen" placeholder, which would distort the
+      // word count.
+      pert: opts.textOnly || captured.assets.some((a) => a.path.includes('pert')),
+      gantt: opts.textOnly || captured.assets.some((a) => a.path.includes('gantt')),
     },
   };
 }
@@ -93,6 +100,8 @@ export interface RenderSectionOptions {
   sectionLabel: string;
   refData?: RefSnapshot;
   shared: SharedRenderData;
+  /** Skip every bitmap: the caller reads the emitted source, not a PDF. */
+  textOnly?: boolean;
   /** Export-only: drops excluded blocks and modules before anything is emitted. */
   filterTree?: (tree: SectionBlockTree) => SectionBlockTree;
 }
@@ -109,12 +118,14 @@ export async function renderSectionBody(options: RenderSectionOptions): Promise<
     fetchSectionBlockTree(proposalId, sectionId),
     fetchTypstDocMeta(proposalId, sectionId, refData?.acronymSegments),
     fetchSectionTypstReferences(proposalId, sectionId, refData?.citationNumbers),
-    fetchAuthoredFigures(proposalId, sectionId),
+    fetchAuthoredFigures(proposalId, sectionId, { textOnly: options.textOnly }),
   ]);
 
   // Page-one furniture belongs to the document, not to each section: only the
   // section carrying the banner (B1.1) pulls it in — identical in both paths.
-  const frontMatter = meta.banner ? await fetchTypstFrontMatter(proposalId) : null;
+  const frontMatter = meta.banner
+    ? await fetchTypstFrontMatter(proposalId, { textOnly: options.textOnly })
+    : null;
 
   const built = buildSectionTypstBody(options.filterTree ? options.filterTree(tree) : tree, {
     sectionLabel,

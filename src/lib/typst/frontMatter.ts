@@ -96,8 +96,17 @@ function safeHex(value: string | null | undefined, fallback = '#000000'): string
   return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : fallback;
 }
 
-/** Fetches everything page one needs, including the bitmaps. */
-export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFrontMatter> {
+/**
+ * Fetches everything page one needs, including the bitmaps.
+ *
+ * `textOnly` leaves the participant logos unfetched: callers that only read
+ * the emitted text (word count, evaluator) gain nothing from them and each one
+ * is a signed-URL round trip plus a download.
+ */
+export async function fetchTypstFrontMatter(
+  proposalId: string,
+  opts: { textOnly?: boolean } = {},
+): Promise<TypstFrontMatter> {
   const assets: TypstAsset[] = [
     { path: SITRA_LOGO_ASSET_PATH, bytes: decodeBase64(SITRA_LOGO_BASE64) },
   ];
@@ -180,7 +189,7 @@ export async function fetchTypstFrontMatter(proposalId: string): Promise<TypstFr
     roles.push(...(rolesByParticipant.get(row.id) || []));
 
     let logoPath: string | null = null;
-    if (row.logo_url) {
+    if (row.logo_url && !opts.textOnly) {
       try {
         const resolved = await resolveStorageUrl(row.logo_url);
         if (resolved) {

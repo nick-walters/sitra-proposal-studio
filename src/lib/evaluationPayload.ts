@@ -48,6 +48,10 @@ export async function buildEvaluationPayload(proposalId: string): Promise<Evalua
     refData,
     selection: EMPTY_SELECTION,
     watermark: false,
+    // Only text is extracted, so no bitmap is worth fetching: this assembly is
+    // shared with the editor's page badge, where the figure downloads were
+    // costing a full export's worth of work on every proposal screen.
+    textOnly: true,
   });
 
   const text = typstSourceToText(built.source);

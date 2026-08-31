@@ -106,6 +106,13 @@ async function downscale(bytes: Uint8Array, mime: string): Promise<{ bytes: Uint
 export async function fetchAuthoredFigures(
   proposalId: string,
   sectionId: string,
+  /**
+   * TEXT-ONLY: skip signing, downloading and re-encoding every bitmap. The
+   * word count and the evaluator read the emitted SOURCE, never the PDF, so
+   * the images were pure waste there — and that waste ran on every proposal
+   * screen because the page badge shares this assembly.
+   */
+  opts: { textOnly?: boolean } = {},
 ): Promise<AuthoredFigures> {
   const empty: AuthoredFigures = { assets: [], blocks: new Map() };
 
@@ -193,6 +200,13 @@ export async function fetchAuthoredFigures(
       // Canvas figures reach this state until they have been rasterised: the
       // rasteriser writes the bitmap's storage path into the same field.
       blocks.set(cardId, { ...base, status: 'not_rendered' });
+      continue;
+    }
+
+    if (opts.textOnly) {
+      // A path that no compile will ever open: it keeps the block on the same
+      // emit branch, so the caption and label text match the real document.
+      blocks.set(cardId, { ...base, assetPath: `/figures/authored-${cardId}.png` });
       continue;
     }
 
