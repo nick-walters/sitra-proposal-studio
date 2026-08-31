@@ -125,6 +125,8 @@ export interface WPDraft {
   version: number;
   tasks?: WPDraftTask[];
   deliverables?: WPDraftDeliverable[];
+  /** WP-level effort per participant — the authoritative effort source. */
+  wp_effort?: { participant_id: string; person_months: number }[];
 }
 
 export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOptions) {
@@ -157,7 +159,8 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
             participants:wp_draft_task_participants(participant_id),
             effort:wp_draft_task_effort(participant_id, person_months)
           ),
-          deliverables:wp_draft_deliverables(*)
+          deliverables:wp_draft_deliverables(*),
+          wp_effort:wp_draft_effort(participant_id, person_months)
         `)
         .eq('proposal_id', proposalId)
         .order('order_index');
