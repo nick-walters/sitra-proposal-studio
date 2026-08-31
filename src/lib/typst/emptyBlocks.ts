@@ -46,9 +46,23 @@ export function hasVisibleBlocks(blocks: string[]): boolean {
 }
 
 /**
- * Drops blank blocks from a body: the empty paragraphs the editor leaves
- * behind between modules, and any spacer left stranded at either end.
+ * Trims a body: blank blocks at either end go entirely (they are the empty
+ * paragraphs the editor leaves behind above and below a module), and a RUN of
+ * blank blocks in the middle collapses to a single blank line — a deliberate
+ * blank line between two paragraphs is kept, a stack of eleven that pushed the
+ * next heading two-thirds of a page down is not.
  */
 export function dropBlankBlocks(blocks: string[]): string[] {
-  return blocks.filter((b) => !isBlankBlock(b));
+  const out: string[] = [];
+  let pendingBlank = false;
+  for (const b of blocks) {
+    if (isBlankBlock(b)) {
+      if (out.length) pendingBlank = true;
+      continue;
+    }
+    if (pendingBlank) out.push('par(justify: false, t(""))');
+    pendingBlank = false;
+    out.push(b);
+  }
+  return out;
 }
