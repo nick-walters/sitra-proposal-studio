@@ -131,12 +131,24 @@ export function TypstPreviewDialog({
   };
 
   useEffect(() => {
-    if (open && status === 'idle') void run();
+    if (!open || status !== 'idle') return;
+    // Wait for the capture host when this proposal has a Gantt.
+    if (ganttFigure && !ganttReady) return;
+    void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, ganttFigure, ganttReady]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && ganttFigure && (
+        <GanttCaptureHost
+          proposalId={proposalId}
+          figure={ganttFigure}
+          onReady={() => setGanttReady(true)}
+          onStalled={() => setGanttReady(true)}
+        />
+      )}
+
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Typst preview (beta)</DialogTitle>
