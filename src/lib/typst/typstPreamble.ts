@@ -317,7 +317,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     fill: colour,
     stroke: 1pt + colour,
     {
-      place(horizon + left, dx: chip-pad, dy: 0.2pt, chip-crown(white, size: crown-size))
+      place(horizon + left, dx: chip-pad, dy: -2.05pt, chip-crown(white, size: crown-size))
       place(horizon + left, dx: chip-pad + crown-box + crown-gap, dy: chip-label-shift, body)
     },
   )

@@ -49,9 +49,13 @@ const CHIP_SEP = ` + t(" ") + `;
  * carried about 10 px too much space to their right. A plain space with a
  * negative kern: the space keeps the run breakable across lines.
  */
-// Exactly 2px (1.5pt) between adjacent participant badges — they used to
-// touch, and the old negative kern pulled them together further.
-const CHIP_SEP_TIGHT = ` + h(1.5pt) + `;
+// Between adjacent participant badges: the original 2px (1.5pt) plus 2px
+// more — 4px (3pt) total.
+const CHIP_SEP_TIGHT = ` + h(3pt) + `;
+/** After the task leader badge and after the first other participant badge:
+ * the original 2px plus 7px more — 9px (6.75pt) — setting the two leading
+ * badges apart from the packed tail of ordinary participant badges. */
+const CHIP_SEP_LEAD = ` + h(6.75pt) + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
@@ -263,9 +267,13 @@ export function emitWpDescriptions(
         taskChip(wp.number, task.number, wp.color) +
         CHIP_GAP +
         bold(lit(htmlToPlainText(task.title || '').trim()));
-      const metaLine =
+const metaLine =
         wpParticipantChip(byId.get(task.lead_participant_id || ''), true) +
-        (partners.length ? CHIP_SEP_TIGHT + partners.join(CHIP_SEP_TIGHT) : '') +
+        (partners.length
+          ? CHIP_SEP_LEAD +
+            partners[0] +
+            (partners.length > 1 ? CHIP_SEP_LEAD + partners.slice(1).join(CHIP_SEP_TIGHT) : '')
+          : '') +
         months;
       // `sticky: true` binds the title to the participants line that follows
       // it. The header is its OWN block rather than the opening paragraph of
