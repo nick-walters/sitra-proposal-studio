@@ -158,9 +158,11 @@ function TaskGroup({
         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0"
           style={{ border: 'none', paddingLeft: 0, paddingRight: 0 }}
         >
-          <div className="flex items-center justify-between flex-wrap gap-0.5">
-            <div className="flex items-center gap-0.5 flex-wrap">
-              <LeaderPill leader={leader} placeholder="No task leader" />
+          <div className="flex items-center justify-between flex-wrap" style={{ gap: 3 }}>
+            <div className="flex items-center flex-wrap" style={{ gap: 3 }}>
+              <span className="inline-flex items-center" style={{ marginRight: 11 }}>
+                <LeaderPill leader={leader} placeholder="No task leader" />
+              </span>
               {coversAllParticipants ? (
                 <ParticipantBubble style={{ fontStyle: 'normal' }}>
                   All other participants
@@ -175,6 +177,7 @@ function TaskGroup({
                 ))
               )}
             </div>
+
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap">
               {start && end ? `${start}–${end}` : start ? `${start}–M??` : (
                 <span className="text-muted-foreground italic font-normal">Duration not set</span>
