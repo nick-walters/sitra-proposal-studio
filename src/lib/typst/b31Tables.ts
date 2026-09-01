@@ -44,6 +44,12 @@ const NBSP = '\u00a0';
 const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
 /** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
 const CHIP_SEP = ` + t(" ") + `;
+/**
+ * Tighter chip-to-chip separator for table 3.1.b, whose participant badges
+ * carried about 10 px too much space to their right. A plain space with a
+ * negative kern: the space keeps the run breakable across lines.
+ */
+const CHIP_SEP_TIGHT = ` + t(" ") + h(-2.5pt) + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
