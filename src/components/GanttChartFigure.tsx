@@ -130,7 +130,10 @@ type WpMsBadgeOut = WpMsBadgeIn & {
   tipX: number;       // connector end-x on badge side (used when on band row)
   origins: Array<{ rowIdx: number; x: number }>; // anchor dot (band row)
   centred: boolean;   // true when stacked vertically onto a task row
+  dy: number;         // vertical displacement from the banner row centre
+  moved: boolean;     // true → draw connector + anchor dot on banner underside
 };
+
 
 // Deterministic layout (restores the 25 August behaviour):
 //   • Deliverable badge sits IN its task's row, pennant tip exactly at the
