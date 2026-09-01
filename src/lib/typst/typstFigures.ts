@@ -19,26 +19,47 @@ import type { TypstAsset } from './typstCompiler';
 export type FigureKind = 'pert' | 'gantt';
 
 /**
- * CACHE BUSTING: the virtual asset path carries a token that changes on every
- * capture, so a compiler/browser cache can never pair a freshly built document
- * with a previously captured `gantt.png`. The token is bumped by
- * `captureFigureAssets` before the source is emitted, and `figureAssetPath`
- * is read while emitting, so both sides always use the same value.
+ * CACHE BUSTING — ONE TOKEN, PRODUCED ONCE.
+ *
+ * The virtual asset path carries a token so a compiler/browser cache can never
+ * pair a freshly built document with a previously captured `gantt.png`.
+ *
+ * The token used to live in a module-level variable that `captureFigureAssets`
+ * bumped and the emitter re-read. The full-document path captures once in the
+ * view and once more inside `buildPartBTypstDocument`, so the second bump
+ * changed the token AFTER the assets were registered: the source pointed at a
+ * file name the compiler had never been given ("failed to load file (access
+ * denied)"). The token is now minted once per capture, baked into the returned
+ * asset paths, and the emitter reads the path back OFF THOSE ASSETS — there is
+ * no second computation that can disagree.
  */
-let figureCacheToken = `${Date.now().toString(36)}`;
-
-export function bumpFigureCacheToken(): string {
-  figureCacheToken = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-  return figureCacheToken;
+function mintFigureToken(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function figureAssetPath(kind: FigureKind): string {
-  return `/figures/${kind}-${figureCacheToken}.png`;
+export function figureAssetPath(kind: FigureKind, token: string): string {
+  return `/figures/${kind}-${token}.png`;
 }
 
+export type FigurePaths = Partial<Record<FigureKind, string>>;
+
+/**
+ * The authoritative emit paths: read straight back off the registered assets,
+ * so the source can only ever name a file the compiler actually holds.
+ */
+export function figurePathsFromAssets(assets: TypstAsset[]): FigurePaths {
+  const paths: FigurePaths = {};
+  for (const asset of assets) {
+    const match = /^\/figures\/(pert|gantt)-/.exec(asset.path);
+    if (match) paths[match[1] as FigureKind] = asset.path;
+  }
+  return paths;
+}
 
 export interface CapturedFigures {
   assets: TypstAsset[];
+  /** Emit paths for the captured charts — the same strings as `assets`. */
+  paths: FigurePaths;
   /** Kinds that were not on the page (collapsed, hidden or absent). */
   missing: FigureKind[];
 }
@@ -68,18 +89,18 @@ async function captureOne(kind: FigureKind): Promise<Uint8Array | null> {
 export async function captureFigureAssets(
   kinds: FigureKind[] = ['pert', 'gantt'],
 ): Promise<CapturedFigures> {
-  bumpFigureCacheToken();
+  const token = mintFigureToken();
   const assets: TypstAsset[] = [];
   const missing: FigureKind[] = [];
 
   for (const kind of kinds) {
     try {
       const bytes = await captureOne(kind);
-      if (bytes) assets.push({ path: figureAssetPath(kind), bytes });
+      if (bytes) assets.push({ path: figureAssetPath(kind, token), bytes });
       else missing.push(kind);
     } catch {
       missing.push(kind);
     }
   }
-  return { assets, missing };
+  return { assets, missing, paths: figurePathsFromAssets(assets) };
 }
