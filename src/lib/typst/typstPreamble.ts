@@ -285,7 +285,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// GROWTH: 60% taller and 20% wider than the 9.5pt square it used to be, with
 /// the baseline untouched so it grows UPWARD out of the pill, not downward.
 #let crown-w-factor = 1.2
-#let crown-h-factor = 1.6
+#let crown-h-factor = 1.52
 #let chip-crown(colour, size: 9.5pt) = box(
   baseline: 0.2pt,
   width: size * crown-w-factor,
