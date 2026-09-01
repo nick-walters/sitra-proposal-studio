@@ -236,6 +236,8 @@ export interface BuildTypstOptions {
   sourceData?: B31TypstData | null;
   /** Which charts were successfully rasterised from the board. */
   figuresAvailable?: { pert: boolean; gantt: boolean };
+  /** Emit paths of the rasterised charts, taken from the registered assets. */
+  figurePaths?: import('./typstFigures').FigurePaths;
   /**
    * The section's cited references, already numbered — see
    * `fetchSectionTypstReferences`. They feed the per-page footnotes; there is
@@ -298,9 +300,9 @@ function emitSourceFed(
         'Purchase cost justifications',
       );
     case 'b31.pert':
-      return emitFigure(data, 'pert', figures.pert);
+      return emitFigure(data, 'pert', figures.pert, figurePaths.pert);
     case 'b31.gantt':
-      return emitFigure(data, 'gantt', figures.gantt);
+      return emitFigure(data, 'gantt', figures.gantt, figurePaths.gantt);
     case 'b12.linked_activities':
       return emitLinkedActivities(data, ctx);
     default:
@@ -410,6 +412,7 @@ export function buildSectionTypstBody(
   const out: string[] = [];
   const sourceData = options.sourceData ?? null;
   const figures = options.figuresAvailable ?? { pert: false, gantt: false };
+  const figurePaths = options.figurePaths ?? {};
   const frontMatter = options.frontMatter ?? null;
 
   // Page one: banner (with the Sitra mark, when its bitmap was supplied),

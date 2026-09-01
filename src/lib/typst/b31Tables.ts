@@ -23,7 +23,7 @@ import {
   HE_TABLE_WIDTH_PT,
 } from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
-import { figureAssetPath } from './typstFigures';
+
 import { emitPertChart } from './pertTypst';
 import type {
   B31TypstData,
@@ -821,13 +821,15 @@ export function emitFigure(
   data: B31TypstData,
   kind: 'pert' | 'gantt',
   available: boolean,
+  /** The registered asset path — the only place the emit path comes from. */
+  assetPath?: string,
 ): string[] {
   const meta = kind === 'pert' ? data.pertFigure : data.ganttFigure;
   if (!meta) return [];
   // The Pert is drawn natively from its own data, so it never depends on a
   // DOM capture. The Gantt is still rasterised (see typstFigures.ts).
   const native = kind === 'pert' && data.pertChart ? emitPertChart(data.pertChart) : '';
-  if (!native && !available) {
+  if (!native && !(available && assetPath)) {
     return [
       `not-converted(${typstString(
         `[${kind === 'pert' ? 'Pert' : 'Gantt'} chart — the chart was not on screen when this preview was built, so it could not be captured]`,
@@ -842,7 +844,7 @@ export function emitFigure(
     // WP banner tips and shifted the marker grid against the month columns.
     // The capture is already the chart exactly as the board draws it, so it
     // must be placed with `fit: "contain"` at the full column width.
-    native || `he-image(${typstString(figureAssetPath(kind))}, 1.0)`,
+    native || `he-image(${typstString(assetPath ?? '')}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
