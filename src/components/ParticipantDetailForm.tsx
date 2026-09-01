@@ -327,10 +327,17 @@ export function ParticipantDetailForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Legal entity type *</Label>
+              {/* This IS the organisation type chosen at creation (HES, RES,
+                  PUB, SME …). It was bound to `legalEntityType`, a column
+                  nothing writes at creation and nothing else reads, so the
+                  type selected when adding the participant never appeared
+                  here and edits made here went nowhere. It reads and writes
+                  `organisationCategory`, the column the registry and the add
+                  flow populate. */}
+              <Label>Organisation type *</Label>
               <Select
-                value={participant.legalEntityType || ''}
-                onValueChange={(v) => handleFieldUpdate('legalEntityType', v)}
+                value={participant.organisationCategory || ''}
+                onValueChange={(v) => handleFieldUpdate('organisationCategory', v)}
                 disabled={!canEdit}
               >
                 <SelectTrigger>
@@ -345,6 +352,7 @@ export function ParticipantDetailForm({
                 </SelectContent>
               </Select>
             </div>
+
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
