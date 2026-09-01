@@ -30,6 +30,22 @@ const NUM_CELL = `${CELL} text-right tabular-nums`;
 const FIELD = 'h-7 w-full px-1.5 text-xs md:text-sm';
 const NUM_FIELD = `${FIELD} text-right tabular-nums`;
 
+/**
+ * Explicit column widths shared by the table colgroup and every row.
+ * Numeric columns are wider than their prior field-only widths to preserve the
+ * requested content without wrapping.
+ */
+export const COL_WIDTH = {
+  grip: 32,
+  role: 176,
+  category: 156,
+  rate: 92,
+  wp: 56,
+  totalPm: 80,
+  cost: 160,
+  del: 36,
+} as const;
+
 /** Keeps only digits and a single decimal separator, capped at `decimals` places. */
 export function sanitizeNumeric(raw: string, decimals: number) {
   let cleaned = raw.replace(/,/g, '').replace(/[^0-9.]/g, '');
