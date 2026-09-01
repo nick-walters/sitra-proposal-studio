@@ -100,9 +100,11 @@ function SortableAchievementRow({
           <Label>Description *</Label>
           <Textarea
             value={editDesc}
-            onChange={(e) => setEditDesc(e.target.value)}
+            onChange={(e) => setEditDesc(e.target.value.slice(0, 500))}
+            maxLength={500}
             className="min-h-[80px]"
           />
+          <p className="text-right text-xs text-muted-foreground">{editDesc.length}/500</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -239,10 +241,12 @@ export function AchievementsSection({
                   </p>
                   <Textarea
                     value={newAchievement.description}
-                    onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
+                    onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value.slice(0, 500) })}
+                    maxLength={500}
                     placeholder="e.g., Author A., Author B. (2024). Title of publication. Journal Name, 12(3), 45-67. DOI: 10.1234/example"
                     className="min-h-[80px]"
                   />
+                  <p className="text-right text-xs text-muted-foreground">{newAchievement.description.length}/500</p>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
