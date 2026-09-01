@@ -199,33 +199,16 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const ganttHost = useMemo(
     () =>
       ganttFigure ? (
-        <div
-          aria-hidden
-          ref={ganttHostRef}
-          style={{ position: 'fixed', left: -20000, top: 0, width: 1400, pointerEvents: 'none' }}
-        >
-          {/*
-            The chart is 18cm wide with `maxWidth: 100%`, so the wrapper must
-            SHRINK TO IT. A block wrapper took the host's full width and the
-            capture carried a broad white margin, which Typst then scaled to
-            the column — the Gantt looked narrow in the full document while
-            filling the column in B3.1's own preview. `fit-content` makes both
-            paths capture the same pixels.
-          */}
-          <div data-figure-chart="gantt" style={{ width: 'fit-content' }}>
-            <GanttChartFigure
-              figureId={ganttFigure.id}
-              proposalId={proposalId}
-              figureNumber={ganttFigure.figure_number}
-              content={ganttFigure.content as never}
-              onContentChange={() => {}}
-              canEdit={false}
-            />
-          </div>
-        </div>
+        <GanttCaptureHost
+          proposalId={proposalId}
+          figure={ganttFigure}
+          onReady={() => setGanttPainted(true)}
+          onStalled={() => setGanttStalled(true)}
+        />
       ) : null,
     [ganttFigure, proposalId],
   );
+
 
   return (
     <div className="flex flex-1 overflow-hidden">
