@@ -270,10 +270,9 @@ export function emitWpDescriptions(
 const metaLine =
         wpParticipantChip(byId.get(task.lead_participant_id || ''), true) +
         (partners.length
-          ? CHIP_SEP_LEAD +
-            partners[0] +
-            (partners.length > 1 ? CHIP_SEP_LEAD + partners.slice(1).join(CHIP_SEP_TIGHT) : '')
+          ? CHIP_SEP_LEAD + partners.join(CHIP_SEP_TIGHT)
           : '') +
+
         months;
       // `sticky: true` binds the title to the participants line that follows
       // it. The header is its OWN block rather than the opening paragraph of
