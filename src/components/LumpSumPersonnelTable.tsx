@@ -326,9 +326,10 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
 function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRole[]; label: string; efforts: LumpSumEffort[]; workPackages: LumpSumWorkPackage[] }) {
   const result = subtotal(roles, efforts, workPackages);
   const difference = result.cost - result.trueCost;
+  const hasCategoryColumn = roles.some(role => role.he_category !== undefined);
   return <tr className="bg-muted/20 text-xs font-semibold md:text-sm">
     <td className={`${CELL} py-0.5`} />
-    <td colSpan={2} className={`${CELL} py-0.5`}><div className={`${READ_FIELD} truncate`} title={`${label} — average weighted PM rate`}>{label} — average weighted PM rate</div></td>
+    <td colSpan={hasCategoryColumn ? 2 : 1} className={`${CELL} py-0.5`}><div className={`${READ_FIELD} truncate`} title={`${label} — average weighted PM rate`}>{label} — average weighted PM rate</div></td>
     <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatNumber(result.roundedAverage, 2)}</div></td>
     {result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(pm)}</div></td>)}
     <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(result.totalPm)}</div></td>
