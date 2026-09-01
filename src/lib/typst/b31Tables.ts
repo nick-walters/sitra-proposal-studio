@@ -77,6 +77,19 @@ function participantChip(p: TypstParticipant | undefined): string {
   return `chip-pill(${typstString(label)}, black, filled: true)`;
 }
 
+/**
+ * Work-package participant badge (table 3.1.b): the organisation short name
+ * only — NO participant number — exactly as the board draws it. A leader
+ * carries the crown instead of a number.
+ */
+function wpParticipantChip(p: TypstParticipant | undefined, lead = false): string {
+  if (!p) return EMPTY;
+  const name = p.organisation_short_name || p.organisation_name || '';
+  return lead
+    ? `chip-pill-crown(${typstString(name)}, black)`
+    : `chip-pill(${typstString(name)}, black, filled: true)`;
+}
+
 function taskChip(wpNumber: number, taskNumber: number, colour: string): string {
   return `chip-pill(${typstString(`T${wpNumber}.${taskNumber}`)}, rgb(${typstString(colour)}))`;
 }
