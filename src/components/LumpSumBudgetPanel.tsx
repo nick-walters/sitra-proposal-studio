@@ -69,29 +69,31 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
          </button>;
        })}
      </div>
-     <div><h2 className="text-lg font-semibold">A. Personnel costs</h2><p className="text-sm text-muted-foreground">Enter personnel effort and rates for one participant at a time.</p></div>
-    <div className="flex min-h-5 items-center gap-2 text-xs text-muted-foreground">
-      {saving && <span>Saving…</span>}
-      {participantBudget?.is_locked && !isCoordinator && <span>This participant budget is locked.</span>}
-    </div>
-    {BLOCKS.map(block => {
-      const collapsed = isCollapsed(block.line);
-      const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
-       return <section key={block.line} className="border-b border-border pb-3">
-         <div className="flex min-h-8 items-center gap-1 border-b border-border/60 py-0.5">
-           <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
-           <span className="min-w-0 flex-1 text-xs font-semibold">{block.label}</span>
-           {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-            {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
-          </div>
-         {!collapsed && <div className="space-y-2 pt-2">
-           {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
-          <LumpSumPersonnelTable costLine={block.line} roles={lineRoles} efforts={efforts} workPackages={workPackages} editable={editable} a4UnitCost={a4UnitCost} onAdd={() => addRole(selected.id, block.line)} onUpdateRole={updateRole} onDelete={deleteRole} onReorder={reorderRoles} onSetEffort={setEffort} />
-        </div>}
-      </section>;
+     <div>
+       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+         {saving && <span>Saving…</span>}
+         {participantBudget?.is_locked && !isCoordinator && <span>This participant budget is locked.</span>}
+       </div>
+       <h2 className="text-lg font-semibold">A. Personnel costs</h2>
+       {BLOCKS.map(block => {
+         const collapsed = isCollapsed(block.line);
+         const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
+         return <section key={block.line} className="border-b border-border">
+           <div className="flex min-h-8 items-center gap-1 border-b border-border/60">
+             <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
+             <span className="min-w-0 flex-1 text-xs font-semibold">{block.label}</span>
+             {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
+             {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
+           </div>
+           {!collapsed && <div className="space-y-2 pt-2">
+             {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
+             <LumpSumPersonnelTable costLine={block.line} roles={lineRoles} efforts={efforts} workPackages={workPackages} editable={editable} a4UnitCost={a4UnitCost} onAdd={() => addRole(selected.id, block.line)} onUpdateRole={updateRole} onDelete={deleteRole} onReorder={reorderRoles} onSetEffort={setEffort} />
+           </div>}
+         </section>;
 
-      function onAddRole() { addRole(selected.id, block.line); }
-    })}
+         function onAddRole() { addRole(selected.id, block.line); }
+       })}
+     </div>
     <div className="border-t-2 border-foreground/40 pt-3"><div className="flex items-center justify-between font-semibold"><span>A total</span><span className="tabular-nums whitespace-nowrap">{formatCurrency(overallTotals.portalCost)}<DifferenceNote difference={overallTotals.difference} /></span></div><div className="mt-2 overflow-x-auto"><table className="w-full text-sm"><tbody><tr className="border-t border-border"><td className="py-1.5 font-medium">Total person-months per work package</td>{workPackages.map(wp => <td key={wp.id} className="px-2 py-1.5 text-right tabular-nums">WP{wp.number}<br /><span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span></td>)}</tr></tbody></table></div></div>
   </div>;
 }
