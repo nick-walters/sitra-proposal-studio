@@ -206,7 +206,8 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   const roleTotalPm = (role: LumpSumRole) => workPackages.reduce((sum, wp) => sum + (effortByKey.get(`${role.id}:${wp.id}`) ?? 0), 0);
   const roleCost = (role: LumpSumRole) => roleTotalPm(role) * (costLine === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0));
   const blockTotalPm = roles.reduce((sum, role) => sum + roleTotalPm(role), 0);
-  const blockCost = roles.reduce((sum, role) => sum + roleCost(role), 0);
+  const portalTotals = costLineTotals(costLine, roles, efforts, workPackages, a4UnitCost);
+  const blockCost = portalTotals.portalCost;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleDragEnd = (event: DragEndEvent, groupRoles: LumpSumRole[]) => {
