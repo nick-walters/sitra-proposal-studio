@@ -229,7 +229,7 @@ export function emitWpDescriptions(
     const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
-      participantChip(byId.get(wp.lead_participant_id || '')) +
+      wpParticipantChip(byId.get(wp.lead_participant_id || ''), true) +
         ' + h(1fr) + ' +
         bold(lit(wpDuration(wp))),
     ]);
@@ -243,7 +243,7 @@ export function emitWpDescriptions(
     for (const task of wp.tasks) {
       const partners = task.participantIds
         .filter((id) => id !== task.lead_participant_id)
-        .map((id) => participantChip(byId.get(id)))
+        .map((id) => wpParticipantChip(byId.get(id)))
         .filter((c) => c !== EMPTY);
       // The duration is pushed to the RIGHT edge of the row, as the board
       // draws it, instead of trailing the badges.
@@ -260,8 +260,8 @@ export function emitWpDescriptions(
         CHIP_GAP +
         bold(lit(htmlToPlainText(task.title || '').trim()));
       const metaLine =
-        participantChip(byId.get(task.lead_participant_id || '')) +
-        (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
+        wpParticipantChip(byId.get(task.lead_participant_id || ''), true) +
+        (partners.length ? CHIP_SEP_TIGHT + partners.join(CHIP_SEP_TIGHT) : '') +
         months;
       // `sticky: true` binds the title to the participants line that follows
       // it. The header is its OWN block rather than the opening paragraph of
