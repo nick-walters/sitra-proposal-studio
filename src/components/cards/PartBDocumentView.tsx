@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferenceData } from '@/lib/referenceData';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
-import { GanttChartFigure } from '@/components/GanttChartFigure';
+import { GanttCaptureHost } from '@/components/cards/FigureCaptureHost';
 import { PartBExportDialog } from '@/components/cards/PartBExportDialog';
 import { PartBReviewPanel } from '@/components/cards/PartBReviewPanel';
 import {
@@ -81,35 +81,10 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     [],
   );
 
-  useEffect(() => {
-    if (!ganttFigure) return;
-    let cancelled = false;
-    let frame = 0;
-    let tries = 0;
-    // Two frames after layout is the usual case; poll a little longer because
-    // the chart measures itself and reflows once its fonts resolve. There is
-    // deliberately NO "compile anyway" escape: a partial document must never
-    // be shown or offered for export.
-    const check = () => {
-      if (cancelled) return;
-      const el = ganttHostRef.current?.querySelector<HTMLElement>('[data-figure-chart="gantt"]');
-      if (el && el.offsetHeight > 0 && el.offsetWidth > 0) {
-        setGanttPainted(true);
-        return;
-      }
-      if (tries++ > 1800) {
-        // ~30s: something is wrong. Surface it rather than compile without it.
-        setGanttStalled(true);
-        return;
-      }
-      frame = requestAnimationFrame(check);
-    };
-    frame = requestAnimationFrame(check);
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [ganttFigure]);
+  // Readiness is reported by the capture host itself (see FigureCaptureHost):
+  // there is deliberately NO "compile anyway" escape, a partial document must
+  // never be shown or offered for export.
+
 
 
   const compile = useCallback(
