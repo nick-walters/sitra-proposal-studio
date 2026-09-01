@@ -18,10 +18,24 @@ import type { TypstAsset } from './typstCompiler';
 
 export type FigureKind = 'pert' | 'gantt';
 
-export const FIGURE_ASSET_PATH: Record<FigureKind, string> = {
-  pert: '/figures/pert.png',
-  gantt: '/figures/gantt.png',
-};
+/**
+ * CACHE BUSTING: the virtual asset path carries a token that changes on every
+ * capture, so a compiler/browser cache can never pair a freshly built document
+ * with a previously captured `gantt.png`. The token is bumped by
+ * `captureFigureAssets` before the source is emitted, and `figureAssetPath`
+ * is read while emitting, so both sides always use the same value.
+ */
+let figureCacheToken = `${Date.now().toString(36)}`;
+
+export function bumpFigureCacheToken(): string {
+  figureCacheToken = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return figureCacheToken;
+}
+
+export function figureAssetPath(kind: FigureKind): string {
+  return `/figures/${kind}-${figureCacheToken}.png`;
+}
+
 
 export interface CapturedFigures {
   assets: TypstAsset[];
