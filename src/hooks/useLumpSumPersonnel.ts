@@ -57,9 +57,15 @@ export type LumpSumPersonnelData = {
 async function ensureParticipantBudget(proposalId: string, participantId: string) {
   const { error } = await supabase
     .from('ls_participant_budget')
-    .upsert({ proposal_id: proposalId, participant_id: participantId }, { onConflict: 'proposal_id,participant_id' });
+    .upsert({ proposal_id: proposalId, participant_id: participantId }, { onConflict: 'participant_id' });
   if (error) throw error;
 }
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message);
+  return String(error);
+}
+
 
 export function useLumpSumPersonnel(proposalId: string) {
   const queryClient = useQueryClient();
