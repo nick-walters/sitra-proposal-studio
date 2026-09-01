@@ -301,7 +301,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let chip-pill-crown(label, colour) = context {
   let body = chip-label(label, white)
   let m = measure(body)
-  let crown-size = 7.5pt
+  let crown-size = 9.5pt
   let crown-gap = 1.5pt
   let w = m.width + 2 * chip-pad + crown-size + crown-gap
   box(
@@ -453,7 +453,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// \`hairlines: false\` removes EVERY row rule except the header rule.
 /// \`rule-above\` is a grid row index that carries the same 1.5pt black rule
 /// as the header (table 3.1.f's Total row).
-#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false, hairlines: true, rule-above: none) = {
+#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false, hairlines: true, rule-above: none, row-pad: 0pt) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
   set text(hyphenate: false)
@@ -468,11 +468,13 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     // left inset and the rightmost column's right inset dropped so content
     // sits flush with the text column. \`first-flush\`/\`tight\` are retained
     // for call-site compatibility but no longer change the geometry.
+    // \`row-pad\` adds clear space above and below every row (3.1.f, whose
+    // banded pill and WP chips otherwise ride over the rules).
     inset: (x, y) => (
       left: if x == 0 { 0pt } else { 3pt },
       right: if x == cols.len() - 1 { 0pt } else { 3pt },
-      top: 0.75pt,
-      bottom: 0.75pt,
+      top: 0.75pt + row-pad,
+      bottom: 0.75pt + row-pad,
     ),
 
     align: if aligns == none { left + horizon } else { (x, y) => aligns.at(x) + horizon },
