@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -47,6 +48,14 @@ interface Props {
  * shares ONE width, so dragging any of them resizes them all, and the table
  * can never exceed 18 cm.
  */
+/**
+ * The 1.5pt black rules Typst draws in table 3.1.f: under the header and above
+ * the Total row. Inline, because the table's own `[&_td]:border-0` reset would
+ * otherwise win against a utility class of equal specificity.
+ */
+const HEADER_RULE: React.CSSProperties = { borderBottom: '2px solid #000000' };
+const TOTAL_RULE: React.CSSProperties = { borderTop: '2px solid #000000' };
+
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const { isAdminOrOwner } = useUserRole();
   const { colWidths, setColWidths, tableRef, saveWidths } = useColumnResize({
@@ -177,14 +186,14 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         <thead>
           <tr>
             {/* The participant column sizes itself, so it carries no handle. */}
-            <th className={`${firstCellStyles} relative font-bold`} />
+            <th className={`${firstCellStyles} relative font-bold`} style={HEADER_RULE} />
             {wpData.map((wp) => (
-              <th key={wp.id} className={`${dataCellStyles} relative font-bold`}>
+              <th key={wp.id} className={`${dataCellStyles} relative font-bold`} style={HEADER_RULE}>
                 <WPBubble wpColor={wp.color || '#666'}>WP{wp.number}</WPBubble>
                 {isAdminOrOwner && <ColumnResizer onMouseDown={handleUniformResizeStart} />}
               </th>
             ))}
-            <th className={`${lastCellStyles} relative font-bold`}>
+            <th className={`${lastCellStyles} relative font-bold`} style={HEADER_RULE}>
               Total
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleUniformResizeStart} />}
             </th>
@@ -218,20 +227,20 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
               </tr>
             );
           })}
-          <tr className="[&>td]:border-t-[1.5px] [&>td]:border-t-black">
-            <td className={`${firstCellStyles} font-bold`}>Total</td>
+          <tr>
+            <td className={`${firstCellStyles} font-bold`} style={TOTAL_RULE}>Total</td>
             {wpData.map(wp => {
               const colTotal = participants.reduce(
                 (sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0),
                 0,
               );
               return (
-                <td key={wp.id} className={`${dataCellStyles} font-bold`}>
+                <td key={wp.id} className={`${dataCellStyles} font-bold`} style={TOTAL_RULE}>
                   {formatPM(colTotal)}
                 </td>
               );
             })}
-            <td className={`${lastCellStyles} font-bold`}>
+            <td className={`${lastCellStyles} font-bold`} style={TOTAL_RULE}>
               {formatPM(
                 participants.reduce(
                   (sum, p) =>

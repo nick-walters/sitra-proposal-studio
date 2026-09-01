@@ -81,12 +81,13 @@ function SortableInfraRow({
       <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
         <div className="space-y-2">
           <Label>Name of infrastructure or equipment</Label>
-          <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+          <Input value={editName} onChange={(e) => setEditName(e.target.value.slice(0, 50))} maxLength={50} />
+          <p className="text-right text-xs text-muted-foreground">{editName.length}/50</p>
         </div>
         <div className="space-y-2">
-          <Label>Description</Label>
-          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} maxLength={500} className="min-h-[80px]" />
-          <p className="text-right text-xs text-muted-foreground">{editDesc.length}/500</p>
+          <Label>Short description of infrastructure or equipment</Label>
+          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value.slice(0, 300))} maxLength={300} className="min-h-[80px]" />
+          <p className="text-right text-xs text-muted-foreground">{editDesc.length}/300</p>
         </div>
         <div className="space-y-2">
           <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
@@ -204,12 +205,13 @@ export function InfrastructureSection({
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
                 <Label>Name of infrastructure or equipment</Label>
-                <Input value={newInfra.name} onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })} placeholder="e.g., High-Performance Computing Cluster" />
+                <Input value={newInfra.name} onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value.slice(0, 50) })} maxLength={50} placeholder="e.g., High-Performance Computing Cluster" />
+                <p className="text-right text-xs text-muted-foreground">{newInfra.name.length}/50</p>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })} placeholder="Brief description of the infrastructure/equipment and its relevance..." maxLength={500} className="min-h-[80px]" />
-                <p className="text-right text-xs text-muted-foreground">{newInfra.description.length}/500</p>
+                <Label>Short description of infrastructure or equipment</Label>
+                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value.slice(0, 300) })} placeholder="Brief description of the infrastructure/equipment and its relevance..." maxLength={300} className="min-h-[80px]" />
+                <p className="text-right text-xs text-muted-foreground">{newInfra.description.length}/300</p>
               </div>
               <div className="space-y-2">
                 <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>

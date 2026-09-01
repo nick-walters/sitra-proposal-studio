@@ -44,6 +44,12 @@ const NBSP = '\u00a0';
 const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
 /** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
 const CHIP_SEP = ` + t(" ") + `;
+/**
+ * Tighter chip-to-chip separator for table 3.1.b, whose participant badges
+ * carried about 10 px too much space to their right. A plain space with a
+ * negative kern: the space keeps the run breakable across lines.
+ */
+const CHIP_SEP_TIGHT = ` + t(" ") + h(-2.5pt) + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
@@ -69,6 +75,19 @@ function participantChip(p: TypstParticipant | undefined): string {
   const name = p.organisation_short_name || p.organisation_name || '';
   const label = `${p.participant_number ?? ''}${p.participant_number != null ? '. ' : ''}${name}`;
   return `chip-pill(${typstString(label)}, black, filled: true)`;
+}
+
+/**
+ * Work-package participant badge (table 3.1.b): the organisation short name
+ * only — NO participant number — exactly as the board draws it. A leader
+ * carries the crown instead of a number.
+ */
+function wpParticipantChip(p: TypstParticipant | undefined, lead = false): string {
+  if (!p) return EMPTY;
+  const name = p.organisation_short_name || p.organisation_name || '';
+  return lead
+    ? `chip-pill-crown(${typstString(name)}, black)`
+    : `chip-pill(${typstString(name)}, black, filled: true)`;
 }
 
 function taskChip(wpNumber: number, taskNumber: number, colour: string): string {
@@ -118,7 +137,7 @@ function table(
   aligns?: string[],
   firstFlush = false,
   tight = false,
-  rules?: { hairlines?: boolean; ruleAbove?: number },
+  rules?: { hairlines?: boolean; ruleAbove?: number; rowPadPt?: number },
 ): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
@@ -127,7 +146,8 @@ function table(
   const tightSrc = tight ? ', tight: true' : '';
   const ruleSrc =
     (rules?.hairlines === false ? ', hairlines: false' : '') +
-    (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '');
+    (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '') +
+    (rules?.rowPadPt != null ? `, row-pad: ${rules.rowPadPt}pt` : '');
   return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc}${ruleSrc})`;
 }
 
@@ -210,7 +230,7 @@ export function emitWpDescriptions(
     const sep = `wp-sep(rgb(${typstString(wp.color)}))`;
 
     rows.push([
-      participantChip(byId.get(wp.lead_participant_id || '')) +
+      wpParticipantChip(byId.get(wp.lead_participant_id || ''), true) +
         ' + h(1fr) + ' +
         bold(lit(wpDuration(wp))),
     ]);
@@ -224,7 +244,7 @@ export function emitWpDescriptions(
     for (const task of wp.tasks) {
       const partners = task.participantIds
         .filter((id) => id !== task.lead_participant_id)
-        .map((id) => participantChip(byId.get(id)))
+        .map((id) => wpParticipantChip(byId.get(id)))
         .filter((c) => c !== EMPTY);
       // The duration is pushed to the RIGHT edge of the row, as the board
       // draws it, instead of trailing the badges.
@@ -241,8 +261,8 @@ export function emitWpDescriptions(
         CHIP_GAP +
         bold(lit(htmlToPlainText(task.title || '').trim()));
       const metaLine =
-        participantChip(byId.get(task.lead_participant_id || '')) +
-        (partners.length ? CHIP_SEP + partners.join(CHIP_SEP) : '') +
+        wpParticipantChip(byId.get(task.lead_participant_id || ''), true) +
+        (partners.length ? CHIP_SEP_TIGHT + partners.join(CHIP_SEP_TIGHT) : '') +
         months;
       // `sticky: true` binds the title to the participants line that follows
       // it. The header is its OWN block rather than the opening paragraph of
@@ -568,6 +588,9 @@ export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): strin
     table(ptTrack(widthsPt), header, rows, aligns, false, false, {
       hairlines: false,
       ruleAbove: rows.length,
+      // Every row 2px (1.5pt) taller, so the pale band clears the rule above
+      // the Total row and the WP chips clear the header rule.
+      rowPadPt: 0.75,
     }),
   ];
 }

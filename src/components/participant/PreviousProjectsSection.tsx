@@ -79,11 +79,13 @@ function SortableProjectRow({
       <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
         <div className="space-y-2">
           <Label>Name of project or activity</Label>
-          <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+          <Input value={editName} onChange={(e) => setEditName(e.target.value.slice(0, 50))} maxLength={50} />
+          <p className="text-right text-xs text-muted-foreground">{editName.length}/50</p>
         </div>
         <div className="space-y-2">
-          <Label>Short description</Label>
-          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="min-h-[80px]" />
+          <Label>Short description of project or activity</Label>
+          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value.slice(0, 500))} maxLength={500} className="min-h-[80px]" />
+          <p className="text-right text-xs text-muted-foreground">{editDesc.length}/500</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -190,11 +192,13 @@ export function PreviousProjectsSection({
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
                 <Label>Name of project or activity</Label>
-                <Input value={newProject.projectName} onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value })} placeholder="e.g., H2020-ProjectName" />
+                <Input value={newProject.projectName} onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value.slice(0, 50) })} maxLength={50} placeholder="e.g., H2020-ProjectName" />
+                <p className="text-right text-xs text-muted-foreground">{newProject.projectName.length}/50</p>
               </div>
               <div className="space-y-2">
-                <Label>Short description</Label>
-                <Textarea value={newProject.description} onChange={(e) => setNewProject({ ...newProject, description: e.target.value })} placeholder="Brief description of the project and your organisation's role..." className="min-h-[80px]" />
+                <Label>Short description of project or activity</Label>
+                <Textarea value={newProject.description} onChange={(e) => setNewProject({ ...newProject, description: e.target.value.slice(0, 500) })} maxLength={500} placeholder="Brief description of the project and your organisation's role..." className="min-h-[80px]" />
+                <p className="text-right text-xs text-muted-foreground">{newProject.description.length}/500</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
