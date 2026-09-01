@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useReferenceData } from '@/lib/referenceData';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
-import { GanttChartFigure } from '@/components/GanttChartFigure';
+import { GanttCaptureHost } from '@/components/cards/FigureCaptureHost';
 import { PartBExportDialog } from '@/components/cards/PartBExportDialog';
 import { PartBReviewPanel } from '@/components/cards/PartBReviewPanel';
 import {
@@ -81,35 +81,10 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
     [],
   );
 
-  useEffect(() => {
-    if (!ganttFigure) return;
-    let cancelled = false;
-    let frame = 0;
-    let tries = 0;
-    // Two frames after layout is the usual case; poll a little longer because
-    // the chart measures itself and reflows once its fonts resolve. There is
-    // deliberately NO "compile anyway" escape: a partial document must never
-    // be shown or offered for export.
-    const check = () => {
-      if (cancelled) return;
-      const el = ganttHostRef.current?.querySelector<HTMLElement>('[data-figure-chart="gantt"]');
-      if (el && el.offsetHeight > 0 && el.offsetWidth > 0) {
-        setGanttPainted(true);
-        return;
-      }
-      if (tries++ > 1800) {
-        // ~30s: something is wrong. Surface it rather than compile without it.
-        setGanttStalled(true);
-        return;
-      }
-      frame = requestAnimationFrame(check);
-    };
-    frame = requestAnimationFrame(check);
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [ganttFigure]);
+  // Readiness is reported by the capture host itself (see FigureCaptureHost):
+  // there is deliberately NO "compile anyway" escape, a partial document must
+  // never be shown or offered for export.
+
 
 
   const compile = useCallback(
@@ -199,33 +174,16 @@ export function PartBDocumentView({ proposalId, proposalAcronym, isCoordinator, 
   const ganttHost = useMemo(
     () =>
       ganttFigure ? (
-        <div
-          aria-hidden
-          ref={ganttHostRef}
-          style={{ position: 'fixed', left: -20000, top: 0, width: 1400, pointerEvents: 'none' }}
-        >
-          {/*
-            The chart is 18cm wide with `maxWidth: 100%`, so the wrapper must
-            SHRINK TO IT. A block wrapper took the host's full width and the
-            capture carried a broad white margin, which Typst then scaled to
-            the column — the Gantt looked narrow in the full document while
-            filling the column in B3.1's own preview. `fit-content` makes both
-            paths capture the same pixels.
-          */}
-          <div data-figure-chart="gantt" style={{ width: 'fit-content' }}>
-            <GanttChartFigure
-              figureId={ganttFigure.id}
-              proposalId={proposalId}
-              figureNumber={ganttFigure.figure_number}
-              content={ganttFigure.content as never}
-              onContentChange={() => {}}
-              canEdit={false}
-            />
-          </div>
-        </div>
+        <GanttCaptureHost
+          proposalId={proposalId}
+          figure={ganttFigure}
+          onReady={() => setGanttPainted(true)}
+          onStalled={() => setGanttStalled(true)}
+        />
       ) : null,
     [ganttFigure, proposalId],
   );
+
 
   return (
     <div className="flex flex-1 overflow-hidden">

@@ -10,6 +10,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { useB31SectionData } from '@/hooks/useB31SectionData';
+import { GanttCaptureHost } from '@/components/cards/FigureCaptureHost';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,10 @@ export function TypstPreviewDialog({
 }: Props) {
   const { data: refData } = useReferenceData(proposalId);
   const queryClient = useQueryClient();
+  const { ganttFigure } = useB31SectionData(proposalId);
+  // The single capture host must be mounted AND painted before a compile that
+  // may need the Gantt raster; otherwise the figure is reported missing.
+  const [ganttReady, setGanttReady] = useState(false);
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -56,6 +62,7 @@ export function TypstPreviewDialog({
   const [pageCount, setPageCount] = useState<number | null>(null);
   const urlRef = useRef<string | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     return () => {
@@ -124,12 +131,24 @@ export function TypstPreviewDialog({
   };
 
   useEffect(() => {
-    if (open && status === 'idle') void run();
+    if (!open || status !== 'idle') return;
+    // Wait for the capture host when this proposal has a Gantt.
+    if (ganttFigure && !ganttReady) return;
+    void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, ganttFigure, ganttReady]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {open && ganttFigure && (
+        <GanttCaptureHost
+          proposalId={proposalId}
+          figure={ganttFigure}
+          onReady={() => setGanttReady(true)}
+          onStalled={() => setGanttReady(true)}
+        />
+      )}
+
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Typst preview (beta)</DialogTitle>

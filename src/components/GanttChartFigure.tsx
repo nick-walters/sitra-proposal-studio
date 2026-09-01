@@ -720,7 +720,11 @@ export function GanttChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} data-figure-chart="gantt" className="overflow-hidden" style={{ ...fontStyle, paddingBottom: 8 }}>
+        {/* NO capture marker here: this container is width-constrained and
+            `overflow: hidden`, so a raster taken from it clips the WP banner
+            tips. The single capture host is `GanttCaptureHost`. */}
+        <div ref={chartRef} className="overflow-hidden" style={{ ...fontStyle, paddingBottom: 8 }}>
+
           {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
             {/* Labels column */}
