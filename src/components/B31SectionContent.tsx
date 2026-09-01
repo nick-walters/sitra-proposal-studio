@@ -71,7 +71,7 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
       <B31WPListTable wpData={wpData} participants={participants} proposalId={proposalId} />
 
       {pertFigure ? (
-         <div data-legacy-figure="pert">
+         <div data-figure-type="pert">
           <PERTChartFigure
             figureId={pertFigure.id}
             proposalId={proposalId}
@@ -93,7 +93,7 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
       )}
 
       {ganttFigure ? (
-        <div data-legacy-figure="gantt">
+        <div data-figure-type="gantt">
           <GanttChartFigure
             figureId={ganttFigure.id}
             proposalId={proposalId}
