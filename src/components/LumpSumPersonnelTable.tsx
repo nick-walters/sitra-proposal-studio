@@ -251,32 +251,42 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className="w-full min-w-[900px] text-xs">
+        <table className="w-max table-fixed text-xs">
+          <colgroup>
+            <col style={{ width: COL_WIDTH.grip }} />
+            <col style={{ width: COL_WIDTH.role }} />
+            {isA1 && <col style={{ width: COL_WIDTH.category }} />}
+            <col style={{ width: COL_WIDTH.rate }} />
+            {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wp }} />)}
+            <col style={{ width: COL_WIDTH.totalPm }} />
+            <col style={{ width: COL_WIDTH.cost }} />
+            <col style={{ width: COL_WIDTH.del }} />
+          </colgroup>
           <thead className="bg-muted/50"><tr className="text-left">
-            <th className="w-8 px-1 py-1.5" aria-label="Reorder" />
-            <th className="min-w-44 px-1.5 py-1.5">Role name</th>
-            {isA1 && <th className="min-w-56 px-1.5 py-1.5">F&amp;TP category</th>}
-            <th className="w-20 px-1.5 py-1.5 text-right">{costLine === 'A.4' ? 'Unit cost (€)' : 'PM rate (€)'}</th>
-            {workPackages.map(wp => <th key={wp.id} className="w-8 px-1.5 py-1.5 text-right" title={wp.title ?? undefined}>WP{wp.number}{wp.short_name ? ` · ${wp.short_name}` : ''}</th>)}
-            <th className="w-20 px-1.5 py-1.5 text-right">Total PMs</th>
-            <th className="w-28 px-1.5 py-1.5 text-right">Cost (€)</th>
-            <th className="w-9 px-1 py-1.5" aria-label="Delete" />
+            <th className={`${CELL} py-1.5`} aria-label="Reorder" />
+            <th className={`${CELL} py-1.5`}>Role name</th>
+            {isA1 && <th className={`${CELL} py-1.5`}>F&amp;TP category</th>}
+            <th className={`${NUM_CELL} py-1.5`}>{costLine === 'A.4' ? 'Unit cost (€)' : 'PM rate (€)'}</th>
+            {workPackages.map(wp => <th key={wp.id} className={`${NUM_CELL} py-1.5`} title={wp.title ?? undefined}>WP{wp.number}{wp.short_name ? ` · ${wp.short_name}` : ''}</th>)}
+            <th className={`${NUM_CELL} py-1.5`}>Total PMs</th>
+            <th className={`${NUM_CELL} py-1.5 whitespace-nowrap`}>Cost (€)</th>
+            <th className={`${CELL} py-1.5`} aria-label="Delete" />
           </tr></thead>
           <tbody>
             {grouped.map(group => <Fragment key={group.key}>
               <SortableContext items={group.roles.map(role => role.id)} strategy={verticalListSortingStrategy}>
                 {group.roles.map(role => <SortableRow key={role.id} id={role.id} disabled={!editable}>{(attributes, listeners) => <>
-                  <td className="px-1 py-0.5 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 p-0.5 text-primary disabled:opacity-30" disabled={!editable} {...attributes} {...listeners} aria-label="Drag to reorder" title="Drag to reorder"><GripVertical className="h-3.5 w-3.5" /></Button></td>
-                  <td className="px-1.5 py-0.5"><Input className="h-7 min-w-44 px-1.5 text-xs" defaultValue={role.role_name} disabled={!editable} onBlur={event => onUpdateRole(role.id, 'role_name', event.target.value)} /></td>
-                  {isA1 && <td className="px-1.5 py-0.5 align-middle"><Select value={role.he_category ?? ''} onValueChange={value => onUpdateRole(role.id, 'he_category', value)} disabled={!editable}><SelectTrigger className={`h-7 px-1.5 text-xs ${role.he_category ? '' : 'border-destructive'}`}><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value} className="pl-2 [&>span:first-child]:hidden">{label}</SelectItem>)}</SelectContent></Select>{!role.he_category && <div className="mt-0.5 text-[11px] text-destructive">Category required</div>}</td>}
-                  <td className="px-1.5 py-0.5 align-middle"><NumericInput value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable || costLine === 'A.4'} step="0.01" decimals={2} className="h-7 w-20 px-1.5 text-right text-xs" onCommit={value => onUpdateRole(role.id, 'pm_rate', value)} /></td>
-                  {workPackages.map(wp => <td key={wp.id} className="px-1.5 py-0.5 align-middle"><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className="h-7 w-10 px-1.5 text-right text-xs" onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
-                  <td className="px-1.5 py-0.5 text-right font-medium">{formatPM(roleTotalPm(role))}</td><td className="px-1.5 py-0.5 text-right font-medium">{formatCurrency(roleCost(role))}</td><td className="px-1 py-0.5 text-center">{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
+                  <td className={`${CELL} py-0.5 text-center`}><Button type="button" variant="ghost" size="icon" className="h-7 w-7 p-0.5 text-primary disabled:opacity-30" disabled={!editable} {...attributes} {...listeners} aria-label="Drag to reorder" title="Drag to reorder"><GripVertical className="h-3.5 w-3.5" /></Button></td>
+                  <td className={`${CELL} py-0.5`}><Input className={`${FIELD} min-w-0`} defaultValue={role.role_name} disabled={!editable} onBlur={event => onUpdateRole(role.id, 'role_name', event.target.value)} /></td>
+                  {isA1 && <td className={`${CELL} py-0.5 align-middle`}><Select value={role.he_category ?? ''} onValueChange={value => onUpdateRole(role.id, 'he_category', value)} disabled={!editable}><SelectTrigger className={`${FIELD} ${role.he_category ? '' : 'border-destructive'}`}><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value} className="pl-2 [&>span:first-child]:hidden">{label}</SelectItem>)}</SelectContent></Select>{!role.he_category && <div className="mt-0.5 text-[11px] text-destructive">Category required</div>}</td>}
+                  <td className={`${CELL} py-0.5 align-middle`}><NumericInput value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable || costLine === 'A.4'} step="0.01" decimals={2} className={NUM_FIELD} onCommit={value => onUpdateRole(role.id, 'pm_rate', value)} /></td>
+                  {workPackages.map(wp => <td key={wp.id} className={`${CELL} py-0.5 align-middle`}><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className={NUM_FIELD} onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
+                  <td className={`${NUM_CELL} py-0.5 font-medium`}>{formatPM(roleTotalPm(role))}</td><td className={`${NUM_CELL} whitespace-nowrap py-0.5 font-medium`}>{formatCurrency(roleCost(role))}</td><td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
                 </>}</SortableRow>)}
               </SortableContext>
               {isA1 && group.roles.length > 0 && <SubtotalRow roles={group.roles} label={group.label} efforts={efforts} workPackages={workPackages} />}
             </Fragment>)}
-            <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold"><td colSpan={isA1 ? 3 : 2} className="px-1.5 py-1.5">{costLine} total</td><td /><td colSpan={workPackages.length} /><td className="px-1.5 py-1.5 text-right">{formatPM(blockTotalPm)}</td><td className="px-1.5 py-1.5 text-right">{formatCurrency(blockCost)}<DifferenceNote difference={portalTotals.difference} /></td><td /></tr>
+            <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold"><td colSpan={isA1 ? 3 : 2} className={`${CELL} py-1.5`}>{costLine} total</td><td className={`${CELL} py-1.5`} /><td colSpan={workPackages.length} /><td className={`${NUM_CELL} py-1.5`}>{formatPM(blockTotalPm)}</td><td className={`${NUM_CELL} whitespace-nowrap py-1.5`}>{formatCurrency(blockCost)}<DifferenceNote difference={portalTotals.difference} /></td><td className={`${CELL} py-1.5`} /></tr>
           </tbody>
         </table>
       </DndContext>
@@ -289,5 +299,5 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
 function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRole[]; label: string; efforts: LumpSumEffort[]; workPackages: LumpSumWorkPackage[] }) {
   const result = subtotal(roles, efforts, workPackages);
   const difference = result.cost - result.trueCost;
-  return <tr className="bg-muted/20 font-semibold"><td /><td colSpan={2} className="px-1.5 py-1.5">{label} — average weighted PM rate</td><td className="px-1.5 py-1.5 text-right">{formatNumber(result.roundedAverage, 2)}</td>{result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className="px-1.5 py-1.5 text-right">{formatPM(pm)}</td>)}<td className="px-1.5 py-1.5 text-right">{formatPM(result.totalPm)}</td><td className="px-1.5 py-1.5 text-right">{formatCurrency(result.cost)}<DifferenceNote difference={difference} /></td><td /></tr>;
+  return <tr className="bg-muted/20 font-semibold"><td className={CELL} /><td colSpan={2} className={`${CELL} py-1.5`}>{label} — average weighted PM rate</td><td className={`${NUM_CELL} py-1.5`}>{formatNumber(result.roundedAverage, 2)}</td>{result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${NUM_CELL} py-1.5`}>{formatPM(pm)}</td>)}<td className={`${NUM_CELL} py-1.5`}>{formatPM(result.totalPm)}</td><td className={`${NUM_CELL} whitespace-nowrap py-1.5`}>{formatCurrency(result.cost)}<DifferenceNote difference={difference} /></td><td className={CELL} /> </tr>;
 }
