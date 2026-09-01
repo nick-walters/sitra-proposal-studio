@@ -28,7 +28,9 @@ function numberValue(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function SortableRow({ id, disabled, children }: { id: string; disabled: boolean; children: React.ReactNode }) {
+type SortableRowChildren = (attributes: ReturnType<typeof useSortable>['attributes'], listeners: ReturnType<typeof useSortable>['listeners']) => React.ReactNode;
+
+function SortableRow({ id, disabled, children }: { id: string; disabled: boolean; children: SortableRowChildren }) {
   const sortable = useSortable({ id, disabled });
   const style = { transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, opacity: sortable.isDragging ? 0.55 : 1 };
   return <tr ref={sortable.setNodeRef} style={style} className="border-t border-border/70">{children(sortable.attributes, sortable.listeners)}</tr>;
@@ -67,7 +69,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
       const key = role.he_category || 'blank';
       map.set(key, [...(map.get(key) ?? []), role]);
     }
-    return [...map.entries()].sort(([a], [b]) => (CATEGORY_ORDER.get(a) ?? 99) - (CATEGORY_ORDER.get(b) ?? 99)).map(([key, groupRoles]) => ({
+    return [...map.entries()].sort(([a], [b]) => (CATEGORY_ORDER.get(a as typeof CATEGORIES[number][0]) ?? 99) - (CATEGORY_ORDER.get(b as typeof CATEGORIES[number][0]) ?? 99)).map(([key, groupRoles]) => ({
       key,
       label: CATEGORIES.find(([value]) => value === key)?.[1] ?? 'Category required',
       roles: [...groupRoles].sort((a, b) => a.order_index - b.order_index),

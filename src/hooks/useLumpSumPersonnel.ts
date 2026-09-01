@@ -110,7 +110,12 @@ export function useLumpSumPersonnel(proposalId: string) {
 
   const updateRole = useMutation({
     mutationFn: async ({ roleId, field, value }: { roleId: string; field: 'role_name' | 'he_category' | 'pm_rate'; value: string | number | null }) => {
-      const { error } = await supabase.from('ls_personnel_roles').update({ [field]: value }).eq('id', roleId);
+      const updates = field === 'role_name'
+        ? { role_name: String(value ?? '') }
+        : field === 'he_category'
+          ? { he_category: value === null ? null : String(value) }
+          : { pm_rate: Number(value) || 0 };
+      const { error } = await supabase.from('ls_personnel_roles').update(updates).eq('id', roleId);
       if (error) throw error;
     },
     onSuccess: invalidate,

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { formatCurrency } from '@/lib/formatNumber';
 import { LumpSumPersonnelTable } from '@/components/LumpSumPersonnelTable';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
