@@ -65,6 +65,12 @@ const MIN_CELL_WIDTH = 7;
 // boundary (triangle tip on the boundary, body extending right).
 // MS19 → estimateBubbleW = max(26, 5*6+8) = 38px. Add a 4px safety buffer.
 const MARGIN_GAP = 42;
+// Right gutter INSIDE the 18cm box. The WP banner rows stretch to the content
+// box's right edge and their clip-path tip lands exactly on it, so a raster
+// taken from the element's box cuts the tip off. Reserving a few pixels of
+// content inset keeps every painted pixel (banner tips, the final milestone
+// and the latest pennants) strictly inside the captured box.
+const RIGHT_GUTTER = 6;
 const ROW_HEIGHT = 20;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -477,7 +483,7 @@ export function GanttChartFigure({
   const minQuarterWidth = 21;
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
-  const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
+  const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP - RIGHT_GUTTER;
   const overlayWidth = timelineWidth + MARGIN_GAP;
 
   // Global per-chart row layout. Each WP contributes: 1 header row + N task rows
@@ -604,7 +610,7 @@ export function GanttChartFigure({
         {/* NO capture marker here: this container is width-constrained and
             `overflow: hidden`, so a raster taken from it clips the WP banner
             tips. The single capture host is `GanttCaptureHost`. */}
-        <div ref={chartRef} className="overflow-hidden" style={{ ...fontStyle, paddingBottom: 8 }}>
+        <div ref={chartRef} className="overflow-hidden" style={{ ...fontStyle, paddingBottom: 8, paddingRight: RIGHT_GUTTER }}>
 
           {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
