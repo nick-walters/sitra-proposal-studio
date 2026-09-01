@@ -73,7 +73,7 @@ export async function captureFigureAssets(
   for (const kind of kinds) {
     try {
       const bytes = await captureOne(kind);
-      if (bytes) assets.push({ path: FIGURE_ASSET_PATH[kind], bytes });
+      if (bytes) assets.push({ path: figureAssetPath(kind), bytes });
       else missing.push(kind);
     } catch {
       missing.push(kind);
