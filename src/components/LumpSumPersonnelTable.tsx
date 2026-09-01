@@ -119,12 +119,14 @@ export function NumericInput({
     onCommit(numberValue(nextValue));
   };
 
-  const schedule = (next: string) => {
+  const schedule = (raw: string) => {
+    const next = sanitizeNumeric(raw, decimals);
     setLocalValue(next);
     setDirty(true);
     if (pending.current) clearTimeout(pending.current);
     pending.current = setTimeout(() => commit(next), 350);
   };
+
 
   const displayValue = focused
     ? localValue
