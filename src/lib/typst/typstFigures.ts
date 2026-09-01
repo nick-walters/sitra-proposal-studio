@@ -65,24 +65,33 @@ export interface CapturedFigures {
 }
 
 /**
- * The CHART ONLY — never the caption.
+ * The CHART ONLY — never the caption, and never a second implementation.
  *
- * `[data-figure-type]` wraps the chart *and* its on-screen caption, which is
- * what the PNG download wants. Rasterising that wrapper baked the caption into
- * the image, and Typst then emitted `he-figure-caption` underneath it, so the
- * caption appeared twice and the two overlapped. `[data-figure-chart]` is the
- * inner wrapper around the chart alone; the outer element is only a fallback
- * for surfaces that have not been updated.
+ * `[data-figure-chart]` is the canonical capture host: the shrink-to-fit
+ * wrapper around the chart alone, mounted by B3.1's Figure module
+ * (`SourceFedBlock`) and by the full document's off-screen host. The old
+ * `[data-figure-type]` fallback could select the LEGACY B3.1 renderer, which
+ * draws the same chart inside a width-constrained container — that capture is
+ * clipped on the right. The fallback is gone: if the canonical host is not on
+ * the page, the figure is reported missing rather than captured wrong.
+ *
+ * When several canonical hosts are mounted at once (the board and the
+ * off-screen document host), the widest unclipped one wins so the raster is
+ * always the complete chart.
  */
 async function captureOne(kind: FigureKind): Promise<Uint8Array | null> {
-  const el =
-    document.querySelector<HTMLElement>(`[data-figure-chart="${kind}"]`) ??
-    document.querySelector<HTMLElement>(`[data-figure-type="${kind}"]`);
-  if (!el || el.offsetHeight === 0) return null;
+  const hosts = Array.from(
+    document.querySelectorAll<HTMLElement>(`[data-figure-chart="${kind}"]`),
+  ).filter((h) => h.offsetHeight > 0 && h.offsetWidth > 0);
+  if (!hosts.length) return null;
+  const el = hosts.reduce((best, h) =>
+    Math.max(h.scrollWidth, h.offsetWidth) > Math.max(best.scrollWidth, best.offsetWidth) ? h : best,
+  );
   const blob = await renderElementToPngBlob(el);
   if (!blob) return null;
   return new Uint8Array(await blob.arrayBuffer());
 }
+
 
 
 /** Captures whichever charts are currently rendered on the board. */
