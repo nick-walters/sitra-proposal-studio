@@ -931,7 +931,26 @@ export function GanttChartFigure({
                           />
                         );
                       })}
+                      {/* Connector + anchor dot for displaced milestone badges */}
+                      {msLaidOut.filter(m => m.moved).map((m) => {
+                        const bandBottom = ROW_HEIGHT;
+                        const by = yOfWpBand + m.dy;
+                        return (
+                          <g key={`ms-conn-${m.id}`}>
+                            <line
+                              x1={m.dotX}
+                              y1={bandBottom}
+                              x2={m.hexLeft}
+                              y2={by}
+                              stroke="#000000"
+                              strokeWidth={0.75}
+                            />
+                            <circle cx={m.dotX} cy={bandBottom} r={1.8} fill="#000000" />
+                          </g>
+                        );
+                      })}
                     </svg>
+
 
                     {/* Deliverable chevrons */}
 
