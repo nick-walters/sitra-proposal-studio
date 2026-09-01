@@ -18,7 +18,7 @@ const BLOCKS = [
 ];
 
 function formatPM(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return value.toFixed(1);
 }
 
 export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
