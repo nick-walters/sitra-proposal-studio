@@ -68,8 +68,10 @@ async function captureOne(kind: FigureKind): Promise<Uint8Array | null> {
 export async function captureFigureAssets(
   kinds: FigureKind[] = ['pert', 'gantt'],
 ): Promise<CapturedFigures> {
+  bumpFigureCacheToken();
   const assets: TypstAsset[] = [];
   const missing: FigureKind[] = [];
+
   for (const kind of kinds) {
     try {
       const bytes = await captureOne(kind);
