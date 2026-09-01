@@ -23,7 +23,7 @@ import {
   HE_TABLE_WIDTH_PT,
 } from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
-import { figureAssetPath } from './typstFigures';
+
 import { emitPertChart } from './pertTypst';
 import type {
   B31TypstData,
@@ -821,6 +821,8 @@ export function emitFigure(
   data: B31TypstData,
   kind: 'pert' | 'gantt',
   available: boolean,
+  /** The registered asset path — the only place the emit path comes from. */
+  assetPath?: string,
 ): string[] {
   const meta = kind === 'pert' ? data.pertFigure : data.ganttFigure;
   if (!meta) return [];
@@ -836,13 +838,19 @@ export function emitFigure(
   }
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
+  // Text-only callers rasterise nothing, so there is no registered asset:
+  // emit the caption alone rather than naming a file the compiler lacks.
+  if (!native && !assetPath) {
+    return [`he-figure-caption(${typstString(label)}, ${lit(captionText)})`];
+  }
+
   return [
     // A bare `image(path)` inherits Typst's DEFAULT `fit: "cover"`, which
     // CROPS the raster to the region it is given — that is what clipped the
     // WP banner tips and shifted the marker grid against the month columns.
     // The capture is already the chart exactly as the board draws it, so it
     // must be placed with `fit: "contain"` at the full column width.
-    native || `he-image(${typstString(figureAssetPath(kind))}, 1.0)`,
+    native || `he-image(${typstString(assetPath ?? '')}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }

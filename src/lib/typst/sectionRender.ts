@@ -32,7 +32,7 @@ import {
   fetchTypstDocMeta,
   type SectionBlockTree,
 } from './sectionToTypst';
-import type { FigureKind } from './typstFigures';
+import type { FigureKind, FigurePaths } from './typstFigures';
 
 export interface SharedRenderData {
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -42,6 +42,8 @@ export interface SharedRenderData {
   /* eslint-enable @typescript-eslint/no-explicit-any */
   /** Rasterised charts, already keyed to their virtual paths. */
   figureAssets: TypstAsset[];
+  /** Emit paths, read off `figureAssets` — never recomputed. */
+  figurePaths: FigurePaths;
   figuresAvailable: { pert: boolean; gantt: boolean };
 }
 
@@ -66,11 +68,13 @@ export async function fetchSharedRenderData(
       ? Promise.resolve({ assets: [] as TypstAsset[], missing: [] })
       : captureFigureAssets(figureKinds),
   ]);
+  const { figurePathsFromAssets } = await import('./typstFigures');
   return {
     sourceData,
     casesData,
     b32Data,
     figureAssets: captured.assets,
+    figurePaths: figurePathsFromAssets(captured.assets),
     figuresAvailable: {
       // Text-only callers rasterise nothing, so the charts are declared
       // available: that keeps the emitted text on the real branch instead of
@@ -138,6 +142,7 @@ export async function renderSectionBody(options: RenderSectionOptions): Promise<
     b32Data: shared.b32Data,
     authoredFigures: authored.blocks,
     figuresAvailable: shared.figuresAvailable,
+    figurePaths: shared.figurePaths,
   });
 
   return {

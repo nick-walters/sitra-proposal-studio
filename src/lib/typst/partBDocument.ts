@@ -175,14 +175,20 @@ export async function buildPartBTypstDocument(
   // Proposal-wide inputs, fetched (and the charts captured) exactly as a
   // single-section preview fetches them. The caller may hand in figure assets
   // it captured itself; those take precedence over a fresh capture.
-  const shared = await fetchSharedRenderData(proposalId, ['gantt'], {
+  // When the caller already captured the charts, DO NOT capture again: a
+  // second capture mints a second cache-busting token, and the source would
+  // then name a file that was never registered ("access denied").
+  const reuse = Boolean(options.figureAssets?.length);
+  const shared = await fetchSharedRenderData(proposalId, reuse ? [] : ['gantt'], {
     textOnly: options.textOnly,
   });
-  if (options.figureAssets?.length) {
-    shared.figureAssets = options.figureAssets;
+  if (reuse) {
+    const { figurePathsFromAssets } = await import('./typstFigures');
+    shared.figureAssets = options.figureAssets!;
+    shared.figurePaths = figurePathsFromAssets(options.figureAssets!);
     shared.figuresAvailable = {
-      pert: options.figureAssets.some((a) => a.path.includes('pert')),
-      gantt: options.figureAssets.some((a) => a.path.includes('gantt')),
+      pert: Boolean(shared.figurePaths.pert),
+      gantt: Boolean(shared.figurePaths.gantt),
     };
   }
 
