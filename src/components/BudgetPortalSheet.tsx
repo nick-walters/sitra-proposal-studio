@@ -700,9 +700,6 @@ export function BudgetPortalSheet({
             </TabsList>
             {activeTab !== 'fstp' && (
               <div className="flex items-center gap-3">
-                <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
-                  {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
-                </Badge>
                 <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
                   <AlertCircle className="w-4 h-4" />
                   Validate
