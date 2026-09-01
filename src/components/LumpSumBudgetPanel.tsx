@@ -18,7 +18,7 @@ const BLOCKS = [
 ];
 
 function formatPM(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return value.toFixed(1);
 }
 
 export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
@@ -61,7 +61,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
 
   return <div className="space-y-4 p-4 md:p-6">
-     <div className="flex gap-2 overflow-x-auto border-b border-border pb-1.5">
+     <div className="flex flex-wrap gap-[3px] overflow-visible border-b border-border pb-1.5">
        {participants.map(participant => {
          const active = participant.id === selected.id;
          return <button type="button" key={participant.id} onClick={() => setSelectedParticipantId(participant.id)} className={`flex min-w-max items-center border-b-2 px-2 py-1.5 text-left transition-colors ${active ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
@@ -82,16 +82,16 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
            <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
            <span className="min-w-0 flex-1 text-xs font-semibold">{block.label}</span>
            {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-           {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={onAddRole}><span className="sr-only">Add role to </span>{block.line}<span aria-hidden="true">+</span></Button>}
-         </div>
-        {!collapsed && <div className="space-y-2 pt-2">
-          {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
+            {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
+          </div>
+         {!collapsed && <div className="space-y-2 pt-2">
+           {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
           <LumpSumPersonnelTable costLine={block.line} roles={lineRoles} efforts={efforts} workPackages={workPackages} editable={editable} a4UnitCost={a4UnitCost} onAdd={() => addRole(selected.id, block.line)} onUpdateRole={updateRole} onDelete={deleteRole} onReorder={reorderRoles} onSetEffort={setEffort} />
         </div>}
       </section>;
 
       function onAddRole() { addRole(selected.id, block.line); }
     })}
-    <div className="border-t-2 border-foreground/40 pt-3"><div className="flex items-center justify-between font-semibold"><span>A total</span><span>{formatCurrency(overallTotals.portalCost)}<DifferenceNote difference={overallTotals.difference} /></span></div><div className="mt-2 overflow-x-auto"><table className="w-full text-sm"><tbody><tr className="border-t border-border"><td className="py-1.5 font-medium">Total person-months per work package</td>{workPackages.map(wp => <td key={wp.id} className="px-2 py-1.5 text-right">WP{wp.number}<br /><span className="font-semibold">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span></td>)}</tr></tbody></table></div></div>
+    <div className="border-t-2 border-foreground/40 pt-3"><div className="flex items-center justify-between font-semibold"><span>A total</span><span className="tabular-nums whitespace-nowrap">{formatCurrency(overallTotals.portalCost)}<DifferenceNote difference={overallTotals.difference} /></span></div><div className="mt-2 overflow-x-auto"><table className="w-full text-sm"><tbody><tr className="border-t border-border"><td className="py-1.5 font-medium">Total person-months per work package</td>{workPackages.map(wp => <td key={wp.id} className="px-2 py-1.5 text-right tabular-nums">WP{wp.number}<br /><span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span></td>)}</tr></tbody></table></div></div>
   </div>;
 }
