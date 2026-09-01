@@ -113,6 +113,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to add role: ${errorMessage(error)}`),
   });
 
   const updateRole = useMutation({
@@ -126,6 +127,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to update role: ${errorMessage(error)}`),
   });
 
   const deleteRole = useMutation({
@@ -134,6 +136,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to delete role: ${errorMessage(error)}`),
   });
 
   const reorderRoles = useMutation({
@@ -145,6 +148,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (failed?.error) throw failed.error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to reorder roles: ${errorMessage(error)}`),
   });
 
   const setEffort = useMutation({
@@ -161,6 +165,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to save effort: ${errorMessage(error)}`),
   });
 
   const setA4UnitCost = useMutation({
@@ -170,6 +175,7 @@ export function useLumpSumPersonnel(proposalId: string) {
       if (error) throw error;
     },
     onSuccess: invalidate,
+    onError: (error: unknown) => toast.error(`Failed to save A.4 unit cost: ${errorMessage(error)}`),
   });
 
   const debounced = <T,>(key: string, callback: () => void) => {
