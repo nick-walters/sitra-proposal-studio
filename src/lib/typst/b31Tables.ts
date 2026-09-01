@@ -137,7 +137,7 @@ function table(
   aligns?: string[],
   firstFlush = false,
   tight = false,
-  rules?: { hairlines?: boolean; ruleAbove?: number },
+  rules?: { hairlines?: boolean; ruleAbove?: number; rowPadPt?: number },
 ): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
@@ -146,7 +146,8 @@ function table(
   const tightSrc = tight ? ', tight: true' : '';
   const ruleSrc =
     (rules?.hairlines === false ? ', hairlines: false' : '') +
-    (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '');
+    (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '') +
+    (rules?.rowPadPt != null ? `, row-pad: ${rules.rowPadPt}pt` : '');
   return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc}${ruleSrc})`;
 }
 
@@ -587,6 +588,9 @@ export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): strin
     table(ptTrack(widthsPt), header, rows, aligns, false, false, {
       hairlines: false,
       ruleAbove: rows.length,
+      // Every row 2px (1.5pt) taller, so the pale band clears the rule above
+      // the Total row and the WP chips clear the header rule.
+      rowPadPt: 0.75,
     }),
   ];
 }
