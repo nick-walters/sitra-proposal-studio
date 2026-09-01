@@ -849,7 +849,7 @@ export function GanttChartFigure({
                     </div>
                   ))}
 
-                  {/* ── Overlay: connector lines (SVG) + badges, anchored at timeline top-left ── */}
+                  {/* ── Overlay: badges, anchored at timeline top-left (no connectors) ── */}
                   <div
                     style={{
                       position: 'absolute',
@@ -860,52 +860,28 @@ export function GanttChartFigure({
                       pointerEvents: 'none',
                     }}
                   >
-                    {/* Connector lines */}
+                    {/* Small diamond marking each deliverable's due month at the pennant tip */}
                     <svg
                       width={overlayWidth}
                       height={overlayHeight}
                       style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
                     >
-                      {laidOut.flatMap((b) => {
-                        if (!b.drawLines) return [];
+                      {laidOut.map((b) => {
                         const ty = yOfRow(b.rowIdx);
-                        // Deliverable connectors take the badge's WP colour so
-                        // they always match the chevron.
-                        const lineColor = b.color;
-                        return b.origins.map((o, oi) => {
-                          const oy = yOfRow(o.rowIdx);
-                          // Straight line from origin dot to chevron tip
-                          // (vertical for centred-stacked since tipX = o.x = dotX).
-                          const d = `M ${o.x} ${oy} L ${b.tipX} ${ty}`;
-                          return (
-                            <g key={`${b.key}-l${oi}`}>
-                              <path d={d} stroke={lineColor} strokeWidth={1.333} fill="none" strokeLinecap="square" strokeLinejoin="miter" />
-                              <circle cx={o.x} cy={oy} r={2} fill={lineColor} stroke="none" />
-                            </g>
-                          );
-                        });
-                      })}
-                      {/* Milestone connector lines: from band-row dot to nearest hex tip
-                          (or straight down to a stacked hex on a task row). */}
-                      {msLaidOut.map((m) => {
-                        const ty = yOfRow(m.rowIdx);
+                        const r = 2.2;
                         return (
-                          <g key={`ms-line-${m.id}`}>
-                            <path
-                              d={`M ${m.dotX} ${yOfWpBand} L ${m.tipX} ${ty}`}
-                              stroke="#000000"
-                              strokeWidth={1.333}
-                              fill="none"
-                              strokeLinecap="square"
-                            />
-                            <circle cx={m.dotX} cy={yOfWpBand} r={2} fill="#000000" stroke="none" />
-                          </g>
+                          <path
+                            key={`${b.key}-tip`}
+                            d={`M ${b.dotX} ${ty - r} L ${b.dotX + r} ${ty} L ${b.dotX} ${ty + r} L ${b.dotX - r} ${ty} Z`}
+                            fill={b.color}
+                            stroke="none"
+                          />
                         );
                       })}
                     </svg>
 
+                    {/* Deliverable chevrons */}
 
-                    {/* Deliverable chevrons (shape never changes — only position/connector) */}
                     {laidOut.map((b) => {
                       const ty = yOfRow(b.rowIdx);
                       const shapeW = b.shapeW;
