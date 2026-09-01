@@ -1,4 +1,5 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
+import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatNumber } from '@/lib/formatNumber';
@@ -37,6 +38,7 @@ import { htmlToPlainText } from '@/lib/htmlToPlainText';
 interface BudgetPortalSheetProps {
   proposalId: string;
   proposalType: string | null;
+  budgetType?: string;
   canEdit: boolean;
   isCoordinator: boolean;
   usesFstp?: boolean;
@@ -77,6 +79,7 @@ const PARTICIPANT_COLUMNS = [
 export function BudgetPortalSheet({
   proposalId,
   proposalType,
+  budgetType,
   canEdit,
   isCoordinator,
   usesFstp = false,
@@ -693,7 +696,7 @@ export function BudgetPortalSheet({
             <TabsList>
               <TabsTrigger value="budget">Budget dashboard</TabsTrigger>
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-              
+              {budgetType === 'lump_sum' && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
             </TabsList>
             {activeTab !== 'fstp' && (
               <div className="flex items-center gap-3">

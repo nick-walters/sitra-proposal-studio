@@ -764,6 +764,7 @@ export function ProposalEditor() {
           <BudgetPortalSheet
             proposalId={id || ''}
             proposalType={proposal?.type || null}
+            budgetType={proposal?.budgetType}
             canEdit={canEdit}
             isCoordinator={isCoordinator}
             usesFstp={proposal?.usesFstp}
