@@ -67,30 +67,30 @@ export interface CapturedFigures {
 /**
  * The CHART ONLY — never the caption, and never a second implementation.
  *
- * `[data-figure-chart]` is the canonical capture host: the shrink-to-fit
- * wrapper around the chart alone, mounted by B3.1's Figure module
- * (`SourceFedBlock`) and by the full document's off-screen host. The old
- * `[data-figure-type]` fallback could select the LEGACY B3.1 renderer, which
- * draws the same chart inside a width-constrained container — that capture is
- * clipped on the right. The fallback is gone: if the canonical host is not on
- * the page, the figure is reported missing rather than captured wrong.
- *
- * When several canonical hosts are mounted at once (the board and the
- * off-screen document host), the widest unclipped one wins so the raster is
- * always the complete chart.
+ * `[data-figure-capture]` is THE capture marker, and exactly one element in
+ * the application carries it: the dedicated off-screen host
+ * (`GanttCaptureHost`). Earlier revisions marked several nested elements —
+ * the B3.1 block wrapper AND the chart's own `overflow: hidden` container —
+ * so which one was captured depended on document order, and the clipped one
+ * cut off the work-package banner tips. There is no fallback and no
+ * widest-of rule: if the marker is absent (or ambiguous) the figure is
+ * reported missing.
  */
 async function captureOne(kind: FigureKind): Promise<Uint8Array | null> {
   const hosts = Array.from(
-    document.querySelectorAll<HTMLElement>(`[data-figure-chart="${kind}"]`),
+    document.querySelectorAll<HTMLElement>(`[data-figure-capture="${kind}"]`),
   ).filter((h) => h.offsetHeight > 0 && h.offsetWidth > 0);
-  if (!hosts.length) return null;
-  const el = hosts.reduce((best, h) =>
-    Math.max(h.scrollWidth, h.offsetWidth) > Math.max(best.scrollWidth, best.offsetWidth) ? h : best,
-  );
-  const blob = await renderElementToPngBlob(el);
+  if (hosts.length !== 1) {
+    if (hosts.length > 1) {
+      console.error(`[figures] ${hosts.length} capture hosts for "${kind}" — refusing to guess.`);
+    }
+    return null;
+  }
+  const blob = await renderElementToPngBlob(hosts[0]);
   if (!blob) return null;
   return new Uint8Array(await blob.arrayBuffer());
 }
+
 
 
 
