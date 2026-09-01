@@ -266,6 +266,7 @@ function emitSourceFed(
   ctx: ConvertContext,
   data: B31TypstData,
   figures: { pert: boolean; gantt: boolean },
+  figurePaths: import('./typstFigures').FigurePaths,
 ): string[] | null {
   switch (sourceKey) {
     case 'b11.references':
@@ -468,7 +469,7 @@ export function buildSectionTypstBody(
     const emitCard = (): void => {
       if (isGenerated) {
         const emitted = sourceData
-          ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures)
+          ? emitSourceFed(card.sourceKey || '', ctx, sourceData, figures, figurePaths)
           : null;
         if (emitted && emitted.length) {
           cardOut.push(...emitted);
