@@ -297,7 +297,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             */}
             {workPackages.map(wp => <th key={wp.id} className={`${CELL} py-1.5 text-center`} title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></th>)}
             <th className={`${NUM_CELL} py-1.5`}>Total PMs</th>
-            <th className={`${COST_CELL} py-1.5 whitespace-nowrap !text-left`}>Cost (€)</th>
+            <th className="pl-1.5 pr-0 py-1.5 whitespace-nowrap text-left">Cost (€)</th>
             <th className={`${DIFF_CELL} py-1.5`} aria-label="Rounding difference" />
             <th className={`${CELL} py-1.5`} aria-label="Delete" />
           </tr></thead>
