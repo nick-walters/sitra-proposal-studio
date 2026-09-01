@@ -1025,6 +1025,12 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
 
+          {budgetType === 'lump_sum' && (
+            <TabsContent value="lump-sum">
+              <LumpSumBudgetPanel proposalId={proposalId} />
+            </TabsContent>
+          )}
+
           <BudgetValidationDialog proposalId={proposalId} open={validationOpen} onOpenChange={setValidationOpen} />
         </Tabs>
 
