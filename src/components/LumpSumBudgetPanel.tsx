@@ -69,7 +69,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
          </button>;
        })}
      </div>
-     <div><h2 className="text-lg font-semibold">A. Personnel costs</h2><p className="text-sm text-muted-foreground">Enter personnel effort and rates for one participant at a time.</p></div>
+     <h2 className="text-lg font-semibold">A. Personnel costs</h2>
     <div className="flex min-h-5 items-center gap-2 text-xs text-muted-foreground">
       {saving && <span>Saving…</span>}
       {participantBudget?.is_locked && !isCoordinator && <span>This participant budget is locked.</span>}
@@ -77,8 +77,8 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
     {BLOCKS.map(block => {
       const collapsed = isCollapsed(block.line);
       const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
-       return <section key={block.line} className="border-b border-border pb-3">
-         <div className="flex min-h-8 items-center gap-1 border-b border-border/60 py-0.5">
+       return <section key={block.line} className="border-b border-border">
+         <div className="flex min-h-8 items-center gap-1 border-b border-border/60">
            <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
            <span className="min-w-0 flex-1 text-xs font-semibold">{block.label}</span>
            {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
