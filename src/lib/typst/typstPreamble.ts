@@ -282,10 +282,14 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Crown drawn as geometry rather than text: the embedded Nimbus Roman faces
 /// carry no crown glyph, so a literal one is dropped by the compiler. The
 /// outline follows the Lucide crown the editor uses for lead badges.
+/// GROWTH: 60% taller and 20% wider than the 9.5pt square it used to be, with
+/// the baseline untouched so it grows UPWARD out of the pill, not downward.
+#let crown-w-factor = 1.2
+#let crown-h-factor = 1.6
 #let chip-crown(colour, size: 9.5pt) = box(
   baseline: 0.2pt,
-  width: size,
-  height: size,
+  width: size * crown-w-factor,
+  height: size * crown-h-factor,
   polygon(
     fill: colour,
     stroke: none,
@@ -302,8 +306,9 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   let body = chip-label(label, white)
   let m = measure(body)
   let crown-size = 9.5pt
+  let crown-box = crown-size * crown-w-factor
   let crown-gap = 1.5pt
-  let w = m.width + 2 * chip-pad + crown-size + crown-gap
+  let w = m.width + 2 * chip-pad + crown-box + crown-gap
   box(
     baseline: 2.4pt,
     width: w,
@@ -313,7 +318,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     stroke: 1pt + colour,
     {
       place(horizon + left, dx: chip-pad, dy: 0.2pt, chip-crown(white, size: crown-size))
-      place(horizon + left, dx: chip-pad + crown-size + crown-gap, dy: chip-label-shift, body)
+      place(horizon + left, dx: chip-pad + crown-box + crown-gap, dy: chip-label-shift, body)
     },
   )
 }

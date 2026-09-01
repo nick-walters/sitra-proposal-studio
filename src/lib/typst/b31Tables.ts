@@ -49,7 +49,9 @@ const CHIP_SEP = ` + t(" ") + `;
  * carried about 10 px too much space to their right. A plain space with a
  * negative kern: the space keeps the run breakable across lines.
  */
-const CHIP_SEP_TIGHT = ` + t(" ") + h(-2.5pt) + `;
+// Exactly 2px (1.5pt) between adjacent participant badges — they used to
+// touch, and the old negative kern pulled them together further.
+const CHIP_SEP_TIGHT = ` + h(1.5pt) + `;
 
 function rich(html: string | null | undefined, ctx: ConvertContext): string {
   const text = htmlToPlainText(html || '').trim();
@@ -183,7 +185,8 @@ export function emitWpList(data: B31TypstData, ctx: ConvertContext): string[] {
     const pm = wpPm(wp);
     return [
       wpChip(wp.number, wp.color, label),
-      participantChip(byId.get(wp.lead_participant_id || '')),
+      // The WP leader carries the crown badge, as the board draws it.
+      wpParticipantChip(byId.get(wp.lead_participant_id || ''), true),
       lit(pm > 0 ? fmtPm(pm) : '—'),
       lit(wpDuration(wp)),
     ];

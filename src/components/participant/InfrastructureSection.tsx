@@ -90,14 +90,14 @@ function SortableInfraRow({
           <p className="text-right text-xs text-muted-foreground">{editDesc.length}/300</p>
         </div>
         <div className="space-y-2">
-          <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+          <Label>How the infrastructure will support the project (Part B3.2, max 150 characters)</Label>
           <Textarea
             value={editSupport}
-            onChange={(e) => setEditSupport(e.target.value.slice(0, 200))}
-            maxLength={200}
+            onChange={(e) => setEditSupport(e.target.value.slice(0, 150))}
+            maxLength={150}
             className="min-h-[60px]"
           />
-          <p className="text-right text-xs text-muted-foreground">{editSupport.length}/200</p>
+          <p className="text-right text-xs text-muted-foreground">{editSupport.length}/150</p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -214,15 +214,15 @@ export function InfrastructureSection({
                 <p className="text-right text-xs text-muted-foreground">{newInfra.description.length}/300</p>
               </div>
               <div className="space-y-2">
-                <Label>How the infrastructure will support the project (Part B3.2, max 200 characters)</Label>
+                <Label>How the infrastructure will support the project (Part B3.2, max 150 characters)</Label>
                 <Textarea
                   value={newInfra.projectSupport}
-                  onChange={(e) => setNewInfra({ ...newInfra, projectSupport: e.target.value.slice(0, 200) })}
-                  maxLength={200}
+                  onChange={(e) => setNewInfra({ ...newInfra, projectSupport: e.target.value.slice(0, 150) })}
+                  maxLength={150}
                   placeholder="How this infrastructure will support the project..."
                   className="min-h-[60px]"
                 />
-                <p className="text-right text-xs text-muted-foreground">{newInfra.projectSupport.length}/200</p>
+                <p className="text-right text-xs text-muted-foreground">{newInfra.projectSupport.length}/150</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
