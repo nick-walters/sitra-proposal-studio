@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,26 +23,11 @@ export function formatPM(value: number) {
   return value.toFixed(1);
 }
 
-/**
- * Explicit column widths (px) shared by the <colgroup>, so headers, input rows,
- * subtotal rows and total rows all sit on one grid and their right edges coincide.
- */
-export const COL_WIDTH = {
-  grip: 32,
-  role: 176,
-  category: 156,
-  rate: 92,
-  wp: 56,
-  totalPm: 80,
-  cost: 160,
-  del: 36,
-} as const;
-
 /** Shared cell padding per column type, applied identically to every row kind. */
 const CELL = 'px-1.5';
 const NUM_CELL = `${CELL} text-right tabular-nums`;
 /** Every field fills its column; the colgroup governs width, not the input. */
-const FIELD = 'h-7 w-full px-1.5 text-xs md:text-xs';
+const FIELD = 'h-7 w-full px-1.5 text-xs md:text-sm';
 const NUM_FIELD = `${FIELD} text-right tabular-nums`;
 
 /** Keeps only digits and a single decimal separator, capped at `decimals` places. */
