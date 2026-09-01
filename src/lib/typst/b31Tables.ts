@@ -23,7 +23,7 @@ import {
   HE_TABLE_WIDTH_PT,
 } from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
-import { FIGURE_ASSET_PATH } from './typstFigures';
+import { figureAssetPath } from './typstFigures';
 import { emitPertChart } from './pertTypst';
 import type {
   B31TypstData,
@@ -842,7 +842,7 @@ export function emitFigure(
     // WP banner tips and shifted the marker grid against the month columns.
     // The capture is already the chart exactly as the board draws it, so it
     // must be placed with `fit: "contain"` at the full column width.
-    native || `he-image(${typstString(FIGURE_ASSET_PATH[kind])}, 1.0)`,
+    native || `he-image(${typstString(figureAssetPath(kind))}, 1.0)`,
     `he-figure-caption(${typstString(label)}, ${lit(captionText)})`,
   ];
 }
