@@ -29,6 +29,14 @@ const NUM_CELL = `${CELL} text-right tabular-nums`;
 /** Every field fills its column; the colgroup governs width, not the input. */
 const FIELD = 'h-7 w-full px-1.5 text-xs md:text-sm';
 const NUM_FIELD = `${FIELD} text-right tabular-nums`;
+/**
+ * Calculated values occupy exactly the same box as the editable input above
+ * them — same height, padding, radius, font size and border box — but are flat
+ * (no visible border) so they read as computed, not typeable. Keeping the
+ * 1px transparent border matters: it is what makes the right edges coincide.
+ */
+const READ_FIELD = `${FIELD} inline-flex items-center rounded-md border border-transparent`;
+const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
 
 /**
  * Explicit column widths shared by the table colgroup and every row.
@@ -39,10 +47,11 @@ export const COL_WIDTH = {
   grip: 32,
   role: 176,
   category: 156,
-  rate: 80,
-  wp: 48,
+  rate: 88,
+  wp: 64,
   totalPm: 80,
-  cost: 160,
+  cost: 104,
+  diff: 72,
   del: 36,
 } as const;
 
