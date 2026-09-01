@@ -829,7 +829,7 @@ export function emitFigure(
   // The Pert is drawn natively from its own data, so it never depends on a
   // DOM capture. The Gantt is still rasterised (see typstFigures.ts).
   const native = kind === 'pert' && data.pertChart ? emitPertChart(data.pertChart) : '';
-  if (!native && !(available && assetPath)) {
+  if (!native && !available) {
     return [
       `not-converted(${typstString(
         `[${kind === 'pert' ? 'Pert' : 'Gantt'} chart — the chart was not on screen when this preview was built, so it could not be captured]`,
