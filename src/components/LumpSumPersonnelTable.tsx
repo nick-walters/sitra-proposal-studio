@@ -10,16 +10,27 @@ import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
-  ['senior_scientist', 'Senior Scientists (or equivalent in the private sector)'],
-  ['junior_scientist', 'Junior Scientists (or equivalent in the private sector)'],
-  ['technical', 'Technical Personnel (or equivalent in the private sector)'],
-  ['administrative', 'Administrative Personnel (or equivalent in the private sector)'],
+  ['senior_scientist', 'Senior expert'],
+  ['junior_scientist', 'Junior expert'],
+  ['technical', 'Technical role'],
+  ['administrative', 'Administrative role'],
   ['others', 'Others'],
 ] as const;
 const CATEGORY_ORDER = new Map(CATEGORIES.map(([value], index) => [value, index]));
 
 function formatPM(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/** Keeps only digits and a single decimal separator, capped at `decimals` places. */
+export function sanitizeNumeric(raw: string, decimals: number) {
+  let cleaned = raw.replace(/,/g, '').replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot >= 0) cleaned = `${cleaned.slice(0, firstDot + 1)}${cleaned.slice(firstDot + 1).replace(/\./g, '')}`;
+  if (decimals <= 0) return cleaned.split('.')[0] ?? '';
+  const dot = cleaned.indexOf('.');
+  if (dot >= 0 && cleaned.length - dot - 1 > decimals) cleaned = cleaned.slice(0, dot + 1 + decimals);
+  return cleaned;
 }
 
 function numberValue(value: string) {
@@ -32,6 +43,45 @@ function numberValue(value: string) {
 function inputValue(value: string) {
   return value.trim() ? String(numberValue(value)) : '';
 }
+
+/**
+ * Portal-equivalent totals for a cost line: each category subtotal is
+ * ROUND(weighted average rate, 2) × total person-months for that category.
+ */
+export function costLineTotals(
+  costLine: string,
+  roles: LumpSumRole[],
+  efforts: LumpSumEffort[],
+  workPackages: LumpSumWorkPackage[],
+  a4UnitCost: number,
+) {
+  const rateOf = (role: LumpSumRole) => (costLine === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0));
+  const pmByRoleWp = new Map(efforts.map(effort => [`${effort.role_id}:${effort.wp_draft_id}`, Number(effort.person_months || 0)]));
+  const pmOf = (role: LumpSumRole) => workPackages.reduce((sum, wp) => sum + (pmByRoleWp.get(`${role.id}:${wp.id}`) ?? 0), 0);
+  const groups = new Map<string, LumpSumRole[]>();
+  for (const role of roles) {
+    const key = costLine === 'A.1' ? (role.he_category || 'blank') : 'all';
+    groups.set(key, [...(groups.get(key) ?? []), role]);
+  }
+  let portalCost = 0;
+  let trueCost = 0;
+  let totalPm = 0;
+  for (const groupRoles of groups.values()) {
+    const groupPm = groupRoles.reduce((sum, role) => sum + pmOf(role), 0);
+    const groupTrue = groupRoles.reduce((sum, role) => sum + pmOf(role) * rateOf(role), 0);
+    const rounded = groupPm ? Math.round((groupTrue / groupPm) * 100) / 100 : 0;
+    portalCost += rounded * groupPm;
+    trueCost += groupTrue;
+    totalPm += groupPm;
+  }
+  return { portalCost, trueCost, totalPm, difference: portalCost - trueCost };
+}
+
+export function DifferenceNote({ difference }: { difference: number }) {
+  if (Math.abs(difference) < 0.005) return null;
+  return <span className="ml-1 text-[10px] font-normal">({difference >= 0 ? '+' : '−'}{formatCurrency(Math.abs(difference))})</span>;
+}
+
 
 export function NumericInput({
   value,
