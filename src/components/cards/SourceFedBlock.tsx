@@ -189,11 +189,10 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.gantt':
       return ganttFigure ? (
         <FigureCapture kind="gantt">
-          {/* Shrink to the chart: a block wrapper takes the board column's
-              width, so a narrow column both padded the capture with white and
-              (via the chart's own `max-width: 100%` + `overflow: hidden`)
-              clipped its right-hand months. */}
-          <div data-figure-chart="gantt" style={{ width: 'fit-content' }}>
+          {/* Shrink to the chart. NO capture marker: the board copy lives in a
+              constrained column and is never the raster source — that is the
+              dedicated off-screen `GanttCaptureHost`. */}
+          <div style={{ width: 'fit-content' }}>
             <GanttChartFigure
               figureId={ganttFigure.id}
               proposalId={proposalId}
@@ -217,7 +216,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     case 'b31.pert':
       return pertFigure ? (
         <FigureCapture kind="pert">
-          <div data-figure-chart="pert">
+          <div>
             <PERTChartFigure
               figureId={pertFigure.id}
               proposalId={proposalId}
