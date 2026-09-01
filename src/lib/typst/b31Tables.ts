@@ -838,6 +838,12 @@ export function emitFigure(
   }
   const label = `Figure ${meta.figure_number}.`;
   const captionText = meta.caption || meta.title || (kind === 'pert' ? 'Pert chart' : 'Gantt chart');
+  // Text-only callers rasterise nothing, so there is no registered asset:
+  // emit the caption alone rather than naming a file the compiler lacks.
+  if (!native && !assetPath) {
+    return [`he-figure-caption(${typstString(label)}, ${lit(captionText)})`];
+  }
+
   return [
     // A bare `image(path)` inherits Typst's DEFAULT `fit: "cover"`, which
     // CROPS the raster to the region it is given — that is what clipped the
