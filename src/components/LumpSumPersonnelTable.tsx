@@ -6,6 +6,7 @@ import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
@@ -112,7 +113,7 @@ export function costLineTotals(
 
 export function DifferenceNote({ difference }: { difference: number }) {
   if (Math.abs(difference) < 0.005) return null;
-  return <span className="ml-1 text-[10px] font-normal">({difference >= 0 ? '+' : '−'}{formatCurrency(Math.abs(difference))})</span>;
+  return <span className="text-[10px] font-normal">({difference >= 0 ? '+' : '−'}{formatCurrency(Math.abs(difference))})</span>;
 }
 
 
@@ -241,6 +242,8 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   const blockTotalPm = roles.reduce((sum, role) => sum + roleTotalPm(role), 0);
   const portalTotals = costLineTotals(costLine, roles, efforts, workPackages, a4UnitCost);
   const blockCost = portalTotals.portalCost;
+  const tableWidth = COL_WIDTH.grip + COL_WIDTH.role + (isA1 ? COL_WIDTH.category : 0) + COL_WIDTH.rate
+    + workPackages.length * COL_WIDTH.wp + COL_WIDTH.totalPm + COL_WIDTH.cost + COL_WIDTH.diff + COL_WIDTH.del;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleDragEnd = (event: DragEndEvent, groupRoles: LumpSumRole[]) => {
