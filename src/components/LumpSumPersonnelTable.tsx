@@ -261,7 +261,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className="w-max table-fixed text-xs">
+        <table className="table-fixed text-xs" style={{ width: tableWidth }}>
           <colgroup>
             <col style={{ width: COL_WIDTH.grip }} />
             <col style={{ width: COL_WIDTH.role }} />
@@ -270,6 +270,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wp }} />)}
             <col style={{ width: COL_WIDTH.totalPm }} />
             <col style={{ width: COL_WIDTH.cost }} />
+            <col style={{ width: COL_WIDTH.diff }} />
             <col style={{ width: COL_WIDTH.del }} />
           </colgroup>
           <thead className="bg-muted/50"><tr className="text-left">
@@ -277,9 +278,10 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             <th className={`${CELL} py-1.5`}>Role name</th>
             {isA1 && <th className={`${CELL} py-1.5`}>F&amp;TP category</th>}
             <th className={`${NUM_CELL} py-1.5`}>{costLine === 'A.4' ? 'Unit cost (€)' : 'PM rate (€)'}</th>
-            {workPackages.map(wp => <th key={wp.id} className={`${NUM_CELL} py-1.5`} title={wp.title ?? undefined}>WP{wp.number}{wp.short_name ? ` · ${wp.short_name}` : ''}</th>)}
+            {workPackages.map(wp => <th key={wp.id} className={`${CELL} py-1.5 text-center`} title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></th>)}
             <th className={`${NUM_CELL} py-1.5`}>Total PMs</th>
             <th className={`${NUM_CELL} py-1.5 whitespace-nowrap`}>Cost (€)</th>
+            <th className={`${CELL} py-1.5`} aria-label="Rounding difference" />
             <th className={`${CELL} py-1.5`} aria-label="Delete" />
           </tr></thead>
           <tbody>
@@ -291,12 +293,24 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                   {isA1 && <td className={`${CELL} py-0.5 align-middle`}><Select value={role.he_category ?? ''} onValueChange={value => onUpdateRole(role.id, 'he_category', value)} disabled={!editable}><SelectTrigger className={`${FIELD} ${role.he_category ? '' : 'border-destructive'}`}><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value} className="pl-2 [&>span:first-child]:hidden">{label}</SelectItem>)}</SelectContent></Select>{!role.he_category && <div className="mt-0.5 text-[11px] text-destructive">Category required</div>}</td>}
                   <td className={`${CELL} py-0.5 align-middle`}><NumericInput value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable || costLine === 'A.4'} step="0.01" decimals={2} className={NUM_FIELD} onCommit={value => onUpdateRole(role.id, 'pm_rate', value)} /></td>
                   {workPackages.map(wp => <td key={wp.id} className={`${CELL} py-0.5 align-middle`}><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className={NUM_FIELD} onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
-                  <td className={`${NUM_CELL} py-0.5 font-medium`}>{formatPM(roleTotalPm(role))}</td><td className={`${NUM_CELL} whitespace-nowrap py-0.5 font-medium`}>{formatCurrency(roleCost(role))}</td><td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
+                  <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} font-medium`}>{formatPM(roleTotalPm(role))}</div></td>
+                  <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
+                  <td className={`${CELL} py-0.5`} />
+                  <td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
                 </>}</SortableRow>)}
               </SortableContext>
               {isA1 && group.roles.length > 0 && <SubtotalRow roles={group.roles} label={group.label} efforts={efforts} workPackages={workPackages} />}
             </Fragment>)}
-            <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold"><td colSpan={isA1 ? 3 : 2} className={`${CELL} py-1.5`}>{costLine} total</td><td className={`${CELL} py-1.5`} /><td colSpan={workPackages.length} /><td className={`${NUM_CELL} py-1.5`}>{formatPM(blockTotalPm)}</td><td className={`${NUM_CELL} whitespace-nowrap py-1.5`}>{formatCurrency(blockCost)}<DifferenceNote difference={portalTotals.difference} /></td><td className={`${CELL} py-1.5`} /></tr>
+            <tr className="border-t-2 border-foreground/30 bg-muted/30 text-xs font-semibold md:text-sm">
+              <td className={`${CELL} py-0.5`} />
+              <td colSpan={isA1 ? 2 : 1} className={`${CELL} py-0.5`}><div className={READ_FIELD}>{costLine} total</div></td>
+              <td className={`${CELL} py-0.5`} />
+              <td colSpan={workPackages.length} />
+              <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(blockTotalPm)}</div></td>
+              <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap`}>{formatCurrency(blockCost)}</div></td>
+              <td className={`${CELL} py-0.5`}><div className={`${READ_FIELD} whitespace-nowrap`}><DifferenceNote difference={portalTotals.difference} /></div></td>
+              <td className={`${CELL} py-0.5`} />
+            </tr>
           </tbody>
         </table>
       </DndContext>
@@ -309,5 +323,14 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
 function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRole[]; label: string; efforts: LumpSumEffort[]; workPackages: LumpSumWorkPackage[] }) {
   const result = subtotal(roles, efforts, workPackages);
   const difference = result.cost - result.trueCost;
-  return <tr className="bg-muted/20 font-semibold"><td className={CELL} /><td colSpan={2} className={`${CELL} py-1.5`}>{label} — average weighted PM rate</td><td className={`${NUM_CELL} py-1.5`}>{formatNumber(result.roundedAverage, 2)}</td>{result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${NUM_CELL} py-1.5`}>{formatPM(pm)}</td>)}<td className={`${NUM_CELL} py-1.5`}>{formatPM(result.totalPm)}</td><td className={`${NUM_CELL} whitespace-nowrap py-1.5`}>{formatCurrency(result.cost)}<DifferenceNote difference={difference} /></td><td className={CELL} /> </tr>;
+  return <tr className="bg-muted/20 text-xs font-semibold md:text-sm">
+    <td className={`${CELL} py-0.5`} />
+    <td colSpan={2} className={`${CELL} py-0.5`}><div className={`${READ_FIELD} truncate`} title={`${label} — average weighted PM rate`}>{label} — average weighted PM rate</div></td>
+    <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatNumber(result.roundedAverage, 2)}</div></td>
+    {result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(pm)}</div></td>)}
+    <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(result.totalPm)}</div></td>
+    <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap`}>{formatCurrency(result.cost)}</div></td>
+    <td className={`${CELL} py-0.5`}><div className={`${READ_FIELD} whitespace-nowrap`}><DifferenceNote difference={difference} /></div></td>
+    <td className={`${CELL} py-0.5`} />
+  </tr>;
 }
