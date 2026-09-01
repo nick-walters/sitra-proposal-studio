@@ -154,26 +154,6 @@ function layoutWpBadges(args: {
   const estimateMsW = (label: string) => Math.max(26, label.length * 5 + 8);
   const taskRowById = new Map(tasks.map((t, i) => [t.id, i]));
 
-  const mss: WpMsBadgeOut[] = [...msBadges]
-    .sort((a, b) => a.dueMonth - b.dueMonth || a.number - b.number)
-    .map((m) => {
-      const shapeW = estimateMsW(m.label);
-      const shapeH = 10;
-      const dotX = (m.dueMonth - 0.5) * cellWidth;
-      const hexLeft = Math.min(dotX - shapeW / 2, overlayWidth - shapeW);
-      return {
-        ...m,
-        shapeW,
-        shapeH,
-        hexLeft,
-        rowIdx: -1,
-        dotX,
-        tipX: dotX,
-        origins: [],
-        centred: true,
-      };
-    });
-
   const parseDelNum = (s: string) => {
     const m = s.match(/(\d+)(?:\.(\d+))?/);
     if (!m) return 0;
@@ -207,8 +187,72 @@ function layoutWpBadges(args: {
       };
     });
 
+  // Milestones sit on the WP banner row, centred on their due month.
+  // Bounded adjustment (prompt 231):
+  //   1. overlaps the WP title TEXT → shift DOWN 10px (x unchanged)
+  //   2. after the shift, overlaps a deliverable badge → shift RIGHT until
+  //      there is ≥5px between the deliverable's right tip and the MS left tip
+  //   3. a badge that moved gets a connector + dot on the banner underside
+  const MS_DROP = 10;
+  const MS_DEL_GAP = 5;
+  const yBandCentre = ROW_HEIGHT / 2;
+  const yTaskCentre = (i: number) => ROW_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+  const mss: WpMsBadgeOut[] = [...msBadges]
+    .sort((a, b) => a.dueMonth - b.dueMonth || a.number - b.number)
+    .map((m) => {
+      const shapeW = estimateMsW(m.label);
+      const shapeH = 10;
+      const dotX = (m.dueMonth - 0.5) * cellWidth;
+      let hexLeft = Math.min(dotX - shapeW / 2, overlayWidth - shapeW);
+      let dy = 0;
+
+      // Step 1 — overlap with the WP title text (band row only).
+      if (hexLeft < args.titleRightInOverlay) dy = MS_DROP;
+
+      // Step 2 — after the drop, resolve overlaps with deliverable badges.
+      if (dy !== 0) {
+        const msTop = yBandCentre + dy - shapeH / 2;
+        const msBottom = msTop + shapeH;
+        for (let pass = 0; pass < 8; pass++) {
+          let shifted = false;
+          for (const d of dels) {
+            const dTop = yTaskCentre(d.rowIdx) - d.shapeH / 2;
+            const dBottom = dTop + d.shapeH;
+            const vOverlap = msTop < dBottom && dTop < msBottom;
+            if (!vOverlap) continue;
+            const dRight = d.leftX + d.shapeW;
+            const hOverlap = hexLeft < dRight && d.leftX < hexLeft + shapeW;
+            if (!hOverlap) continue;
+            const target = dRight + MS_DEL_GAP;
+            if (target > hexLeft) {
+              hexLeft = Math.min(target, overlayWidth - shapeW);
+              shifted = true;
+            }
+          }
+          if (!shifted) break;
+        }
+      }
+
+      const moved = dy !== 0 || hexLeft !== Math.min(dotX - shapeW / 2, overlayWidth - shapeW);
+      return {
+        ...m,
+        shapeW,
+        shapeH,
+        hexLeft,
+        rowIdx: -1,
+        dotX,
+        tipX: dotX,
+        origins: [],
+        centred: true,
+        dy,
+        moved,
+      };
+    });
+
   return { dels, mss };
 }
+
 
 
 
