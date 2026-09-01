@@ -2787,6 +2787,361 @@ export type Database = {
         }
         Relationships: []
       }
+      ls_cost_items: {
+        Row: {
+          amount: number
+          cost_line: string
+          created_at: string
+          id: string
+          justification: string
+          order_index: number
+          participant_id: string
+          proposal_id: string
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          amount?: number
+          cost_line: string
+          created_at?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          participant_id: string
+          proposal_id: string
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          amount?: number
+          cost_line?: string
+          created_at?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          participant_id?: string
+          proposal_id?: string
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_cost_items_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_cost_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_cost_items_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ls_depreciation_items: {
+        Row: {
+          charged_depreciation: number | null
+          comments: string | null
+          created_at: string
+          id: string
+          include_in_c2: boolean
+          order_index: number
+          participant_id: string
+          pct_project: number
+          pct_useful_life: number
+          proposal_id: string
+          purchase_cost: number
+          purchase_date: string | null
+          resource_type: string
+          short_name: string
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          charged_depreciation?: number | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          include_in_c2?: boolean
+          order_index?: number
+          participant_id: string
+          pct_project?: number
+          pct_useful_life?: number
+          proposal_id: string
+          purchase_cost?: number
+          purchase_date?: string | null
+          resource_type?: string
+          short_name?: string
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          charged_depreciation?: number | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          include_in_c2?: boolean
+          order_index?: number
+          participant_id?: string
+          pct_project?: number
+          pct_useful_life?: number
+          proposal_id?: string
+          purchase_cost?: number
+          purchase_date?: string | null
+          resource_type?: string
+          short_name?: string
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_depreciation_items_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_depreciation_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_depreciation_items_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ls_participant_budget: {
+        Row: {
+          a4_unit_cost: number | null
+          created_at: string
+          funding_rate_override: number | null
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          participant_id: string
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          a4_unit_cost?: number | null
+          created_at?: string
+          funding_rate_override?: number | null
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          participant_id: string
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          a4_unit_cost?: number | null
+          created_at?: string
+          funding_rate_override?: number | null
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          participant_id?: string
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_participant_budget_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_participant_budget_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ls_personnel_effort: {
+        Row: {
+          created_at: string
+          id: string
+          person_months: number
+          proposal_id: string
+          role_id: string
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          person_months?: number
+          proposal_id: string
+          role_id: string
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          person_months?: number
+          proposal_id?: string
+          role_id?: string
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_personnel_effort_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_personnel_effort_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ls_personnel_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_personnel_effort_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ls_personnel_roles: {
+        Row: {
+          cost_line: string
+          created_at: string
+          he_category: string | null
+          id: string
+          order_index: number
+          participant_id: string
+          pm_rate: number
+          proposal_id: string
+          role_name: string
+          updated_at: string
+        }
+        Insert: {
+          cost_line: string
+          created_at?: string
+          he_category?: string | null
+          id?: string
+          order_index?: number
+          participant_id: string
+          pm_rate?: number
+          proposal_id: string
+          role_name?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_line?: string
+          created_at?: string
+          he_category?: string | null
+          id?: string
+          order_index?: number
+          participant_id?: string
+          pm_rate?: number
+          proposal_id?: string
+          role_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_personnel_roles_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_personnel_roles_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ls_wp_budget: {
+        Row: {
+          comments: string
+          created_at: string
+          id: string
+          participant_id: string
+          proposal_id: string
+          requested_eu_contribution: number | null
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          comments?: string
+          created_at?: string
+          id?: string
+          participant_id: string
+          proposal_id: string
+          requested_eu_contribution?: number | null
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          comments?: string
+          created_at?: string
+          id?: string
+          participant_id?: string
+          proposal_id?: string
+          requested_eu_contribution?: number | null
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_wp_budget_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_wp_budget_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_wp_budget_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_stars: {
         Row: {
           created_at: string
@@ -5083,6 +5438,7 @@ export type Database = {
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
+          lump_sum_budget_active: boolean
           mirror_contribution_resources: boolean
           mirror_industrial_involvement: boolean
           mirror_infrastructure: boolean
@@ -5159,6 +5515,7 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          lump_sum_budget_active?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
           mirror_infrastructure?: boolean
@@ -5235,6 +5592,7 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          lump_sum_budget_active?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
           mirror_infrastructure?: boolean
@@ -6843,6 +7201,10 @@ export type Database = {
         Returns: Json
       }
       caller_is_sitra_staff: { Args: never; Returns: boolean }
+      can_edit_participant_budget: {
+        Args: { _participant_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
