@@ -2787,6 +2787,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ls_budget_permission_overrides: {
+        Row: {
+          can_edit: boolean
+          created_at: string
+          id: string
+          participant_id: string
+          proposal_id: string
+          set_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit: boolean
+          created_at?: string
+          id?: string
+          participant_id: string
+          proposal_id: string
+          set_by?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit?: boolean
+          created_at?: string
+          id?: string
+          participant_id?: string
+          proposal_id?: string
+          set_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_budget_permission_overrides_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ls_budget_permission_overrides_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ls_cost_items: {
         Row: {
           amount: number
