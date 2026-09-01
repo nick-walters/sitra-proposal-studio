@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -28,7 +28,7 @@ function numberValue(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-type SortableRowChildren = (attributes: ReturnType<typeof useSortable>['attributes'], listeners: ReturnType<typeof useSortable>['listeners']) => React.ReactNode;
+type SortableRowChildren = (attributes: ReturnType<typeof useSortable>['attributes'], listeners: ReturnType<typeof useSortable>['listeners']) => ReactNode;
 
 function SortableRow({ id, disabled, children }: { id: string; disabled: boolean; children: SortableRowChildren }) {
   const sortable = useSortable({ id, disabled });
@@ -100,7 +100,10 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
       {editable && <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={onAdd}><Plus className="h-3.5 w-3.5" /> Add role</Button>}
     </div>
     <div className="overflow-x-auto border border-border rounded-md">
-      <DndContext sensors={sensors} collisionDetection={closestCenter}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={event => {
+        const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
+        if (group) handleDragEnd(event, group.roles);
+      }}>
         <table className="w-full min-w-[760px] text-xs">
           <thead className="bg-muted/50"><tr className="text-left">
             <th className="w-9 px-2 py-2" aria-label="Reorder" /><th className="min-w-40 px-2 py-2">Role name</th>
@@ -110,20 +113,19 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             <th className="w-20 px-2 py-2 text-right">Total PMs</th><th className="w-28 px-2 py-2 text-right">Cost (€)</th><th className="w-10 px-2 py-2" aria-label="Delete" />
           </tr></thead>
           <tbody>
-            {grouped.map(group => <tbody key={group.key}>
-              {group.roles.length === 0 && <tr><td colSpan={workPackages.length + (isA1 ? 8 : 7)} className="px-3 py-4 text-center text-muted-foreground">No roles in this block.</td></tr>}
-              <SortableContext items={group.roles.map(role => role.id)} strategy={verticalListSortingStrategy}>
+            {grouped.map(group => <>
+              <SortableContext key={group.key} items={group.roles.map(role => role.id)} strategy={verticalListSortingStrategy}>
                 {group.roles.map(role => <SortableRow key={role.id} id={role.id} disabled={!editable}>{(attributes, listeners) => <>
                   <td className="px-1 py-1 text-center"><button type="button" className="p-1 text-primary disabled:opacity-30" disabled={!editable} {...attributes} {...listeners} aria-label="Drag to reorder" title="Drag to reorder"><GripVertical className="h-3.5 w-3.5" /></button></td>
                   <td className="px-2 py-1"><Input className="h-8 min-w-32" defaultValue={role.role_name} disabled={!editable} onBlur={event => onUpdateRole(role.id, 'role_name', event.target.value)} /></td>
                   {isA1 && <td className="px-2 py-1 align-top"><Select value={role.he_category ?? ''} onValueChange={value => onUpdateRole(role.id, 'he_category', value)} disabled={!editable}><SelectTrigger className={role.he_category ? 'h-8' : 'h-8 border-destructive'}><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>{!role.he_category && <div className="mt-1 text-[11px] text-destructive">Category required</div>}</td>}
-                  <td className="px-2 py-1"><Input className="h-8 text-right" type="number" min="0" step="0.01" value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable} onChange={event => costLine === 'A.4' ? undefined : onUpdateRole(role.id, 'pm_rate', numberValue(event.target.value))} /></td>
+                  <td className="px-2 py-1"><Input className="h-8 text-right" type="number" min="0" step="0.01" value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable || costLine === 'A.4'} onChange={event => costLine === 'A.4' ? undefined : onUpdateRole(role.id, 'pm_rate', numberValue(event.target.value))} /></td>
                   {workPackages.map(wp => <td key={wp.id} className="px-2 py-1"><Input className="h-8 text-right" type="number" min="0" step="0.1" value={effortByKey.get(`${role.id}:${wp.id}`) ?? 0} disabled={!editable} onChange={event => onSetEffort(role.id, wp.id, numberValue(event.target.value))} /></td>)}
                   <td className="px-2 py-1 text-right font-medium">{formatPM(roleTotalPm(role))}</td><td className="px-2 py-1 text-right font-medium">{formatCurrency(roleCost(role))}</td><td className="px-2 py-1 text-center">{editable && <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-4 w-4" /></Button>}</td>
                 </>}</SortableRow>)}
               </SortableContext>
               {isA1 && group.roles.length > 0 && <SubtotalRow roles={group.roles} label={group.label} efforts={efforts} workPackages={workPackages} effortByKey={effortByKey} />}
-            </tbody>)}
+            </>)}
             <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold"><td colSpan={isA1 ? 3 : 2} className="px-2 py-2">{costLine} total</td><td /><td colSpan={workPackages.length} /><td className="px-2 py-2 text-right">{formatPM(blockTotalPm)}</td><td className="px-2 py-2 text-right">{formatCurrency(blockCost)}</td><td /></tr>
           </tbody>
         </table>
