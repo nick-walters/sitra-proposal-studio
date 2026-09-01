@@ -282,14 +282,14 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// Crown drawn as geometry rather than text: the embedded Nimbus Roman faces
 /// carry no crown glyph, so a literal one is dropped by the compiler. The
 /// outline follows the Lucide crown the editor uses for lead badges.
-#let chip-crown(colour, size: 7.5pt) = box(
+#let chip-crown(colour, size: 9.5pt) = box(
   baseline: 0.2pt,
   width: size,
   height: size,
   polygon(
     fill: colour,
     stroke: none,
-    // Lucide crown, mapped from its 24-unit box: 2,4 → 5,16 → 19,16 → 22,4,
+    // Lucide crown, mapped from its 24-unit box: 2,4 to 5,16 to 19,16 to 22,4,
     // with the three dips at 16,11 / 12,4 / 8,11.
     (8%, 17%), (21%, 67%), (79%, 67%), (92%, 17%), (67%, 46%), (50%, 17%), (33%, 46%),
   ),
