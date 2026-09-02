@@ -290,7 +290,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     // Each sub-line already counts its own mirrored charges once.
     const total = childLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
     return <section key={parent.key} className={`border-b border-border/70 ${LINE_INDENT}`}>
-      <div className={LINE_HEADING_ROW}><CollapseChevron collapsed={collapsed} onToggle={() => toggle(parent.key)} label={parent.label} className="h-6 w-6" /><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</div>
+      <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(parent.key)} label={parent.label} level="line"><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</CollapsibleHeader>
       {!collapsed && <>
         {parent.key === 'C.2' && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
         {childLines.map(line => renderItemisedLine(line, true))}
