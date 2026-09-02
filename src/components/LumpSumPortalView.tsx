@@ -50,54 +50,91 @@ function formatPM(value: number) {
 const PROGRESS_KEY = (userId: string | undefined, proposalId: string, participantId: string) =>
   `ls-portal-copied:${userId ?? 'anon'}:${proposalId}:${participantId}`;
 
+/**
+ * Copy progress stores the VALUE that was copied, not just a boolean, so a row
+ * counts as copied only while its current value still equals what went on the
+ * clipboard. Changing one figure therefore clears that field's tick (and the
+ * ticks of any subtotal it feeds) and leaves every unrelated tick intact.
+ *
+ * Stored shape: `{ "<fieldId>": "<copied raw value>" }`. A previously stored
+ * boolean-only shape (a plain array of ids) is accepted and treated as copied
+ * with an unknown value (`null`) until the field is copied again.
+ */
+type CopiedMap = Record<string, string | null>;
+
+function parseProgress(raw: string | null): CopiedMap {
+  if (!raw) return {};
+  const parsed: unknown = JSON.parse(raw);
+  if (Array.isArray(parsed)) return Object.fromEntries((parsed as string[]).map(id => [id, null]));
+  if (parsed && typeof parsed === 'object') {
+    return Object.fromEntries(Object.entries(parsed as Record<string, unknown>)
+      .map(([id, value]) => [id, typeof value === 'string' ? value : null]));
+  }
+  return {};
+}
+
 function useCopyProgress(userId: string | undefined, proposalId: string, participantId: string) {
   const key = PROGRESS_KEY(userId, proposalId, participantId);
-  const [copied, setCopied] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState<CopiedMap>({});
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(key);
-      setCopied(new Set<string>(raw ? (JSON.parse(raw) as string[]) : []));
+      setCopied(parseProgress(window.localStorage.getItem(key)));
     } catch {
-      setCopied(new Set<string>());
+      setCopied({});
     }
   }, [key]);
 
-  const persist = useCallback((next: Set<string>) => {
+  const persist = useCallback((next: CopiedMap) => {
     setCopied(next);
     try {
-      window.localStorage.setItem(key, JSON.stringify([...next]));
+      window.localStorage.setItem(key, JSON.stringify(next));
     } catch {
       /* storage unavailable: progress is a convenience only */
     }
   }, [key]);
 
-  return {
-    copied,
-    mark: (id: string) => persist(new Set([...copied, id])),
-    reset: () => persist(new Set<string>()),
-  };
+  /** A legacy `null` entry counts as copied until the field is copied again. */
+  const isCopied = useCallback(
+    (id: string, value: string) => id in copied && (copied[id] === null || copied[id] === value),
+    [copied],
+  );
+
+  /** Clicking an already-ticked row removes the tick so mistakes can be undone. */
+  const toggleCopied = useCallback((id: string, value: string) => {
+    if (id in copied && (copied[id] === null || copied[id] === value)) {
+      const next = { ...copied };
+      delete next[id];
+      persist(next);
+      return false;
+    }
+    persist({ ...copied, [id]: value });
+    return true;
+  }, [copied, persist]);
+
+  return { isCopied, toggleCopied, reset: () => persist({}) };
 }
 
-function CopyValue({ text, display, id, copied, onCopied, className }: {
+function CopyValue({ text, display, id, copied, onToggle, className }: {
   text: string;
   display: string;
   id: string;
   copied: boolean;
-  onCopied: (id: string) => void;
+  onToggle: (id: string, value: string) => boolean;
   className?: string;
 }) {
   const copy = async () => {
+    // Un-ticking is a correction only: nothing is written to the clipboard.
+    if (!onToggle(id, text)) return;
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      /* clipboard blocked: still mark progress so the user keeps their place */
+      /* clipboard blocked: still keep progress so the user keeps their place */
     }
-    onCopied(id);
   };
   return <span className={`inline-flex items-center justify-end gap-1 tabular-nums ${className ?? ''}`}>
     <span>{display}</span>
-    <Button type="button" size="icon" variant="ghost" className="h-5 w-5 shrink-0" title={`Copy ${text}`} aria-label={`Copy ${text}`} onClick={copy}>
+    <Button type="button" size="icon" variant="ghost" className="h-5 w-5 shrink-0" title={copied ? `Clear copied tick for ${text}` : `Copy ${text}`} aria-label={copied ? `Clear copied tick for ${text}` : `Copy ${text}`} onClick={copy}>
       {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
     </Button>
   </span>;
@@ -128,7 +165,7 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
-  const { copied, mark, reset } = useCopyProgress(userId, proposalId, participantId);
+  const { isCopied, toggleCopied, reset } = useCopyProgress(userId, proposalId, participantId);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const workPackages = personnel.data?.workPackages ?? [];
@@ -281,10 +318,18 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
     });
 
     const comments = totals.data?.wpBudgets.find(row => row.participant_id === participantId && row.wp_draft_id === wp.id)?.comments ?? '';
-    const fieldIds = [`${wp.id}:comments`, ...groups.flatMap(group => group.leaves.flatMap(leaf =>
-      leaf.kind === 'amount' ? [leaf.id] : [`${leaf.id}:qty`, `${leaf.id}:rate`, `${leaf.id}:sub`]))];
+    const fields: Array<[string, string]> = [
+      [`${wp.id}:comments`, comments],
+      ...groups.flatMap(group => group.leaves.flatMap<[string, string]>(leaf => leaf.kind === 'amount'
+        ? [[leaf.id, rawValue(leaf.subtotal, 2)]]
+        : [
+          [`${leaf.id}:qty`, rawValue(leaf.quantity ?? 0, leaf.quantityIsPm ? 1 : 0)],
+          [`${leaf.id}:rate`, rawValue(leaf.unitRate ?? 0, 2)],
+          [`${leaf.id}:sub`, rawValue(leaf.subtotal, 2)],
+        ])),
+    ];
 
-    return { wp, groups, comments, fieldIds, fTotal: wpTotals.totalCosts };
+    return { wp, groups, comments, fields, fTotal: wpTotals.totalCosts };
   }), [depreciationTotal, fundingRate, groupRate, indirectRate, lineTotal, participantId, pmFor, roles, totals.data?.wpBudgets, usesFstp, workPackages]);
 
   if (personnel.isLoading || costs.isLoading || depreciation.isLoading || totals.isLoading) {
@@ -307,13 +352,13 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
 
     {blocks.map(block => {
       const open = expanded.has(block.wp.id);
-      const done = block.fieldIds.filter(id => copied.has(id)).length;
+      const done = block.fields.filter(([id, value]) => isCopied(id, value)).length;
       return <section key={block.wp.id} className="border-b border-border">
         <div className="flex h-9 items-center gap-2 px-1">
           <CollapseChevron collapsed={!open} onToggle={() => toggle(block.wp.id)} label={`Work package ${block.wp.number}`} />
           <WPBubble wpNumber={block.wp.number} wpColor={block.wp.color} />
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">{block.wp.short_name || block.wp.title || ''}</span>
-          <span className="shrink-0 text-xs text-muted-foreground">{done} of {block.fieldIds.length} fields copied</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{done} of {block.fields.length} fields copied</span>
           <span className="shrink-0 text-sm font-semibold tabular-nums">{formatCurrency(block.fTotal)}</span>
         </div>
 
@@ -330,11 +375,11 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
                 title="Copy comment"
                 aria-label="Copy comment"
                 onClick={async () => {
+                  if (!toggleCopied(`${block.wp.id}:comments`, block.comments)) return;
                   try { await navigator.clipboard.writeText(block.comments); } catch { /* clipboard blocked */ }
-                  mark(`${block.wp.id}:comments`);
                 }}
               >
-                {copied.has(`${block.wp.id}:comments`) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                {isCopied(`${block.wp.id}:comments`, block.comments) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
               </Button>
             </div>
           </div>
@@ -357,8 +402,8 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
                     <td className={`${CELL} text-right`}>
                       <CopyValue
                         id={`${leaf.id}:qty`}
-                        copied={copied.has(`${leaf.id}:qty`)}
-                        onCopied={mark}
+                        copied={isCopied(`${leaf.id}:qty`, rawValue(leaf.quantity ?? 0, leaf.quantityIsPm ? 1 : 0))}
+                        onToggle={toggleCopied}
                         text={rawValue(leaf.quantity ?? 0, leaf.quantityIsPm ? 1 : 0)}
                         display={leaf.quantityIsPm ? formatPM(leaf.quantity ?? 0) : String(leaf.quantity ?? 0)}
                       />
@@ -367,8 +412,8 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
                     <td className={`${CELL} text-right`}>
                       <CopyValue
                         id={`${leaf.id}:rate`}
-                        copied={copied.has(`${leaf.id}:rate`)}
-                        onCopied={mark}
+                        copied={isCopied(`${leaf.id}:rate`, rawValue(leaf.unitRate ?? 0, 2))}
+                        onToggle={toggleCopied}
                         text={rawValue(leaf.unitRate ?? 0, 2)}
                         display={formatCurrency(leaf.unitRate ?? 0)}
                       />
@@ -377,8 +422,8 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
                     <td className={`${CELL} text-right`}>
                       <CopyValue
                         id={`${leaf.id}:sub`}
-                        copied={copied.has(`${leaf.id}:sub`)}
-                        onCopied={mark}
+                        copied={isCopied(`${leaf.id}:sub`, rawValue(leaf.subtotal, 2))}
+                        onToggle={toggleCopied}
                         text={rawValue(leaf.subtotal, 2)}
                         display={formatCurrency(leaf.subtotal)}
                         className="font-semibold"
@@ -389,8 +434,8 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
                     <td className={`${CELL} text-right`}>
                       <CopyValue
                         id={leaf.id}
-                        copied={copied.has(leaf.id)}
-                        onCopied={mark}
+                        copied={isCopied(leaf.id, rawValue(leaf.subtotal, 2))}
+                        onToggle={toggleCopied}
                         text={rawValue(leaf.subtotal, 2)}
                         display={formatCurrency(leaf.subtotal)}
                         className="font-semibold"
