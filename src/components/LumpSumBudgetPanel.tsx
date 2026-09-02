@@ -14,7 +14,7 @@ import { LumpSumCostsSection, TotalRow } from '@/components/LumpSumCostsSection'
 import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
-import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { CollapsibleHeader, HeaderControl, LINE_INDENT, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
 type BudgetView = 'enter' | 'portal';
@@ -139,7 +139,15 @@ export function LumpSumBudgetPanel({
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
          return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index < participants.length - 1 ? 'mr-1 border-r border-r-border/60 pr-1' : ''}`}>
            <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-             <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
+             {/*
+               ParticipantBubble paints its own colour through an inline style,
+               which no Tailwind colour or opacity class on the badge itself can
+               override. Fading a wrapper instead composites the whole badge,
+               inline background included.
+             */}
+             <span className={`inline-flex transition-opacity ${active ? 'opacity-100' : 'opacity-50 hover:opacity-80'}`}>
+               <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
+             </span>
            </button>
             {isCoordinator && <>
               <Button
