@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
-import { CollapsibleHeader, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { CollapsibleHeader } from '@/components/LumpSumDepreciationSection';
 import { formatCurrency } from '@/lib/formatNumber';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
@@ -32,12 +32,14 @@ function formatPM(value: number) {
   return value.toFixed(1);
 }
 
-export function LumpSumOverview({ proposalId, userId }: { proposalId: string; userId?: string }) {
+export function LumpSumOverview({ proposalId }: { proposalId: string; userId?: string }) {
   const personnel = useLumpSumPersonnel(proposalId);
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
-  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
+  const [collapsedTables, setCollapsedTables] = useState<Record<string, boolean>>({});
+  const isCollapsed = (id: string) => collapsedTables[id] ?? false;
+  const toggle = (id: string) => setCollapsedTables(current => ({ ...current, [id]: !(current[id] ?? false) }));
 
   const workPackages = personnel.data?.workPackages ?? [];
   const participants = personnel.data?.participants ?? [];
