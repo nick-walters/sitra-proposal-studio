@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, type ComponentProps } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { PartACard } from '@/components/PartACard';
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
@@ -23,7 +23,6 @@ interface BudgetParticipantFormProps {
   proposalType: string | null;
   canEdit: boolean;
   isCoordinator: boolean;
-  readOnly?: boolean;
 }
 
 function BudgetNumberField({
@@ -100,7 +99,6 @@ export function BudgetParticipantForm({
   proposalType,
   canEdit,
   isCoordinator,
-  readOnly = false,
 }: BudgetParticipantFormProps) {
   const {
     rows,
