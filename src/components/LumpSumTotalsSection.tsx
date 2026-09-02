@@ -254,12 +254,12 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
             <tbody>
               {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
                 <td className="px-1 py-0.5">{wpBadge(row.wp)}</td>
+                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.indirect)}</div></td>
-                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(row.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5">
@@ -292,12 +292,12 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               </tr>)}
               <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
                 <td className="px-1 py-0.5">Total</td>
+                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
-                <td aria-hidden="true" />
                 <td data-ls-measure="F-total" className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.requestedEuContribution)}</div></td>
