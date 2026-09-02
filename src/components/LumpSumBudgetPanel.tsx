@@ -73,7 +73,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
        {participants.map((participant, index) => {
          const active = participant.id === selected.id;
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
-         return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index > 0 ? 'ml-1 border-l border-l-border/60 pl-1' : ''}`}>
+         return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index < participants.length - 1 ? 'mr-1 border-r border-r-border/60 pr-1' : ''}`}>
            <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
              <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
            </button>
