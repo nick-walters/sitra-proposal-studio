@@ -14,16 +14,19 @@ import {
 } from '@/hooks/useLumpSumTotals';
 
 /** Collapse ids are namespaced so they never clash with the A–D line ids. */
-const COLLAPSE_E = 'ls-E';
-const COLLAPSE_F = 'ls-F';
+const COLLAPSE_TOTALS = 'ls-F';
 const COLLAPSE_COMMENTS = 'ls-wp-comments';
 
-const COL = { wp: 96, money: 108, request: 124 };
+const COL = { wp: 96, money: 108, request: 124, percent: 96 };
 const READ_CELL = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-1.5 text-xs tabular-nums md:text-sm';
 const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums md:text-sm';
 
-const C_LINES = ['C.1', 'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other'];
-const D_LINES = ['D.1', 'D.2'];
+/** H as a share of G, to two decimals; null when G is zero. */
+function requestedPercent(requested: number, maxContribution: number) {
+  if (!(maxContribution > 0)) return null;
+  return Math.min(100, roundCents(requested / maxContribution * 100));
+}
+
 
 /** Digits and a single decimal separator, capped at two places. */
 function sanitizeNumeric(raw: string) {
@@ -46,17 +49,20 @@ function numberOrNull(value: string) {
  * Local state, 350ms debounce plus commit on blur, re-seeded from the server
  * only when the field is unfocused with no pending change.
  */
-function DebouncedNumberField({ value, placeholder, disabled, decimals, onCommit }: {
+function DebouncedNumberField({ value, placeholder, disabled, decimals, max, warningText, onCommit }: {
   value: number | null;
   placeholder?: string;
   disabled: boolean;
   decimals: number;
+  max?: number;
+  warningText?: string;
   onCommit: (value: number | null) => void;
 }) {
   const serverValue = value == null ? '' : String(value);
   const [local, setLocal] = useState(serverValue);
   const [dirty, setDirty] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [exceededMax, setExceededMax] = useState(false);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -66,33 +72,39 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, onCommit
 
   const commit = (next: string) => {
     if (pending.current) clearTimeout(pending.current);
-    onCommit(numberOrNull(next));
+    const parsed = numberOrNull(next);
+    const clamped = parsed != null && max != null ? Math.min(max, parsed) : parsed;
+    setExceededMax(parsed != null && max != null && parsed > max);
+    onCommit(clamped);
   };
 
   const display = focused
     ? local
     : (local.trim() ? formatNumber(Number(local), decimals) : '');
 
-  return <Input
-    className={FIELD}
-    type="text"
-    inputMode="decimal"
-    placeholder={placeholder}
-    disabled={disabled}
-    value={display}
-    onFocus={() => setFocused(true)}
-    onChange={event => {
-      const next = sanitizeNumeric(event.target.value);
-      setLocal(next);
-      setDirty(true);
-      if (pending.current) clearTimeout(pending.current);
-      pending.current = setTimeout(() => { commit(next); setDirty(false); }, 350);
-    }}
-    onBlur={() => {
-      setFocused(false);
-      if (dirty) { commit(local); setDirty(false); }
-    }}
-  />;
+  return <div className="space-y-0.5">
+    <Input
+      className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+      type="text"
+      inputMode="decimal"
+      placeholder={placeholder}
+      disabled={disabled}
+      value={display}
+      onFocus={() => setFocused(true)}
+      onChange={event => {
+        const next = sanitizeNumeric(event.target.value);
+        setLocal(next);
+        setDirty(true);
+        if (pending.current) clearTimeout(pending.current);
+        pending.current = setTimeout(() => { commit(next); setDirty(false); }, 350);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        if (dirty) { commit(local); setDirty(false); }
+      }}
+    />
+    {exceededMax && warningText && <span className="text-[10px] text-destructive" role="alert">{warningText}</span>}
+  </div>;
 }
 
 function DebouncedComment({ value, disabled, onCommit }: { value: string; disabled: boolean; onCommit: (value: string) => void }) {
@@ -176,48 +188,16 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
     <WPBubble wpNumber={wp.number} wpColor={wp.color} />
   </span>;
 
-  const eCollapsed = isCollapsed(COLLAPSE_E);
-  const fCollapsed = isCollapsed(COLLAPSE_F);
+  const fCollapsed = isCollapsed(COLLAPSE_TOTALS);
   const commentsCollapsed = isCollapsed(COLLAPSE_COMMENTS);
+  const grandPercent = requestedPercent(grand.requestedEuContribution, grand.maxEuContribution);
+  const heading = 'E. Indirect costs | F. Total costs | G. Maximum EU contribution | H. Requested EU contribution';
 
   return <>
     <section className="border-b border-border">
       <div className={MAJOR_HEADING_ROW}>
-        <CollapseChevron collapsed={eCollapsed} onToggle={() => toggle(COLLAPSE_E)} label="E. Indirect costs" />
-        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">E. Indirect costs</span>
-        {eCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(grand.indirect)}</span>}
-      </div>
-      {!eCollapsed && <div className={`space-y-1 pb-2 ${LINE_INDENT}`}>
-        <table className="w-full table-fixed border-collapse text-sm">
-          <colgroup>
-            <col style={{ width: COL.wp }} />
-            <col />
-            <col style={{ width: COL.money }} />
-          </colgroup>
-          <tbody>
-            {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
-              <td className="px-1 py-0.5">{wpBadge(row.wp)}</td>
-              <td className="px-1 py-0.5 text-right text-xs text-muted-foreground">{`${formatNumber(indirectCostRate, 2)}% of ${formatCurrency(row.personnel + row.purchase)}`}</td>
-              <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.indirect)}</div></td>
-            </tr>)}
-            <tr className="border-t-2 border-foreground/30 font-semibold">
-              <td />
-              <td className="px-1 py-0.5 text-right"><div className={`${READ_CELL} font-semibold`}>E. Total indirect costs</div></td>
-              <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="text-[11px] text-muted-foreground">
-          Indirect costs are charged at {formatNumber(indirectCostRate, 2)}% of A + C only. Subcontracting (B),
-          financial support to third parties (D.1) and internally invoiced goods and services (D.2) are excluded from the base.
-        </p>
-      </div>}
-    </section>
-
-    <section className="border-b border-border">
-      <div className={MAJOR_HEADING_ROW}>
-        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_F)} label="F. Total costs and EU contribution" />
-        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">F. Total costs and EU contribution</span>
+        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_TOTALS)} label={heading} />
+        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">{heading}</span>
         {fCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(grand.totalCosts)}</span>}
       </div>
       {!fCollapsed && <div className={`space-y-2 pb-2 ${LINE_INDENT}`}>
@@ -233,6 +213,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <col style={{ width: COL.money }} />
               <col style={{ width: COL.money }} />
               <col style={{ width: COL.request }} />
+              <col style={{ width: COL.percent }} />
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>
@@ -244,6 +225,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <th className="px-1 py-1.5 text-right">F. Total costs</th>
               <th className="px-1 py-1.5 text-right">G. Max EU contribution</th>
               <th className="px-1 py-1.5 text-right">H. Requested EU contribution</th>
+              <th className="px-1 py-1.5 text-right">% requested</th>
             </tr></thead>
             <tbody>
               {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
@@ -264,6 +246,28 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
+                {/*
+                  The percentage is never stored: it is derived from H over G, and
+                  editing it writes H back. Above 100 the request would exceed the
+                  maximum, so the displayed share is clamped and the same red
+                  warning as an over-maximum H appears.
+                */}
+                <td className="px-1 py-0.5">
+                  <DebouncedNumberField
+                    key={`pct-${row.wp.id}-${row.requestedEuContribution}`}
+                    value={requestedPercent(row.requestedEuContribution, row.maxEuContribution)}
+                    placeholder={row.maxEuContribution > 0 ? '100.00' : ''}
+                    disabled={!editable || !(row.maxEuContribution > 0)}
+                    decimals={2}
+                    max={100}
+                    warningText="The requested EU contribution cannot exceed the maximum; the percentage is capped at 100%."
+                    onCommit={value => totals.setRequestedContribution(
+                      participantId,
+                      row.wp.id,
+                      value == null ? null : roundCents(row.maxEuContribution * value / 100),
+                    )}
+                  />
+                </td>
               </tr>)}
               <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
                 <td className="px-1 py-0.5">Total</td>
@@ -275,10 +279,15 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.requestedEuContribution)}</div></td>
+                <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{grandPercent == null ? '' : `${formatNumber(grandPercent, 2)}%`}</div></td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Indirect costs are charged at {formatNumber(indirectCostRate, 2)}% of A + C only. Subcontracting (B),
+          financial support to third parties (D.1) and internally invoiced goods and services (D.2) are excluded from the base.
+        </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">Funding rate for this participant</span>
           <div className="w-24">
