@@ -254,7 +254,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">
                   <div className="flex items-center justify-between gap-1">
                     <span>Participant</span>
-                    {isCoordinator && (
+                    {isCoordinator && canEdit && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
