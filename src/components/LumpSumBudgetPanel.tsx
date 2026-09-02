@@ -14,7 +14,7 @@ import { LumpSumCostsSection, TotalRow } from '@/components/LumpSumCostsSection'
 import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
-import { CollapsibleHeader, HeaderControl, LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
 const PORTAL_VIEW_KEY = (userId: string | undefined, proposalId: string) => `ls-budget-view:${userId ?? 'anon'}:${proposalId}`;
@@ -156,7 +156,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
          return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index < participants.length - 1 ? 'mr-1 border-r border-r-border/60 pr-1' : ''}`}>
            <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-             <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} className={active ? undefined : 'opacity-70'} />
+             <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
            </button>
             {isCoordinator && <>
               <Button
@@ -201,22 +201,22 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
            {!readOnly && isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
         </div>
          <section className="border-b border-border">
-            <CollapsibleHeader className={MAJOR_HEADING_ROW} collapsed={isCollapsed('A')} onToggle={() => toggle('A')}>
-               <HeaderControl><CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" /></HeaderControl>
-               <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</span>
-               {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
-            </CollapsibleHeader>
+           <div className={MAJOR_HEADING_ROW}>
+              <CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" />
+              <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</span>
+              {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
+           </div>
            {!isCollapsed('A') && <>
              {BLOCKS.map(block => {
               const collapsed = isCollapsed(block.line);
               const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
               return <section key={block.line} className={`border-b border-border ${LINE_INDENT}`}>
-                 <CollapsibleHeader className={`${LINE_HEADING_ROW} border-b border-border/60`} collapsed={collapsed} onToggle={() => toggle(block.line)}>
-                   <HeaderControl><CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" /></HeaderControl>
-                   <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{block.label}</span>
-                   {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-                   {!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={onAddRole}>Add role</Button></HeaderControl>}
-                 </CollapsibleHeader>
+                <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
+                  <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{block.label}</span>
+                  {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
+                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
+                </div>
                 {!collapsed && <div className="space-y-2 pt-2">
                   {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
                   <LumpSumPersonnelTable costLine={block.line} roles={lineRoles} efforts={efforts} workPackages={workPackages} editable={editable} a4UnitCost={a4UnitCost} onAdd={() => addRole(selected.id, block.line)} onUpdateRole={updateRole} onDelete={deleteRole} onReorder={reorderRoles} onSetEffort={setEffort} />
