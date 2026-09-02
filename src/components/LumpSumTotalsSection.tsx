@@ -72,33 +72,39 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
 
   const commit = (next: string) => {
     if (pending.current) clearTimeout(pending.current);
-    onCommit(numberOrNull(next));
+    const parsed = numberOrNull(next);
+    const clamped = parsed != null && max != null ? Math.min(max, parsed) : parsed;
+    setExceededMax(parsed != null && max != null && parsed > max);
+    onCommit(clamped);
   };
 
   const display = focused
     ? local
     : (local.trim() ? formatNumber(Number(local), decimals) : '');
 
-  return <Input
-    className={FIELD}
-    type="text"
-    inputMode="decimal"
-    placeholder={placeholder}
-    disabled={disabled}
-    value={display}
-    onFocus={() => setFocused(true)}
-    onChange={event => {
-      const next = sanitizeNumeric(event.target.value);
-      setLocal(next);
-      setDirty(true);
-      if (pending.current) clearTimeout(pending.current);
-      pending.current = setTimeout(() => { commit(next); setDirty(false); }, 350);
-    }}
-    onBlur={() => {
-      setFocused(false);
-      if (dirty) { commit(local); setDirty(false); }
-    }}
-  />;
+  return <div className="space-y-0.5">
+    <Input
+      className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+      type="text"
+      inputMode="decimal"
+      placeholder={placeholder}
+      disabled={disabled}
+      value={display}
+      onFocus={() => setFocused(true)}
+      onChange={event => {
+        const next = sanitizeNumeric(event.target.value);
+        setLocal(next);
+        setDirty(true);
+        if (pending.current) clearTimeout(pending.current);
+        pending.current = setTimeout(() => { commit(next); setDirty(false); }, 350);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        if (dirty) { commit(local); setDirty(false); }
+      }}
+    />
+    {exceededMax && warningText && <span className="text-[10px] text-destructive" role="alert">{warningText}</span>}
+  </div>;
 }
 
 function DebouncedComment({ value, disabled, onCommit }: { value: string; disabled: boolean; onCommit: (value: string) => void }) {
