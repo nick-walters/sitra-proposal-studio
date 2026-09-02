@@ -18,33 +18,33 @@ export const LS_FIGURE_WIDTH = 120;
  */
 export const LS_RIGHT_GUTTER = 34;
 
-/** Every fixed column width used anywhere in the lump-sum tables. */
+/** Every column width used anywhere in the lump-sum tables. */
 export const LS_COL = {
   grip: 30,
   /** Work package selector column in the B–D cost tables. */
-  wp: 100,
-  quantity: 88,
-  unitCost: 112,
+  wp: 84,
+  quantity: 76,
+  unitCost: 96,
   /** Personnel table columns. */
-  role: 176,
-  category: 156,
-  rate: 88,
-  wpPm: 64,
-  totalPm: 80,
+  role: 130,
+  category: 120,
+  rate: 78,
+  wpPm: 44,
+  totalPm: 66,
   /** Summary-table columns. */
-  summaryWp: 96,
-  summaryMoney: LS_FIGURE_WIDTH,
+  summaryWp: 64,
+  summaryMoney: 96,
   /** A–E in the summary table: narrower, so the table's right edge still coincides. */
-  summaryNarrow: 96,
-  request: 124,
-  percent: 96,
+  summaryNarrow: 70,
+  request: 100,
+  percent: LS_FIGURE_WIDTH,
   /** Depreciation-register columns before its flexible comments spacer. */
-  depreciationType: 132,
-  depreciationName: 180,
-  depreciationDate: 130,
-  depreciationCost: 112,
-  depreciationPercent: 78,
-  depreciationInclude: 78,
+  depreciationType: 90,
+  depreciationName: 110,
+  depreciationDate: 100,
+  depreciationCost: 90,
+  depreciationPercent: 60,
+  depreciationInclude: 65,
   /** The shared figure column and the gutter to its right. */
   figure: LS_FIGURE_WIDTH,
   gutter: LS_RIGHT_GUTTER,
@@ -66,7 +66,7 @@ export const LS_PERSONNEL_MIN_WIDTH = (workPackageCount: number, hasCategoryColu
 export const LS_FIGURE_CELL = 'px-1 text-right tabular-nums';
 export const LS_LABEL_CELL = 'px-1 text-right';
 
-/** Every aligned table uses this exact sizing model. */
+/** Every aligned table uses one full-width, fixed-layout box. */
 export const LS_TABLE = 'w-full table-fixed border-collapse';
 
 /** Shared colgroup for a label + figure + gutter total row. */

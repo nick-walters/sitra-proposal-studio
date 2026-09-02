@@ -253,7 +253,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   };
 
   return <div className="space-y-2">
-    <div className="overflow-x-auto rounded-md border border-border">
+    <div className="overflow-x-auto">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={event => {
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
@@ -299,7 +299,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                     {workPackages.map(wp => <td key={wp.id} className={`${CELL} py-0.5 align-middle`}><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className={NUM_FIELD} onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
                     <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} font-medium`}>{formatPM(roleTotalPm(role))}</div></td>
                     <td />
-                     <td data-ls-measure={`${costLine}-item-cost`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
+                    <td data-ls-measure={`${costLine}-item-cost`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
                     <td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
                   </>}</SortableRow>)}
               </SortableContext>

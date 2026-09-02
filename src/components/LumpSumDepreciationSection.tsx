@@ -348,7 +348,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
             <table className={`${LS_TABLE} text-sm`}>
               <colgroup>
                 <col style={{ width: LS_COL.grip }} />
-                <col style={{ width: LS_COL.summaryWp }} />
+                <col style={{ width: LS_COL.wp }} />
                 <col style={{ width: LS_COL.depreciationType }} />
                 <col style={{ width: LS_COL.depreciationName }} />
                 <col style={{ width: LS_COL.depreciationDate }} />

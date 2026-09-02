@@ -214,7 +214,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
       </CollapsibleHeader>
       {!fCollapsed && <div className={`space-y-2 pb-2 ${LINE_INDENT}`}>
         <div className="overflow-x-auto">
-          <table className={`${LS_TABLE} min-w-[900px] text-sm`}>
+          <table className={`${LS_TABLE} text-sm`}>
             <colgroup>
               <col style={{ width: LS_COL.summaryWp }} />
               {/*
