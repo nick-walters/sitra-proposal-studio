@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { appendLumpSumSheets } from '@/lib/lumpSumBudgetExport';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
@@ -723,6 +724,8 @@ export function BudgetPortalSheet({
     autoFitCols(ws3, overviewAoa);
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+
+    await appendLumpSumSheets(wb, XLSX, proposalId, budgetType);
 
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
