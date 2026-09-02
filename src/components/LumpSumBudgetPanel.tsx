@@ -19,6 +19,7 @@ import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
 type BudgetView = 'enter' | 'portal';
 
+
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
   { line: 'A.2', label: 'A.2 Personnel costs — natural persons under direct contract' },
