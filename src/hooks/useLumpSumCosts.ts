@@ -191,7 +191,7 @@ export function useLumpSumCosts(proposalId: string) {
   return {
     ...query,
     data: query.data,
-    addItem: (participantId: string, costLine: string) => addItem.mutate({ participantId, costLine }),
+    addItem: (participantId: string, costLine: string, wpDraftId?: string) => addItem.mutate({ participantId, costLine, wpDraftId }),
     updateQuantity: (itemId: string, value: number) => debounced(`quantity-${itemId}`, () => updateItem.mutate({ itemId, field: 'quantity', value })),
     updateUnitCost: (itemId: string, value: number) => debounced(`unit-cost-${itemId}`, () => updateItem.mutate({ itemId, field: 'unit_cost', value })),
     updateJustification: (itemId: string, value: string) => debounced(`justification-${itemId}`, () => updateItem.mutate({ itemId, field: 'justification', value })),
