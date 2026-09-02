@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
+import { LS_COL, LS_FIGURE_CELL, LS_PERSONNEL_MIN_WIDTH } from '@/lib/lumpSumLayout';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
@@ -27,8 +28,8 @@ export function formatPM(value: number) {
 /** Shared cell padding per column type, applied identically to every row kind. */
 const CELL = 'px-1.5';
 const NUM_CELL = `${CELL} text-right tabular-nums`;
-/** The rounding difference sits beneath the cost figure, in the same column. */
-const COST_CELL = 'pl-1.5 pr-0 text-right tabular-nums';
+/** The figure column: shared with every other lump-sum table. */
+const COST_CELL = LS_FIGURE_CELL;
 /** Every field fills its column; the colgroup governs width, not the input. */
 const FIELD = 'h-7 w-full px-1.5 text-xs md:text-sm';
 const NUM_FIELD = `${FIELD} text-right tabular-nums`;
@@ -47,21 +48,9 @@ export const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums
 export const NUM_READ_BOX = 'inline-flex h-7 items-center justify-end rounded-md border border-transparent px-1.5 text-right text-xs tabular-nums md:text-sm';
 
 
-/**
- * Explicit column widths shared by the table colgroup and every row.
- * Numeric columns are wider than their prior field-only widths to preserve the
- * requested content without wrapping.
- */
-export const COL_WIDTH = {
-  grip: 32,
-  role: 176,
-  category: 156,
-  rate: 88,
-  wp: 64,
-  totalPm: 80,
-  cost: 104,
-  del: 36,
-} as const;
+/** Column widths come from the single shared layout module. */
+export const COL_WIDTH = LS_COL;
+
 
 /** Keeps only digits and a single decimal separator, capped at `decimals` places. */
 export function sanitizeNumeric(raw: string, decimals: number) {
@@ -249,8 +238,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   const blockTotalPm = roles.reduce((sum, role) => sum + roleTotalPm(role), 0);
   const portalTotals = costLineTotals(costLine, roles, efforts, workPackages, a4UnitCost);
   const blockCost = portalTotals.portalCost;
-  const tableWidth = COL_WIDTH.grip + COL_WIDTH.role + (isA1 ? COL_WIDTH.category : 0) + COL_WIDTH.rate
-    + workPackages.length * COL_WIDTH.wp + COL_WIDTH.totalPm + COL_WIDTH.cost + COL_WIDTH.del;
+  const tableMinWidth = LS_PERSONNEL_MIN_WIDTH(workPackages.length, isA1);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleDragEnd = (event: DragEndEvent, groupRoles: LumpSumRole[]) => {
@@ -271,16 +259,16 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className="table-fixed text-xs" style={{ width: tableWidth }}>
+        <table className="w-full table-fixed text-xs" style={{ minWidth: tableMinWidth }}>
           <colgroup>
             <col style={{ width: COL_WIDTH.grip }} />
             <col style={{ width: COL_WIDTH.role }} />
             {isA1 && <col style={{ width: COL_WIDTH.category }} />}
             <col style={{ width: COL_WIDTH.rate }} />
-            {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wp }} />)}
+            {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wpPm }} />)}
             <col style={{ width: COL_WIDTH.totalPm }} />
-            <col style={{ width: COL_WIDTH.cost }} />
-            <col style={{ width: COL_WIDTH.del }} />
+            <col style={{ width: COL_WIDTH.figure }} />
+            <col style={{ width: COL_WIDTH.gutter }} />
           </colgroup>
           <thead className="bg-muted/50"><tr className="text-left">
             <th className={`${CELL} py-1.5`} aria-label="Reorder" />
