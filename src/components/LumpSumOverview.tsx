@@ -37,7 +37,9 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
-  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
+  const [collapsedTables, setCollapsedTables] = useState<Record<string, boolean>>({});
+  const isCollapsed = (id: string) => collapsedTables[id] ?? false;
+  const toggle = (id: string) => setCollapsedTables(current => ({ ...current, [id]: !(current[id] ?? false) }));
 
   const workPackages = personnel.data?.workPackages ?? [];
   const participants = personnel.data?.participants ?? [];
