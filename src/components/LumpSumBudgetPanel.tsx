@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -15,6 +15,7 @@ import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
