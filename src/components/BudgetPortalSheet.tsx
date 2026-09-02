@@ -3,6 +3,8 @@ import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { useAuth } from '@/hooks/useAuth';
+import { useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { formatNumber } from '@/lib/formatNumber';
 import { BudgetValidationDialog } from '@/components/BudgetValidationEngine';
 import { SaveIndicator } from '@/components/SaveIndicator';
@@ -11,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import type * as XLSXNS from 'xlsx-js-style';
 // XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
-import { Lock, Unlock, Loader2, Download, AlertCircle } from 'lucide-react';
+import { Lock, Unlock, Loader2, Download, AlertCircle, ChevronsDownUp } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet,
