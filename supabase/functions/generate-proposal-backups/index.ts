@@ -1002,7 +1002,7 @@ async function appendLumpSumSheets(
   };
   for (const participant of participants) for (const wp of workPackages) {
     const total = totalByWp(participant.id, wp.id);
-    totalsRows.push([participantLabel(participant), wpLabel(wp.id), total.a, total.b, total.c, total.d, total.e, total.f, total.g, total.h, total.comment]);
+    totalsRows.push([lumpSumParticipantLabel(participant), wpLabel(wp.id), total.a, total.b, total.c, total.d, total.e, total.f, total.g, total.h, total.comment]);
   }
   const totalsSheet = XLSX.utils.aoa_to_sheet(totalsRows);
   styleHeaders(totalsSheet, 1, totalsHeaders.length);
