@@ -40,6 +40,11 @@ const NUM_FIELD = `${FIELD} text-right tabular-nums`;
  */
 export const READ_FIELD = `${FIELD} inline-flex items-center rounded-md border border-transparent`;
 export const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
+/**
+ * Same box as NUM_READ_FIELD but auto-width, for total rows that are laid out
+ * with flex rather than a colgroup: the right edge is set by the row's padding.
+ */
+export const NUM_READ_BOX = 'inline-flex h-7 items-center justify-end rounded-md border border-transparent px-1.5 text-right text-xs tabular-nums md:text-sm';
 
 
 /**
