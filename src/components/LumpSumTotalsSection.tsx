@@ -189,7 +189,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
   return <>
     <section className="border-b border-border">
       <div className={MAJOR_HEADING_ROW}>
-        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_F)} label={heading} />
+        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_TOTALS)} label={heading} />
         <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">{heading}</span>
         {fCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(grand.totalCosts)}</span>}
       </div>
