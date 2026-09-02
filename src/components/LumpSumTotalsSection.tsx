@@ -206,6 +206,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <col style={{ width: COL.money }} />
               <col style={{ width: COL.money }} />
               <col style={{ width: COL.request }} />
+              <col style={{ width: COL.percent }} />
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>
