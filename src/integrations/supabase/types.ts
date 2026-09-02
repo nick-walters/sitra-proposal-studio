@@ -2837,7 +2837,7 @@ export type Database = {
       }
       ls_cost_items: {
         Row: {
-          amount: number
+          amount: number | null
           cost_line: string
           created_at: string
           id: string
@@ -2845,11 +2845,13 @@ export type Database = {
           order_index: number
           participant_id: string
           proposal_id: string
+          quantity: number
+          unit_cost: number
           updated_at: string
           wp_draft_id: string
         }
         Insert: {
-          amount?: number
+          amount?: number | null
           cost_line: string
           created_at?: string
           id?: string
@@ -2857,11 +2859,13 @@ export type Database = {
           order_index?: number
           participant_id: string
           proposal_id: string
+          quantity?: number
+          unit_cost?: number
           updated_at?: string
           wp_draft_id: string
         }
         Update: {
-          amount?: number
+          amount?: number | null
           cost_line?: string
           created_at?: string
           id?: string
@@ -2869,6 +2873,8 @@ export type Database = {
           order_index?: number
           participant_id?: string
           proposal_id?: string
+          quantity?: number
+          unit_cost?: number
           updated_at?: string
           wp_draft_id?: string
         }
@@ -5486,6 +5492,8 @@ export type Database = {
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
+          ls_default_funding_rate: number
+          ls_indirect_cost_rate: number
           lump_sum_budget_active: boolean
           mirror_contribution_resources: boolean
           mirror_industrial_involvement: boolean
@@ -5563,6 +5571,8 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          ls_default_funding_rate?: number
+          ls_indirect_cost_rate?: number
           lump_sum_budget_active?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
@@ -5640,6 +5650,8 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          ls_default_funding_rate?: number
+          ls_indirect_cost_rate?: number
           lump_sum_budget_active?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
