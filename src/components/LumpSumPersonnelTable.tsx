@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_FIGURE_CELL, LS_PERSONNEL_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL, LS_MAX_TABLE_WIDTH, LS_PERSONNEL_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
@@ -258,7 +258,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className={`${LS_TABLE} text-xs`} style={{ minWidth: LS_PERSONNEL_MIN_WIDTH(workPackages.length, isA1) }}>
+        <table className={`${LS_TABLE} text-xs`} style={{ minWidth: Math.min(LS_PERSONNEL_MIN_WIDTH(workPackages.length, isA1), LS_MAX_TABLE_WIDTH) }}>
           <colgroup>
             <col style={{ width: COL_WIDTH.grip }} />
             {/* The role name absorbs the remaining width; the shared right block remains fixed. */}

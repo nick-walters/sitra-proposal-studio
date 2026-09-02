@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_DEPRECIATION_MIN_WIDTH, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -346,7 +346,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
       <div className="overflow-x-auto pb-2 w-full">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-            <table className={`${LS_TABLE} text-sm`} style={{ minWidth: LS_DEPRECIATION_MIN_WIDTH, width: '100%' }}>
+            <table className={`${LS_TABLE} text-sm`} style={{ minWidth: Math.min(LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH), width: '100%' }}>
               <colgroup>
                 <col style={{ width: LS_COL.grip }} />
                 <col style={{ width: LS_COL.wp }} />
