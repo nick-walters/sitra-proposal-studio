@@ -72,13 +72,11 @@ export function LumpSumValidationPanel({
 
   if (isLoading) return null;
 
-  const summary = [
+const summary = [
     counts.error ? plural(counts.error, 'error') : null,
     counts.warning ? plural(counts.warning, 'warning') : null,
     counts.info ? plural(counts.info, 'note') : null,
   ].filter(Boolean).join(', ') || 'No issues found';
-
-  
 
   return <section className="mb-2 rounded-md border border-border">
     <div
