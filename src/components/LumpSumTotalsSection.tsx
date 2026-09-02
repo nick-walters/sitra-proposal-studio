@@ -27,8 +27,6 @@ function requestedPercent(requested: number, maxContribution: number) {
   return Math.min(100, roundCents(requested / maxContribution * 100));
 }
 
-const C_LINES = ['C.1', 'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other'];
-const D_LINES = ['D.1', 'D.2'];
 
 /** Digits and a single decimal separator, capped at two places. */
 function sanitizeNumeric(raw: string) {
@@ -51,17 +49,20 @@ function numberOrNull(value: string) {
  * Local state, 350ms debounce plus commit on blur, re-seeded from the server
  * only when the field is unfocused with no pending change.
  */
-function DebouncedNumberField({ value, placeholder, disabled, decimals, onCommit }: {
+function DebouncedNumberField({ value, placeholder, disabled, decimals, max, warningText, onCommit }: {
   value: number | null;
   placeholder?: string;
   disabled: boolean;
   decimals: number;
+  max?: number;
+  warningText?: string;
   onCommit: (value: number | null) => void;
 }) {
   const serverValue = value == null ? '' : String(value);
   const [local, setLocal] = useState(serverValue);
   const [dirty, setDirty] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [exceededMax, setExceededMax] = useState(false);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
