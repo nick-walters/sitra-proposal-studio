@@ -50,7 +50,12 @@ export function useLumpSumBudgetAccess(proposalId: string) {
   const query = useQuery({
     queryKey: ACCESS_KEY(proposalId),
     enabled: Boolean(proposalId),
+    // Lock state is shared between coordinators, so keep it fresh rather than serving a stale cache.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
     queryFn: async () => {
+
       const [participantsRes, budgetsRes, rolesRes, overridesRes] = await Promise.all([
         supabase.from('participants').select('id, participant_number, organisation_short_name, organisation_name').eq('proposal_id', proposalId).order('participant_number'),
         supabase.from('ls_participant_budget').select('participant_id, is_locked, locked_by, locked_at').eq('proposal_id', proposalId),
@@ -100,13 +105,35 @@ export function useLumpSumBudgetAccess(proposalId: string) {
     ]);
   };
 
-  const writeLock = async (participantId: string, locked: boolean) => {
+  type AccessData = NonNullable<typeof query.data>;
+
+  /** Paint the new lock state straight away so every lock icon flips on click. */
+  const patchLockCache = (participantIds: string[], locked: boolean) => {
+    queryClient.setQueryData(ACCESS_KEY(proposalId), (current: AccessData | undefined) => {
+      if (!current) return current;
+      const stamp = locked ? new Date().toISOString() : null;
+      const next = [...current.locks];
+      for (const participantId of participantIds) {
+        const index = next.findIndex(lock => lock.participant_id === participantId);
+        const row: ParticipantLock = { participant_id: participantId, is_locked: locked, locked_by: locked ? user?.id ?? null : null, locked_at: stamp };
+        if (index >= 0) next[index] = { ...next[index], ...row }; else next.push(row);
+      }
+      return { ...current, locks: next };
+    });
+  };
+
+  const writeLocks = async (participantIds: string[], locked: boolean) => {
+    if (!participantIds.length) return;
     // The insert policy intentionally only permits an initially unlocked row.
-    // Create it first when needed, then let the coordinator-only update policy set the lock.
-    const { error: ensureError } = await supabase
-      .from('ls_participant_budget')
-      .upsert({ proposal_id: proposalId, participant_id: participantId, is_locked: false }, { onConflict: 'participant_id' });
-    if (ensureError) throw ensureError;
+    // Create missing rows first, then let the coordinator-only update policy set the lock.
+    const known = new Set((query.data?.locks ?? []).map(lock => lock.participant_id));
+    const missing = participantIds.filter(id => !known.has(id));
+    if (missing.length) {
+      const { error: ensureError } = await supabase
+        .from('ls_participant_budget')
+        .upsert(missing.map(participantId => ({ proposal_id: proposalId, participant_id: participantId, is_locked: false })), { onConflict: 'participant_id' });
+      if (ensureError) throw ensureError;
+    }
 
     const { error: updateError } = await supabase
       .from('ls_participant_budget')
@@ -116,25 +143,24 @@ export function useLumpSumBudgetAccess(proposalId: string) {
         locked_at: locked ? new Date().toISOString() : null,
       })
       .eq('proposal_id', proposalId)
-      .eq('participant_id', participantId);
+      .in('participant_id', participantIds);
     if (updateError) throw updateError;
   };
 
   const setLock = useMutation({
-    mutationFn: ({ participantId, locked }: { participantId: string; locked: boolean }) => writeLock(participantId, locked),
-    onSuccess: invalidate,
+    mutationFn: ({ participantId, locked }: { participantId: string; locked: boolean }) => writeLocks([participantId], locked),
+    onMutate: ({ participantId, locked }: { participantId: string; locked: boolean }) => patchLockCache([participantId], locked),
+    onSettled: invalidate,
     onError: fail('Could not change the lock'),
   });
 
   const setLockAll = useMutation({
-    mutationFn: async (locked: boolean) => {
-      for (const participantId of query.data?.participantIds ?? []) {
-        await writeLock(participantId, locked);
-      }
-    },
-    onSuccess: invalidate,
+    mutationFn: (locked: boolean) => writeLocks(query.data?.participantIds ?? [], locked),
+    onMutate: (locked: boolean) => patchLockCache(query.data?.participantIds ?? [], locked),
+    onSettled: invalidate,
     onError: fail('Could not change the locks'),
   });
+
 
   const setOverride = useMutation({
     mutationFn: async ({ participantId, userId, canEdit }: { participantId: string; userId: string; canEdit: boolean }) => {

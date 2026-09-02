@@ -13,7 +13,12 @@ export function useCanEditParticipantBudget(proposalId: string) {
   const query = useQuery({
     queryKey: QUERY_KEY(proposalId),
     enabled: Boolean(proposalId && user?.id && !roleLoading),
+    // A coordinator can grant, remove or lock rights from another browser; pick that up without a reload.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
     queryFn: async () => {
+
       const { data: participants, error } = await supabase
         .from('participants')
         .select('id')

@@ -1,6 +1,9 @@
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
+
 
 type Participant = { id: string; participant_number?: number | null; organisation_short_name?: string | null; organisation_name?: string | null };
 
@@ -21,6 +24,15 @@ export function LumpSumPermissionsDialog({
   const members = access.data?.members ?? [];
   const overrides = access.data?.overrides ?? [];
   const participantMembers = (access.data?.participantMembers ?? []).filter(row => row.participant_id === participant.id);
+  const [search, setSearch] = useState('');
+
+  const visibleMembers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return members;
+    return members.filter(member =>
+      (member.full_name ?? '').toLowerCase().includes(term)
+      || (member.email ?? '').toLowerCase().includes(term));
+  }, [members, search]);
 
   const label = `${participant.participant_number ?? ''}. ${participant.organisation_short_name || participant.organisation_name || ''}`.trim();
 
@@ -32,9 +44,18 @@ export function LumpSumPermissionsDialog({
           Everyone with proposal access can already view every participant’s budget; this dialog controls editing only.
         </DialogDescription>
       </DialogHeader>
+      <Input
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+        placeholder="Search by name or email"
+        aria-label="Search proposal members"
+        className="h-8 text-sm"
+      />
       <div className="max-h-[60vh] space-y-1 overflow-y-auto">
         {members.length === 0 && <p className="text-sm text-muted-foreground">No users have a role on this proposal.</p>}
-        {members.map(member => {
+        {members.length > 0 && visibleMembers.length === 0 && <p className="text-sm text-muted-foreground">No members match “{search}”.</p>}
+        {visibleMembers.map(member => {
+
           const isCoordinator = COORDINATOR_ROLES.has(member.role);
           const override = overrides.find(row => row.participant_id === participant.id && row.user_id === member.user_id);
           const listedInA2 = participantMembers.some(row =>

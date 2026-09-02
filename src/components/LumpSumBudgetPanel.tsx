@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Lock, LockKeyhole, Unlock, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -14,6 +15,35 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
 import { LumpSumDepreciationSection } from '@/components/LumpSumDepreciationSection';
+
+/**
+ * The Validate / Export toolbar lives in BudgetPortalSheet, which this feature may not edit.
+ * Mount a slot between those two buttons and portal the lock-all control into it.
+ */
+function useToolbarSlot(enabled: boolean) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!enabled) { setSlot(null); return; }
+    let host: HTMLElement | null = null;
+    const attach = () => {
+      if (host?.isConnected) return true;
+      const validate = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.trim().startsWith('Validate'));
+      if (!validate?.parentElement) return false;
+      host = document.createElement('span');
+      host.dataset.lsLockAllSlot = 'true';
+      validate.insertAdjacentElement('afterend', host);
+      setSlot(host);
+      return true;
+    };
+    if (!attach()) {
+      const timer = window.setInterval(() => { if (attach()) window.clearInterval(timer); }, 250);
+      return () => { window.clearInterval(timer); host?.remove(); };
+    }
+    return () => { host?.remove(); };
+  }, [enabled]);
+  return slot;
+}
+
 
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
@@ -34,6 +64,8 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
+  const toolbarSlot = useToolbarSlot(isCoordinator);
+
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
@@ -70,29 +102,32 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   if (error) return <div className="p-6 text-sm text-destructive">Unable to load lump sum personnel costs.</div>;
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
 
-  const lockAllLabel = budgetAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets';
+  
+  const allLocked = budgetAccess.lockState === 'all';
+  const mixedLocks = budgetAccess.lockState === 'some';
+  const lockAllLabel = allLocked ? 'Unlock all participant budgets' : 'Lock all participant budgets';
+  const lockAllButton = <Button
+    type="button"
+    variant="outline"
+    className="gap-2"
+    aria-label={lockAllLabel}
+    title={mixedLocks ? 'Some budgets are locked — lock all budgets' : lockAllLabel}
+    onClick={() => budgetAccess.setLockAll(!allLocked)}
+  >
+    {allLocked
+      ? <Lock className="h-4 w-4 text-destructive" />
+      : <Unlock className={`h-4 w-4 ${mixedLocks ? 'text-warning' : 'text-green-600'}`} />}
+    {allLocked ? 'Unlock all budgets' : 'Lock all budgets'}
+  </Button>;
+
   return <div className="space-y-4 p-4 md:p-6">
-     {isCoordinator && <div className="flex justify-end">
-       <Button
-         type="button"
-         size="sm"
-         variant="outline"
-         className={budgetAccess.lockState === 'some' ? 'border-warning text-warning hover:bg-warning/10' : ''}
-         aria-label={lockAllLabel}
-         title={lockAllLabel}
-         onClick={() => budgetAccess.setLockAll(budgetAccess.lockState !== 'all')}
-       >
-         <LockKeyhole className="mr-1.5 h-4 w-4" />
-         {budgetAccess.lockState === 'all' ? 'Unlock all budgets' : 'Lock all budgets'}
-         {budgetAccess.lockState === 'some' && <span className="ml-1 text-xs">(some locked)</span>}
-       </Button>
-     </div>}
-     <div className="flex flex-wrap gap-[3px] overflow-visible border-b border-border pb-1.5">
-       {participants.map(participant => {
+     {isCoordinator && (toolbarSlot ? createPortal(lockAllButton, toolbarSlot) : <div className="flex justify-end">{lockAllButton}</div>)}
+     <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
+       {participants.map((participant, index) => {
          const active = participant.id === selected.id;
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
-         return <div key={participant.id} className={`flex min-w-max items-center border-b-2 ${active ? 'border-primary' : 'border-transparent'}`}>
-           <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-2 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+         return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index > 0 ? 'ml-1 border-l border-l-border/40 pl-1' : ''}`}>
+           <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
              <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
            </button>
            {isCoordinator && <>
@@ -100,29 +135,30 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
                type="button"
                size="icon"
                variant="ghost"
-               className={`mr-0.5 h-6 w-6 ${locked ? 'text-warning' : 'text-muted-foreground'}`}
+               className="h-5 w-5"
                aria-label={locked ? `Unlock budget for participant ${participant.participant_number ?? ''}` : `Lock budget for participant ${participant.participant_number ?? ''}`}
                title={locked ? 'Unlock budget' : 'Lock budget'}
                onClick={() => budgetAccess.setLock(participant.id, !locked)}
              >
-               {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+               {locked ? <Lock className="h-3 w-3 text-destructive" /> : <Unlock className="h-3 w-3 text-green-600" />}
              </Button>
              <Button
                type="button"
                size="icon"
                variant="ghost"
-               className="h-6 w-6 text-muted-foreground hover:text-foreground"
+               className="h-5 w-5 text-muted-foreground hover:text-foreground"
                aria-label={`Manage budget permissions for participant ${participant.participant_number ?? ''}`}
                title="Manage budget permissions"
                onClick={() => setPermissionsParticipantId(participant.id)}
              >
-               <Users className="h-3.5 w-3.5" />
+               <Users className="h-3 w-3" />
              </Button>
            </>}
          </div>;
        })}
      </div>
       <div>
+
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {saving && <span>Saving…</span>}
           {isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
