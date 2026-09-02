@@ -11,8 +11,8 @@ import { useCallback, useEffect, useReducer } from 'react';
  * A pure view preference: keyed by user id AND proposal id, lives only in
  * localStorage, and never touches data, totals or exports.
  */
-export const lumpSumCollapseKey = (userId: string | null | undefined, proposalId: string) =>
-  `ls-collapse:${userId ?? 'anon'}:${proposalId}`;
+export const lumpSumCollapseKey = (userId: string, proposalId: string) =>
+  `ls-collapse:${userId}:${proposalId}`;
 
 /** Namespaced ids keep the flat stored object readable and collision-free. */
 export const majorId = (key: string) => `major:${key}`;
@@ -66,7 +66,9 @@ function store(key: string, id: string, collapsed: boolean) {
 }
 
 export function useLumpSumCollapse(userId: string | null | undefined, proposalId: string) {
-  const key = lumpSumCollapseKey(userId, proposalId);
+  // Do not read or write an anonymous key: auth arrives asynchronously, and
+  // an early anon read is the reason the old preferences appeared to vanish.
+  const key = userId ? lumpSumCollapseKey(userId, proposalId) : null;
   const [, rerender] = useReducer((count: number) => count + 1, 0);
 
   useEffect(() => {
@@ -76,11 +78,13 @@ export function useLumpSumCollapse(userId: string | null | undefined, proposalId
     };
   }, []);
 
-  const state = load(key);
+  const state = key ? load(key) : {};
 
   /** Collapsed is the default: a first-time user sees everything closed. */
-  const isCollapsed = useCallback((id: string) => state[id] ?? true, [state]);
-  const toggle = useCallback((id: string) => store(key, id, !(load(key)[id] ?? true)), [key]);
+  const isCollapsed = useCallback((id: string) => key ? (state[id] ?? true) : true, [key, state]);
+  const toggle = useCallback((id: string) => {
+    if (key) store(key, id, !(load(key)[id] ?? true));
+  }, [key]);
 
   return { isCollapsed, toggle };
 }

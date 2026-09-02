@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -130,7 +130,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
            </div>
            {!majorACollapsed && <>
              {BLOCKS.map(block => {
-              const collapsed = isCollapsed(block.line);
+              const collapsed = isCollapsed(lineId(block.line));
               const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
               return <section key={block.line} className="border-b border-border">
                  <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
