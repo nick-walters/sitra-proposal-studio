@@ -19,7 +19,17 @@ const COLLAPSE_TOTALS = 'ls-F';
 const COLLAPSE_COMMENTS = 'ls-wp-comments';
 
 const READ_CELL = `${LS_FIGURE_CELL} inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent text-xs md:text-sm`;
-const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums md:text-sm';
+/**
+ * H is editable even while it is only showing its default of G, so its
+ * placeholder is rendered in the normal text colour rather than the muted
+ * placeholder grey — a grey figure reads as calculated, not typeable.
+ */
+const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums placeholder:text-foreground md:text-sm';
+
+/** Rates read naturally: 25 -> "25", 7.5 -> "7.5", never "25.00". */
+function formatRate(rate: number) {
+  return String(Number(rate.toFixed(2)));
+}
 
 /** H as a share of G, to two decimals; null when G is zero. */
 function requestedPercent(requested: number, maxContribution: number) {
@@ -286,7 +296,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
           </table>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Indirect costs are charged at {formatNumber(indirectCostRate, 2)}% of A + C only. Subcontracting (B),
+          Indirect costs are charged at {formatRate(indirectCostRate)}% of A + C only. Subcontracting (B),
           financial support to third parties (D.1) and internally invoiced goods and services (D.2) are excluded from the base.
         </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
