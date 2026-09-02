@@ -29,14 +29,15 @@ function MirroredCostRow({ item, workPackages }: { item: DepreciationItem; workP
   return <tr className="border-t border-border/70 bg-muted/40 align-middle">
     <td className="px-1" />
     <td className="px-1"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(1, 2)}</div></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(charged, 2)}</div></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(charged)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={NUM_READ_FIELD}>{formatNumber(1, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={NUM_READ_FIELD}>{formatNumber(charged, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(charged)}</div></td>
     <td className="px-1">
-      <div className={`${FIELD} flex items-center justify-between gap-2 border-transparent`}>
+      <div className={`${READ_FIELD} justify-between gap-2`}>
         <span className="truncate" title={mirroredJustification(item)}>{mirroredJustification(item)}</span>
         <Button type="button" variant="link" size="sm" className="h-5 shrink-0 px-0 text-[10px]" onClick={jump}>from depreciation register</Button>
       </div>
+
     </td>
     <td className="px-1" />
   </tr>;
