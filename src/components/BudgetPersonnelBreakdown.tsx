@@ -25,10 +25,17 @@ function BudgetNumberField({
   decimals?: number;
 }) {
   if (disabled) {
-    return <div className={`flex items-center justify-end ${className ?? ''}`}>{value === '' ? '' : formatNumber(value as number, decimals)}</div>;
+    return (
+      <Input
+        value={value === '' ? '' : formatNumber(value as number, decimals)}
+        readOnly
+        aria-readonly="true"
+        className={className}
+      />
+    );
   }
   return (
-    <BudgetNumberField
+    <FormattedNumberInput
       value={value}
       onChange={onChange}
       decimals={decimals}

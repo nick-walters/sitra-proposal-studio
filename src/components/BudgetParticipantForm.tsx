@@ -7,6 +7,7 @@ import { JustificationItemsEditor } from '@/components/JustificationItemsEditor'
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { formatCurrency, formatPercent } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -41,12 +42,19 @@ function BudgetNumberField({
   decimals?: number;
   allowZero?: boolean;
 }) {
+  const isEmpty = (allowZero || decimals > 0) ? value === '' : value === '' || value === 0;
   if (disabled) {
-    const isEmpty = (allowZero || decimals > 0) ? value === '' : value === '' || value === 0;
-    return <div className={`flex items-center ${className ?? ''}`}>{isEmpty ? '' : formatNumber(value as number, decimals)}</div>;
+    return (
+      <Input
+        value={isEmpty ? '' : formatNumber(value as number, decimals)}
+        readOnly
+        aria-readonly="true"
+        className={className}
+      />
+    );
   }
   return (
-    <BudgetNumberField
+    <FormattedNumberInput
       value={value}
       onChange={onChange}
       placeholder={placeholder}
