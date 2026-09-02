@@ -54,54 +54,62 @@ export type LumpSumPersonnelData = {
   participantBudgets: LumpSumParticipantBudget[];
 };
 
-async function ensureParticipantBudget(proposalId: string, participantId: string) {
-  const { error } = await supabase
-    .from('ls_participant_budget')
-    .upsert({ proposal_id: proposalId, participant_id: participantId }, { onConflict: 'participant_id' });
-  if (error) throw error;
-}
-
-function errorMessage(error: unknown) {
-  if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message);
-  return String(error);
-}
+export type LumpSumEffortReconciliationRow = {
+  participantId: string;
+  participantNumber: number | null;
+  participantName: string;
+  wpDraftId: string;
+  wpNumber: number;
+  currentPersonMonths: number;
+  proposedPersonMonths: number;
+};
 
 const PERSONNEL_COST_LINES = ['A.1', 'A.2', 'A.3', 'A.4'];
 
-async function syncParticipantWpEffort(proposalId: string, participantId: string, wpDraftIds: string[]) {
+function roundPersonMonths(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+async function getLumpSumEffortTotals(proposalId: string, participantId: string, wpDraftIds: string[]) {
   const { data: proposal, error: proposalError } = await supabase
     .from('proposals')
     .select('budget_type')
     .eq('id', proposalId)
     .maybeSingle();
   if (proposalError) throw proposalError;
-  if (proposal?.budget_type !== 'lump_sum') return;
-  if (wpDraftIds.length === 0) return;
+  if (proposal?.budget_type !== 'lump_sum' || wpDraftIds.length === 0) return new Map<string, number>();
 
   const { data: roles, error: rolesError } = await supabase
     .from('ls_personnel_roles')
-    .select('id, cost_line')
+    .select('id')
     .eq('proposal_id', proposalId)
     .eq('participant_id', participantId)
     .in('cost_line', PERSONNEL_COST_LINES);
   if (rolesError) throw rolesError;
 
   const roleIds = (roles ?? []).map(role => role.id);
-  const { data: efforts, error: effortsError } = roleIds.length === 0
-    ? { data: [], error: null }
-    : await supabase
-      .from('ls_personnel_effort')
-      .select('role_id, wp_draft_id, person_months')
-      .eq('proposal_id', proposalId)
-      .in('role_id', roleIds)
-      .in('wp_draft_id', wpDraftIds);
+  if (roleIds.length === 0) return new Map(wpDraftIds.map(wpDraftId => [wpDraftId, 0]));
+
+  const { data: efforts, error: effortsError } = await supabase
+    .from('ls_personnel_effort')
+    .select('role_id, wp_draft_id, person_months')
+    .eq('proposal_id', proposalId)
+    .in('role_id', roleIds)
+    .in('wp_draft_id', wpDraftIds);
   if (effortsError) throw effortsError;
 
-  for (const wpDraftId of wpDraftIds) {
-    const total = Math.round((efforts ?? [])
-      .filter(effort => effort.wp_draft_id === wpDraftId)
-      .reduce((sum, effort) => sum + Number(effort.person_months || 0), 0) * 10) / 10;
+  const totals = new Map(wpDraftIds.map(wpDraftId => [wpDraftId, 0]));
+  for (const effort of efforts ?? []) {
+    totals.set(effort.wp_draft_id, roundPersonMonths((totals.get(effort.wp_draft_id) ?? 0) + Number(effort.person_months || 0)));
+  }
+  return totals;
+}
 
+async function syncParticipantWpEffort(proposalId: string, participantId: string, wpDraftIds: string[]) {
+  const totals = await getLumpSumEffortTotals(proposalId, participantId, wpDraftIds);
+  if (totals.size === 0) return;
+
+  for (const [wpDraftId, total] of totals) {
     if (total === 0) {
       const { error } = await supabase
         .from('wp_draft_effort')
@@ -120,6 +128,52 @@ async function syncParticipantWpEffort(proposalId: string, participantId: string
   }
 }
 
+/** Read-only reconciliation preview. It never writes to either effort table. */
+export async function previewLumpSumEffortReconciliation(proposalId: string): Promise<LumpSumEffortReconciliationRow[]> {
+  const [wpResult, participantResult, roleResult, lsEffortResult, currentResult] = await Promise.all([
+    supabase.from('wp_drafts').select('id, number').eq('proposal_id', proposalId).order('number'),
+    supabase.from('participants').select('id, participant_number, organisation_short_name, organisation_name').eq('proposal_id', proposalId).order('participant_number'),
+    supabase.from('ls_personnel_roles').select('id, participant_id, cost_line').eq('proposal_id', proposalId).in('cost_line', PERSONNEL_COST_LINES),
+    supabase.from('ls_personnel_effort').select('role_id, wp_draft_id, person_months').eq('proposal_id', proposalId),
+    supabase.from('wp_draft_effort').select('wp_draft_id, participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
+  ]);
+  const failure = [wpResult, participantResult, roleResult, lsEffortResult, currentResult].find(result => result.error);
+  if (failure?.error) throw failure.error;
+
+  const wpIds = (wpResult.data ?? []).map(wp => wp.id);
+  const rolesByParticipant = new Map<string, string[]>();
+  for (const role of roleResult.data ?? []) {
+    const roleIds = rolesByParticipant.get(role.participant_id) ?? [];
+    roleIds.push(role.id);
+    rolesByParticipant.set(role.participant_id, roleIds);
+  }
+  const proposed = new Map<string, number>();
+  for (const effort of lsEffortResult.data ?? []) {
+    const participantId = [...rolesByParticipant.entries()].find(([, roleIds]) => roleIds.includes(effort.role_id))?.[0];
+    if (!participantId) continue;
+    const key = `${participantId}|${effort.wp_draft_id}`;
+    proposed.set(key, roundPersonMonths((proposed.get(key) ?? 0) + Number(effort.person_months || 0)));
+  }
+  const current = new Map<string, number>();
+  for (const effort of currentResult.data ?? []) {
+    current.set(`${effort.participant_id}|${effort.wp_draft_id}`, Number(effort.person_months || 0));
+  }
+
+  return (participantResult.data ?? []).flatMap(participant => (wpResult.data ?? []).map(wp => ({
+    participantId: participant.id,
+    participantNumber: participant.participant_number,
+    participantName: participant.organisation_short_name || participant.organisation_name,
+    wpDraftId: wp.id,
+    wpNumber: wp.number,
+    currentPersonMonths: current.get(`${participant.id}|${wp.id}`) ?? 0,
+    proposedPersonMonths: proposed.get(`${participant.id}|${wp.id}`) ?? 0,
+  })));
+}
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message);
+  return String(error);
+}
 
 export function useLumpSumPersonnel(proposalId: string) {
   const queryClient = useQueryClient();
@@ -150,10 +204,20 @@ export function useLumpSumPersonnel(proposalId: string) {
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
+  const invalidateMirrors = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
+      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
+      queryClient.invalidateQueries({ queryKey: ['b31-budget-rows', proposalId] }),
+    ]);
+  };
 
   const addRole = useMutation({
     mutationFn: async ({ participantId, costLine }: { participantId: string; costLine: string }) => {
-      await ensureParticipantBudget(proposalId, participantId);
+      const { error: budgetError } = await supabase
+        .from('ls_participant_budget')
+        .upsert({ proposal_id: proposalId, participant_id: participantId }, { onConflict: 'participant_id' });
+      if (budgetError) throw budgetError;
       const current = query.data?.roles.filter(role => role.participant_id === participantId && role.cost_line === costLine) ?? [];
       const { error } = await supabase.from('ls_personnel_roles').insert({
         proposal_id: proposalId,
@@ -193,11 +257,7 @@ export function useLumpSumPersonnel(proposalId: string) {
     },
     onSuccess: async () => {
       await invalidate();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
-        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
-        queryClient.invalidateQueries({ queryKey: ['b31-budget-rows', proposalId] }),
-      ]);
+      await invalidateMirrors();
     },
     onError: (error: unknown) => toast.error(`Failed to delete role: ${errorMessage(error)}`),
   });
@@ -218,7 +278,10 @@ export function useLumpSumPersonnel(proposalId: string) {
     mutationFn: async ({ roleId, wpDraftId, personMonths }: { roleId: string; wpDraftId: string; personMonths: number }) => {
       const role = query.data?.roles.find(item => item.id === roleId);
       if (!role) return;
-      await ensureParticipantBudget(proposalId, role.participant_id);
+      const { error: budgetError } = await supabase
+        .from('ls_participant_budget')
+        .upsert({ proposal_id: proposalId, participant_id: role.participant_id }, { onConflict: 'participant_id' });
+      if (budgetError) throw budgetError;
       const { error } = await supabase.from('ls_personnel_effort').upsert({
         proposal_id: proposalId,
         role_id: roleId,
@@ -230,18 +293,17 @@ export function useLumpSumPersonnel(proposalId: string) {
     },
     onSuccess: async () => {
       await invalidate();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
-        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
-        queryClient.invalidateQueries({ queryKey: ['b31-budget-rows', proposalId] }),
-      ]);
+      await invalidateMirrors();
     },
     onError: (error: unknown) => toast.error(`Failed to save effort: ${errorMessage(error)}`),
   });
 
   const setA4UnitCost = useMutation({
     mutationFn: async ({ participantId, value }: { participantId: string; value: number }) => {
-      await ensureParticipantBudget(proposalId, participantId);
+      const { error: budgetError } = await supabase
+        .from('ls_participant_budget')
+        .upsert({ proposal_id: proposalId, participant_id: participantId }, { onConflict: 'participant_id' });
+      if (budgetError) throw budgetError;
       const { error } = await supabase.from('ls_participant_budget').update({ a4_unit_cost: value }).eq('proposal_id', proposalId).eq('participant_id', participantId);
       if (error) throw error;
     },
