@@ -42,6 +42,8 @@ interface BudgetPortalSheetProps {
   proposalId: string;
   proposalType: string | null;
   budgetType?: string;
+  traditionalBudgetLocked?: boolean;
+  lumpSumBudgetLocked?: boolean;
   canEdit: boolean;
   isCoordinator: boolean;
   usesFstp?: boolean;
@@ -83,6 +85,8 @@ export function BudgetPortalSheet({
   proposalId,
   proposalType,
   budgetType,
+  traditionalBudgetLocked = false,
+  lumpSumBudgetLocked = false,
   canEdit,
   isCoordinator,
   usesFstp = false,
@@ -109,10 +113,39 @@ export function BudgetPortalSheet({
   const isAdmin = roleTier === 'coordinator';
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
+  const budgetTabs = useMemo(() => {
+    const currentIsLumpSum = budgetType === 'lump_sum';
+    const tabs: Array<'budget' | 'lump-sum'> = [];
+    if (currentIsLumpSum || lumpSumBudgetLocked) tabs.push('lump-sum');
+    if (!currentIsLumpSum || traditionalBudgetLocked) tabs.push('budget');
+    return tabs;
+  }, [budgetType, lumpSumBudgetLocked, traditionalBudgetLocked]);
+  const availableTabs = useMemo(
+    () => [...budgetTabs, ...(usesFstp ? ['fstp' as const] : [])],
+    [budgetTabs, usesFstp],
+  );
+  const storageKey = `budget-active-tab:${user?.id ?? 'anonymous'}:${proposalId}`;
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
+  const traditionalReadOnly = activeTab === 'budget' && traditionalBudgetLocked;
+  const lumpSumReadOnly = activeTab === 'lump-sum' && lumpSumBudgetLocked;
+  const activeTabCanEdit = canEdit && !traditionalReadOnly;
+
+  useEffect(() => {
+    const savedTab = window.localStorage.getItem(storageKey);
+    const nextTab = savedTab && availableTabs.includes(savedTab as typeof availableTabs[number])
+      ? savedTab
+      : availableTabs[0];
+    if (nextTab) setActiveTab(nextTab);
+  }, [storageKey, availableTabs]);
+
+  useEffect(() => {
+    if (availableTabs.includes(activeTab as typeof availableTabs[number])) {
+      window.localStorage.setItem(storageKey, activeTab);
+    }
+  }, [activeTab, availableTabs, storageKey]);
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
