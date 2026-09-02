@@ -13,6 +13,8 @@ export type ParticipantLock = {
   is_locked: boolean;
   locked_by: string | null;
   locked_at: string | null;
+  locked_by_name?: string | null;
+  locked_by_email?: string | null;
 };
 
 export type ProposalMember = {
