@@ -332,12 +332,11 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
   };
 
   return <section id={DEPRECIATION_SECTION_ID} className={`border-b border-border/70 ${SUBLINE_INDENT}`}>
-    <div className={SUBLINE_HEADING_ROW}>
-      <CollapseChevron collapsed={collapsed} onToggle={toggle} label="depreciation register" className="h-6 w-6" />
+    <CollapsibleHeader collapsed={collapsed} onToggle={toggle} label="depreciation register" level="subline">
       <h2 className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">Depreciation of equipment, infrastructure and other assets</h2>
       {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
-      {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button>}
-    </div>
+      {!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button></HeaderControl>}
+    </CollapsibleHeader>
     {!collapsed && <>
       <p className="pb-1 text-xs text-muted-foreground">
         Charged depreciation is the purchase cost multiplied by the percentage used for the project and by the percentage of the asset’s useful life falling within the project. Ticking “Include in C.2” carries the charge into the C.2 sub-line matching the resource type — infrastructure, equipment or other assets — for that work package.
