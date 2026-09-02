@@ -5,7 +5,6 @@ import { useProposalRole } from '@/hooks/useProposalRole';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { JustificationItemsEditor } from '@/components/JustificationItemsEditor';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
-import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
