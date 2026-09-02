@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSumPersonnelTable';
-import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import LumpSumDepreciationSection, {
@@ -274,7 +274,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     };
     return <section key={line.key} className={`border-b border-border/70 ${nested ? SUBLINE_INDENT : LINE_INDENT}`}>
       <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} level={nested ? 'subline' : 'line'}><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button></HeaderControl>}</CollapsibleHeader>
-      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Subtotal (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{mirrored.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={5} measure={`${line.key}-line-total`} /></tfoot></table></SortableContext></DndContext></div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className={`${LS_TABLE} text-sm`}><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col /><col style={{ width: COL_WIDTH.figure }} /><col style={{ width: COL_WIDTH.gutter }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Subtotal (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{mirrored.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={5} measure={`${line.key}-line-total`} /></tfoot></table></SortableContext></DndContext></div>}
     </section>;
   };
 
@@ -305,7 +305,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     const freeWorkPackages = workPackages.filter(wp => !usedWpIds.has(wp.id));
     return <section key={line.key} className={`border-b border-border/70 ${LINE_INDENT}`}>
       <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} level="line"><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && freeWorkPackages.length > 0 && <HeaderControl><Select onValueChange={wpDraftId => addItem(participantId, line.key, wpDraftId)}><SelectTrigger className="h-6 w-auto min-w-20 shrink-0 px-2 text-xs"><SelectValue placeholder="Add item" /></SelectTrigger><SelectContent>{freeWorkPackages.map(wp => <SelectItem key={wp.id} value={wp.id} className="pl-2 [&>span:first-child]:hidden"><span title={wp.title ?? wp.short_name ?? ''}><WPBubble wpNumber={wp.number} wpColor={wp.color}>{`WP${wp.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select></HeaderControl>}</CollapsibleHeader>
-      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Amount (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={2} measure={`${line.key}-line-total`} /></tfoot></table></div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><table className={`${LS_TABLE} text-sm`}><colgroup><col style={{ width: COL_WIDTH.wp }} /><col /><col style={{ width: COL_WIDTH.figure }} /><col style={{ width: COL_WIDTH.gutter }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Amount (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={2} measure={`${line.key}-line-total`} /></tfoot></table></div>}
     </section>;
   };
 
@@ -328,12 +328,12 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
  * value's right edge lines up with the fields above it.
  */
 function SubtotalTable({ rows, scope }: { rows: { wp: LumpSumCostWorkPackage; total: number }[]; scope: string }) {
-  return <table data-ls-total-table className="w-full table-fixed border-collapse text-sm">
+  return <table data-ls-total-table className={`${LS_TABLE} text-sm`}>
     <colgroup>
       <col style={{ width: COL_WIDTH.grip }} />
       <col />
-      <col style={{ width: COL_WIDTH.amount }} />
-      <col style={{ width: COL_WIDTH.delete }} />
+      <col style={{ width: COL_WIDTH.figure }} />
+      <col style={{ width: COL_WIDTH.gutter }} />
     </colgroup>
     <tbody>{rows.map(({ wp, total }) => <tr key={`${scope}-${wp.id}`}>
       <td />
@@ -345,12 +345,12 @@ function SubtotalTable({ rows, scope }: { rows: { wp: LumpSumCostWorkPackage; to
 }
 
 export function TotalRow({ label, value, difference = 0, measure }: { label: string; value: number; difference?: number; measure?: string }) {
-  return <table data-ls-total-table className="w-full table-fixed border-collapse text-sm">
+  return <table data-ls-total-table className={`${LS_TABLE} text-sm`}>
     <colgroup>
       <col style={{ width: COL_WIDTH.grip }} />
       <col />
-      <col style={{ width: COL_WIDTH.amount }} />
-      <col style={{ width: COL_WIDTH.delete }} />
+      <col style={{ width: COL_WIDTH.figure }} />
+      <col style={{ width: COL_WIDTH.gutter }} />
     </colgroup>
     <tbody><tr>
       <td />

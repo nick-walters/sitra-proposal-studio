@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import { CollapsibleHeader, LINE_INDENT, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import {
   WP_COMMENT_LIMIT,
@@ -214,7 +214,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
       </CollapsibleHeader>
       {!fCollapsed && <div className={`space-y-2 pb-2 ${LINE_INDENT}`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
+          <table className={`${LS_TABLE} min-w-[900px] text-sm`}>
             <colgroup>
               <col style={{ width: LS_COL.summaryWp }} />
               {/*
@@ -224,21 +224,20 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                 ending in the same trailing gutter — makes this table's right edge
                 coincide with every other lump-sum table.
               */}
-              <col />
               <col style={{ width: LS_COL.summaryNarrow }} />
               <col style={{ width: LS_COL.summaryNarrow }} />
               <col style={{ width: LS_COL.summaryNarrow }} />
               <col style={{ width: LS_COL.summaryNarrow }} />
               <col style={{ width: LS_COL.summaryNarrow }} />
-              <col style={{ width: LS_COL.figure }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.request }} />
-              <col style={{ width: LS_COL.percent }} />
+              <col />
+              <col style={{ width: LS_COL.figure }} />
               <col style={{ width: LS_COL.gutter }} />
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>
-              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">A</th>
               <th className="px-1 py-1.5 text-right">B</th>
               <th className="px-1 py-1.5 text-right">C</th>
@@ -247,12 +246,13 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <th className="px-1 py-1.5 text-right">F. Total costs</th>
               <th className="px-1 py-1.5 text-right">G. Max EU contribution</th>
               <th className="px-1 py-1.5 text-right">H. Requested EU contribution</th>
+              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">% requested</th>
+              <th aria-label="Actions" />
             </tr></thead>
             <tbody>
               {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
                 <td className="px-1 py-0.5">{wpBadge(row.wp)}</td>
-                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.purchase)}</div></td>
@@ -270,8 +270,9 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
+                <td aria-hidden="true" />
                 {/* The percentage is derived from H over G; editing it writes H back. */}
-                <td className="px-1 py-0.5">
+                <td className={`${LS_FIGURE_CELL} py-0.5`}>
                   <DebouncedNumberField
                     key={`pct-${row.wp.id}-${row.requestedEuContribution}`}
                     value={requestedPercent(row.requestedEuContribution, row.maxEuContribution)}
@@ -287,19 +288,21 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     )}
                   />
                 </td>
+                <td />
               </tr>)}
               <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
                 <td className="px-1 py-0.5">Total</td>
-                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
-                <td data-ls-measure="F-total" className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
+                <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.requestedEuContribution)}</div></td>
-                <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{grandPercent == null ? '' : `${formatNumber(grandPercent, 2)}%`}</div></td>
+                <td aria-hidden="true" />
+                <td data-ls-measure="summary-percent-total" className={`${LS_FIGURE_CELL} py-0.5`}><div className={`${READ_CELL} font-semibold`}>{grandPercent == null ? '' : `${formatNumber(grandPercent, 2)}%`}</div></td>
+                <td />
               </tr>
             </tbody>
           </table>

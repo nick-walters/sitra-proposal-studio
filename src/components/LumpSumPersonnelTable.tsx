@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_FIGURE_CELL, LS_PERSONNEL_MIN_WIDTH } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
@@ -238,7 +238,6 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   const blockTotalPm = roles.reduce((sum, role) => sum + roleTotalPm(role), 0);
   const portalTotals = costLineTotals(costLine, roles, efforts, workPackages, a4UnitCost);
   const blockCost = portalTotals.portalCost;
-  const tableMinWidth = LS_PERSONNEL_MIN_WIDTH(workPackages.length, isA1);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleDragEnd = (event: DragEndEvent, groupRoles: LumpSumRole[]) => {
@@ -259,7 +258,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className="w-full table-fixed text-xs" style={{ minWidth: tableMinWidth }}>
+        <table className={`${LS_TABLE} text-xs`}>
           <colgroup>
             <col style={{ width: COL_WIDTH.grip }} />
             <col style={{ width: COL_WIDTH.role }} />
@@ -300,7 +299,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                     {workPackages.map(wp => <td key={wp.id} className={`${CELL} py-0.5 align-middle`}><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className={NUM_FIELD} onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
                     <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} font-medium`}>{formatPM(roleTotalPm(role))}</div></td>
                     <td />
-                    <td className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
+                     <td data-ls-measure={`${costLine}-item-cost`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
                     <td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
                   </>}</SortableRow>)}
               </SortableContext>
@@ -314,7 +313,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(blockTotalPm)}</div></td>
                <td />
                {/* Fixed figure column; the preceding spacer absorbs remaining width. */}
-               <td data-ls-measure={`${costLine}-line-total`} data-ls-cost-cell className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><DifferenceNote difference={portalTotals.difference} /></div></td>
+               <td data-ls-measure={`${costLine}-line-total`} data-ls-cost-cell className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><span data-ls-measure={`${costLine}-rounding-difference`}><DifferenceNote difference={portalTotals.difference} /></span></div></td>
                <td className={`${CELL} py-0.5`} />
              </tr>
           </tbody>
@@ -337,7 +336,7 @@ function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRo
     {result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(pm)}</div></td>)}
     <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(result.totalPm)}</div></td>
     <td />
-    <td className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(result.cost)}</span><DifferenceNote difference={difference} /></div></td>
+    <td data-ls-measure={`${label}-weighted-subtotal`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(result.cost)}</span><DifferenceNote difference={difference} /></div></td>
     <td className={`${CELL} py-0.5`} />
   </tr>;
 }
