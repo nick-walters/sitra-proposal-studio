@@ -100,6 +100,44 @@ export const SUBLINE_HEADING_ROW = 'flex h-7 items-center gap-1 overflow-hidden'
 export const LINE_INDENT = 'pl-4';
 export const SUBLINE_INDENT = 'pl-8';
 
+/**
+ * Every lump-sum heading toggles from anywhere on the row, not just the
+ * chevron. The row is a focusable button-role element so Enter and Space work,
+ * and any control inside it must be wrapped in <HeaderControl> so its own click
+ * does not also toggle the section.
+ */
+export function CollapsibleHeader({ className, collapsed, onToggle, children }: {
+  className: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return <div
+    role="button"
+    tabIndex={0}
+    aria-expanded={!collapsed}
+    onClick={onToggle}
+    onKeyDown={event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onToggle();
+      }
+    }}
+    className={`${className} cursor-pointer rounded-sm transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+  >{children}</div>;
+}
+
+/** Swallows clicks and key presses so controls inside a header never toggle it. */
+export function HeaderControl({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <span
+    className={className ? `${className} contents-none` : undefined}
+    onClick={event => event.stopPropagation()}
+    onKeyDown={event => event.stopPropagation()}
+    onPointerDown={event => event.stopPropagation()}
+  >{children}</span>;
+}
+
+
 const RESOURCE_TYPES = [
   { value: 'equipment', label: 'Equipment' },
   { value: 'infrastructure', label: 'Infrastructure' },
