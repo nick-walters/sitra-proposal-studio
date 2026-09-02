@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -300,6 +300,7 @@ function SortableDepreciationRow({ item, workPackages, editable, onField, onDele
     <td className="px-1"><LocalNumberInput value={item.pct_useful_life} decimals={2} max={100} disabled={!editable} onCommit={value => onField('pct_useful_life', value)} /></td>
     <td className="px-1 text-center"><Checkbox checked={item.include_in_c2} disabled={!editable} aria-label="Include in C.2" onCheckedChange={checked => onField('include_in_c2', checked === true)} /></td>
     <td className="px-1"><LocalTextInput value={item.comments ?? ''} disabled={!editable} maxLength={DEPRECIATION_COMMENT_LIMIT} onCommit={value => onField('comments', value)} /></td>
+    <td />
     <td data-ls-measure="depreciation-item-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.charged_depreciation ?? 0))}</div></td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete investment" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
@@ -331,7 +332,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
     reorderItems(next.map(item => item.id));
   };
 
-  return <section id={DEPRECIATION_SECTION_ID} className={`border-b border-border/70 ${SUBLINE_INDENT}`}>
+  return <section id={DEPRECIATION_SECTION_ID} className={`border-b border-border/70 ${SUBLINE_INDENT} min-w-0`}>
     <CollapsibleHeader collapsed={collapsed} onToggle={toggle} label="depreciation register" level="subline">
       <h2 className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">Depreciation of equipment, infrastructure and other assets</h2>
       {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
@@ -342,10 +343,10 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
         Charged depreciation is the purchase cost multiplied by the percentage used for the project and by the percentage of the asset’s useful life falling within the project. Ticking “Include in C.2” carries the charge into the C.2 sub-line matching the resource type — infrastructure, equipment or other assets — for that work package.
       </p>
 
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto pb-2 w-full">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-            <table className={`${LS_TABLE} text-sm`}>
+            <table className={`${LS_TABLE} text-sm`} style={{ minWidth: Math.min(LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH), width: '100%' }}>
               <colgroup>
                 <col style={{ width: LS_COL.grip }} />
                 <col style={{ width: LS_COL.wp }} />
@@ -356,6 +357,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 <col style={{ width: LS_COL.depreciationPercent }} />
                 <col style={{ width: LS_COL.depreciationPercent }} />
                 <col style={{ width: LS_COL.depreciationInclude }} />
+                <col style={{ width: LS_COL.depreciationComments }} />
                 <col />
                 <col style={{ width: LS_COL.figure }} />
                 <col style={{ width: LS_COL.gutter }} />
@@ -371,6 +373,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 <th className="px-1 text-right">% life</th>
                 <th className="px-1 text-center">Include in C.2</th>
                 <th className="px-1 text-left">Comments</th>
+                <th />
                 <th className="px-1 text-right">Charged (€)</th>
                 <th />
               </tr></thead>
@@ -383,9 +386,9 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                   onField={(field, value) => updateItem(item.id, field, value)}
                   onDelete={() => deleteItem(item.id)}
                 />)}
-                {items.length === 0 && <tr><td colSpan={12} className="px-1 py-2 text-xs text-muted-foreground">No investments recorded.</td></tr>}
+                {items.length === 0 && <tr><td colSpan={13} className="px-1 py-2 text-xs text-muted-foreground">No investments recorded.</td></tr>}
                 <tr className="border-t border-border">
-                  <td className="px-1 text-right text-xs font-bold" colSpan={10}>Total charged depreciation</td>
+                  <td className="px-1 text-right text-xs font-bold" colSpan={11}>Total charged depreciation</td>
                   <td data-ls-measure="depreciation-total-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-bold`}>{formatCurrency(total)}</div></td>
                   <td />
                 </tr>

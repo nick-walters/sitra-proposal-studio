@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL, LS_MAX_TABLE_WIDTH, LS_PERSONNEL_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
@@ -258,16 +258,15 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
         const group = grouped.find(item => item.roles.some(role => role.id === event.active.id));
         if (group) handleDragEnd(event, group.roles);
       }}>
-        <table className={`${LS_TABLE} text-xs`}>
+        <table className={`${LS_TABLE} text-xs`} style={{ minWidth: Math.min(LS_PERSONNEL_MIN_WIDTH(workPackages.length, isA1), LS_MAX_TABLE_WIDTH) }}>
           <colgroup>
             <col style={{ width: COL_WIDTH.grip }} />
-            <col style={{ width: COL_WIDTH.role }} />
+            {/* The role name absorbs the remaining width; the shared right block remains fixed. */}
+            <col />
             {isA1 && <col style={{ width: COL_WIDTH.category }} />}
             <col style={{ width: COL_WIDTH.rate }} />
             {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wpPm }} />)}
             <col style={{ width: COL_WIDTH.totalPm }} />
-            {/* Absorbs available width so the shared figure and gutter stay fixed. */}
-            <col />
             <col style={{ width: COL_WIDTH.figure }} />
             <col style={{ width: COL_WIDTH.gutter }} />
           </colgroup>
@@ -278,14 +277,13 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             <th className={`${NUM_CELL} py-1.5`}>{costLine === 'A.4' ? 'Unit cost (€)' : 'PM rate (€)'}</th>
             {/*
               The badge carries the number only: "WP6: Coordination" measures up to
-              135px, which overflows the 64px person-month column and paints across
+              135px, which overflows the person-month column and paints across
               its neighbours. The full name stays available as the cell tooltip, and
               every work-package column keeps the same width.
             */}
              {workPackages.map(wp => <th key={wp.id} className={`${CELL} py-1.5 text-center`} title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></th>)}
               <th className={`${NUM_CELL} py-1.5`}>Total PMs</th>
-              <th aria-hidden="true" />
-              <th className="pl-1.5 pr-0 py-1.5 whitespace-nowrap text-left">Cost (€)</th>
+              <th className={`${NUM_CELL} py-1.5 whitespace-nowrap`}>Cost (€)</th>
               <th className={`${CELL} py-1.5`} aria-label="Delete" />
             </tr></thead>
           <tbody>
@@ -298,7 +296,6 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                    <td className={`${CELL} py-0.5 align-middle`}><NumericInput value={costLine === 'A.4' ? a4UnitCost : role.pm_rate} disabled={!editable || costLine === 'A.4'} step="0.01" decimals={2} className={NUM_FIELD} onCommit={value => onUpdateRole(role.id, 'pm_rate', value)} /></td>
                     {workPackages.map(wp => <td key={wp.id} className={`${CELL} py-0.5 align-middle`}><NumericInput value={effortByKey.get(`${role.id}:${wp.id}`)} disabled={!editable} step="0.1" decimals={1} className={NUM_FIELD} onCommit={value => onSetEffort(role.id, wp.id, value)} /></td>)}
                     <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} font-medium`}>{formatPM(roleTotalPm(role))}</div></td>
-                    <td />
                     <td data-ls-measure={`${costLine}-item-cost`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-medium`}>{formatCurrency(roleCost(role))}</div></td>
                     <td className={`${CELL} py-0.5 text-center`}>{editable && <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(role.id)} aria-label="Delete role" title="Delete role"><Trash2 className="h-3.5 w-3.5" /></Button>}</td>
                   </>}</SortableRow>)}
@@ -307,15 +304,15 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
             </Fragment>)}
              <tr className="border-t-2 border-foreground/30 bg-muted/30 text-xs font-semibold md:text-sm">
                <td className={`${CELL} py-0.5`} />
-               <td colSpan={isA1 ? 2 : 1} className={`${CELL} py-0.5`}><div className={READ_FIELD}>{costLine} total</div></td>
+               <td colSpan={isA1 ? 2 : 1} className={`${CELL} py-0.5 text-right`}><div className={`${READ_FIELD} justify-end whitespace-nowrap`}>{costLine} total</div></td>
                <td className={`${CELL} py-0.5`} />
                <td colSpan={workPackages.length} />
                <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(blockTotalPm)}</div></td>
-               <td />
-               {/* Fixed figure column; the preceding spacer absorbs remaining width. */}
+               {/* Fixed figure column, anchored from the table's right edge. */}
                <td data-ls-measure={`${costLine}-line-total`} data-ls-cost-cell className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><span data-ls-measure={`${costLine}-rounding-difference`}><DifferenceNote difference={portalTotals.difference} /></span></div></td>
                <td className={`${CELL} py-0.5`} />
              </tr>
+
           </tbody>
         </table>
       </DndContext>
@@ -335,7 +332,6 @@ function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRo
     <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatNumber(result.roundedAverage, 2)}</div></td>
     {result.pms.map((pm, index) => <td key={workPackages[index]?.id ?? index} className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(pm)}</div></td>)}
     <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(result.totalPm)}</div></td>
-    <td />
     <td data-ls-measure={`${label}-weighted-subtotal`} className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(result.cost)}</span><DifferenceNote difference={difference} /></div></td>
     <td className={`${CELL} py-0.5`} />
   </tr>;
