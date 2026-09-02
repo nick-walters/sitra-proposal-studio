@@ -242,7 +242,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
           Staff effort (person months per participant per WP)
         </CardTitle>
         <CardDescription>
-          {isLumpSum ? 'Read-only view: enter person months in the lump-sum personnel budget.' : 'Values are mirrored to Table 3.1.f.'}
+          {isLumpSum ? 'person months for this proposal are entered in the lump sum budget; this table shows the actual-costs figures and is retained for reference.' : 'Values are mirrored to Table 3.1.f.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
