@@ -200,12 +200,12 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
     reorderItems(next.map(item => item.id));
   };
 
-  return <section id={DEPRECIATION_SECTION_ID} className="mt-4 border-b border-border">
-    <div className="flex min-h-9 items-center gap-1">
-      <CollapseChevron collapsed={collapsed} onToggle={toggle} label="depreciation register" />
-      <h2 className="min-w-0 flex-1 text-sm font-semibold">Depreciation of equipment, infrastructure and other assets</h2>
-      {collapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
-      {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId)}>Add investment</Button>}
+  return <section id={DEPRECIATION_SECTION_ID} className="border-b border-border/70 pl-4">
+    <div className="flex min-h-8 items-center gap-1">
+      <CollapseChevron collapsed={collapsed} onToggle={toggle} label="depreciation register" className="h-6 w-6" />
+      <h2 className="min-w-0 flex-1 text-xs font-semibold">Depreciation of equipment, infrastructure and other assets</h2>
+      {collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
+      {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button>}
     </div>
     {!collapsed && <>
       <p className="pb-1 text-xs text-muted-foreground">
