@@ -137,7 +137,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
                    <CollapseChevron collapsed={collapsed} onToggle={() => toggle(lineId(block.line))} label={`${block.line} personnel costs`} className="h-6 w-6" />
                    <span className={LINE_HEADING_TEXT}>{block.label}</span>
                   {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
+                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
                 </div>
                 {!collapsed && <div className="space-y-2 pt-2">
                   {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
