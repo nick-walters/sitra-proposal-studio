@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
+import { Lock, LockKeyhole, ShieldCheck, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatNumber';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { DifferenceNote, LumpSumPersonnelTable, NumericInput, costLineTotals } from '@/components/LumpSumPersonnelTable';
+import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
+import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
 import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
@@ -27,17 +30,22 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const { user } = useAuth();
   const { data, isLoading, error, saving, addRole, updateRole, deleteRole, reorderRoles, setEffort, setA4UnitCost } = useLumpSumPersonnel(proposalId);
   const { editableParticipantIds, isCoordinator, loading: permissionsLoading } = useCanEditParticipantBudget(proposalId);
+  const budgetAccess = useLumpSumBudgetAccess(proposalId);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+  const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
+  const permissionsParticipant = participants.find(participant => participant.id === permissionsParticipantId);
   const roles = data?.roles ?? [];
   const efforts = data?.efforts ?? [];
   const participantRoles = useMemo(() => selected ? roles.filter(role => role.participant_id === selected.id) : [], [roles, selected]);
   const participantBudget = data?.participantBudgets.find(budget => budget.participant_id === selected?.id);
+  const participantLock = selected ? budgetAccess.lockFor(selected.id) : null;
+  const isLocked = Boolean(participantLock?.is_locked);
   const mayEdit = Boolean(selected && editableParticipantIds.has(selected.id));
-  const editable = mayEdit && (!participantBudget?.is_locked || isCoordinator);
+  const editable = mayEdit && !isLocked;
   const a4UnitCost = Number(participantBudget?.a4_unit_cost ?? 0);
   const workPackages = data?.workPackages ?? [];
 
