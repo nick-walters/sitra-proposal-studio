@@ -143,11 +143,6 @@ export function BudgetPortalSheet({
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
 
-  useEffect(() => {
-    if (!availableTabs.includes(activeTab as typeof availableTabs[number])) return;
-    window.localStorage.setItem(storageKey, activeTab);
-  }, [activeTab, availableTabs, storageKey]);
-
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (availableTabs.includes(value as typeof availableTabs[number])) {
