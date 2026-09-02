@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { lumpSumCollapseKey } from '@/lib/lumpSumCollapse';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -19,6 +18,87 @@ import {
 } from '@/hooks/useLumpSumDepreciation';
 
 export const DEPRECIATION_SECTION_ID = 'ls-depreciation-section';
+/** Collapse id of the depreciation register itself. */
+export const DEPRECIATION_COLLAPSE_ID = 'depreciation';
+
+/* ------------------------------------------------------------------ *
+ * Shared collapse state for the whole lump sum panel.
+ *
+ * One localStorage entry per user and proposal holds a default ("is
+ * everything collapsed?") plus per-heading overrides. Every heading in the
+ * panel — majors, lines, sub-lines and this register — reads and writes it,
+ * which is what lets the toolbar's collapse-all button move all of them at
+ * once and lets the state survive a reload. A module-level cache with
+ * listeners keeps the separate components in step within one page.
+ * ------------------------------------------------------------------ */
+type LsCollapseState = { def: boolean; overrides: Record<string, boolean> };
+
+const COLLAPSE_CACHE = new Map<string, LsCollapseState>();
+const COLLAPSE_LISTENERS = new Map<string, Set<(state: LsCollapseState) => void>>();
+
+export const lsCollapseStorageKey = (userId: string | null | undefined, proposalId: string) =>
+  `ls-collapse:${userId ?? 'anon'}:${proposalId}`;
+
+function loadCollapse(key: string): LsCollapseState {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<LsCollapseState>;
+      if (parsed && typeof parsed === 'object') {
+        return { def: parsed.def !== false, overrides: parsed.overrides ?? {} };
+      }
+    }
+  } catch { /* view preference only */ }
+  // Everything starts collapsed.
+  return { def: true, overrides: {} };
+}
+
+function readCollapse(key: string): LsCollapseState {
+  const cached = COLLAPSE_CACHE.get(key);
+  if (cached) return cached;
+  const loaded = loadCollapse(key);
+  COLLAPSE_CACHE.set(key, loaded);
+  return loaded;
+}
+
+function writeCollapse(key: string, next: LsCollapseState) {
+  COLLAPSE_CACHE.set(key, next);
+  try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* view preference only */ }
+  COLLAPSE_LISTENERS.get(key)?.forEach(listener => listener(next));
+}
+
+export function useLsCollapse(userId: string | null | undefined, proposalId: string) {
+  const key = lsCollapseStorageKey(userId, proposalId);
+  const [state, setState] = useState<LsCollapseState>(() => readCollapse(key));
+
+  // The user id arrives after the first render, so re-read when the key changes.
+  useEffect(() => {
+    setState(readCollapse(key));
+    const listeners = COLLAPSE_LISTENERS.get(key) ?? new Set<(next: LsCollapseState) => void>();
+    listeners.add(setState);
+    COLLAPSE_LISTENERS.set(key, listeners);
+    return () => { listeners.delete(setState); };
+  }, [key]);
+
+  const isCollapsed = useCallback((id: string) => state.overrides[id] ?? state.def, [state]);
+  const toggle = useCallback((id: string) => {
+    const current = readCollapse(key);
+    const collapsed = current.overrides[id] ?? current.def;
+    writeCollapse(key, { ...current, overrides: { ...current.overrides, [id]: !collapsed } });
+  }, [key]);
+  const setAll = useCallback((collapsed: boolean) => writeCollapse(key, { def: collapsed, overrides: {} }), [key]);
+  const allCollapsed = state.def && !Object.values(state.overrides).some(value => value === false);
+
+  return { isCollapsed, toggle, setAll, allCollapsed };
+}
+
+/** Shared heading geometry: one fixed height per hierarchy level. */
+export const MAJOR_HEADING_ROW = 'flex h-9 items-center gap-1 overflow-hidden';
+export const LINE_HEADING_ROW = 'flex h-8 items-center gap-1 overflow-hidden';
+export const SUBLINE_HEADING_ROW = 'flex h-7 items-center gap-1 overflow-hidden';
+/** One indent step per level: lines sit at 16px, sub-lines at 32px. */
+export const LINE_INDENT = 'pl-4';
+export const SUBLINE_INDENT = 'pl-8';
 
 const RESOURCE_TYPES = [
   { value: 'equipment', label: 'Equipment' },
@@ -28,6 +108,7 @@ const RESOURCE_TYPES = [
 
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
 const COL_WIDTH = { grip: 30, wp: 96, type: 132, name: 180, date: 130, cost: 112, pct: 78, charged: 118, include: 78, delete: 34 };
+
 
 function sanitizeNumeric(value: string, decimals: number) {
   let next = value.replace(/,/g, '').replace(/[^0-9.]/g, '');
