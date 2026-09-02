@@ -188,12 +188,13 @@ function layoutWpBadges(args: {
     });
 
   // Milestones sit on the WP banner row, centred on their due month.
-  // Bounded adjustment (prompt 231):
-  //   1. overlaps the WP title TEXT → shift DOWN 10px (x unchanged)
+  // Bounded adjustment (prompt 231, distances per prompt 233):
+  //   1. overlaps the WP title TEXT → shift DOWN 20px and RIGHT 20px
   //   2. after the shift, overlaps a deliverable badge → shift RIGHT until
   //      there is ≥5px between the deliverable's right tip and the MS left tip
   //   3. a badge that moved gets a connector + dot on the banner underside
-  const MS_DROP = 10;
+  const MS_DROP = 20;
+  const MS_RIGHT = 20;
   const MS_DEL_GAP = 5;
   const yBandCentre = ROW_HEIGHT / 2;
   const yTaskCentre = (i: number) => ROW_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2;
