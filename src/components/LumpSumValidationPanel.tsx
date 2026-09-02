@@ -38,19 +38,23 @@ function plural(count: number, word: string) {
  */
 export function LumpSumValidationPanel({
   proposalId,
+  userId,
   onSelectParticipant,
 }: {
   proposalId: string;
+  userId?: string | null;
   onSelectParticipant?: (participantId: string) => void;
 }) {
   const { findings, counts, isLoading } = useLumpSumValidation(proposalId);
-  const [open, setOpen] = useState(false);
-  const [touched, setTouched] = useState(false);
+  const { isCollapsed, toggle: toggleCollapsed } = useLsCollapse(userId, proposalId);
+  // The panel always starts collapsed; the user's own choice persists through
+  // the shared lump-sum collapse state, exactly like the other sections.
+  const open = !isCollapsed(VALIDATION_COLLAPSE_ID);
+  const toggle = () => toggleCollapsed(VALIDATION_COLLAPSE_ID);
 
-  useEffect(() => {
-    if (touched || isLoading) return;
-    setOpen(counts.error > 0);
-  }, [counts.error, isLoading, touched]);
+  // Renders nothing for any proposal other than SUSIE-Q — not even an empty
+  // collapsed section.
+  if (proposalId !== SUSIE_Q_PROPOSAL_ID) return null;
 
   const groups = useMemo(() => {
     const map = new Map<string, { label: string; participantId: string | null; items: LsFinding[] }>();
