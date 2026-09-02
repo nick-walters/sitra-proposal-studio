@@ -221,6 +221,10 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
       }, {
         onConflict: 'wp_draft_id,participant_id',
       });
+    if (error) {
+      toast.error('Failed to save effort');
+      return;
+    }
 
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
