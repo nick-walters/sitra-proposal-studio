@@ -218,6 +218,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <th className="px-1 py-1.5 text-right">F. Total costs</th>
               <th className="px-1 py-1.5 text-right">G. Max EU contribution</th>
               <th className="px-1 py-1.5 text-right">H. Requested EU contribution</th>
+              <th className="px-1 py-1.5 text-right">% requested</th>
             </tr></thead>
             <tbody>
               {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
