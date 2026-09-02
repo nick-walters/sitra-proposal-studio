@@ -165,6 +165,19 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
+
+  // The portal is mounted after the input surface and may inherit a cached
+  // snapshot. Refresh every source on entry so its first settled render uses
+  // the latest database values, including saves made by another hook instance.
+  useEffect(() => {
+    void Promise.all([
+      personnel.refetch(),
+      costs.refetch(),
+      depreciation.refetch(),
+      totals.refetch(),
+    ]);
+  }, [proposalId, participantId]);
+
   const { isCopied, toggleCopied, reset } = useCopyProgress(userId, proposalId, participantId);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
