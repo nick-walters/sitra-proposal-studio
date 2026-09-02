@@ -219,12 +219,20 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
           <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
             <colgroup>
               <col style={{ width: LS_COL.summaryWp }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
+              {/*
+                G, H and the percentage sit to the right of F, so F itself cannot
+                occupy the shared figure position. Instead the spacer sits directly
+                after the work-package column: every fixed column to its right —
+                ending in the same trailing gutter — makes this table's right edge
+                coincide with every other lump-sum table.
+              */}
+              <col />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.figure }} />
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.request }} />
               <col style={{ width: LS_COL.percent }} />
@@ -232,6 +240,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>
+              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">A</th>
               <th className="px-1 py-1.5 text-right">B</th>
               <th className="px-1 py-1.5 text-right">C</th>
@@ -245,6 +254,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
             <tbody>
               {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
                 <td className="px-1 py-0.5">{wpBadge(row.wp)}</td>
+                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.purchase)}</div></td>
@@ -262,12 +272,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
-                {/*
-                  The percentage is never stored: it is derived from H over G, and
-                  editing it writes H back. Above 100 the request would exceed the
-                  maximum, so the displayed share is clamped and the same red
-                  warning as an over-maximum H appears.
-                */}
+                {/* The percentage is derived from H over G; editing it writes H back. */}
                 <td className="px-1 py-0.5">
                   <DebouncedNumberField
                     key={`pct-${row.wp.id}-${row.requestedEuContribution}`}
@@ -287,6 +292,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               </tr>)}
               <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
                 <td className="px-1 py-0.5">Total</td>
+                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.personnel)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.subcontracting)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.purchase)}</div></td>
