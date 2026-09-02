@@ -209,7 +209,11 @@ function layoutWpBadges(args: {
       let dy = 0;
 
       // Step 1 — overlap with the WP title text (band row only).
-      if (hexLeft < args.titleRightInOverlay) dy = MS_DROP;
+      if (hexLeft < args.titleRightInOverlay) {
+        dy = MS_DROP;
+        hexLeft = Math.min(hexLeft + MS_RIGHT, overlayWidth - shapeW);
+      }
+
 
       // Step 2 — after the drop, resolve overlaps with deliverable badges.
       if (dy !== 0) {
