@@ -83,6 +83,10 @@ const PARTICIPANT_COLUMNS = [
   { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
 
+type BudgetView = 'enter' | 'portal';
+
+const PORTAL_VIEW_KEY = (userId: string | undefined, proposalId: string) => `ls-budget-view:${userId ?? 'anon'}:${proposalId}`;
+
 export function BudgetPortalSheet({
   proposalId,
   proposalType,
@@ -158,6 +162,8 @@ export function BudgetPortalSheet({
   // that occurs when reopening the editor, including from a deep link.
   const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
+  const portalViewKey = PORTAL_VIEW_KEY(user?.id, proposalId);
+  const [budgetView, setBudgetView] = useState<BudgetView>('enter');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
@@ -173,6 +179,23 @@ export function BudgetPortalSheet({
       : availableTabs[0];
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
+
+  useEffect(() => {
+    try {
+      setBudgetView(window.localStorage.getItem(portalViewKey) === 'portal' ? 'portal' : 'enter');
+    } catch {
+      setBudgetView('enter');
+    }
+  }, [portalViewKey]);
+
+  const chooseBudgetView = (next: BudgetView) => {
+    setBudgetView(next);
+    try {
+      window.localStorage.setItem(portalViewKey, next);
+    } catch {
+      // View preference is optional when browser storage is unavailable.
+    }
+  };
 
   // Register the lump-sum panel with the shared page-wide editor bar. The
   // control is cleared when this A3 surface unmounts or another tab is active.
@@ -778,17 +801,25 @@ export function BudgetPortalSheet({
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="flex items-center justify-between">
-            <TabsList>
-              {/* Order follows `budgetTabs`, so the proposal's current budget
-                  type always sits first and any superseded one after it. */}
-              {budgetTabs.map((tab) => (
-                <TabsTrigger key={tab} value={tab}>
-                  {tab === 'budget' ? 'Actual costs budget' : 'Lump sum budget'}
-                </TabsTrigger>
-              ))}
-              {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-            </TabsList>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <TabsList>
+                {/* Order follows `budgetTabs`, so the proposal's current budget
+                    type always sits first and any superseded one after it. */}
+                {budgetTabs.map((tab) => (
+                  <TabsTrigger key={tab} value={tab}>
+                    {tab === 'budget' ? 'Actual costs budget' : 'Lump sum budget'}
+                  </TabsTrigger>
+                ))}
+                {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+              </TabsList>
+              {budgetTabs.includes('lump-sum') && (
+                <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
+                  <Button type="button" size="sm" variant={budgetView === 'enter' ? 'default' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
+                  <Button type="button" size="sm" variant={budgetView === 'portal' ? 'default' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
+                </div>
+              )}
+            </div>
             {activeTab !== 'fstp' && (
               <div className="flex items-center gap-3">
                 {traditionalReadOnly || lumpSumReadOnly ? (
@@ -1137,7 +1168,7 @@ export function BudgetPortalSheet({
 
           {budgetTabs.includes('lump-sum') && (
             <TabsContent value="lump-sum">
-              <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} />
+              <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} budgetView={budgetView} />
             </TabsContent>
           )}
 
