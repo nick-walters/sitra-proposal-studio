@@ -1,6 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useAuth } from '@/hooks/useAuth';
@@ -113,13 +114,40 @@ export function BudgetPortalSheet({
   const isAdmin = roleTier === 'coordinator';
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
+  // Cheap existence checks (limit 1) so a budget type holding real data stays
+  // visible even when its lock flag is false.
+  const { data: budgetDataPresence } = useQuery({
+    queryKey: ['budget-data-presence', proposalId],
+    enabled: !!proposalId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [traditionalRows, roles, costItems, depreciation] = await Promise.all([
+        supabase.from('budget_rows').select('id').eq('proposal_id', proposalId).limit(1),
+        supabase.from('ls_personnel_roles').select('id').eq('proposal_id', proposalId).limit(1),
+        supabase.from('ls_cost_items').select('id').eq('proposal_id', proposalId).limit(1),
+        supabase.from('ls_depreciation_items').select('id').eq('proposal_id', proposalId).limit(1),
+      ]);
+      return {
+        traditional: (traditionalRows.data?.length ?? 0) > 0,
+        lumpSum: [roles, costItems, depreciation].some((r) => (r.data?.length ?? 0) > 0),
+      };
+    },
+  });
+
   const budgetTabs = useMemo(() => {
     const currentIsLumpSum = budgetType === 'lump_sum';
     const tabs: Array<'budget' | 'lump-sum'> = [];
-    if (currentIsLumpSum || lumpSumBudgetLocked) tabs.push('lump-sum');
-    if (!currentIsLumpSum || traditionalBudgetLocked) tabs.push('budget');
+    const showLumpSum = currentIsLumpSum || lumpSumBudgetLocked || !!budgetDataPresence?.lumpSum;
+    const showTraditional = !currentIsLumpSum || traditionalBudgetLocked || !!budgetDataPresence?.traditional;
+    if (currentIsLumpSum) {
+      if (showLumpSum) tabs.push('lump-sum');
+      if (showTraditional) tabs.push('budget');
+    } else {
+      if (showTraditional) tabs.push('budget');
+      if (showLumpSum) tabs.push('lump-sum');
+    }
     return tabs;
-  }, [budgetType, lumpSumBudgetLocked, traditionalBudgetLocked]);
+  }, [budgetType, lumpSumBudgetLocked, traditionalBudgetLocked, budgetDataPresence]);
   const availableTabs = useMemo(
     () => [...budgetTabs, ...(usesFstp ? ['fstp' as const] : [])],
     [budgetTabs, usesFstp],
