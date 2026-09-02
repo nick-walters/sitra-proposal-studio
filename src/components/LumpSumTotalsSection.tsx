@@ -181,7 +181,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
     <WPBubble wpNumber={wp.number} wpColor={wp.color} />
   </span>;
 
-  const fCollapsed = isCollapsed(COLLAPSE_F);
+  const fCollapsed = isCollapsed(COLLAPSE_TOTALS);
   const commentsCollapsed = isCollapsed(COLLAPSE_COMMENTS);
   const grandPercent = requestedPercent(grand.requestedEuContribution, grand.maxEuContribution);
   const heading = 'E. Indirect costs | F. Total costs | G. Maximum EU contribution | H. Requested EU contribution';
