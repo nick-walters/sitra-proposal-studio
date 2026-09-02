@@ -277,11 +277,11 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       .filter((line): line is typeof LINES.C[number] => Boolean(line));
     const total = childLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
     return <section key={parent.key} className="border-b border-border/70 ml-2">
-      <div className={`${LINE_HEADING_ROW} ${parent.key === 'C.2' ? '' : ''}`}><CollapseChevron collapsed={collapsed} onToggle={() => toggleParent(parent.key)} label={parent.label} className="h-6 w-6" /><span className={LINE_HEADING_TEXT}>{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</div>
+      <div className={LINE_HEADING_ROW}><CollapseChevron collapsed={collapsed} onToggle={() => toggleParent(parent.key)} label={parent.label} className="h-6 w-6" /><span className={LINE_HEADING_TEXT}>{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</div>
       {!collapsed && <>
         {parent.key === 'C.2' && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
         {childLines.map(line => renderItemisedLine(line, true))}
-        <div className="flex justify-end py-1 text-sm font-semibold tabular-nums"><span className={`${NUM_READ_FIELD} w-32`}>{parent.key} total: {formatCurrency(total)}</span></div>
+        <div className="flex h-7 items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className={SUBTOTAL_LABEL}>{parent.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(total)}</span></div>
       </>}
     </section>;
   };
@@ -306,7 +306,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       if (category.key === 'C' && (line.key === 'C.3.consumables' || line.key === 'C.3.meetings' || line.key === 'C.3.dissemination' || line.key === 'C.3.publication' || line.key === 'C.3.other')) return null;
       return category.key === 'D' ? renderDLine(line) : renderItemisedLine(line);
     };
-    return <section key={category.key} className="border-b border-border"><div className="flex min-h-9 items-center gap-1"><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggleMajor(category.key)} label={category.label} /><span className="min-w-0 flex-1 text-lg font-semibold">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{category.key === 'C' ? <>{renderCategoryLine(LINES.C[0])}{C_PARENTS.map(renderCParent)}</> : visibleLines.map(renderCategoryLine)}<div className="space-y-0.5 border-t border-border/70 py-1">{renderCategorySubtotals(category)}<div className="flex items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className="text-muted-foreground">{category.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(categoryTotal)}</span></div></div></>}</section>;
+    return <section key={category.key} className="border-b border-border"><div className={MAJOR_HEADING_ROW}><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggleMajor(category.key)} label={category.label} /><span className={MAJOR_HEADING_TEXT}>{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{category.key === 'C' ? <>{renderCategoryLine(LINES.C[0])}{C_PARENTS.map(renderCParent)}</> : visibleLines.map(renderCategoryLine)}<div className="space-y-0.5 border-t border-border/70 py-1">{renderCategorySubtotals(category)}<div className="flex h-7 items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className={SUBTOTAL_LABEL}>{category.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(categoryTotal)}</span></div></div></>}</section>;
   })}</div>;
 }
 
