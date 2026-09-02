@@ -16,9 +16,8 @@ import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { CollapsibleHeader, HeaderControl, LINE_INDENT, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
-import { LumpSumOverview } from '@/components/LumpSumOverview';
 
-type BudgetView = 'enter' | 'portal' | 'overview';
+type BudgetView = 'enter' | 'portal';
 
 
 const BLOCKS = [
