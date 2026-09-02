@@ -361,8 +361,9 @@ export async function appendLumpSumSheets(wb: Workbook, XLSX: Xlsx, proposalId: 
   }
   const portalSheet = XLSX.utils.aoa_to_sheet(portalRows);
   styleHeaders(portalSheet, 1, portalHeaders.length);
-  styleNumberColumns(portalSheet, [4], 2, portalRows.length, '0.0');
-  styleNumberColumns(portalSheet, [5, 6], 2, portalRows.length, '#,##0.00');
+  styleNumberColumns(portalSheet, [4], 2, portalRows.length, '#,##0.00');
+  styleNumberColumns(portalSheet, [5], 2, portalRows.length, '0.0');
+  styleNumberColumns(portalSheet, [6, 7], 2, portalRows.length, '#,##0.00');
   autoFit(portalSheet, portalRows);
   XLSX.utils.book_append_sheet(wb, portalSheet, 'Portal transfer');
 
