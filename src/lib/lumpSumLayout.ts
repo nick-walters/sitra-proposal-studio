@@ -123,3 +123,10 @@ export const LS_TABLE = 'w-full table-fixed border-collapse';
 
 /** Shared colgroup for a label + figure + gutter total row. */
 export const LS_TOTAL_COLS = [LS_COL.grip, null, LS_COL.figure, LS_COL.gutter] as const;
+
+/**
+ * A table never grows wider than the narrowest section container in the
+ * lump-sum panel: beyond this the table would scroll and its figure column
+ * would no longer share the panel's right edge.
+ */
+export const LS_MAX_TABLE_WIDTH = 880;
