@@ -29,14 +29,15 @@ function MirroredCostRow({ item, workPackages }: { item: DepreciationItem; workP
   return <tr className="border-t border-border/70 bg-muted/40 align-middle">
     <td className="px-1" />
     <td className="px-1"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(1, 2)}</div></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(charged, 2)}</div></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(charged)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={NUM_READ_FIELD}>{formatNumber(1, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={NUM_READ_FIELD}>{formatNumber(charged, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(charged)}</div></td>
     <td className="px-1">
-      <div className={`${FIELD} flex items-center justify-between gap-2 border-transparent`}>
+      <div className={`${READ_FIELD} justify-between gap-2`}>
         <span className="truncate" title={mirroredJustification(item)}>{mirroredJustification(item)}</span>
         <Button type="button" variant="link" size="sm" className="h-5 shrink-0 px-0 text-[10px]" onClick={jump}>from depreciation register</Button>
       </div>
+
     </td>
     <td className="px-1" />
   </tr>;
@@ -70,7 +71,16 @@ const CATEGORIES = [
 ] as const;
 
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
+/**
+ * Calculated values occupy exactly the same box as the editable input above
+ * them — same height, padding, radius and font size — but are flat: no border,
+ * no field background, matching category A's READ_FIELD exactly. The 1px
+ * transparent border is what keeps the right edges coincident.
+ */
+const READ_FIELD = 'inline-flex h-7 w-full items-center rounded-md border border-transparent px-1.5 text-xs md:text-sm';
+const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
 const COL_WIDTH = { grip: 30, wp: 100, quantity: 88, unitCost: 112, amount: 120, delete: 34 };
+
 
 function numericValue(value: string) {
   const parsed = Number(value);
@@ -193,7 +203,7 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
     <td className="px-1"><Select value={item.wp_draft_id} onValueChange={onChangeWp} disabled={!editable}><SelectTrigger className="h-7 px-1.5 text-xs"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span><span className="sr-only"><SelectValue /></span></SelectTrigger><SelectContent>{workPackages.map(candidate => <SelectItem key={candidate.id} value={candidate.id} className="pl-2 [&>span:first-child]:hidden"><span title={candidate.title ?? candidate.short_name ?? ''}><WPBubble wpNumber={candidate.number} wpColor={candidate.color}>{`WP${candidate.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select></td>
     <td className="px-1"><LocalNumberInput value={item.quantity} decimals={2} disabled={!editable} onCommit={onQuantity} /></td>
     <td className="px-1"><LocalNumberInput value={item.unit_cost} decimals={2} disabled={!editable} onCommit={onUnitCost} /></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.amount ?? 0))}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(Number(item.amount ?? 0))}</div></td>
     <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} className={missingJustification ? warningClass(strict) : ''} onCommit={onJustification} />{missingJustification && <span className={`text-[10px] ${strict ? 'text-destructive' : 'text-warning'}`} aria-live="polite">{strict ? 'Justification required' : 'Justification recommended'}</span>}</td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete cost item" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
@@ -203,14 +213,24 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems } = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
-  const [collapse, setCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true, ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
+  const [collapse, setCollapse] = useState<Record<string, boolean>>({ ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
+  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true });
   const storageKey = `ls-costs-collapse:${userId ?? 'anon'}:${proposalId}`;
+  const majorStorageKey = `ls-major-collapse:${userId ?? 'anon'}:${proposalId}`;
   useEffect(() => {
     try { const stored = localStorage.getItem(storageKey); if (stored) setCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
   }, [storageKey]);
+  useEffect(() => {
+    try { const stored = localStorage.getItem(majorStorageKey); if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
+  }, [majorStorageKey]);
   const toggle = (key: string) => setCollapse(current => {
     const next = { ...current, [key]: !current[key] };
     try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* view preference only */ }
+    return next;
+  });
+  const toggleMajor = (key: string) => setMajorCollapse(current => {
+    const next = { ...current, [key]: !(current[key] ?? true) };
+    try { localStorage.setItem(majorStorageKey, JSON.stringify(next)); } catch { /* view preference only */ }
     return next;
   });
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
@@ -218,6 +238,11 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key)) + (key === MIRROR_LINE_KEY ? mirroredItems.reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
   const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId)) + (key === MIRROR_LINE_KEY ? mirroredItems.filter(item => item.wp_draft_id === wpId).reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
+  const categoryWpTotal = (category: typeof CATEGORIES[number], wpId: string) => category.lines.reduce((sum, line) => sum + wpTotal(line.key, wpId), 0);
+  const renderCategorySubtotals = (category: typeof CATEGORIES[number]) => workPackages
+    .map(wp => ({ wp, total: categoryWpTotal(category, wp.id) }))
+    .filter(({ total }) => total > 0)
+    .map(({ wp, total }) => <div key={`${category.key}-${wp.id}`} className="flex items-center justify-end gap-2 text-sm tabular-nums"><span className="text-muted-foreground">{wpLabel(wp)} subtotal</span><span className={`${NUM_READ_FIELD} w-32 font-semibold`}>{formatCurrency(total)}</span></div>);
 
   if (isLoading) return <div className="pt-3 text-sm text-muted-foreground">Loading B–D costs…</div>;
   if (error) return <div className="pt-3 text-sm text-destructive">Unable to load B–D costs.</div>;
@@ -238,7 +263,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     };
     return <section key={line.key} className="border-b border-border/70">
       <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button>}</div>
-      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-right">Subtotal (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{line.key === MIRROR_LINE_KEY && mirroredItems.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody></table></SortableContext></DndContext><div className="flex justify-end pt-1 text-sm font-bold tabular-nums">Line total: {formatCurrency(itemTotal(line.key))}</div>{workPackages.map(wp => <div key={wp.id} className="flex justify-end gap-2 text-xs tabular-nums text-muted-foreground">{wpLabel(wp)} total: {formatCurrency(wpTotal(line.key, wp.id))}</div>)}</div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-right">Subtotal (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{line.key === MIRROR_LINE_KEY && mirroredItems.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody></table></SortableContext></DndContext><div className="flex justify-end pt-1 text-sm font-bold tabular-nums"><span className={NUM_READ_FIELD}>Line total: {formatCurrency(itemTotal(line.key))}</span></div></div>}
     </section>;
   };
 
@@ -249,15 +274,15 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     const freeWorkPackages = workPackages.filter(wp => !usedWpIds.has(wp.id));
     return <section key={line.key} className="border-b border-border/70">
       <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && freeWorkPackages.length > 0 && <Select onValueChange={wpDraftId => addItem(participantId, line.key, wpDraftId)}><SelectTrigger className="h-7 w-auto min-w-20 px-2 text-xs"><SelectValue placeholder="Add item" /></SelectTrigger><SelectContent>{freeWorkPackages.map(wp => <SelectItem key={wp.id} value={wp.id} className="pl-2 [&>span:first-child]:hidden"><span title={wp.title ?? wp.short_name ?? ''}><WPBubble wpNumber={wp.number} wpColor={wp.color}>{`WP${wp.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select>}</div>
-      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Amount (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody></table><div className="flex justify-end pt-1 text-sm font-bold tabular-nums">Line total: {formatCurrency(itemTotal(line.key))}</div></div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Amount (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody></table><div className="flex justify-end pt-1 text-sm font-bold tabular-nums"><span className={NUM_READ_FIELD}>Line total: {formatCurrency(itemTotal(line.key))}</span></div></div>}
     </section>;
   };
 
-  return <div className="mt-4 space-y-1"><h2 className="text-lg font-semibold">B–D. Other cost categories</h2>{CATEGORIES.map(category => {
+  return <div className="mt-4 space-y-1">{CATEGORIES.map(category => {
     const visibleLines = category.lines.filter(line => !(line.key === 'D.1' && !data.usesFstp));
-    const majorCollapsed = Boolean(collapse[category.key]);
+    const majorCollapsed = Boolean(majorCollapse[category.key]);
     const categoryTotal = visibleLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
-    return <section key={category.key} className="border-b border-border"><div className="flex min-h-9 items-center gap-1"><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggle(category.key)} label={category.label} /><span className="min-w-0 flex-1 text-sm font-semibold">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && visibleLines.map(line => category.key === 'D' ? renderDLine(line) : renderItemisedLine(line))}</section>;
+    return <section key={category.key} className="border-b border-border"><div className="flex min-h-9 items-center gap-1"><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggleMajor(category.key)} label={category.label} /><span className="min-w-0 flex-1 text-lg font-semibold">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{visibleLines.map(line => category.key === 'D' ? renderDLine(line) : renderItemisedLine(line))}<div className="space-y-0.5 border-t border-border/70 py-1">{renderCategorySubtotals(category)}<div className="flex items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className="text-muted-foreground">{category.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(categoryTotal)}</span></div></div></>}</section>;
   })}</div>;
 }
 
