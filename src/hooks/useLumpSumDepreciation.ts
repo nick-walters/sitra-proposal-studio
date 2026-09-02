@@ -129,6 +129,8 @@ export function useLumpSumDepreciation(proposalId: string) {
 
   const updateItem = useMutation({
     mutationFn: async ({ itemId, field, value }: { itemId: string; field: DepreciationField; value: string | number | boolean | null }) => {
+      const item = query.data?.items.find(candidate => candidate.id === itemId);
+      if (item) await ensureParticipantBudget(proposalId, item.participant_id);
       type DepreciationUpdate = {
         wp_draft_id?: string;
         resource_type?: string;
