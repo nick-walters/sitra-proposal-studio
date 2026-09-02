@@ -240,12 +240,12 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>
+              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">A</th>
               <th className="px-1 py-1.5 text-right">B</th>
               <th className="px-1 py-1.5 text-right">C</th>
               <th className="px-1 py-1.5 text-right">D</th>
               <th className="px-1 py-1.5 text-right">E</th>
-              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">F. Total costs</th>
               <th className="px-1 py-1.5 text-right">G. Max EU contribution</th>
               <th className="px-1 py-1.5 text-right">H. Requested EU contribution</th>
