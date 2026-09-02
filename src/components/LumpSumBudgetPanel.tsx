@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,35 +13,7 @@ import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
 import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
-import { LumpSumDepreciationSection } from '@/components/LumpSumDepreciationSection';
 
-/**
- * The Validate / Export toolbar lives in BudgetPortalSheet, which this feature may not edit.
- * Mount a slot between those two buttons and portal the lock-all control into it.
- */
-function useToolbarSlot(enabled: boolean) {
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    if (!enabled) { setSlot(null); return; }
-    let host: HTMLElement | null = null;
-    const attach = () => {
-      if (host?.isConnected) return true;
-      const validate = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.trim().startsWith('Validate'));
-      if (!validate?.parentElement) return false;
-      host = document.createElement('span');
-      host.dataset.lsLockAllSlot = 'true';
-      validate.insertAdjacentElement('afterend', host);
-      setSlot(host);
-      return true;
-    };
-    if (!attach()) {
-      const timer = window.setInterval(() => { if (attach()) window.clearInterval(timer); }, 250);
-      return () => { window.clearInterval(timer); host?.remove(); };
-    }
-    return () => { host?.remove(); };
-  }, [enabled]);
-  return slot;
-}
 
 
 const BLOCKS = [
@@ -79,7 +50,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
     try { localStorage.setItem(majorCollapseKey, JSON.stringify(next)); } catch { /* view preference only */ }
     return next;
   });
-  const toolbarSlot = useToolbarSlot(isCoordinator);
+  
 
 
   const participants = data?.participants ?? [];
@@ -120,28 +91,12 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   
   const allLocked = budgetAccess.lockState === 'all';
   const mixedLocks = budgetAccess.lockState === 'some';
-  const lockAllLabel = allLocked ? 'Unlock all participant budgets' : 'Lock all participant budgets';
-  const lockAllButton = <Button
-    type="button"
-    variant="outline"
-    className="gap-2"
-    aria-label={lockAllLabel}
-    title={mixedLocks ? 'Some budgets are locked — lock all budgets' : lockAllLabel}
-    onClick={() => budgetAccess.setLockAll(!allLocked)}
-  >
-    {allLocked
-      ? <Lock className="h-4 w-4 text-destructive" />
-      : <Unlock className={`h-4 w-4 ${mixedLocks ? 'text-warning' : 'text-green-600'}`} />}
-    {allLocked ? 'Unlock all budgets' : 'Lock all budgets'}
-  </Button>;
-
   return <div className="space-y-4 p-4 md:p-6">
-     {isCoordinator && (toolbarSlot ? createPortal(lockAllButton, toolbarSlot) : <div className="flex justify-end">{lockAllButton}</div>)}
      <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
        {participants.map((participant, index) => {
          const active = participant.id === selected.id;
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
-         return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index > 0 ? 'ml-1 border-l border-l-border/40 pl-1' : ''}`}>
+         return <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} ${index > 0 ? 'ml-1 border-l border-l-border/60 pl-1' : ''}`}>
            <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
              <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
            </button>
@@ -207,8 +162,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
            </>}
          </section>
       </div>
-     <LumpSumDepreciationSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
-     <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
+      <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
      {permissionsParticipant && <LumpSumPermissionsDialog proposalId={proposalId} participant={permissionsParticipant} open={Boolean(permissionsParticipantId)} onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }} />}
    </div>;
  }

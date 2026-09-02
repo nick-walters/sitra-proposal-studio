@@ -11,7 +11,7 @@ import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
-import { DEPRECIATION_SECTION_ID } from '@/components/LumpSumDepreciationSection';
+import LumpSumDepreciationSection, { DEPRECIATION_SECTION_ID } from '@/components/LumpSumDepreciationSection';
 
 /** C.2 Equipment is the only line that mirrors the depreciation register. */
 const MIRROR_LINE_KEY = 'C.2.equipment';
@@ -263,6 +263,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     };
     return <section key={line.key} className="border-b border-border/70">
       <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button>}</div>
+      {!collapsed && line.key === MIRROR_LINE_KEY && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
       {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-right">Subtotal (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{line.key === MIRROR_LINE_KEY && mirroredItems.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody></table></SortableContext></DndContext><div className="flex justify-end pt-1 text-sm font-bold tabular-nums"><span className={NUM_READ_FIELD}>Line total: {formatCurrency(itemTotal(line.key))}</span></div></div>}
     </section>;
   };

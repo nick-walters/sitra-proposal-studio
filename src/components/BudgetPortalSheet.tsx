@@ -1,6 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatNumber } from '@/lib/formatNumber';
 import { BudgetValidationDialog } from '@/components/BudgetValidationEngine';
