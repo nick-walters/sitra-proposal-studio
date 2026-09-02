@@ -43,7 +43,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
   const participantLock = selected ? budgetAccess.lockFor(selected.id) : null;
   const isLocked = Boolean(participantLock?.is_locked);
   const mayEdit = Boolean(selected && editableParticipantIds.has(selected.id));
-  const editable = mayEdit && !isLocked;
+  const editable = !readOnly && mayEdit && !isLocked;
   const a4UnitCost = Number(participantBudget?.a4_unit_cost ?? 0);
   const workPackages = data?.workPackages ?? [];
 

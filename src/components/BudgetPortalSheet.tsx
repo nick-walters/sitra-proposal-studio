@@ -125,7 +125,7 @@ export function BudgetPortalSheet({
     [budgetTabs, usesFstp],
   );
   const storageKey = `budget-active-tab:${user?.id ?? 'anonymous'}:${proposalId}`;
-  const [activeTab, setActiveTab] = useState('budget');
+  const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
@@ -1114,10 +1114,10 @@ export function BudgetPortalSheet({
             <BudgetParticipantForm
               proposalId={proposalId}
               participantId={editingParticipantId}
-              proposalType={proposalType}
-              canEdit={canEdit}
-              isCoordinator={isCoordinator}
-            />
+               proposalType={proposalType}
+               canEdit={activeTabCanEdit}
+               isCoordinator={isCoordinator && !traditionalReadOnly}
+             />
           )}
         </DialogContent>
       </Dialog>
