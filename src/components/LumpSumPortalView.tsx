@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Copy, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WPBubble } from '@/components/B31Pill';
-import { CollapseChevron } from '@/components/cards/CollapseChevron';
+import { CollapsibleHeader, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { formatCurrency } from '@/lib/formatNumber';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
@@ -179,7 +179,13 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
   }, [proposalId, participantId]);
 
   const { isCopied, toggleCopied, reset } = useCopyProgress(userId, proposalId, participantId);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  /**
+   * Portal blocks share the panel's collapse store, so the page-wide
+   * "Collapse all blocks" button moves them too and the state persists per
+   * user and proposal in localStorage.
+   */
+  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
+  const blockCollapseId = (wpId: string) => `ls-portal-wp:${wpId}`;
 
   const workPackages = personnel.data?.workPackages ?? [];
   const efforts = personnel.data?.efforts ?? [];
@@ -349,12 +355,6 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
     return <div className="p-4 text-sm text-muted-foreground">Loading portal copy view…</div>;
   }
 
-  const toggle = (id: string) => setExpanded(current => {
-    const next = new Set(current);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-
   return <div className="space-y-2">
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
       <span>Read-only. Figures are laid out in the order the EU portal asks for them; each value copies as a raw number.</span>
@@ -364,16 +364,15 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
     </div>
 
     {blocks.map(block => {
-      const open = expanded.has(block.wp.id);
+      const open = !isCollapsed(blockCollapseId(block.wp.id));
       const done = block.fields.filter(([id, value]) => isCopied(id, value)).length;
       return <section key={block.wp.id} className="border-b border-border">
-        <div className="flex h-9 items-center gap-2 px-1">
-          <CollapseChevron collapsed={!open} onToggle={() => toggle(block.wp.id)} label={`Work package ${block.wp.number}`} />
+        <CollapsibleHeader collapsed={!open} onToggle={() => toggle(blockCollapseId(block.wp.id))} label={`Work package ${block.wp.number}`} level="major" className="gap-2 px-1">
           <WPBubble wpNumber={block.wp.number} wpColor={block.wp.color} />
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">{block.wp.short_name || block.wp.title || ''}</span>
           <span className="shrink-0 text-xs text-muted-foreground">{done} of {block.fields.length} fields copied</span>
           <span className="shrink-0 text-sm font-semibold tabular-nums">{formatCurrency(block.fTotal)}</span>
-        </div>
+        </CollapsibleHeader>
 
         {open && <div className="space-y-3 pb-3 pl-6 pr-1">
           <div>
