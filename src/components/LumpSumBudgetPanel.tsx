@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -49,29 +49,6 @@ export function LumpSumBudgetPanel({
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLsCollapse(user?.id, proposalId);
   const canUsePortalCopy = !readOnly && editableParticipantIds.size > 0;
-  const portalViewKey = PORTAL_VIEW_KEY(user?.id, proposalId);
-  const [budgetView, setBudgetView] = useState<BudgetView>('enter');
-
-  useEffect(() => {
-    if (!canUsePortalCopy) {
-      setBudgetView('enter');
-      return;
-    }
-    try {
-      setBudgetView(window.localStorage.getItem(portalViewKey) === 'portal' ? 'portal' : 'enter');
-    } catch {
-      setBudgetView('enter');
-    }
-  }, [canUsePortalCopy, portalViewKey]);
-
-  const chooseBudgetView = (next: BudgetView) => {
-    setBudgetView(next);
-    try {
-      window.localStorage.setItem(portalViewKey, next);
-    } catch {
-      // View preference is optional when browser storage is unavailable.
-    }
-  };
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
