@@ -3,7 +3,6 @@ import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
-import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
