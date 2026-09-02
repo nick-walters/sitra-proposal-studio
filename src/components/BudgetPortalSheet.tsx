@@ -45,8 +45,6 @@ interface BudgetPortalSheetProps {
   proposalId: string;
   proposalType: string | null;
   budgetType?: string;
-  traditionalBudgetLocked?: boolean;
-  lumpSumBudgetLocked?: boolean;
   canEdit: boolean;
   isCoordinator: boolean;
   usesFstp?: boolean;
@@ -92,8 +90,6 @@ export function BudgetPortalSheet({
   proposalId,
   proposalType,
   budgetType,
-  traditionalBudgetLocked = false,
-  lumpSumBudgetLocked = false,
   canEdit,
   isCoordinator,
   usesFstp = false,
@@ -144,8 +140,8 @@ export function BudgetPortalSheet({
   const budgetTabs = useMemo(() => {
     const currentIsLumpSum = budgetType === 'lump_sum';
     const tabs: Array<'budget' | 'lump-sum'> = [];
-    const showLumpSum = currentIsLumpSum || lumpSumBudgetLocked || !!budgetDataPresence?.lumpSum;
-    const showTraditional = !currentIsLumpSum || traditionalBudgetLocked || !!budgetDataPresence?.traditional;
+    const showLumpSum = currentIsLumpSum || !!budgetDataPresence?.lumpSum;
+    const showTraditional = !currentIsLumpSum || !!budgetDataPresence?.traditional;
     if (currentIsLumpSum) {
       if (showLumpSum) tabs.push('lump-sum');
       if (showTraditional) tabs.push('budget');
@@ -154,7 +150,7 @@ export function BudgetPortalSheet({
       if (showLumpSum) tabs.push('lump-sum');
     }
     return tabs;
-  }, [budgetType, lumpSumBudgetLocked, traditionalBudgetLocked, budgetDataPresence]);
+  }, [budgetType, budgetDataPresence]);
   const availableTabs = useMemo(
     () => [...budgetTabs, ...(usesFstp ? ['fstp' as const] : [])],
     [budgetTabs, usesFstp],
@@ -168,10 +164,8 @@ export function BudgetPortalSheet({
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
-  const traditionalReadOnly = activeTab === 'budget' && traditionalBudgetLocked;
-  const lumpSumReadOnly = activeTab === 'lump-sum' && lumpSumBudgetLocked;
-  const activeTabCanEdit = canEdit && !traditionalReadOnly;
-  const canOpenTraditionalParticipant = canEdit || traditionalReadOnly;
+  const activeTabCanEdit = canEdit;
+  const canOpenTraditionalParticipant = canEdit;
 
   useEffect(() => {
     const savedTab = window.localStorage.getItem(storageKey);
@@ -798,7 +792,7 @@ export function BudgetPortalSheet({
           }]}
         />
       }
-      save={{ saving: traditionalReadOnly ? false : saving, lastSaved: null, onSaveNow: traditionalReadOnly ? undefined : refetchBudgetRows }}
+      save={{ saving, lastSaved: null, onSaveNow: refetchBudgetRows }}
     >
 
 
@@ -820,29 +814,22 @@ export function BudgetPortalSheet({
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
                   {/* Enter budget and Copy to portal are editing surfaces; Overview is
                       read-only and therefore available to every user with access. */}
-                  {!lumpSumReadOnly && <>
-                    <Button type="button" variant={budgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
-                    <Button type="button" variant={budgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
-                  </>}
+                  <Button type="button" variant={budgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
+                  <Button type="button" variant={budgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
                   <Button type="button" variant={budgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                 </div>
               )}
             </div>
             {activeTab !== 'fstp' && (
               <div className="flex items-center gap-3">
-                {traditionalReadOnly || lumpSumReadOnly ? (
-                  <div className="text-sm text-muted-foreground">This budget is superseded and read-only.</div>
-                ) : (
-                  <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
-                    <AlertCircle className="w-4 h-4" />
-                    Validate
-                  </Button>
-                )}
+                <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
+                  <AlertCircle className="w-4 h-4" />
+                  Validate
+                </Button>
                 {activeTab === 'lump-sum' && isCoordinator && (
                   <Button
                     variant="outline"
                     className="gap-2"
-                    disabled={lumpSumReadOnly}
                     aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
                     title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
                     onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
@@ -853,7 +840,7 @@ export function BudgetPortalSheet({
                     {lumpSumAccess.lockState === 'all' ? 'Unlock all budgets' : 'Lock all budgets'}
                   </Button>
                 )}
-                <Button variant="outline" className="gap-2" disabled={traditionalReadOnly || lumpSumReadOnly} onClick={handleExportXlsx}>
+                <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
                   <Download className="w-4 h-4" />
                   Export budget
                 </Button>
@@ -863,7 +850,6 @@ export function BudgetPortalSheet({
 
           {/* Budget Tab */}
           <TabsContent value="budget" className="space-y-4">
-            {traditionalReadOnly && <div className="border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">This actual costs budget has been superseded and is read-only.</div>}
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -975,7 +961,7 @@ export function BudgetPortalSheet({
                   </div>
                 </CardContent>
               </Card>
-              <A3EffortMatrix proposalId={proposalId} canEdit={activeTabCanEdit} isCoordinator={isAdmin && !traditionalReadOnly} isLumpSum={budgetType === 'lump_sum'} />
+              <A3EffortMatrix proposalId={proposalId} canEdit={activeTabCanEdit} isCoordinator={isAdmin} isLumpSum={budgetType === 'lump_sum'} />
             </div>
             <Card>
               <CardHeader>
@@ -1059,7 +1045,7 @@ export function BudgetPortalSheet({
                             : '0';
 
                           return (
-                            <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60', traditionalReadOnly && 'opacity-70')}>
+                            <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60')}>
                               <td className="sticky left-0 bg-background z-10 px-2 py-1 border-r whitespace-nowrap">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="flex items-center gap-1">
@@ -1071,7 +1057,7 @@ export function BudgetPortalSheet({
                                     {row.isLocked && !isAdmin && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                   </span>
                                   <span className="flex items-center gap-1 shrink-0">
-                                    {isAdmin && !traditionalReadOnly && (
+                                    {isAdmin && (
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -1081,21 +1067,19 @@ export function BudgetPortalSheet({
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
-                                    {canOpenTraditionalParticipant && (!row.isLocked || isAdmin || traditionalReadOnly) && (
+                                    {canOpenTraditionalParticipant && (!row.isLocked || isAdmin) && (
                                       <Button
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
                                         onClick={() => {
-                                          if (traditionalReadOnly) {
-                                            setEditingParticipantId(row.participantId);
-                                          } else if (row.isLocked && isAdmin) {
+                                          if (row.isLocked && isAdmin) {
                                             setLockedEditWarning({ participantId: row.participantId });
                                           } else {
                                             setEditingParticipantId(row.participantId);
                                           }
                                         }}
                                       >
-                                        {traditionalReadOnly ? 'View' : 'Edit'}
+                                        Edit
                                       </Button>
                                     )}
                                   </span>
@@ -1176,7 +1160,7 @@ export function BudgetPortalSheet({
 
           {budgetTabs.includes('lump-sum') && (
             <TabsContent value="lump-sum">
-              <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} budgetView={budgetView} />
+              <LumpSumBudgetPanel proposalId={proposalId} budgetView={budgetView} />
             </TabsContent>
           )}
 
@@ -1201,7 +1185,7 @@ export function BudgetPortalSheet({
                participantId={editingParticipantId}
                 proposalType={proposalType}
                 canEdit={activeTabCanEdit}
-                isCoordinator={isCoordinator && !traditionalReadOnly}
+                isCoordinator={isCoordinator}
               />
           )}
         </DialogContent>
