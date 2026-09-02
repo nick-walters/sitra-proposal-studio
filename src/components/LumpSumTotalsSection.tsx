@@ -5,8 +5,6 @@ import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
-import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
-import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import {
   WP_COMMENT_LIMIT,
   computeWpTotals,
@@ -88,7 +86,7 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, onCommit
       setLocal(next);
       setDirty(true);
       if (pending.current) clearTimeout(pending.current);
-      pending.current = setTimeout(() => commit(next), 350);
+      pending.current = setTimeout(() => { commit(next); setDirty(false); }, 350);
     }}
     onBlur={() => {
       setFocused(false);
@@ -120,7 +118,7 @@ function DebouncedComment({ value, disabled, onCommit }: { value: string; disabl
         setLocal(next);
         setDirty(true);
         if (pending.current) clearTimeout(pending.current);
-        pending.current = setTimeout(() => onCommit(next), 350);
+        pending.current = setTimeout(() => { onCommit(next); setDirty(false); }, 350);
       }}
       onBlur={() => {
         setFocused(false);
@@ -137,14 +135,12 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
   userId?: string;
   editable: boolean;
   /** A per work package, taken from the rounded personnel calculation. */
-  personnelByWp: Record<string, number>;
+  budgetInputsByWp: Record<string, LumpSumWpInputs>;
 }) {
   const totals = useLumpSumTotals(proposalId);
-  const costs = useLumpSumCosts(proposalId);
-  const depreciation = useLumpSumDepreciation(proposalId);
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
 
-  if (totals.isLoading || costs.isLoading || depreciation.isLoading) return <div className="pt-3 text-sm text-muted-foreground">Loading totals…</div>;
+  if (totals.isLoading) return <div className="pt-3 text-sm text-muted-foreground">Loading totals…</div>;
   if (totals.error) return <div className="pt-3 text-sm text-destructive">Unable to load the budget totals.</div>;
   if (!totals.data) return null;
 
@@ -153,22 +149,8 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
   const fundingOverride = participantBudget?.funding_rate_override == null ? null : Number(participantBudget.funding_rate_override);
   const fundingRate = fundingOverride ?? defaultFundingRate;
 
-  const costItems = (costs.data?.items ?? []).filter(item => item.participant_id === participantId);
-  const mirrored = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
-  const lineTotal = (lines: string[], wpId: string) => costItems
-    .filter(item => lines.includes(item.cost_line) && item.wp_draft_id === wpId)
-    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
-  const mirroredTotal = (wpId: string) => mirrored
-    .filter(item => item.wp_draft_id === wpId)
-    .reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0);
-
   const rows = workPackages.map(wp => {
-    const inputs: LumpSumWpInputs = {
-      personnel: roundCents(personnelByWp[wp.id] ?? 0),
-      subcontracting: roundCents(lineTotal(['B.1'], wp.id)),
-      purchase: roundCents(lineTotal(C_LINES, wp.id) + mirroredTotal(wp.id)),
-      other: roundCents(lineTotal(D_LINES, wp.id)),
-    };
+    const inputs = budgetInputsByWp[wp.id] ?? { personnel: 0, subcontracting: 0, purchase: 0, other: 0 };
     const stored = totals.data?.wpBudgets.find(row => row.participant_id === participantId && row.wp_draft_id === wp.id);
     return {
       wp,

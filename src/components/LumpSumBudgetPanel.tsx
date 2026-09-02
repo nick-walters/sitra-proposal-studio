@@ -12,6 +12,8 @@ import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
 import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
+import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
+import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 
 const BLOCKS = [
@@ -28,6 +30,8 @@ function formatPM(value: number) {
 export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalId: string; readOnly?: boolean }) {
   const { user } = useAuth();
   const { data, isLoading, error, saving, addRole, updateRole, deleteRole, reorderRoles, setEffort, setA4UnitCost } = useLumpSumPersonnel(proposalId);
+  const lumpSumCosts = useLumpSumCosts(proposalId);
+  const lumpSumDepreciation = useLumpSumDepreciation(proposalId);
   const { editableParticipantIds, isCoordinator, loading: permissionsLoading } = useCanEditParticipantBudget(proposalId);
   const budgetAccess = useLumpSumBudgetAccess(proposalId);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
@@ -44,7 +48,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
   const participantLock = selected ? budgetAccess.lockFor(selected.id) : null;
   const isLocked = Boolean(participantLock?.is_locked);
   const mayEdit = Boolean(selected && editableParticipantIds.has(selected.id));
-  const editable = !readOnly && mayEdit && !isLocked;
+  const editable = !readOnly && mayEdit && (!isLocked || isCoordinator);
   const a4UnitCost = Number(participantBudget?.a4_unit_cost ?? 0);
   const workPackages = data?.workPackages ?? [];
 
@@ -66,26 +70,50 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
   }, { portalCost: 0, trueCost: 0, difference: 0 });
 
   /**
-   * A per work package. The rounded portal figure from costLineTotals stays the
-   * single source of truth: its effective (already rounded) rate per cost line
-   * is applied to that line's person-months in each work package, so the rows
-   * add up exactly to the A total shown above.
+   * Per-WP source figures passed to E–H. Personnel uses the existing rounded
+   * portal calculation for each A.1 category and A.2–A.4 line; B–D use the
+   * figures already represented by the cost/depreciation sections.
    */
-  const personnelByWp = useMemo(() => {
-    const byWp: Record<string, number> = {};
-    for (const wp of workPackages) byWp[wp.id] = 0;
+  const budgetInputsByWp = useMemo(() => {
+    const result: Record<string, { personnel: number; subcontracting: number; purchase: number; other: number }> = {};
+    const cLines = new Set(['C.1', 'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other']);
+    const dLines = new Set(['D.1', 'D.2']);
+    const costItems = (lumpSumCosts.data?.items ?? []).filter(item => item.participant_id === selected?.id);
+    const depreciationItems = (lumpSumDepreciation.data?.items ?? []).filter(item => item.participant_id === selected?.id && item.include_in_c2);
+    for (const wp of workPackages) {
+      result[wp.id] = { personnel: 0, subcontracting: 0, purchase: 0, other: 0 };
+    }
+    const addPersonnelGroup = (line: string, groupRoles: typeof participantRoles) => {
+      const groupTotals = costLineTotals(line, groupRoles, efforts, workPackages, a4UnitCost);
+      const rate = groupTotals.totalPm ? groupTotals.portalCost / groupTotals.totalPm : 0;
+      for (const wp of workPackages) {
+        const pm = groupRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0);
+        result[wp.id].personnel += rate * pm;
+      }
+    };
     for (const block of BLOCKS) {
       const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
-      const line = costLineTotals(block.line, lineRoles, efforts, workPackages, a4UnitCost);
-      if (!line.totalPm) continue;
-      const effectiveRate = line.portalCost / line.totalPm;
-      for (const wp of workPackages) {
-        const pm = lineRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0);
-        byWp[wp.id] = (byWp[wp.id] ?? 0) + effectiveRate * pm;
+      if (block.line === 'A.1') {
+        const categories = [...new Set(lineRoles.map(role => role.he_category || 'blank'))];
+        for (const category of categories) addPersonnelGroup(block.line, lineRoles.filter(role => (role.he_category || 'blank') === category));
+      } else {
+        addPersonnelGroup(block.line, lineRoles);
       }
     }
-    return byWp;
-  }, [participantRoles, efforts, workPackages, a4UnitCost]);
+    for (const item of costItems) {
+      const target = result[item.wp_draft_id];
+      if (!target) continue;
+      const amount = Number(item.amount ?? 0);
+      if (item.cost_line === 'B.1') target.subcontracting += amount;
+      else if (cLines.has(item.cost_line)) target.purchase += amount;
+      else if (dLines.has(item.cost_line)) target.other += amount;
+    }
+    for (const item of depreciationItems) {
+      const target = result[item.wp_draft_id];
+      if (target) target.purchase += Number(item.charged_depreciation ?? 0);
+    }
+    return result;
+  }, [a4UnitCost, efforts, lumpSumCosts.data?.items, lumpSumDepreciation.data?.items, participantRoles, selected?.id, workPackages]);
 
 
   if (isLoading || permissionsLoading) return <div className="p-6 text-sm text-muted-foreground">Loading lump sum personnel costs…</div>;
@@ -200,7 +228,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
            </>}
          </section>
         <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
-        <LumpSumTotalsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} personnelByWp={personnelByWp} />
+        <LumpSumTotalsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} budgetInputsByWp={budgetInputsByWp} />
       </div>
 
      {permissionsParticipant && <LumpSumPermissionsDialog proposalId={proposalId} participant={permissionsParticipant} open={Boolean(permissionsParticipantId)} onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }} />}
