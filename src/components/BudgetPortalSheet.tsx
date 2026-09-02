@@ -706,7 +706,7 @@ export function BudgetPortalSheet({
                   <AlertCircle className="w-4 h-4" />
                   Validate
                 </Button>
-                {budgetType === 'lump_sum' && isAdmin && (
+                {budgetType === 'lump_sum' && isCoordinator && (
                   <Button
                     variant="outline"
                     className="gap-2"

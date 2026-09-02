@@ -86,10 +86,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   if (isLoading || permissionsLoading) return <div className="p-6 text-sm text-muted-foreground">Loading lump sum personnel costs…</div>;
   if (error) return <div className="p-6 text-sm text-destructive">Unable to load lump sum personnel costs.</div>;
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
-
   
-  const allLocked = budgetAccess.lockState === 'all';
-  const mixedLocks = budgetAccess.lockState === 'some';
   return <div className="space-y-4 p-4 md:p-6">
      <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
        {participants.map((participant, index) => {
