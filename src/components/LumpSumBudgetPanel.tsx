@@ -10,7 +10,7 @@ import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
-import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
+import { lineId, majorId, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
 
 
