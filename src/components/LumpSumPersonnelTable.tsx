@@ -27,12 +27,7 @@ export function formatPM(value: number) {
 /** Shared cell padding per column type, applied identically to every row kind. */
 const CELL = 'px-1.5';
 const NUM_CELL = `${CELL} text-right tabular-nums`;
-/**
- * The bracketed rounding difference belongs visually to the cost it qualifies,
- * so the padding between the two columns is trimmed by 10px in total (6px off
- * the cost cell's right padding, 4px off the difference cell's left padding)
- * rather than by narrowing either column.
- */
+/** The rounding difference sits beneath the cost figure, in the same column. */
 const COST_CELL = 'pl-1.5 pr-0 text-right tabular-nums';
 /** Every field fills its column; the colgroup governs width, not the input. */
 const FIELD = 'h-7 w-full px-1.5 text-xs md:text-sm';
@@ -60,7 +55,6 @@ export const COL_WIDTH = {
   wp: 64,
   totalPm: 80,
   cost: 104,
-  diff: 65,
   del: 36,
 } as const;
 
@@ -321,8 +315,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
               <td className={`${CELL} py-0.5`} />
               <td colSpan={workPackages.length} />
               <td className={`${CELL} py-0.5`}><div className={NUM_READ_FIELD}>{formatPM(blockTotalPm)}</div></td>
-              <td className={`${CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap`}>{formatCurrency(blockCost)}</div></td>
-              <td className={`${CELL} py-0.5`}><div className={`${READ_FIELD} whitespace-nowrap`}><DifferenceNote difference={portalTotals.difference} /></div></td>
+              <td className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><DifferenceNote difference={portalTotals.difference} /></div></td>
               <td className={`${CELL} py-0.5`} />
             </tr>
           </tbody>
