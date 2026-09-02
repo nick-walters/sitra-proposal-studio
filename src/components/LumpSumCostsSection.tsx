@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
-import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSumPersonnelTable';
 import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
@@ -17,10 +16,7 @@ import LumpSumDepreciationSection, {
   CollapsibleHeader,
   DEPRECIATION_SECTION_ID,
   HeaderControl,
-  LINE_HEADING_ROW,
   LINE_INDENT,
-  MAJOR_HEADING_ROW,
-  SUBLINE_HEADING_ROW,
   SUBLINE_INDENT,
   useLsCollapse,
 } from '@/components/LumpSumDepreciationSection';
