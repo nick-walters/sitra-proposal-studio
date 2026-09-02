@@ -328,6 +328,7 @@ export function BudgetParticipantForm({
             </>
           )}
         </div>
+        <div className={!editable ? '[&_button]:hidden' : ''}>
         <JustificationItemsEditor
           proposalId={proposalId}
           budgetRowId={row.id}
@@ -340,6 +341,7 @@ export function BudgetParticipantForm({
           onDelete={deleteJustificationItem}
           onReorder={reorderJustificationItems}
         />
+        </div>
       </PartACard>
 
       {/* C. Purchase Costs */}
@@ -376,7 +378,8 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-          <JustificationItemsEditor
+          <div className={!editable ? '[&_button]:hidden' : ''}>
+        <JustificationItemsEditor
             proposalId={proposalId}
             budgetRowId={row.id}
             category="travel"
@@ -388,6 +391,7 @@ export function BudgetParticipantForm({
             onDelete={deleteJustificationItem}
             onReorder={reorderJustificationItems}
           />
+        </div>
         </div>
 
         {/* C.2 Equipment */}
@@ -420,7 +424,8 @@ export function BudgetParticipantForm({
               <span>Equipment costs exceed 15% of personnel costs — justification will appear in Table 3.1.h</span>
             </div>
           )}
-          <JustificationItemsEditor
+          <div className={!editable ? '[&_button]:hidden' : ''}>
+        <JustificationItemsEditor
             proposalId={proposalId}
             budgetRowId={row.id}
             category="equipment"
@@ -432,6 +437,7 @@ export function BudgetParticipantForm({
             onDelete={deleteJustificationItem}
             onReorder={reorderJustificationItems}
           />
+        </div>
         </div>
 
         {/* C.3 Other goods */}
@@ -458,7 +464,8 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-          <JustificationItemsEditor
+          <div className={!editable ? '[&_button]:hidden' : ''}>
+        <JustificationItemsEditor
             proposalId={proposalId}
             budgetRowId={row.id}
             category="other_goods"
@@ -470,6 +477,7 @@ export function BudgetParticipantForm({
             onDelete={deleteJustificationItem}
             onReorder={reorderJustificationItems}
           />
+        </div>
         </div>
       </PartACard>
 
@@ -503,6 +511,7 @@ export function BudgetParticipantForm({
           )}
         </div>
 
+        <div className={!editable ? '[&_button]:hidden' : ''}>
         <JustificationItemsEditor
           proposalId={proposalId}
           budgetRowId={row.id}
@@ -515,6 +524,7 @@ export function BudgetParticipantForm({
           onDelete={deleteJustificationItem}
           onReorder={reorderJustificationItems}
         />
+        </div>
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium w-[220px] shrink-0">D.2. Internally invoiced goods &amp; services</label>
           <div className="flex items-center gap-1 flex-1 justify-end">
@@ -538,6 +548,7 @@ export function BudgetParticipantForm({
           )}
         </div>
 
+        <div className={!editable ? '[&_button]:hidden' : ''}>
         <JustificationItemsEditor
           proposalId={proposalId}
           budgetRowId={row.id}
@@ -550,6 +561,7 @@ export function BudgetParticipantForm({
           onDelete={deleteJustificationItem}
           onReorder={reorderJustificationItems}
         />
+        </div>
       </PartACard>
 
       {/* Calculated Values & Funding */}
