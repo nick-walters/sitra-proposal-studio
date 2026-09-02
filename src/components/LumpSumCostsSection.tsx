@@ -216,8 +216,8 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
   const workPackages = data?.workPackages ?? [];
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key));
-  const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId));
+  const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key)) + (key === MIRROR_LINE_KEY ? mirroredItems.reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
+  const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId)) + (key === MIRROR_LINE_KEY ? mirroredItems.filter(item => item.wp_draft_id === wpId).reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
 
   if (isLoading) return <div className="pt-3 text-sm text-muted-foreground">Loading B–D costs…</div>;
   if (error) return <div className="pt-3 text-sm text-destructive">Unable to load B–D costs.</div>;
