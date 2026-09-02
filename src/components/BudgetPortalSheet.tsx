@@ -115,17 +115,6 @@ export function BudgetPortalSheet({
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
 
-  // Register the lump-sum panel with the shared page-wide editor bar. The
-  // event is intentionally scoped to this A3 surface; other pages retain
-  // their existing collapse behaviour.
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', {
-      detail: activeTab === 'lump-sum'
-        ? { allCollapsed, disabled: false, onToggle: () => setAll(!allCollapsed) }
-        : null,
-    }));
-    return () => window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', { detail: null }));
-  }, [activeTab, allCollapsed, setAll]);
   // Cheap existence checks (limit 1) so a budget type holding real data stays
   // visible even when its lock flag is false.
   const { data: budgetDataPresence } = useQuery({
