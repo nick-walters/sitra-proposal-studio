@@ -23,7 +23,7 @@ import { ModelUpdateCheckDialog } from "@/components/ModelUpdateCheckDialog";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
 import { useQueryClient } from "@tanstack/react-query";
-import { computeBudgetRow } from "@/lib/budgetCompute";
+import { fetchEvaluationBudget } from "@/lib/budgetSourceAdapter";
 import { EsrRenderer } from "@/components/EsrRenderer";
 // esrPdfExport is loaded lazily inside downloadEsr() to keep jsPDF out of the initial bundle.
 import {
