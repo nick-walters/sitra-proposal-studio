@@ -70,6 +70,16 @@ const CATEGORIES = [
   { key: 'D', label: 'D. Other cost categories', lines: LINES.D },
 ] as const;
 
+/**
+ * C is three levels deep: the major heading, then C.1 (a line with items) and
+ * the C.2 / C.3 parents, which hold sub-lines and carry no items themselves.
+ * Stored cost_line values are untouched — this is presentation only.
+ */
+const C_PARENTS = [
+  { key: 'C.2', label: 'C.2 Equipment', childKeys: ['C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets'] },
+  { key: 'C.3', label: 'C.3 Other goods, works and services', childKeys: ['C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other'] },
+] as const;
+
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
 /**
  * Calculated values occupy exactly the same box as the editable input above
