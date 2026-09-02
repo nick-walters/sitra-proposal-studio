@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -110,7 +110,7 @@ export function CollapsibleHeader({ className, collapsed, onToggle, children }: 
   className: string;
   collapsed: boolean;
   onToggle: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return <div
     role="button"
@@ -128,9 +128,9 @@ export function CollapsibleHeader({ className, collapsed, onToggle, children }: 
 }
 
 /** Swallows clicks and key presses so controls inside a header never toggle it. */
-export function HeaderControl({ className, children }: { className?: string; children: React.ReactNode }) {
+export function HeaderControl({ className, children }: { className?: string; children: ReactNode }) {
   return <span
-    className={className ? `${className} contents-none` : undefined}
+    className={className}
     onClick={event => event.stopPropagation()}
     onKeyDown={event => event.stopPropagation()}
     onPointerDown={event => event.stopPropagation()}
