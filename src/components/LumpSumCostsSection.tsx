@@ -11,10 +11,22 @@ import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
-import LumpSumDepreciationSection, { DEPRECIATION_SECTION_ID } from '@/components/LumpSumDepreciationSection';
+import LumpSumDepreciationSection, {
+  DEPRECIATION_SECTION_ID,
+  LINE_HEADING_ROW,
+  LINE_INDENT,
+  MAJOR_HEADING_ROW,
+  SUBLINE_HEADING_ROW,
+  SUBLINE_INDENT,
+  useLsCollapse,
+} from '@/components/LumpSumDepreciationSection';
 
-/** C.2 Equipment is the only line that mirrors the depreciation register. */
-const MIRROR_LINE_KEY = 'C.2.equipment';
+/**
+ * A depreciation charge mirrors into the C.2 sub-line that matches its
+ * resource type, so changing the type moves the mirrored row.
+ */
+const MIRROR_LINE_KEY = (resourceType: string) => `C.2.${resourceType}`;
+const MIRRORED_LINE_KEYS = new Set(['C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets']);
 
 function mirroredJustification(item: DepreciationItem) {
   const comments = (item.comments ?? '').trim();
@@ -42,6 +54,7 @@ function MirroredCostRow({ item, workPackages }: { item: DepreciationItem; workP
     <td className="px-1" />
   </tr>;
 }
+
 
 type CostLine = { key: string; label: string; strict: boolean };
 
