@@ -16,8 +16,9 @@ import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { CollapsibleHeader, HeaderControl, LINE_INDENT, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
+import { LumpSumOverview } from '@/components/LumpSumOverview';
 
-type BudgetView = 'enter' | 'portal';
+type BudgetView = 'enter' | 'portal' | 'overview';
 
 
 const BLOCKS = [
@@ -131,6 +132,7 @@ export function LumpSumBudgetPanel({
 
   if (isLoading || permissionsLoading) return <div className="p-6 text-sm text-muted-foreground">Loading lump sum personnel costs…</div>;
   if (error) return <div className="p-6 text-sm text-destructive">Unable to load lump sum personnel costs.</div>;
+  if (budgetView === 'overview') return <div className="space-y-2 p-4 md:p-6"><LumpSumOverview proposalId={proposalId} userId={user?.id} /></div>;
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
   
   return <div className="space-y-2 p-4 md:p-6">
