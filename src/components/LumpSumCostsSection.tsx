@@ -94,7 +94,7 @@ const MAJOR_HEADING_ROW = 'flex h-8 items-center gap-1';
 const MAJOR_HEADING_TEXT = 'min-w-0 flex-1 text-base font-semibold';
 const LINE_HEADING_ROW = 'flex h-7 items-center gap-1';
 const LINE_HEADING_TEXT = 'min-w-0 flex-1 text-xs font-semibold';
-const SUBTOTAL_LABEL = 'shrink-0 whitespace-nowrap text-muted-foreground';
+const SUBTOTAL_LABEL = 'min-w-[15rem] shrink-0 whitespace-nowrap text-right text-muted-foreground';
 const COL_WIDTH = { grip: 30, wp: 100, quantity: 88, unitCost: 112, amount: 120, delete: 34 };
 
 
@@ -281,7 +281,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       {!collapsed && <>
         {parent.key === 'C.2' && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
         {childLines.map(line => renderItemisedLine(line, true))}
-        <div className="flex h-7 items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className={SUBTOTAL_LABEL}>{parent.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(total)}</span></div>
+        <div className="flex h-7 items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className={SUBTOTAL_LABEL}>{parent.label} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(total)}</span></div>
       </>}
     </section>;
   };
