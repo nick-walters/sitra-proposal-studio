@@ -229,7 +229,7 @@ export function LumpSumBudgetPanel({
                  edge lines up with the subtotal figures, and the rounding note
                  sits directly beneath the figure in that same column.
                */}
-                 <TotalRow label="A total" value={overallTotals.portalCost} difference={overallTotals.difference} />
+                 <TotalRow label="A total" value={overallTotals.portalCost} difference={overallTotals.difference} measure="A-total" />
 
              </div>
            </>}
