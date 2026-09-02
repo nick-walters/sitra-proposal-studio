@@ -1,6 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { useAuth } from '@/hooks/useAuth';
