@@ -66,6 +66,60 @@ function errorMessage(error: unknown) {
   return String(error);
 }
 
+const PERSONNEL_COST_LINES = ['A.1', 'A.2', 'A.3', 'A.4'];
+
+async function syncParticipantWpEffort(proposalId: string, participantId: string, wpDraftIds: string[]) {
+  const { data: proposal, error: proposalError } = await supabase
+    .from('proposals')
+    .select('budget_type')
+    .eq('id', proposalId)
+    .maybeSingle();
+  if (proposalError) throw proposalError;
+  if (proposal?.budget_type !== 'lump_sum') return;
+  if (wpDraftIds.length === 0) return;
+
+  const { data: roles, error: rolesError } = await supabase
+    .from('ls_personnel_roles')
+    .select('id, cost_line')
+    .eq('proposal_id', proposalId)
+    .eq('participant_id', participantId)
+    .in('cost_line', PERSONNEL_COST_LINES);
+  if (rolesError) throw rolesError;
+
+  const roleIds = (roles ?? []).map(role => role.id);
+  const { data: efforts, error: effortsError } = roleIds.length === 0
+    ? { data: [], error: null }
+    : await supabase
+      .from('ls_personnel_effort')
+      .select('role_id, wp_draft_id, person_months')
+      .eq('proposal_id', proposalId)
+      .in('role_id', roleIds)
+      .in('wp_draft_id', wpDraftIds);
+  if (effortsError) throw effortsError;
+
+  for (const wpDraftId of wpDraftIds) {
+    const total = Math.round((efforts ?? [])
+      .filter(effort => effort.wp_draft_id === wpDraftId)
+      .reduce((sum, effort) => sum + Number(effort.person_months || 0), 0) * 10) / 10;
+
+    if (total === 0) {
+      const { error } = await supabase
+        .from('wp_draft_effort')
+        .delete()
+        .eq('wp_draft_id', wpDraftId)
+        .eq('participant_id', participantId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('wp_draft_effort')
+        .upsert({ wp_draft_id: wpDraftId, participant_id: participantId, person_months: total }, {
+          onConflict: 'wp_draft_id,participant_id',
+        });
+      if (error) throw error;
+    }
+  }
+}
+
 
 export function useLumpSumPersonnel(proposalId: string) {
   const queryClient = useQueryClient();
