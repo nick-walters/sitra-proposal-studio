@@ -736,8 +736,13 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="flex items-center justify-between">
             <TabsList>
-              {budgetTabs.includes('budget') && <TabsTrigger value="budget">Actual costs budget</TabsTrigger>}
-              {budgetTabs.includes('lump-sum') && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
+              {/* Order follows `budgetTabs`, so the proposal's current budget
+                  type always sits first and any superseded one after it. */}
+              {budgetTabs.map((tab) => (
+                <TabsTrigger key={tab} value={tab}>
+                  {tab === 'budget' ? 'Actual costs budget' : 'Lump sum budget'}
+                </TabsTrigger>
+              ))}
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
             </TabsList>
             {activeTab !== 'fstp' && (
