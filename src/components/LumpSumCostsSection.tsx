@@ -276,7 +276,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     };
     return <section key={line.key} className={`border-b border-border/70 ${nested ? SUBLINE_INDENT : LINE_INDENT}`}>
       <div className={nested ? SUBLINE_HEADING_ROW : LINE_HEADING_ROW}><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button>}</div>
-      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Subtotal (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{mirrored.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody></table></SortableContext></DndContext><TotalRow label={`${line.key} total`} value={itemTotal(line.key)} /></div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Subtotal (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{mirrored.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={5} measure={`${line.key}-line-total`} /></tfoot></table></SortableContext></DndContext></div>}
     </section>;
   };
 
@@ -294,7 +294,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
         {childLines.map(line => renderItemisedLine(line, true))}
         <div className="border-t border-border/70 py-1">
           {renderSubtotals(parent.childKeys, parent.key)}
-          <TotalRow label={`${parent.key} total`} value={total} />
+          <TotalRow label={`${parent.key} total`} value={total} measure={`${parent.key}-total`} />
         </div>
       </>}
     </section>;
@@ -307,7 +307,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     const freeWorkPackages = workPackages.filter(wp => !usedWpIds.has(wp.id));
     return <section key={line.key} className={`border-b border-border/70 ${LINE_INDENT}`}>
       <div className={LINE_HEADING_ROW}><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && freeWorkPackages.length > 0 && <Select onValueChange={wpDraftId => addItem(participantId, line.key, wpDraftId)}><SelectTrigger className="h-6 w-auto min-w-20 shrink-0 px-2 text-xs"><SelectValue placeholder="Add item" /></SelectTrigger><SelectContent>{freeWorkPackages.map(wp => <SelectItem key={wp.id} value={wp.id} className="pl-2 [&>span:first-child]:hidden"><span title={wp.title ?? wp.short_name ?? ''}><WPBubble wpNumber={wp.number} wpColor={wp.color}>{`WP${wp.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select>}</div>
-      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Amount (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody></table><TotalRow label={`${line.key} total`} value={itemTotal(line.key)} /></div>}
+      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col /><col style={{ width: COL_WIDTH.amount }} /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Amount (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody><tfoot><InlineTotalRow label={`${line.key} total`} value={itemTotal(line.key)} leadingColumns={2} measure={`${line.key}-line-total`} /></tfoot></table></div>}
     </section>;
   };
 
@@ -320,7 +320,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       if (category.key === 'C' && (line.key === 'C.3.consumables' || line.key === 'C.3.meetings' || line.key === 'C.3.dissemination' || line.key === 'C.3.publication' || line.key === 'C.3.other')) return null;
       return category.key === 'D' ? renderDLine(line) : renderItemisedLine(line);
     };
-    return <section key={category.key} className="border-b border-border"><div className={MAJOR_HEADING_ROW}><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggle(category.key)} label={category.label} /><span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{category.key === 'C' ? <>{renderCategoryLine(LINES.C[0])}{C_PARENTS.map(renderCParent)}</> : visibleLines.map(renderCategoryLine)}<div className="border-t border-border/70 py-1">{renderSubtotals(visibleLines.map(line => line.key), category.key)}<TotalRow label={`${category.key} total`} value={categoryTotal} /></div></>}</section>;
+    return <section key={category.key} className="border-b border-border"><div className={MAJOR_HEADING_ROW}><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggle(category.key)} label={category.label} /><span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{category.key === 'C' ? <>{renderCategoryLine(LINES.C[0])}{C_PARENTS.map(renderCParent)}</> : visibleLines.map(renderCategoryLine)}<div className="border-t border-border/70 py-1">{renderSubtotals(visibleLines.map(line => line.key), category.key)}<TotalRow label={`${category.key} total`} value={categoryTotal} measure={`${category.key}-total`} /></div></>}</section>;
   })}</div>;
 }
 
@@ -340,13 +340,13 @@ function SubtotalTable({ rows, scope }: { rows: { wp: LumpSumCostWorkPackage; to
     <tbody>{rows.map(({ wp, total }) => <tr key={`${scope}-${wp.id}`}>
       <td />
       <td className="px-1"><div className="flex h-7 items-center gap-1 whitespace-nowrap text-muted-foreground" title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /><span>subtotal</span></div></td>
-      <td className="px-1 text-right"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(total)}</div></td>
+      <td data-ls-measure={`${scope}-wp-subtotal`} className="px-1 text-right"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(total)}</div></td>
       <td />
     </tr>)}</tbody>
   </table>;
 }
 
-export function TotalRow({ label, value, difference = 0 }: { label: string; value: number; difference?: number }) {
+export function TotalRow({ label, value, difference = 0, measure }: { label: string; value: number; difference?: number; measure?: string }) {
   return <table data-ls-total-table className="w-full table-fixed border-collapse text-sm">
     <colgroup>
       <col style={{ width: COL_WIDTH.grip }} />
@@ -358,10 +358,18 @@ export function TotalRow({ label, value, difference = 0 }: { label: string; valu
       <td />
       <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{label}</div></td>
       {/* The rounding note sits directly beneath the figure, in the same column. */}
-      <td className="px-1 text-right"><div className={`${NUM_READ_FIELD} h-auto flex-col items-end justify-end whitespace-nowrap font-semibold`}><span>{formatCurrency(value)}</span><DifferenceNote difference={difference} /></div></td>
+      <td data-ls-measure={measure} className="px-1 text-right"><div className={`${NUM_READ_FIELD} h-auto flex-col items-end justify-end whitespace-nowrap font-semibold`}><span>{formatCurrency(value)}</span><DifferenceNote difference={difference} /></div></td>
       <td />
     </tr></tbody>
   </table>;
+}
+
+function InlineTotalRow({ label, value, leadingColumns, measure }: { label: string; value: number; leadingColumns: number; measure: string }) {
+  return <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
+    <td colSpan={leadingColumns} className="px-1 py-0.5 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{label}</div></td>
+    <td data-ls-measure={measure} className={`${LS_FIGURE_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} whitespace-nowrap font-semibold`}>{formatCurrency(value)}</div></td>
+    <td />
+  </tr>;
 }
 
 

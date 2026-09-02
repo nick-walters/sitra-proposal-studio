@@ -313,7 +313,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
                 the lump sum budget: the panel measures its right edge and
                 exposes it as --ls-total-inset.
               */}
-              <td data-ls-cost-cell className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><DifferenceNote difference={portalTotals.difference} /></div></td>
+              <td data-ls-measure={`${costLine}-line-total`} data-ls-cost-cell className={`${COST_CELL} py-0.5`}><div className={`${NUM_READ_FIELD} h-auto flex-col items-end whitespace-nowrap`}><span>{formatCurrency(blockCost)}</span><DifferenceNote difference={portalTotals.difference} /></div></td>
               <td className={`${CELL} py-0.5`} />
             </tr>
           </tbody>

@@ -287,7 +287,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
-                <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
+                <td data-ls-measure="F-total" className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.requestedEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{grandPercent == null ? '' : `${formatNumber(grandPercent, 2)}%`}</div></td>
