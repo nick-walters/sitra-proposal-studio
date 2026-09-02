@@ -10,6 +10,7 @@ import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
 import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
+import { LumpSumDepreciationSection } from '@/components/LumpSumDepreciationSection';
 
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
