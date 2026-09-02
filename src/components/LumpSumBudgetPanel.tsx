@@ -11,6 +11,7 @@ import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
+import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
 import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 
 const BLOCKS = [
@@ -199,6 +200,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
            </>}
          </section>
         <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
+        <LumpSumTotalsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} personnelByWp={personnelByWp} />
       </div>
 
      {permissionsParticipant && <LumpSumPermissionsDialog proposalId={proposalId} participant={permissionsParticipant} open={Boolean(permissionsParticipantId)} onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }} />}
