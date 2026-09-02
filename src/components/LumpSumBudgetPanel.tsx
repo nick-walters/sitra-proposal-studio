@@ -134,7 +134,11 @@ export function LumpSumBudgetPanel({
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
   
   return <div className="space-y-2 p-4 md:p-6">
-      <LumpSumValidationPanel proposalId={proposalId} onSelectParticipant={setSelectedParticipantId} />
+{/* TEMPORARY — lump-sum budget validation, only for SUSIE-Q's budget migration.
+          Delete this line and the import above, plus the files
+          LumpSumValidationPanel.tsx and useLumpSumValidation.ts, once the
+          migration is confirmed complete. */}
+      <LumpSumValidationPanel proposalId={proposalId} userId={user?.id} onSelectParticipant={setSelectedParticipantId} />
       <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
        {participants.map((participant, index) => {
          const active = participant.id === selected.id;

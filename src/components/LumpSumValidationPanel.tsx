@@ -1,6 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Info, XCircle } from 'lucide-react';
 import { LsFinding, LsSeverity, useLumpSumValidation } from '@/hooks/useLumpSumValidation';
+import { useLsCollapse } from '@/components/LumpSumDepreciationSection';
+
+/**
+ * TEMPORARY — the whole validation feature is to be deleted once SUSIE-Q's
+ * budget migration from the actual-costs model to the lump-sum model is
+ * confirmed complete. Most of its findings are artefacts of that
+ * half-finished state, so it is useful only while the migration is being
+ * done by hand.
+ *
+ * Until then it must render for no proposal other than SUSIE-Q
+ * (af325ea2-ae8c-4f59-8625-283d5437efba). Deleting the feature means
+ * removing this file and src/hooks/useLumpSumValidation.ts, plus the import
+ * and single mount line in src/components/LumpSumBudgetPanel.tsx.
+ */
+export const SUSIE_Q_PROPOSAL_ID = 'af325ea2-ae8c-4f59-8625-283d5437efba';
+
+/** Collapse id used by this panel inside the shared lump-sum collapse state. */
+const VALIDATION_COLLAPSE_ID = 'validation';
 
 const SEVERITY_ORDER: LsSeverity[] = ['error', 'warning', 'info'];
 
@@ -20,19 +38,23 @@ function plural(count: number, word: string) {
  */
 export function LumpSumValidationPanel({
   proposalId,
+  userId,
   onSelectParticipant,
 }: {
   proposalId: string;
+  userId?: string | null;
   onSelectParticipant?: (participantId: string) => void;
 }) {
   const { findings, counts, isLoading } = useLumpSumValidation(proposalId);
-  const [open, setOpen] = useState(false);
-  const [touched, setTouched] = useState(false);
+  const { isCollapsed, toggle: toggleCollapsed } = useLsCollapse(userId, proposalId);
+  // The panel always starts collapsed; the user's own choice persists through
+  // the shared lump-sum collapse state, exactly like the other sections.
+  const open = !isCollapsed(VALIDATION_COLLAPSE_ID);
+  const toggle = () => toggleCollapsed(VALIDATION_COLLAPSE_ID);
 
-  useEffect(() => {
-    if (touched || isLoading) return;
-    setOpen(counts.error > 0);
-  }, [counts.error, isLoading, touched]);
+  // Renders nothing for any proposal other than SUSIE-Q — not even an empty
+  // collapsed section.
+  if (proposalId !== SUSIE_Q_PROPOSAL_ID) return null;
 
   const groups = useMemo(() => {
     const map = new Map<string, { label: string; participantId: string | null; items: LsFinding[] }>();
@@ -50,13 +72,11 @@ export function LumpSumValidationPanel({
 
   if (isLoading) return null;
 
-  const summary = [
+const summary = [
     counts.error ? plural(counts.error, 'error') : null,
     counts.warning ? plural(counts.warning, 'warning') : null,
     counts.info ? plural(counts.info, 'note') : null,
   ].filter(Boolean).join(', ') || 'No issues found';
-
-  const toggle = () => { setTouched(true); setOpen(value => !value); };
 
   return <section className="mb-2 rounded-md border border-border">
     <div
