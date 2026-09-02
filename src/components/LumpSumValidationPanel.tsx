@@ -78,7 +78,7 @@ export function LumpSumValidationPanel({
     counts.info ? plural(counts.info, 'note') : null,
   ].filter(Boolean).join(', ') || 'No issues found';
 
-  const toggle = () => { setTouched(true); setOpen(value => !value); };
+  
 
   return <section className="mb-2 rounded-md border border-border">
     <div
