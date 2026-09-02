@@ -34,6 +34,8 @@ export const LS_COL = {
   /** Summary-table columns. */
   summaryWp: 96,
   summaryMoney: LS_FIGURE_WIDTH,
+  /** A–E in the summary table: narrower, so the table's right edge still coincides. */
+  summaryNarrow: 96,
   request: 124,
   percent: 96,
   /** The shared figure column and the gutter to its right. */
