@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
+import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
 import { LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import {
   WP_COMMENT_LIMIT,
@@ -17,8 +18,7 @@ import {
 const COLLAPSE_TOTALS = 'ls-F';
 const COLLAPSE_COMMENTS = 'ls-wp-comments';
 
-const COL = { wp: 96, money: 108, request: 124, percent: 96 };
-const READ_CELL = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-1.5 text-xs tabular-nums md:text-sm';
+const READ_CELL = `${LS_FIGURE_CELL} inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent text-xs md:text-sm`;
 const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums md:text-sm';
 
 /** H as a share of G, to two decimals; null when G is zero. */
@@ -204,16 +204,17 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
             <colgroup>
-              <col style={{ width: COL.wp }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.money }} />
-              <col style={{ width: COL.request }} />
-              <col style={{ width: COL.percent }} />
+              <col style={{ width: LS_COL.summaryWp }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.summaryMoney }} />
+              <col style={{ width: LS_COL.request }} />
+              <col style={{ width: LS_COL.percent }} />
+              <col style={{ width: LS_COL.gutter }} />
             </colgroup>
             <thead className="bg-muted/50"><tr className="text-[11px]">
               <th className="px-1 py-1.5 text-left">Work package</th>

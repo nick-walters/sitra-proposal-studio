@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
-import { COL_WIDTH, DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
+import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
