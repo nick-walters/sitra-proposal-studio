@@ -725,7 +725,7 @@ export function BudgetPortalSheet({
           }]}
         />
       }
-      save={{ saving, lastSaved: null, onSaveNow: refetchBudgetRows }}
+      save={{ saving: traditionalReadOnly ? false : saving, lastSaved: null, onSaveNow: traditionalReadOnly ? undefined : refetchBudgetRows }}
     >
 
 
