@@ -1,4 +1,5 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
+import { setLumpSumCollapseControl } from '@/components/EditorChrome';
 import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

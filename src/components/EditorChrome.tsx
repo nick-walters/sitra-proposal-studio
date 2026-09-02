@@ -154,13 +154,20 @@ export function SaveStateButton({
 /* TOP TIER — page-wide controls, always visible                       */
 /* ------------------------------------------------------------------ */
 
-type LumpSumCollapseControl = {
+export type LumpSumCollapseControl = {
   allCollapsed: boolean;
   disabled?: boolean;
   onToggle: () => void;
 };
 
-const LUMP_SUM_COLLAPSE_EVENT = 'lump-sum-collapse-control';
+let lumpSumCollapseControl: LumpSumCollapseControl | null = null;
+const lumpSumCollapseListeners = new Set<(control: LumpSumCollapseControl | null) => void>();
+
+export function setLumpSumCollapseControl(control: LumpSumCollapseControl | null) {
+  lumpSumCollapseControl = control;
+  lumpSumCollapseListeners.forEach((listener) => listener(control));
+}
+
 
 export interface EditorTopBarProps extends SaveStateButtonProps {
   /** Preview button — omitted entirely when no handler is supplied. */
@@ -245,15 +252,16 @@ export function EditorTopBar({
   // A3's lump-sum panel has no Part A card registrations, so it supplies its
   // own control only while the lump-sum tab is active. Other surfaces are
   // unchanged and continue to use the normal `collapseAll` prop.
-  const [lumpSumCollapse, setLumpSumCollapse] = useState<LumpSumCollapseControl | null>(null);
+  const [lumpSumCollapse, setLumpSumCollapse] = useState<LumpSumCollapseControl | null>(lumpSumCollapseControl);
   useEffect(() => {
-    const handleLumpSumCollapse = (event: Event) => {
-      setLumpSumCollapse((event as CustomEvent<LumpSumCollapseControl | null>).detail);
+    lumpSumCollapseListeners.add(setLumpSumCollapse);
+    setLumpSumCollapse(lumpSumCollapseControl);
+    return () => {
+      lumpSumCollapseListeners.delete(setLumpSumCollapse);
     };
-    window.addEventListener(LUMP_SUM_COLLAPSE_EVENT, handleLumpSumCollapse);
-    return () => window.removeEventListener(LUMP_SUM_COLLAPSE_EVENT, handleLumpSumCollapse);
   }, []);
   const activeCollapseAll = lumpSumCollapse ?? collapseAll;
+
 
   return (
     <div className="flex w-full items-center gap-1.5 px-2 py-1">
