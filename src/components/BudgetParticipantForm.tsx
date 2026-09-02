@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, type ComponentProps } from 'react';
 import { PartACard } from '@/components/PartACard';
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
