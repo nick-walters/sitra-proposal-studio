@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -99,6 +99,64 @@ export const SUBLINE_HEADING_ROW = 'flex h-7 items-center gap-1 overflow-hidden'
 /** One indent step per level: lines sit at 16px, sub-lines at 32px. */
 export const LINE_INDENT = 'pl-4';
 export const SUBLINE_INDENT = 'pl-8';
+
+type HeadingLevel = 'major' | 'line' | 'subline';
+
+const HEADING_ROW: Record<HeadingLevel, string> = {
+  major: MAJOR_HEADING_ROW,
+  line: LINE_HEADING_ROW,
+  subline: SUBLINE_HEADING_ROW,
+};
+
+/**
+ * Wrapper for anything interactive that lives inside a clickable header —
+ * "Add role", "Add item", the chevron itself. It swallows the pointer, click
+ * and key events so using the control never toggles the section.
+ */
+export function HeaderControl({ children, className }: { children: ReactNode; className?: string }) {
+  const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
+  return <div
+    className={`flex shrink-0 items-center ${className ?? ''}`}
+    onClick={stop}
+    onPointerDown={stop}
+    onMouseDown={stop}
+    onKeyDown={stop}
+  >{children}</div>;
+}
+
+/**
+ * The single header row used by every lump-sum heading. The whole row toggles
+ * on click, Enter and Space; controls wrapped in HeaderControl do not.
+ */
+export function CollapsibleHeader({ collapsed, onToggle, label, level, className, children }: {
+  collapsed: boolean;
+  onToggle: () => void;
+  label: string;
+  level: HeadingLevel;
+  className?: string;
+  children: ReactNode;
+}) {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+    event.preventDefault();
+    onToggle();
+  };
+  return <div
+    role="button"
+    tabIndex={0}
+    aria-expanded={!collapsed}
+    aria-label={label}
+    onClick={onToggle}
+    onKeyDown={onKeyDown}
+    className={`${HEADING_ROW[level]} cursor-pointer select-none rounded-sm transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${className ?? ''}`}
+  >
+    <HeaderControl>
+      <CollapseChevron collapsed={collapsed} onToggle={onToggle} label={label} className={level === 'major' ? undefined : 'h-6 w-6'} />
+    </HeaderControl>
+    {children}
+  </div>;
+}
+
 
 const RESOURCE_TYPES = [
   { value: 'equipment', label: 'Equipment' },
