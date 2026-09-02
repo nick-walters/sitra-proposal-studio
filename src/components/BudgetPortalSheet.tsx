@@ -733,37 +733,42 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-             <TabsTrigger value="budget">Actual costs budget</TabsTrigger>
-               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-               {budgetType === 'lump_sum' && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
-             </TabsList>
-             {activeTab !== 'fstp' && (
-               <div className="flex items-center gap-3">
-                 <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
-                   <AlertCircle className="w-4 h-4" />
-                   Validate
-                 </Button>
-                 {budgetType === 'lump_sum' && (
-                   <Button variant="outline" className="gap-2" onClick={() => setAll(!allCollapsed)} aria-label={allCollapsed ? 'Expand all lump-sum sections' : 'Collapse all lump-sum sections'}>
-                     <ChevronsDownUp className="w-4 h-4" />
-                     {allCollapsed ? 'Expand all' : 'Collapse all'}
-                   </Button>
-                 )}
-                 {budgetType === 'lump_sum' && isCoordinator && (
-                   <Button
-                     variant="outline"
-                     className="gap-2"
-                     aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
-                     title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
-                     onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
-                   >
+              {budgetTabs.includes('budget') && <TabsTrigger value="budget">Actual costs budget</TabsTrigger>}
+              {budgetTabs.includes('lump-sum') && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
+              {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+            </TabsList>
+            {activeTab !== 'fstp' && (
+              <div className="flex items-center gap-3">
+                {traditionalReadOnly || lumpSumReadOnly ? (
+                  <div className="text-sm text-muted-foreground">This budget is superseded and read-only.</div>
+                ) : (
+                  <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
+                    <AlertCircle className="w-4 h-4" />
+                    Validate
+                  </Button>
+                )}
+                {activeTab === 'lump-sum' && (
+                  <Button variant="outline" className="gap-2" disabled={lumpSumReadOnly} onClick={() => setAll(!allCollapsed)} aria-label={allCollapsed ? 'Expand all lump-sum sections' : 'Collapse all lump-sum sections'}>
+                    <ChevronsDownUp className="w-4 h-4" />
+                    {allCollapsed ? 'Expand all' : 'Collapse all'}
+                  </Button>
+                )}
+                {activeTab === 'lump-sum' && isCoordinator && (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    disabled={lumpSumReadOnly}
+                    aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
+                    title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
+                    onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
+                  >
                     {lumpSumAccess.lockState === 'all'
                       ? <Lock className="w-4 h-4 text-destructive" />
                       : <Unlock className={`w-4 h-4 ${lumpSumAccess.lockState === 'some' ? 'text-warning' : 'text-green-600'}`} />}
                     {lumpSumAccess.lockState === 'all' ? 'Unlock all budgets' : 'Lock all budgets'}
                   </Button>
                 )}
-                <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
+                <Button variant="outline" className="gap-2" disabled={traditionalReadOnly || lumpSumReadOnly} onClick={handleExportXlsx}>
                   <Download className="w-4 h-4" />
                   Export budget
                 </Button>
@@ -773,6 +778,7 @@ export function BudgetPortalSheet({
 
           {/* Budget Tab */}
           <TabsContent value="budget" className="space-y-4">
+            {traditionalReadOnly && <div className="border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">This actual costs budget has been superseded and is read-only.</div>}
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -884,7 +890,7 @@ export function BudgetPortalSheet({
                   </div>
                 </CardContent>
               </Card>
-              <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} isCoordinator={isAdmin} />
+              <A3EffortMatrix proposalId={proposalId} canEdit={activeTabCanEdit} isCoordinator={isAdmin && !traditionalReadOnly} />
             </div>
             <Card>
               <CardHeader>
@@ -910,6 +916,7 @@ export function BudgetPortalSheet({
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6"
+                                      disabled={traditionalReadOnly}
                                       onClick={() => {
                                         const allLocked = rows.every(r => r.isLocked);
                                         if (allLocked) {
@@ -968,7 +975,7 @@ export function BudgetPortalSheet({
                             : '0';
 
                           return (
-                            <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60')}>
+                            <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60', traditionalReadOnly && 'opacity-70')}>
                               <td className="sticky left-0 bg-background z-10 px-2 py-1 border-r whitespace-nowrap">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="flex items-center gap-1">
@@ -985,12 +992,13 @@ export function BudgetPortalSheet({
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6"
+                                        disabled={traditionalReadOnly}
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                        aria-label="Lock" title="Lock">
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
-                                    {canEdit && (!row.isLocked || isAdmin) && (
+                                    {activeTabCanEdit && (!row.isLocked || isAdmin) && (
                                       <Button
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
@@ -1081,9 +1089,9 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
 
-          {budgetType === 'lump_sum' && (
+          {budgetTabs.includes('lump-sum') && (
             <TabsContent value="lump-sum">
-              <LumpSumBudgetPanel proposalId={proposalId} />
+              <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} />
             </TabsContent>
           )}
 
