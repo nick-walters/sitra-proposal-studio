@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import type * as XLSXNS from 'xlsx-js-style';
 // XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Download, AlertCircle } from 'lucide-react';
-import { appendLumpSumSheets } from '@/lib/lumpSumBudgetExport';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet,
@@ -40,6 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { appendLumpSumSheets } from '@/lib/lumpSumBudgetExport';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
