@@ -200,7 +200,7 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
 }
 
 export function LumpSumCostsSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
-  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems, saveDItem } = useLumpSumCosts(proposalId);
+  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems } = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true, ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
@@ -244,7 +244,13 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
 
   const renderDLine = (line: typeof LINES.D[number]) => {
     const collapsed = Boolean(collapse[line.key]);
-    return <section key={line.key} className="border-b border-border/70"><div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}</div>{!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Amount (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{workPackages.map(wp => { const item = items.find(candidate => candidate.cost_line === line.key && candidate.wp_draft_id === wp.id); return <DRow key={wp.id} item={item} wp={wp} editable={editable} onAmount={value => saveDItem(participantId, wp.id, line.key, value, item?.justification ?? '')} onJustification={value => saveDItem(participantId, wp.id, line.key, Number(item?.unit_cost ?? 0), value)} />; })}</tbody></table><div className="flex justify-end pt-1 text-sm font-bold tabular-nums">Line total: {formatCurrency(itemTotal(line.key))}</div></div>}</section>;
+    const lineItems = items.filter(item => item.cost_line === line.key).sort((a, b) => a.order_index - b.order_index);
+    const usedWpIds = new Set(lineItems.map(item => item.wp_draft_id));
+    const freeWorkPackages = workPackages.filter(wp => !usedWpIds.has(wp.id));
+    return <section key={line.key} className="border-b border-border/70">
+      <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && freeWorkPackages.length > 0 && <Select onValueChange={wpDraftId => addItem(participantId, line.key, wpDraftId)}><SelectTrigger className="h-7 w-auto min-w-20 px-2 text-xs"><SelectValue placeholder="Add item" /></SelectTrigger><SelectContent>{freeWorkPackages.map(wp => <SelectItem key={wp.id} value={wp.id} className="pl-2 [&>span:first-child]:hidden"><span title={wp.title ?? wp.short_name ?? ''}><WPBubble wpNumber={wp.number} wpColor={wp.color}>{`WP${wp.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select>}</div>
+      {!collapsed && <div className="overflow-x-auto pb-2"><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Amount (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <DRow key={item.id} item={item} workPackages={workPackages} usedWpIds={usedWpIds} editable={editable} onChangeWp={value => changeWorkPackage(item.id, value)} onAmount={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} onDelete={() => deleteItem(item.id)} />)}</tbody></table><div className="flex justify-end pt-1 text-sm font-bold tabular-nums">Line total: {formatCurrency(itemTotal(line.key))}</div></div>}
+    </section>;
   };
 
   return <div className="mt-4 space-y-1"><h2 className="text-lg font-semibold">B–D. Other cost categories</h2>{CATEGORIES.map(category => {
@@ -255,7 +261,24 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   })}</div>;
 }
 
-function DRow({ item, wp, editable, onAmount, onJustification }: { item?: LumpSumCostItem; wp: LumpSumCostWorkPackage; editable: boolean; onAmount: (value: number) => void; onJustification: (value: string) => void }) {
-  const missing = Number(item?.amount ?? 0) > 0 && !(item?.justification ?? '').trim();
-  return <tr className="border-t border-border/70"><td className="px-1"><span title={wp.title ?? wp.short_name ?? ''}><WPBubble wpNumber={wp.number} wpColor={wp.color}>{`WP${wp.number}`}</WPBubble></span></td><td className="px-1"><LocalNumberInput value={item?.unit_cost} decimals={2} disabled={!editable} onCommit={onAmount} /></td><td className="px-1"><LocalTextInput value={item?.justification ?? ''} disabled={!editable} className={missing ? warningClass(false) : ''} onCommit={onJustification} />{missing && <span className="text-[10px] text-warning" aria-live="polite">Justification recommended</span>}</td><td /></tr>;
+function DRow({ item, workPackages, usedWpIds, editable, onChangeWp, onAmount, onJustification, onDelete }: {
+  item: LumpSumCostItem;
+  workPackages: LumpSumCostWorkPackage[];
+  usedWpIds: Set<string>;
+  editable: boolean;
+  onChangeWp: (value: string) => void;
+  onAmount: (value: number) => void;
+  onJustification: (value: string) => void;
+  onDelete: () => void;
+}) {
+  const wp = workPackages.find(candidate => candidate.id === item.wp_draft_id);
+  const missing = Number(item.amount ?? 0) > 0 && !item.justification.trim();
+  // Only work packages without a row in this line — plus this row's own — are selectable.
+  const options = workPackages.filter(candidate => candidate.id === item.wp_draft_id || !usedWpIds.has(candidate.id));
+  return <tr className="border-t border-border/70 align-middle">
+    <td className="px-1"><Select value={item.wp_draft_id} onValueChange={onChangeWp} disabled={!editable}><SelectTrigger className="h-7 px-1.5 text-xs"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span><span className="sr-only"><SelectValue /></span></SelectTrigger><SelectContent>{options.map(candidate => <SelectItem key={candidate.id} value={candidate.id} className="pl-2 [&>span:first-child]:hidden"><span title={candidate.title ?? candidate.short_name ?? ''}><WPBubble wpNumber={candidate.number} wpColor={candidate.color}>{`WP${candidate.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select></td>
+    <td className="px-1"><LocalNumberInput value={item.unit_cost} decimals={2} disabled={!editable} onCommit={onAmount} /></td>
+    <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} className={missing ? warningClass(true) : ''} onCommit={onJustification} />{missing && <span className="text-[10px] text-destructive" aria-live="polite">Justification required</span>}</td>
+    <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete cost item" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
+  </tr>;
 }

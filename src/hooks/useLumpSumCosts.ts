@@ -82,8 +82,10 @@ export function useLumpSumCosts(proposalId: string) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
   const addItem = useMutation({
-    mutationFn: async ({ participantId, costLine }: { participantId: string; costLine: string }) => {
-      const workPackage = query.data?.workPackages[0];
+    mutationFn: async ({ participantId, costLine, wpDraftId }: { participantId: string; costLine: string; wpDraftId?: string }) => {
+      const workPackage = wpDraftId
+        ? query.data?.workPackages.find(wp => wp.id === wpDraftId)
+        : query.data?.workPackages[0];
       if (!workPackage) throw new Error('No work packages are available for this proposal.');
       await ensureParticipantBudget(proposalId, participantId);
       const current = query.data?.items.filter(item => item.participant_id === participantId && item.cost_line === costLine) ?? [];
@@ -148,38 +150,6 @@ export function useLumpSumCosts(proposalId: string) {
     onError: (error: unknown) => toast.error(`Failed to reorder cost items: ${errorMessage(error)}`),
   });
 
-  const saveDItem = useMutation({
-    mutationFn: async ({ participantId, wpDraftId, costLine, unitCost, justification }: {
-      participantId: string;
-      wpDraftId: string;
-      costLine: string;
-      unitCost: number;
-      justification: string;
-    }) => {
-      const existing = query.data?.items.find(item =>
-        item.participant_id === participantId && item.wp_draft_id === wpDraftId && item.cost_line === costLine,
-      );
-      await ensureParticipantBudget(proposalId, participantId);
-      if (existing) {
-        const { error } = await supabase.from('ls_cost_items').update({ unit_cost: unitCost, justification }).eq('id', existing.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase.from('ls_cost_items').insert({
-        proposal_id: proposalId,
-        participant_id: participantId,
-        wp_draft_id: wpDraftId,
-        cost_line: costLine,
-        quantity: 1,
-        unit_cost: unitCost,
-        justification,
-        order_index: 0,
-      });
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-    onError: (error: unknown) => toast.error(`Failed to save cost amount: ${errorMessage(error)}`),
-  });
 
   const debounced = (key: string, callback: () => void) => {
     if (timers.current[key]) clearTimeout(timers.current[key]);
@@ -189,15 +159,13 @@ export function useLumpSumCosts(proposalId: string) {
   return {
     ...query,
     data: query.data,
-    addItem: (participantId: string, costLine: string) => addItem.mutate({ participantId, costLine }),
+    addItem: (participantId: string, costLine: string, wpDraftId?: string) => addItem.mutate({ participantId, costLine, wpDraftId }),
     updateQuantity: (itemId: string, value: number) => debounced(`quantity-${itemId}`, () => updateItem.mutate({ itemId, field: 'quantity', value })),
     updateUnitCost: (itemId: string, value: number) => debounced(`unit-cost-${itemId}`, () => updateItem.mutate({ itemId, field: 'unit_cost', value })),
     updateJustification: (itemId: string, value: string) => debounced(`justification-${itemId}`, () => updateItem.mutate({ itemId, field: 'justification', value })),
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    saveDItem: (participantId: string, wpDraftId: string, costLine: string, unitCost: number, justification: string) =>
-      debounced(`d-${participantId}-${wpDraftId}-${costLine}`, () => saveDItem.mutate({ participantId, wpDraftId, costLine, unitCost, justification })),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || saveDItem.isPending,
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending,
   };
 }
