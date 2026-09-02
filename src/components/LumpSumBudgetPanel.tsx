@@ -22,7 +22,11 @@ const BLOCKS = [
   { line: 'A.4', label: 'A.4 Personnel costs — SME owners and natural person beneficiaries' },
 ];
 
-const MAJOR_COLLAPSE_DEFAULTS: Record<string, boolean> = { A: false, B: true, C: false, D: true };
+/** Every heading at the same level shares one geometry. */
+export const MAJOR_HEADING_ROW = 'flex h-8 items-center gap-1';
+export const MAJOR_HEADING_TEXT = 'min-w-0 flex-1 text-base font-semibold';
+export const LINE_HEADING_ROW = 'flex h-7 items-center gap-1';
+export const LINE_HEADING_TEXT = 'min-w-0 flex-1 text-xs font-semibold';
 
 function formatPM(value: number) {
   return value.toFixed(1);
@@ -36,19 +40,8 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>(MAJOR_COLLAPSE_DEFAULTS);
-  const majorCollapseKey = `ls-major-collapse:${user?.id ?? 'anon'}:${proposalId}`;
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(majorCollapseKey);
-      if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) }));
-    } catch { /* view preference only */ }
-  }, [majorCollapseKey]);
-  const toggleMajor = (key: string) => setMajorCollapse(current => {
-    const next = { ...current, [key]: !(current[key] ?? true) };
-    try { localStorage.setItem(majorCollapseKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
+  const majorACollapsed = isCollapsed(majorId('A'));
+
   
 
 
