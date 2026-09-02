@@ -124,7 +124,9 @@ export function BudgetPortalSheet({
     () => [...budgetTabs, ...(usesFstp ? ['fstp' as const] : [])],
     [budgetTabs, usesFstp],
   );
-  const storageKey = `budget-active-tab:${user?.id ?? 'anonymous'}:${proposalId}`;
+  // Persist per proposal so the preference survives the auth hydration/remount
+  // that occurs when reopening the editor, including from a deep link.
+  const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
@@ -134,18 +136,24 @@ export function BudgetPortalSheet({
   const activeTabCanEdit = canEdit && !traditionalReadOnly;
 
   useEffect(() => {
-    if (!user?.id) return;
     const savedTab = window.localStorage.getItem(storageKey);
     const nextTab = savedTab && availableTabs.includes(savedTab as typeof availableTabs[number])
       ? savedTab
       : availableTabs[0];
     if (nextTab) setActiveTab(nextTab);
-  }, [user?.id, storageKey, availableTabs]);
+  }, [storageKey, availableTabs]);
 
   useEffect(() => {
-    if (!user?.id || !availableTabs.includes(activeTab as typeof availableTabs[number])) return;
+    if (!availableTabs.includes(activeTab as typeof availableTabs[number])) return;
     window.localStorage.setItem(storageKey, activeTab);
-  }, [activeTab, availableTabs, storageKey, user?.id]);
+  }, [activeTab, availableTabs, storageKey]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (availableTabs.includes(value as typeof availableTabs[number])) {
+      window.localStorage.setItem(storageKey, value);
+    }
+  };
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
