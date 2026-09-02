@@ -130,7 +130,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
-  }, [proposalId, queryClient]);
+  }, [isLumpSum, proposalId, queryClient]);
 
   // Stable list of WP IDs in column order; reference only changes when the
   // WP set or order changes.
@@ -167,8 +167,9 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
     return { colTotals: cols, grandTotal: grand };
   }, [participantEfforts, wpIds]);
 
-  // Traditional budgets retain the existing editable effort grid. Lump-sum
-  // budgets use personnel effort as the source and therefore do not write here.
+  // Coalesce optimistic cache updates + downstream invalidations so rapid
+  // edits across multiple cells trigger a single matrix re-render after
+  // the user pauses (~800 ms), not one re-render per keystroke flush.
   const pendingEditsRef = useRef<Map<string, { participantId: string; wpId: string; personMonths: number }>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -178,40 +179,53 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
     if (pending.size === 0) return;
     const edits = Array.from(pending.values());
     pendingEditsRef.current = new Map();
+
     queryClient.setQueryData(
       ['a3-effort-data', proposalId],
       (old: { wp_draft_id: string; participant_id: string; person_months: number }[] | undefined) => {
         const base = old ? [...old] : [];
         for (const { participantId, wpId, personMonths } of edits) {
           const idx = base.findIndex(e => e.wp_draft_id === wpId && e.participant_id === participantId);
-          if (idx >= 0) base[idx] = { ...base[idx], person_months: personMonths };
-          else base.push({ wp_draft_id: wpId, participant_id: participantId, person_months: personMonths });
+          if (idx >= 0) {
+            base[idx] = { ...base[idx], person_months: personMonths };
+          } else {
+            base.push({ wp_draft_id: wpId, participant_id: participantId, person_months: personMonths });
+          }
         }
         return base;
-      },
+      }
     );
+
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
   }, [proposalId, queryClient]);
 
-  useEffect(() => () => {
-    if (flushTimerRef.current) {
-      clearTimeout(flushTimerRef.current);
-      flushPendingEdits();
-    }
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current);
+        // Final flush so unmount doesn't lose pending UI updates.
+        flushPendingEdits();
+      }
+    };
   }, [flushPendingEdits]);
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
     if (isLumpSum) return;
-    const { error } = await supabase.from('wp_draft_effort').upsert({
-      wp_draft_id: wpId,
-      participant_id: participantId,
-      person_months: personMonths,
-    }, { onConflict: 'wp_draft_id,participant_id' });
+    const { error } = await supabase
+      .from('wp_draft_effort')
+      .upsert({
+        wp_draft_id: wpId,
+        participant_id: participantId,
+        person_months: personMonths,
+      }, {
+        onConflict: 'wp_draft_id,participant_id',
+      });
     if (error) {
       toast.error('Failed to save effort');
       return;
     }
+
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(flushPendingEdits, 800);
