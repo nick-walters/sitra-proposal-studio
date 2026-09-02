@@ -104,9 +104,11 @@ export function BudgetPortalSheet({
   } = useBudgetRows(proposalId, proposalType);
 
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
+  const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
