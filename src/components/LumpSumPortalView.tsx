@@ -169,9 +169,6 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
     if (!pm) return 0;
     const trueCost = groupRoles.reduce((sum, role) => {
       const rate = role.cost_line === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0);
-      return sum + rate * pmFor([role.id], wp0(workPackages).length ? '' : '') * 0;
-    }, 0) + groupRoles.reduce((sum, role) => {
-      const rate = role.cost_line === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0);
       const rolePm = workPackages.reduce((inner, wp) => inner + pmFor([role.id], wp.id), 0);
       return sum + rate * rolePm;
     }, 0);
