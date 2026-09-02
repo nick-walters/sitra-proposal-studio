@@ -64,6 +64,29 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
     };
   }, { portalCost: 0, trueCost: 0, difference: 0 });
 
+  /**
+   * A per work package. The rounded portal figure from costLineTotals stays the
+   * single source of truth: its effective (already rounded) rate per cost line
+   * is applied to that line's person-months in each work package, so the rows
+   * add up exactly to the A total shown above.
+   */
+  const personnelByWp = useMemo(() => {
+    const byWp: Record<string, number> = {};
+    for (const wp of workPackages) byWp[wp.id] = 0;
+    for (const block of BLOCKS) {
+      const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
+      const line = costLineTotals(block.line, lineRoles, efforts, workPackages, a4UnitCost);
+      if (!line.totalPm) continue;
+      const effectiveRate = line.portalCost / line.totalPm;
+      for (const wp of workPackages) {
+        const pm = lineRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0);
+        byWp[wp.id] = (byWp[wp.id] ?? 0) + effectiveRate * pm;
+      }
+    }
+    return byWp;
+  }, [participantRoles, efforts, workPackages, a4UnitCost]);
+
+
   if (isLoading || permissionsLoading) return <div className="p-6 text-sm text-muted-foreground">Loading lump sum personnel costs…</div>;
   if (error) return <div className="p-6 text-sm text-destructive">Unable to load lump sum personnel costs.</div>;
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
