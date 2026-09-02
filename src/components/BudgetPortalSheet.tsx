@@ -1023,30 +1023,31 @@ export function BudgetPortalSheet({
                                     {row.isLocked && !isAdmin && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                   </span>
                                   <span className="flex items-center gap-1 shrink-0">
-                                    {isAdmin && (
+                                    {isAdmin && !traditionalReadOnly && (
                                       <Button
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6"
-                                        disabled={traditionalReadOnly}
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                        aria-label="Lock" title="Lock">
                                         {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-green-600" />}
                                       </Button>
                                     )}
-                                    {activeTabCanEdit && (!row.isLocked || isAdmin) && (
+                                    {canOpenTraditionalParticipant && (!row.isLocked || isAdmin || traditionalReadOnly) && (
                                       <Button
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
                                         onClick={() => {
-                                          if (row.isLocked && isAdmin) {
+                                          if (traditionalReadOnly) {
+                                            setEditingParticipantId(row.participantId);
+                                          } else if (row.isLocked && isAdmin) {
                                             setLockedEditWarning({ participantId: row.participantId });
                                           } else {
                                             setEditingParticipantId(row.participantId);
                                           }
                                         }}
                                       >
-                                        Edit
+                                        {traditionalReadOnly ? 'View' : 'Edit'}
                                       </Button>
                                     )}
                                   </span>
