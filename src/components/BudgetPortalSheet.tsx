@@ -83,7 +83,7 @@ const PARTICIPANT_COLUMNS = [
   { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
 
-type BudgetView = 'enter' | 'portal';
+type BudgetView = 'enter' | 'portal' | 'overview';
 
 const PORTAL_VIEW_KEY = (userId: string | undefined, proposalId: string) => `ls-budget-view:${userId ?? 'anon'}:${proposalId}`;
 
