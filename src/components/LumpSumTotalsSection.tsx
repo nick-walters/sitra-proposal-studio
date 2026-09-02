@@ -219,13 +219,19 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
           <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
             <colgroup>
               <col style={{ width: LS_COL.summaryWp }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
-              {/* F is the shared alignment anchor; this spacer absorbs the table's remaining width. */}
+              {/*
+                G, H and the percentage sit to the right of F, so F itself cannot
+                occupy the shared figure position. Instead the spacer sits directly
+                after the work-package column: every fixed column to its right —
+                ending in the same trailing gutter — makes this table's right edge
+                coincide with every other lump-sum table.
+              */}
               <col />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
+              <col style={{ width: LS_COL.summaryNarrow }} />
               <col style={{ width: LS_COL.figure }} />
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.request }} />
