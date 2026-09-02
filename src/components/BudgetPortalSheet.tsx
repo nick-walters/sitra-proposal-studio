@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import type * as XLSXNS from 'xlsx-js-style';
 // XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Download, AlertCircle } from 'lucide-react';
+import { appendLumpSumSheets } from '@/lib/lumpSumBudgetExport';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet,
@@ -723,6 +724,8 @@ export function BudgetPortalSheet({
     autoFitCols(ws3, overviewAoa);
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+
+    await appendLumpSumSheets(wb, XLSX, proposalId, budgetType);
 
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
