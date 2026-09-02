@@ -236,38 +236,30 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems } = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
-  const [collapse, setCollapse] = useState<Record<string, boolean>>({ ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true });
-  const [parentCollapse, setParentCollapse] = useState<Record<string, boolean>>({ 'C.2': false, 'C.3': true });
-  const storageKey = `ls-costs-collapse:${userId ?? 'anon'}:${proposalId}`;
-  const majorStorageKey = `ls-major-collapse:${userId ?? 'anon'}:${proposalId}`;
-  useEffect(() => {
-    try { const stored = localStorage.getItem(storageKey); if (stored) setCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
-  }, [storageKey]);
-  useEffect(() => {
-    try { const stored = localStorage.getItem(majorStorageKey); if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
-  }, [majorStorageKey]);
-  const toggle = (key: string) => setCollapse(current => {
-    const next = { ...current, [key]: !current[key] };
-    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
-  const toggleMajor = (key: string) => setMajorCollapse(current => {
-    const next = { ...current, [key]: !(current[key] ?? true) };
-    try { localStorage.setItem(majorStorageKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
-  const toggleParent = (key: 'C.2' | 'C.3') => setParentCollapse(current => ({ ...current, [key]: !current[key] }));
+  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
   const workPackages = data?.workPackages ?? [];
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key)) + (key === MIRROR_LINE_KEY ? mirroredItems.reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
-  const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId)) + (key === MIRROR_LINE_KEY ? mirroredItems.filter(item => item.wp_draft_id === wpId).reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0) : 0);
-  const categoryWpTotal = (category: typeof CATEGORIES[number], wpId: string) => category.lines.reduce((sum, line) => sum + wpTotal(line.key, wpId), 0);
-  const renderCategorySubtotals = (category: typeof CATEGORIES[number]) => workPackages
-    .map(wp => ({ wp, total: categoryWpTotal(category, wp.id) }))
-    .filter(({ total }) => total > 0)
-    .map(({ wp, total }) => <div key={`${category.key}-${wp.id}`} className="flex items-center justify-end gap-2 text-sm tabular-nums"><span className="text-muted-foreground">{wpLabel(wp)} subtotal</span><span className={`${NUM_READ_FIELD} w-32 font-semibold`}>{formatCurrency(total)}</span></div>);
+  /** The depreciation charges that mirror into a given C.2 sub-line. */
+  const mirroredFor = (key: string) => MIRRORED_LINE_KEYS.has(key)
+    ? mirroredItems.filter(item => MIRROR_LINE_KEY(item.resource_type) === key)
+    : [];
+  const mirroredTotal = (key: string, wpId?: string) => mirroredFor(key)
+    .filter(item => !wpId || item.wp_draft_id === wpId)
+    .reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0);
+  const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key)) + mirroredTotal(key);
+  const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId)) + mirroredTotal(key, wpId);
+  const keysWpTotal = (keys: readonly string[], wpId: string) => keys.reduce((sum, key) => sum + wpTotal(key, wpId), 0);
+  /** One row per work package with a non-zero subtotal; zero work packages are hidden. */
+  const subtotalRows = (keys: readonly string[]) => workPackages
+    .map(wp => ({ wp, total: keysWpTotal(keys, wp.id) }))
+    .filter(({ total }) => total > 0);
+  const renderSubtotals = (keys: readonly string[], scope: string) => {
+    const rows = subtotalRows(keys);
+    if (rows.length === 0) return null;
+    return <SubtotalTable rows={rows} scope={scope} />;
+  };
+
 
   if (isLoading) return <div className="pt-3 text-sm text-muted-foreground">Loading B–D costs…</div>;
   if (error) return <div className="pt-3 text-sm text-destructive">Unable to load B–D costs.</div>;
