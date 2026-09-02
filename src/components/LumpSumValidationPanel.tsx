@@ -1,6 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Info, XCircle } from 'lucide-react';
 import { LsFinding, LsSeverity, useLumpSumValidation } from '@/hooks/useLumpSumValidation';
+import { useLsCollapse } from '@/components/LumpSumDepreciationSection';
+
+/**
+ * TEMPORARY — the whole validation feature is to be deleted once SUSIE-Q's
+ * budget migration from the actual-costs model to the lump-sum model is
+ * confirmed complete. Most of its findings are artefacts of that
+ * half-finished state, so it is useful only while the migration is being
+ * done by hand.
+ *
+ * Until then it must render for no proposal other than SUSIE-Q
+ * (af325ea2-ae8c-4f59-8625-283d5437efba). Deleting the feature means
+ * removing this file and src/hooks/useLumpSumValidation.ts, plus the import
+ * and single mount line in src/components/LumpSumBudgetPanel.tsx.
+ */
+export const SUSIE_Q_PROPOSAL_ID = 'af325ea2-ae8c-4f59-8625-283d5437efba';
+
+/** Collapse id used by this panel inside the shared lump-sum collapse state. */
+const VALIDATION_COLLAPSE_ID = 'validation';
 
 const SEVERITY_ORDER: LsSeverity[] = ['error', 'warning', 'info'];
 
