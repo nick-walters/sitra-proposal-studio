@@ -44,8 +44,9 @@ const NUM_FIELD = `${FIELD} text-right tabular-nums`;
  * (no visible border) so they read as computed, not typeable. Keeping the
  * 1px transparent border matters: it is what makes the right edges coincide.
  */
-const READ_FIELD = `${FIELD} inline-flex items-center rounded-md border border-transparent`;
-const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
+export const READ_FIELD = `${FIELD} inline-flex items-center rounded-md border border-transparent`;
+export const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
+
 
 /**
  * Explicit column widths shared by the table colgroup and every row.

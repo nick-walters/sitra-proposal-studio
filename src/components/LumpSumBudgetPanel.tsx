@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
-import { ParticipantBubble } from '@/components/B31Pill';
+import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
-import { DifferenceNote, LumpSumPersonnelTable, NumericInput, costLineTotals } from '@/components/LumpSumPersonnelTable';
+import { COL_WIDTH, DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
@@ -115,9 +115,9 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
         </div>
          <section className="border-b border-border">
            <div className={MAJOR_HEADING_ROW}>
-             <CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" />
-             <h2 className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</h2>
-             {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
+              <CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" />
+              <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</span>
+              {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
            </div>
            {!isCollapsed('A') && <>
              {BLOCKS.map(block => {
@@ -138,11 +138,46 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
 
               function onAddRole() { addRole(selected.id, block.line); }
              })}
-             <div className="border-t-2 border-foreground/40 pt-3"><div className="flex items-center justify-between font-semibold"><span>A total</span><span className="tabular-nums whitespace-nowrap">{formatCurrency(overallTotals.portalCost)}<DifferenceNote difference={overallTotals.difference} /></span></div><div className="mt-2 overflow-x-auto"><table className="w-full text-sm"><tbody><tr className="border-t border-border"><td className="py-1.5 font-medium">Total person-months per work package</td>{workPackages.map(wp => <td key={wp.id} className="px-2 py-1.5 text-right tabular-nums">WP{wp.number}<br /><span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span></td>)}</tr></tbody></table></div></div>
+             <div className="border-t-2 border-foreground/40 pt-2">
+               {/*
+                 The per-work-package person-month row sits above the A total and
+                 labels each value with the same number-only WPBubble badge the
+                 A.1–A.4 tables use for their work-package columns.
+               */}
+               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 px-1.5 pb-1 text-xs">
+                 <span className="mr-auto text-muted-foreground">Total person-months per work package</span>
+                 {workPackages.map(wp => <span key={wp.id} className="inline-flex items-center gap-1">
+                   <span title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></span>
+                   <span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span>
+                 </span>)}
+               </div>
+               {/*
+                 The A total reuses the B–D total row geometry: the label sits on
+                 one line immediately left of the Cost column and the value's
+                 right edge lines up with the fields above it.
+               */}
+                <table className="w-full table-fixed border-collapse text-sm">
+                  <colgroup>
+                    <col style={{ width: COL_WIDTH.grip }} />
+                    <col />
+                    <col style={{ width: COL_WIDTH.cost }} />
+                    <col style={{ width: COL_WIDTH.diff }} />
+                    <col style={{ width: COL_WIDTH.del }} />
+                  </colgroup>
+                  <tbody><tr>
+                    <td />
+                    <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>A. Total personnel costs</div></td>
+                    <td className="px-1"><div className={`${NUM_READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{formatCurrency(overallTotals.portalCost)}</div></td>
+                    <td className="px-1"><div className={`${READ_FIELD} whitespace-nowrap font-normal`}><DifferenceNote difference={overallTotals.difference} /></div></td>
+                    <td />
+                  </tr></tbody>
+                </table>
+             </div>
            </>}
          </section>
+        <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
       </div>
-      <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
+
      {permissionsParticipant && <LumpSumPermissionsDialog proposalId={proposalId} participant={permissionsParticipant} open={Boolean(permissionsParticipantId)} onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }} />}
    </div>;
  }
