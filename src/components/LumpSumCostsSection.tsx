@@ -316,7 +316,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     </section>;
   };
 
-  return <div className="mt-4 space-y-1">{CATEGORIES.map(category => {
+  return <div className="mt-1 space-y-1">{CATEGORIES.map(category => {
     const visibleLines = category.lines.filter(line => !(line.key === 'D.1' && !data.usesFstp));
     const majorCollapsed = isCollapsed(category.key);
     const categoryTotal = visibleLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
