@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import type * as XLSXNS from 'xlsx-js-style';
 // XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
 import { Lock, Unlock, Loader2, Download, AlertCircle } from 'lucide-react';
+import { appendLumpSumSheets } from '@/lib/lumpSumBudgetExport';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet,
