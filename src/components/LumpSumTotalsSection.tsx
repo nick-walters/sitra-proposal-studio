@@ -259,6 +259,8 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     placeholder={row.maxEuContribution > 0 ? '100.00' : ''}
                     disabled={!editable || !(row.maxEuContribution > 0)}
                     decimals={2}
+                    max={100}
+                    warningText="The requested EU contribution cannot exceed the maximum; the percentage is capped at 100%."
                     onCommit={value => totals.setRequestedContribution(
                       participantId,
                       row.wp.id,
@@ -282,6 +284,10 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
             </tbody>
           </table>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Indirect costs are charged at {formatNumber(indirectCostRate, 2)}% of A + C only. Subcontracting (B),
+          financial support to third parties (D.1) and internally invoiced goods and services (D.2) are excluded from the base.
+        </p>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-muted-foreground">Funding rate for this participant</span>
           <div className="w-24">
