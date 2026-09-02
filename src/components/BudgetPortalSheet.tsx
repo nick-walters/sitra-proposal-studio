@@ -1,7 +1,6 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { setLumpSumCollapseControl } from '@/components/EditorChrome';
 import { LumpSumBudgetPanel } from '@/components/LumpSumBudgetPanel';
-import { LumpSumOverview } from '@/components/LumpSumOverview';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
@@ -1175,9 +1174,7 @@ export function BudgetPortalSheet({
 
           {budgetTabs.includes('lump-sum') && (
             <TabsContent value="lump-sum">
-              {budgetView === 'overview'
-                ? <LumpSumOverview proposalId={proposalId} userId={user?.id} />
-                : <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} budgetView={budgetView} />}
+              <LumpSumBudgetPanel proposalId={proposalId} readOnly={lumpSumReadOnly} budgetView={budgetView} />
             </TabsContent>
           )}
 
