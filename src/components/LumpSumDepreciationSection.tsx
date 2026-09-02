@@ -193,7 +193,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
 
   return <section id={DEPRECIATION_SECTION_ID} className="border-b border-border/70 pl-4">
     <div className="flex min-h-8 items-center gap-1">
-      <CollapseChevron collapsed={collapsed} onToggle={toggle} label="depreciation register" className="h-6 w-6" />
+      <CollapseChevron collapsed={collapsed} onToggle={toggleCollapse} label="depreciation register" className="h-6 w-6" />
       <h2 className="min-w-0 flex-1 text-xs font-semibold">Depreciation of equipment, infrastructure and other assets</h2>
       {collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
       {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button>}
