@@ -178,22 +178,20 @@ export function LumpSumBudgetPanel({
            {!readOnly && isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
         </div>
          <section className="border-b border-border">
-           <div className={MAJOR_HEADING_ROW}>
-              <CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" />
+           <CollapsibleHeader collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" level="major">
               <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</span>
               {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
-           </div>
+           </CollapsibleHeader>
            {!isCollapsed('A') && <>
              {BLOCKS.map(block => {
               const collapsed = isCollapsed(block.line);
               const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
               return <section key={block.line} className={`border-b border-border ${LINE_INDENT}`}>
-                <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
-                  <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
+                <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} level="line" className="border-b border-border/60">
                   <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{block.label}</span>
                   {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
-                </div>
+                  {!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={onAddRole}>Add role</Button></HeaderControl>}
+                </CollapsibleHeader>
                 {!collapsed && <div className="space-y-2 pt-2">
                   {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}
                   <LumpSumPersonnelTable costLine={block.line} roles={lineRoles} efforts={efforts} workPackages={workPackages} editable={editable} a4UnitCost={a4UnitCost} onAdd={() => addRole(selected.id, block.line)} onUpdateRole={updateRole} onDelete={deleteRole} onReorder={reorderRoles} onSetEffort={setEffort} />
