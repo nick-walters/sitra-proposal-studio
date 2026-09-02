@@ -807,6 +807,218 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
 // Port of the in-app Budget Excel export (BudgetPortalSheet.handleExportXlsx).
 // Produces the same 3-sheet workbook (Staff Effort, Summary by Participant,
 // Budget Overview) with the same column structure, formulas and number formats.
+function roundLumpSumCents(value: number): number {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
+}
+
+function lumpSumParticipantLabel(participant: any): string {
+  return `P${participant?.participant_number ?? "?"} ${participant?.organisation_short_name || participant?.organisation_name || ""}`.trim();
+}
+
+function lumpSumWpLabel(wp: any): string {
+  return `WP${wp?.number ?? "?"}`;
+}
+
+const LUMP_SUM_CATEGORY_LABELS: Record<string, string> = {
+  senior_scientist: "Senior expert",
+  junior_scientist: "Junior expert",
+  technical: "Technical role",
+  administrative: "Administrative role",
+  others: "Others",
+};
+
+async function appendLumpSumSheets(
+  wb: any,
+  supabase: any,
+  proposal: any,
+  participants: any[],
+  workPackages: any[],
+): Promise<{ names: string[]; rowCounts: Record<string, number> }> {
+  const [rolesResult, effortResult, costsResult, depreciationResult, participantBudgetsResult, wpBudgetsResult, overridesResult] = await Promise.all([
+    supabase.from("ls_personnel_roles").select("id, participant_id, cost_line, role_name, he_category, pm_rate").eq("proposal_id", proposal.id),
+    supabase.from("ls_personnel_effort").select("role_id, wp_draft_id, person_months").eq("proposal_id", proposal.id),
+    supabase.from("ls_cost_items").select("participant_id, wp_draft_id, cost_line, quantity, unit_cost, amount, justification, order_index").eq("proposal_id", proposal.id).order("order_index"),
+    supabase.from("ls_depreciation_items").select("participant_id, wp_draft_id, resource_type, short_name, purchase_date, purchase_cost, pct_project, pct_useful_life, charged_depreciation, include_in_c2, comments, order_index").eq("proposal_id", proposal.id).order("order_index"),
+    supabase.from("ls_participant_budget").select("participant_id, a4_unit_cost, funding_rate_override").eq("proposal_id", proposal.id),
+    supabase.from("ls_wp_budget").select("participant_id, wp_draft_id, requested_eu_contribution, comments").eq("proposal_id", proposal.id),
+    supabase.from("ls_budget_permission_overrides").select("id").eq("proposal_id", proposal.id),
+  ]);
+  const results = [rolesResult, effortResult, costsResult, depreciationResult, participantBudgetsResult, wpBudgetsResult, overridesResult];
+  const failed = results.find((result: any) => result.error);
+  if (failed?.error) throw failed.error;
+
+  const roles = rolesResult.data ?? [];
+  const efforts = effortResult.data ?? [];
+  const costs = costsResult.data ?? [];
+  const depreciation = depreciationResult.data ?? [];
+  const participantBudgets = participantBudgetsResult.data ?? [];
+  const wpBudgets = wpBudgetsResult.data ?? [];
+  const overrides = overridesResult.data ?? [];
+  const hasLumpSumRows = [roles, efforts, costs, depreciation, participantBudgets, wpBudgets, overrides].some((rows: any[]) => rows.length > 0);
+  if (proposal.budget_type !== "lump_sum" && !hasLumpSumRows) return { names: [], rowCounts: {} };
+
+  const participantById = new Map(participants.map((participant: any) => [participant.id, participant]));
+  const wpById = new Map(workPackages.map((wp: any) => [wp.id, wp]));
+  const budgetByParticipant = new Map(participantBudgets.map((row: any) => [row.participant_id, row]));
+  const effortByRoleWp = new Map(efforts.map((row: any) => [`${row.role_id}|${row.wp_draft_id}`, Number(row.person_months ?? 0)]));
+  const roleById = new Map(roles.map((role: any) => [role.id, role]));
+  const wpBudgetByParticipantWp = new Map(wpBudgets.map((row: any) => [`${row.participant_id}|${row.wp_draft_id}`, row]));
+  const rateForRole = (role: any): number => role.cost_line === "A.4"
+    ? Number(budgetByParticipant.get(role.participant_id)?.a4_unit_cost ?? 0)
+    : Number(role.pm_rate ?? 0);
+  const groupKeyForRole = (role: any): string => `${role.participant_id}|${role.cost_line}|${role.cost_line === "A.1" ? (role.he_category || "blank") : "all"}`;
+  const groupStats = new Map<string, { personMonths: number; trueCost: number }>();
+  for (const effort of efforts) {
+    const role = roleById.get(effort.role_id);
+    if (!role) continue;
+    const pm = Number(effort.person_months ?? 0);
+    const key = groupKeyForRole(role);
+    const existing = groupStats.get(key) ?? { personMonths: 0, trueCost: 0 };
+    existing.personMonths += pm;
+    existing.trueCost += pm * rateForRole(role);
+    groupStats.set(key, existing);
+  }
+  const roundedRateForGroup = (key: string): number => {
+    const stats = groupStats.get(key);
+    return stats && stats.personMonths > 0 ? roundLumpSumCents(stats.trueCost / stats.personMonths) : 0;
+  };
+  const personnelCost = (role: any, wpId: string): number => {
+    const pm = effortByRoleWp.get(`${role.id}|${wpId}`) ?? 0;
+    return roundLumpSumCents(roundedRateForGroup(groupKeyForRole(role)) * pm);
+  };
+  const participantLabel = (id: string) => lumpSumParticipantLabel(participantById.get(id));
+  const wpLabel = (id: string) => lumpSumWpLabel(wpById.get(id));
+  const dateLabel = (value: string | null | undefined) => value ? String(value).slice(0, 10) : "";
+
+  const styleHeaders = (ws: any, rowNum: number, colCount: number) => {
+    for (let c = 0; c < colCount; c++) {
+      const ref = `${String.fromCharCode(65 + c)}${rowNum}`;
+      if (ws[ref]) ws[ref].s = { font: { bold: true } };
+    }
+  };
+  const styleNumberColumns = (ws: any, colIndexes: number[], firstRow: number, lastRow: number, format: string) => {
+    for (let row = firstRow; row <= lastRow; row++) {
+      for (const col of colIndexes) {
+        let n = col;
+        let letters = "";
+        while (n >= 0) { letters = String.fromCharCode(65 + (n % 26)) + letters; n = Math.floor(n / 26) - 1; }
+        const ref = `${letters}${row}`;
+        if (ws[ref]) ws[ref].s = { ...(ws[ref].s || {}), numFmt: format };
+      }
+    }
+  };
+  const autoFit = (ws: any, rows: any[][]) => {
+    const widths: number[] = [];
+    for (const row of rows) row.forEach((cell: any, index: number) => {
+      const length = cell == null ? 0 : typeof cell === "object" && cell.f ? 12 : String(cell).length;
+      widths[index] = Math.max(widths[index] || 0, length);
+    });
+    ws["!cols"] = widths.map((width) => ({ wch: Math.max(width + 2, 8) }));
+  };
+
+  const personnelHeaders = ["Participant", "Role name", "F&TP category", "PM rate (€)", "Work package", "Person-months", "Cost (€)"];
+  const personnelRows: any[][] = [personnelHeaders];
+  for (const role of roles) {
+    for (const wp of workPackages) {
+      personnelRows.push([
+        participantLabel(role.participant_id),
+        role.role_name ?? "",
+        role.cost_line === "A.1" ? (LUMP_SUM_CATEGORY_LABELS[role.he_category] ?? role.he_category ?? "") : "",
+        rateForRole(role),
+        wpLabel(wp.id),
+        effortByRoleWp.get(`${role.id}|${wp.id}`) ?? 0,
+        personnelCost(role, wp.id),
+      ]);
+    }
+  }
+  const personnelSheet = XLSX.utils.aoa_to_sheet(personnelRows);
+  styleHeaders(personnelSheet, 1, personnelHeaders.length);
+  styleNumberColumns(personnelSheet, [3, 5], 2, personnelRows.length, "0.0");
+  styleNumberColumns(personnelSheet, [6], 2, personnelRows.length, "#,##0.00");
+  autoFit(personnelSheet, personnelRows);
+  XLSX.utils.book_append_sheet(wb, personnelSheet, "Lump sum personnel");
+
+  const costHeaders = ["Participant", "Cost line", "Work package", "Quantity", "Unit cost (€)", "Amount (€)", "Justification"];
+  const costRows: any[][] = [costHeaders, ...costs.map((item: any) => [
+    participantLabel(item.participant_id), item.cost_line ?? "", wpLabel(item.wp_draft_id),
+    Number(item.quantity ?? 0), Number(item.unit_cost ?? 0), Number(item.amount ?? 0), item.justification ?? "",
+  ])];
+  const costSheet = XLSX.utils.aoa_to_sheet(costRows);
+  styleHeaders(costSheet, 1, costHeaders.length);
+  styleNumberColumns(costSheet, [3], 2, costRows.length, "0.00");
+  styleNumberColumns(costSheet, [4, 5], 2, costRows.length, "#,##0.00");
+  autoFit(costSheet, costRows);
+  XLSX.utils.book_append_sheet(wb, costSheet, "Lump sum costs");
+
+  const depreciationHeaders = ["Participant", "Work package", "Resource type", "Short name", "Purchase date", "Purchase cost (€)", "% project", "% life", "Charged depreciation (€)", "Included in C.2", "Comments"];
+  const depreciationRows: any[][] = [depreciationHeaders, ...depreciation.map((item: any) => [
+    participantLabel(item.participant_id), wpLabel(item.wp_draft_id), item.resource_type ?? "", item.short_name ?? "", dateLabel(item.purchase_date),
+    Number(item.purchase_cost ?? 0), Number(item.pct_project ?? 0), Number(item.pct_useful_life ?? 0), Number(item.charged_depreciation ?? 0),
+    item.include_in_c2 ? "Yes" : "No", item.comments ?? "",
+  ])];
+  const depreciationSheet = XLSX.utils.aoa_to_sheet(depreciationRows);
+  styleHeaders(depreciationSheet, 1, depreciationHeaders.length);
+  styleNumberColumns(depreciationSheet, [5, 8], 2, depreciationRows.length, "#,##0.00");
+  styleNumberColumns(depreciationSheet, [6, 7], 2, depreciationRows.length, "0.00");
+  autoFit(depreciationSheet, depreciationRows);
+  XLSX.utils.book_append_sheet(wb, depreciationSheet, "Lump sum depreciation");
+
+  const costsByParticipantWpLine = new Map<string, number>();
+  for (const item of costs) {
+    const key = `${item.participant_id}|${item.wp_draft_id}|${item.cost_line}`;
+    costsByParticipantWpLine.set(key, (costsByParticipantWpLine.get(key) ?? 0) + Number(item.amount ?? 0));
+  }
+  for (const item of depreciation) {
+    if (!item.include_in_c2) continue;
+    const key = `${item.participant_id}|${item.wp_draft_id}|C.2.${item.resource_type}`;
+    costsByParticipantWpLine.set(key, (costsByParticipantWpLine.get(key) ?? 0) + Number(item.charged_depreciation ?? 0));
+  }
+  const totalsHeaders = ["Participant", "Work package", "A (€)", "B (€)", "C (€)", "D (€)", "E (€)", "F (€)", "G (€)", "H (€)", "Work-package comment"];
+  const totalsRows: any[][] = [totalsHeaders];
+  const totalByWp = (participantId: string, wpId: string) => {
+    let a = 0;
+    for (const role of roles.filter((candidate: any) => candidate.participant_id === participantId)) a += personnelCost(role, wpId);
+    let b = 0; let c = 0; let d = 0;
+    for (const [key, amount] of costsByParticipantWpLine) {
+      const [p, w, line] = key.split("|");
+      if (p !== participantId || w !== wpId) continue;
+      if (line === "B.1") b += amount;
+      else if (line.startsWith("C.")) c += amount;
+      else if (line === "D.1" || line === "D.2") d += amount;
+    }
+    a = roundLumpSumCents(a); b = roundLumpSumCents(b); c = roundLumpSumCents(c); d = roundLumpSumCents(d);
+    const e = roundLumpSumCents((a + c) * Number(proposal.ls_indirect_cost_rate ?? 0) / 100);
+    const f = roundLumpSumCents(a + b + c + d + e);
+    const participantBudget = budgetByParticipant.get(participantId);
+    const fundingRate = participantBudget?.funding_rate_override != null
+      ? Number(participantBudget.funding_rate_override)
+      : Number(proposal.ls_default_funding_rate ?? 0);
+    const g = roundLumpSumCents(f * fundingRate / 100);
+    const wpBudget = wpBudgetByParticipantWp.get(`${participantId}|${wpId}`);
+    const h = wpBudget?.requested_eu_contribution != null ? Number(wpBudget.requested_eu_contribution) : g;
+    return { a, b, c, d, e, f, g: roundLumpSumCents(g), h: roundLumpSumCents(h), comment: wpBudget?.comments ?? "" };
+  };
+  for (const participant of participants) for (const wp of workPackages) {
+    const total = totalByWp(participant.id, wp.id);
+    totalsRows.push([participantLabel(participant), wpLabel(wp.id), total.a, total.b, total.c, total.d, total.e, total.f, total.g, total.h, total.comment]);
+  }
+  const totalsSheet = XLSX.utils.aoa_to_sheet(totalsRows);
+  styleHeaders(totalsSheet, 1, totalsHeaders.length);
+  styleNumberColumns(totalsSheet, [2, 3, 4, 5, 6, 7, 8, 9], 2, totalsRows.length, "#,##0.00");
+  autoFit(totalsSheet, totalsRows);
+  XLSX.utils.book_append_sheet(wb, totalsSheet, "Lump sum totals");
+
+  return {
+    names: ["Lump sum personnel", "Lump sum costs", "Lump sum depreciation", "Lump sum totals"],
+    rowCounts: {
+      "Lump sum personnel": personnelRows.length - 1,
+      "Lump sum costs": costRows.length - 1,
+      "Lump sum depreciation": depreciationRows.length - 1,
+      "Lump sum totals": totalsRows.length - 1,
+    },
+  };
+}
+
 async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
   const proposalType = proposal.type ?? null;
 
@@ -1238,6 +1450,8 @@ async function buildA3Xlsx(supabase: any, proposal: any): Promise<Uint8Array> {
   styleCol(ws3, 3, 1, overviewLastRow);
   autoFitCols(ws3, overviewAoa);
   XLSX.utils.book_append_sheet(wb, ws3, "Budget Overview");
+
+  await appendLumpSumSheets(wb, supabase, proposal, cachedParticipants, cachedWps);
 
   const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   return new Uint8Array(buf as ArrayBuffer);
