@@ -6,6 +6,7 @@ import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
+import { LumpSumValidationPanel } from '@/components/LumpSumValidationPanel';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
@@ -133,7 +134,8 @@ export function LumpSumBudgetPanel({
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
   
   return <div className="space-y-2 p-4 md:p-6">
-     <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
+      <LumpSumValidationPanel proposalId={proposalId} onSelectParticipant={setSelectedParticipantId} />
+      <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
        {participants.map((participant, index) => {
          const active = participant.id === selected.id;
          const locked = Boolean(budgetAccess.lockFor(participant.id)?.is_locked);
