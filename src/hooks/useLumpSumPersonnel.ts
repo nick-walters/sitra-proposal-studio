@@ -186,10 +186,19 @@ export function useLumpSumPersonnel(proposalId: string) {
 
   const deleteRole = useMutation({
     mutationFn: async (roleId: string) => {
+      const role = query.data?.roles.find(item => item.id === roleId);
       const { error } = await supabase.from('ls_personnel_roles').delete().eq('id', roleId);
       if (error) throw error;
+      if (role) await syncParticipantWpEffort(proposalId, role.participant_id, query.data?.workPackages.map(wp => wp.id) ?? []);
     },
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['b31-budget-rows', proposalId] }),
+      ]);
+    },
     onError: (error: unknown) => toast.error(`Failed to delete role: ${errorMessage(error)}`),
   });
 
@@ -217,8 +226,16 @@ export function useLumpSumPersonnel(proposalId: string) {
         person_months: personMonths,
       }, { onConflict: 'role_id,wp_draft_id' });
       if (error) throw error;
+      await syncParticipantWpEffort(proposalId, role.participant_id, [wpDraftId]);
     },
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['b31-budget-rows', proposalId] }),
+      ]);
+    },
     onError: (error: unknown) => toast.error(`Failed to save effort: ${errorMessage(error)}`),
   });
 
