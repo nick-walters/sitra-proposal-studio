@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapsibleHeader, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { formatCurrency } from '@/lib/formatNumber';
