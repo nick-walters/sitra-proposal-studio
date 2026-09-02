@@ -1004,7 +1004,7 @@ async function appendLumpSumSheets(
   }
   const totalsSheet = XLSX.utils.aoa_to_sheet(totalsRows);
   styleHeaders(totalsSheet, 1, totalsHeaders.length);
-  styleNumberColumns(totalsSheet, [2, 3, 4, 5, 6, 7, 8], 2, totalsRows.length, "#,##0.00");
+  styleNumberColumns(totalsSheet, [2, 3, 4, 5, 6, 7, 8, 9], 2, totalsRows.length, "#,##0.00");
   autoFit(totalsSheet, totalsRows);
   XLSX.utils.book_append_sheet(wb, totalsSheet, "Lump sum totals");
 
