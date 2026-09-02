@@ -101,19 +101,23 @@ export function useLumpSumBudgetAccess(proposalId: string) {
   };
 
   const writeLock = async (participantId: string, locked: boolean) => {
-    const { error } = await supabase
+    // The insert policy intentionally only permits an initially unlocked row.
+    // Create it first when needed, then let the coordinator-only update policy set the lock.
+    const { error: ensureError } = await supabase
       .from('ls_participant_budget')
-      .upsert(
-        {
-          proposal_id: proposalId,
-          participant_id: participantId,
-          is_locked: locked,
-          locked_by: locked ? user?.id ?? null : null,
-          locked_at: locked ? new Date().toISOString() : null,
-        },
-        { onConflict: 'participant_id' },
-      );
-    if (error) throw error;
+      .upsert({ proposal_id: proposalId, participant_id: participantId, is_locked: false }, { onConflict: 'participant_id' });
+    if (ensureError) throw ensureError;
+
+    const { error: updateError } = await supabase
+      .from('ls_participant_budget')
+      .update({
+        is_locked: locked,
+        locked_by: locked ? user?.id ?? null : null,
+        locked_at: locked ? new Date().toISOString() : null,
+      })
+      .eq('proposal_id', proposalId)
+      .eq('participant_id', participantId);
+    if (updateError) throw updateError;
   };
 
   const setLock = useMutation({
