@@ -23,6 +23,7 @@ interface BudgetParticipantFormProps {
   proposalType: string | null;
   canEdit: boolean;
   isCoordinator: boolean;
+  readOnly?: boolean;
 }
 
 function BudgetNumberField({
