@@ -22,6 +22,7 @@ interface A3EffortMatrixProps {
   proposalId: string;
   canEdit: boolean;
   isCoordinator?: boolean;
+  isLumpSum?: boolean;
 }
 
 interface WPInfo {
@@ -46,7 +47,7 @@ interface EffortLock {
   locked_at: string;
 }
 
-export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A3EffortMatrixProps) {
+export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isLumpSum = false }: A3EffortMatrixProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -106,7 +107,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
   );
 
   const lockRow = useCallback(async (participantId: string) => {
-    if (!user?.id) return;
+    if (isLumpSum || !user?.id) return;
     const { error } = await supabase
       .from('effort_row_locks')
       .insert({ proposal_id: proposalId, participant_id: participantId, locked_by: user.id });
@@ -115,9 +116,10 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
-  }, [proposalId, user?.id, queryClient]);
+  }, [isLumpSum, proposalId, user?.id, queryClient]);
 
   const unlockRow = useCallback(async (participantId: string) => {
+    if (isLumpSum) return;
     const { error } = await supabase
       .from('effort_row_locks')
       .delete()
@@ -165,9 +167,8 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     return { colTotals: cols, grandTotal: grand };
   }, [participantEfforts, wpIds]);
 
-  // Coalesce optimistic cache updates + downstream invalidations so rapid
-  // edits across multiple cells trigger a single matrix re-render after
-  // the user pauses (~800 ms), not one re-render per keystroke flush.
+  // Traditional budgets retain the existing editable effort grid. Lump-sum
+  // budgets use personnel effort as the source and therefore do not write here.
   const pendingEditsRef = useRef<Map<string, { participantId: string; wpId: string; personMonths: number }>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -177,52 +178,44 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     if (pending.size === 0) return;
     const edits = Array.from(pending.values());
     pendingEditsRef.current = new Map();
-
     queryClient.setQueryData(
       ['a3-effort-data', proposalId],
       (old: { wp_draft_id: string; participant_id: string; person_months: number }[] | undefined) => {
         const base = old ? [...old] : [];
         for (const { participantId, wpId, personMonths } of edits) {
           const idx = base.findIndex(e => e.wp_draft_id === wpId && e.participant_id === participantId);
-          if (idx >= 0) {
-            base[idx] = { ...base[idx], person_months: personMonths };
-          } else {
-            base.push({ wp_draft_id: wpId, participant_id: participantId, person_months: personMonths });
-          }
+          if (idx >= 0) base[idx] = { ...base[idx], person_months: personMonths };
+          else base.push({ wp_draft_id: wpId, participant_id: participantId, person_months: personMonths });
         }
         return base;
-      }
+      },
     );
-
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     window.dispatchEvent(new CustomEvent('effort-data-changed', { detail: { proposalId } }));
   }, [proposalId, queryClient]);
 
-  useEffect(() => {
-    return () => {
-      if (flushTimerRef.current) {
-        clearTimeout(flushTimerRef.current);
-        // Final flush so unmount doesn't lose pending UI updates.
-        flushPendingEdits();
-      }
-    };
+  useEffect(() => () => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushPendingEdits();
+    }
   }, [flushPendingEdits]);
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
-    await supabase
-      .from('wp_draft_effort')
-      .upsert({
-        wp_draft_id: wpId,
-        participant_id: participantId,
-        person_months: personMonths,
-      }, {
-        onConflict: 'wp_draft_id,participant_id',
-      });
-
+    if (isLumpSum) return;
+    const { error } = await supabase.from('wp_draft_effort').upsert({
+      wp_draft_id: wpId,
+      participant_id: participantId,
+      person_months: personMonths,
+    }, { onConflict: 'wp_draft_id,participant_id' });
+    if (error) {
+      toast.error('Failed to save effort');
+      return;
+    }
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(flushPendingEdits, 800);
-  }, [flushPendingEdits]);
+  }, [flushPendingEdits, isLumpSum]);
 
 
   if (!wps?.length || !participants?.length) return null;
@@ -235,7 +228,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
           Staff effort (person months per participant per WP)
         </CardTitle>
         <CardDescription>
-          Values are mirrored to Table 3.1.f.
+          {isLumpSum ? 'Read-only view: enter person months in the lump-sum personnel budget.' : 'Values are mirrored to Table 3.1.f.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -254,7 +247,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">
                   <div className="flex items-center justify-between gap-1">
                     <span>Participant</span>
-                    {isCoordinator && canEdit && (
+                    {!isLumpSum && isCoordinator && canEdit && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -316,7 +309,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                     wpIdsKey={wpIdsKey}
                     isLocked={isLocked}
                     isCoordinator={isCoordinator}
-                    rowEditable={rowEditable}
+                    rowEditable={isLumpSum ? false : rowEditable}
                     onSave={saveEffortValue}
                     onLock={lockRow}
                     onUnlock={unlockRow}
