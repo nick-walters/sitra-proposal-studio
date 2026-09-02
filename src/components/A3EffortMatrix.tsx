@@ -47,7 +47,7 @@ interface EffortLock {
   locked_at: string;
 }
 
-export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A3EffortMatrixProps) {
+export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isLumpSum = false }: A3EffortMatrixProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
