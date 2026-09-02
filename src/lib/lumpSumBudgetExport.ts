@@ -231,8 +231,8 @@ export async function appendLumpSumSheets(wb: Workbook, XLSX: Xlsx, proposalId: 
   }
   const personnelSheet = XLSX.utils.aoa_to_sheet(personnelRows);
   styleHeaders(personnelSheet, 1, personnelHeaders.length);
-  styleNumberColumns(personnelSheet, [3, 5], 2, personnelRows.length, '0.0');
-  styleNumberColumns(personnelSheet, [6], 2, personnelRows.length, '#,##0.00');
+  styleNumberColumns(personnelSheet, [3, 6], 2, personnelRows.length, '#,##0.00');
+  styleNumberColumns(personnelSheet, [5], 2, personnelRows.length, '0.0');
   autoFit(personnelSheet, personnelRows);
   XLSX.utils.book_append_sheet(wb, personnelSheet, 'Lump sum personnel');
 
