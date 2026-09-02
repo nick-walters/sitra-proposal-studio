@@ -12,7 +12,7 @@ import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
-import { lumpSumCollapseKey, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
+import { useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
 import { LumpSumDepreciationSection } from '@/components/LumpSumDepreciationSection';
 
