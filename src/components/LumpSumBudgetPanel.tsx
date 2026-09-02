@@ -17,8 +17,6 @@ import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
-const PORTAL_VIEW_KEY = (userId: string | undefined, proposalId: string) => `ls-budget-view:${userId ?? 'anon'}:${proposalId}`;
-
 type BudgetView = 'enter' | 'portal';
 
 const BLOCKS = [
@@ -32,7 +30,15 @@ function formatPM(value: number) {
   return value.toFixed(1);
 }
 
-export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalId: string; readOnly?: boolean }) {
+export function LumpSumBudgetPanel({
+  proposalId,
+  readOnly = false,
+  budgetView = 'enter',
+}: {
+  proposalId: string;
+  readOnly?: boolean;
+  budgetView?: BudgetView;
+}) {
   const { user } = useAuth();
   const { data, isLoading, error, saving, addRole, updateRole, deleteRole, reorderRoles, setEffort, setA4UnitCost } = useLumpSumPersonnel(proposalId);
   const lumpSumCosts = useLumpSumCosts(proposalId);
@@ -187,12 +193,6 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
          </div>;
        })}
       </div>
-      {canUsePortalCopy && <div className="flex justify-end pt-1">
-        <div className="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
-          <Button type="button" size="sm" variant={budgetView === 'enter' ? 'secondary' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
-          <Button type="button" size="sm" variant={budgetView === 'portal' ? 'secondary' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Portal copy view</Button>
-        </div>
-      </div>}
       {budgetView === 'portal' && canUsePortalCopy ? <LumpSumPortalView proposalId={proposalId} participantId={selected.id} userId={user?.id} /> : <div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
