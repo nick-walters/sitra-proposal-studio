@@ -17,6 +17,10 @@ import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 
+const PORTAL_VIEW_KEY = (userId: string | undefined, proposalId: string) => `ls-budget-view:${userId ?? 'anon'}:${proposalId}`;
+
+type BudgetView = 'enter' | 'portal';
+
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
   { line: 'A.2', label: 'A.2 Personnel costs — natural persons under direct contract' },
@@ -38,6 +42,30 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLsCollapse(user?.id, proposalId);
+  const canUsePortalCopy = !readOnly && editableParticipantIds.size > 0;
+  const portalViewKey = PORTAL_VIEW_KEY(user?.id, proposalId);
+  const [budgetView, setBudgetView] = useState<BudgetView>('enter');
+
+  useEffect(() => {
+    if (!canUsePortalCopy) {
+      setBudgetView('enter');
+      return;
+    }
+    try {
+      setBudgetView(window.localStorage.getItem(portalViewKey) === 'portal' ? 'portal' : 'enter');
+    } catch {
+      setBudgetView('enter');
+    }
+  }, [canUsePortalCopy, portalViewKey]);
+
+  const chooseBudgetView = (next: BudgetView) => {
+    setBudgetView(next);
+    try {
+      window.localStorage.setItem(portalViewKey, next);
+    } catch {
+      // View preference is optional when browser storage is unavailable.
+    }
+  };
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
@@ -158,8 +186,14 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
            </>}
          </div>;
        })}
-     </div>
-      <div>
+      </div>
+      {canUsePortalCopy && <div className="flex justify-end pt-1">
+        <div className="inline-flex rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
+          <Button type="button" size="sm" variant={budgetView === 'enter' ? 'secondary' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
+          <Button type="button" size="sm" variant={budgetView === 'portal' ? 'secondary' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Portal copy view</Button>
+        </div>
+      </div>}
+      {budgetView === 'portal' && canUsePortalCopy ? <LumpSumPortalView proposalId={proposalId} participantId={selected.id} userId={user?.id} /> : <div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
            {saving && !readOnly && <span>Saving…</span>}
@@ -230,7 +264,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
          </section>
         <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
         <LumpSumTotalsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} budgetInputsByWp={budgetInputsByWp} />
-      </div>
+       </div>}
 
      {permissionsParticipant && <LumpSumPermissionsDialog proposalId={proposalId} participant={permissionsParticipant} open={Boolean(permissionsParticipantId)} onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }} />}
    </div>;
