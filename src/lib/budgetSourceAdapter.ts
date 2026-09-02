@@ -11,12 +11,16 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 import type { LumpSumCostItem } from '@/hooks/useLumpSumCosts';
 import type { DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import {
+  buildWpInputs,
+  computeWpTotals,
   personMonthsForRoles,
   equipmentAndPersonnelTotals,
+  roundCents,
 } from '@/lib/lumpSumFigures';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -384,6 +388,183 @@ export async function fetchBudgetSource(proposalId: string): Promise<BudgetSourc
     .maybeSingle();
   const budgetType = (data as any)?.budget_type === 'lump_sum' ? 'lump_sum' : 'traditional';
   return budgetType === 'lump_sum' ? fetchLumpSum(proposalId) : fetchTraditional(proposalId);
+}
+
+export interface EvaluationBudgetParticipant {
+  participantId: string;
+  participantNumber: number | null;
+  shortName: string | null;
+  requestedEu: number;
+  totalEligible: number;
+  fundingRate: number;
+}
+
+export interface EvaluationBudget {
+  totalRequestedEu: number;
+  totalDirectCosts: number;
+  totalIndirect: number;
+  totalEligible: number;
+  perParticipant: EvaluationBudgetParticipant[];
+}
+
+/**
+ * Builds the budget projection consumed by the evaluation-panel function.
+ * Traditional proposals intentionally use the original budget-row calculation;
+ * lump-sum proposals use only ls_* data and the canonical lump-sum figures.
+ */
+export async function fetchEvaluationBudget(proposalId: string): Promise<EvaluationBudget> {
+  const { data: proposalRow, error: proposalError } = await supabase
+    .from('proposals')
+    .select('budget_type, type, ls_indirect_cost_rate, ls_default_funding_rate')
+    .eq('id', proposalId)
+    .maybeSingle();
+  if (proposalError) throw proposalError;
+
+  const { data: participants, error: participantsError } = await supabase
+    .from('participants')
+    .select('id, participant_number, organisation_short_name, organisation_name, organisation_category')
+    .eq('proposal_id', proposalId);
+  if (participantsError) throw participantsError;
+
+  if ((proposalRow as any)?.budget_type !== 'lump_sum') {
+    const [{ data: rows, error: rowsError }, { data: effortData, error: effortError }] = await Promise.all([
+      supabase
+        .from('budget_rows')
+        .select(
+          'participant_id, personnel_costs, subcontracting_costs, purchase_travel, purchase_equipment, purchase_other_goods, financial_support_third_parties, internally_invoiced, procurement, pm_rate, indirect_costs_override, funding_rate_override, requested_eu_contribution, has_in_kind, requested_personnel_costs, requested_subcontracting, requested_travel, requested_equipment, requested_other_goods, requested_fstp, requested_internally_invoiced',
+        )
+        .eq('proposal_id', proposalId),
+      supabase
+        .from('wp_draft_effort')
+        .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
+        .eq('wp_drafts.proposal_id', proposalId),
+    ]);
+    if (rowsError) throw rowsError;
+    if (effortError) throw effortError;
+
+    const pmTotals = new Map<string, number>();
+    (effortData || []).forEach((effort: any) => {
+      pmTotals.set(effort.participant_id, (pmTotals.get(effort.participant_id) || 0) + Number(effort.person_months || 0));
+    });
+    const participantById = new Map(((participants as any[]) || []).map((participant) => [participant.id, participant]));
+    let totalRequestedEu = 0;
+    let totalDirectCosts = 0;
+    let totalIndirect = 0;
+    let totalEligible = 0;
+    const perParticipant: EvaluationBudgetParticipant[] = [];
+
+    for (const row of (rows as any[]) || []) {
+      const participant: any = participantById.get(row.participant_id);
+      const output = computeBudgetRow({
+        ...row,
+        totalPersonMonths: pmTotals.get(row.participant_id) || 0,
+        proposalType: (proposalRow as any)?.type ?? null,
+        organisationCategory: participant?.organisation_category ?? null,
+      });
+      totalRequestedEu += output.requestedEuContribution;
+      totalDirectCosts += output.directCosts;
+      totalIndirect += output.indirect;
+      totalEligible += output.totalEligible;
+      perParticipant.push({
+        participantId: row.participant_id,
+        participantNumber: participant?.participant_number ?? null,
+        shortName: participant?.organisation_short_name ?? participant?.organisation_name ?? null,
+        requestedEu: output.requestedEuContribution,
+        totalEligible: output.totalEligible,
+        fundingRate: output.fundingRate,
+      });
+    }
+
+    perParticipant.sort((a, b) => (a.participantNumber || 999) - (b.participantNumber || 999));
+    return { totalRequestedEu, totalDirectCosts, totalIndirect, totalEligible, perParticipant };
+  }
+
+  const [wpResult, roleResult, effortResult, budgetResult, costResult, depreciationResult, wpBudgetResult] = await Promise.all([
+    supabase.from('wp_drafts').select('id, number, short_name, title, color').eq('proposal_id', proposalId).order('number'),
+    supabase.from('ls_personnel_roles').select('id, participant_id, cost_line, role_name, he_category, pm_rate').eq('proposal_id', proposalId),
+    supabase.from('ls_personnel_effort').select('id, role_id, wp_draft_id, person_months').eq('proposal_id', proposalId),
+    supabase.from('ls_participant_budget').select('participant_id, a4_unit_cost, funding_rate_override').eq('proposal_id', proposalId),
+    supabase.from('ls_cost_items').select('participant_id, wp_draft_id, cost_line, amount').eq('proposal_id', proposalId),
+    supabase.from('ls_depreciation_items').select('participant_id, wp_draft_id, resource_type, charged_depreciation, include_in_c2').eq('proposal_id', proposalId),
+    supabase.from('ls_wp_budget').select('participant_id, wp_draft_id, requested_eu_contribution').eq('proposal_id', proposalId),
+  ]);
+  const lumpSumResults = [wpResult, roleResult, effortResult, budgetResult, costResult, depreciationResult, wpBudgetResult];
+  const failure = lumpSumResults.find((result) => result.error);
+  if (failure?.error) throw failure.error;
+
+  const workPackages = ((wpResult.data as any[]) || []) as LumpSumWorkPackage[];
+  const roles = ((roleResult.data as any[]) || []) as LumpSumRole[];
+  const efforts = ((effortResult.data as any[]) || []) as LumpSumEffort[];
+  const participantBudgets = (budgetResult.data as any[]) || [];
+  const costItems = (costResult.data as any[]) || [];
+  const depreciationItems = (depreciationResult.data as any[]) || [];
+  const wpBudgets = (wpBudgetResult.data as any[]) || [];
+  const participantBudgetById = new Map(participantBudgets.map((budget) => [budget.participant_id, budget]));
+  const wpBudgetByKey = new Map(wpBudgets.map((budget) => [`${budget.participant_id}|${budget.wp_draft_id}`, budget]));
+  const participantById = new Map(((participants as any[]) || []).map((participant) => [participant.id, participant]));
+
+  let totalRequestedEu = 0;
+  let totalDirectCosts = 0;
+  let totalIndirect = 0;
+  let totalEligible = 0;
+  const perParticipant: EvaluationBudgetParticipant[] = [];
+
+  for (const participant of (participants as any[]) || []) {
+    const participantRoles = roles.filter((role) => role.participant_id === participant.id);
+    const participantCosts = costItems.filter((item) => item.participant_id === participant.id);
+    const participantDepreciation = depreciationItems.filter((item) => item.participant_id === participant.id);
+    const participantBudget = participantBudgetById.get(participant.id);
+    const inputsByWp = buildWpInputs(
+      participantRoles,
+      efforts,
+      workPackages,
+      Number(participantBudget?.a4_unit_cost ?? 0),
+      participantCosts as LumpSumCostItem[],
+      participantDepreciation as DepreciationItem[],
+    );
+    const fundingRate = participantBudget?.funding_rate_override == null
+      ? Number((proposalRow as any)?.ls_default_funding_rate ?? 0)
+      : Number(participantBudget.funding_rate_override);
+
+    let participantRequestedEu = 0;
+    let participantDirectCosts = 0;
+    let participantIndirect = 0;
+    let participantEligible = 0;
+    for (const workPackage of workPackages) {
+      const total = computeWpTotals(
+        inputsByWp[workPackage.id] ?? { personnel: 0, subcontracting: 0, purchase: 0, other: 0 },
+        Number((proposalRow as any)?.ls_indirect_cost_rate ?? 0),
+        fundingRate,
+        wpBudgetByKey.get(`${participant.id}|${workPackage.id}`)?.requested_eu_contribution ?? null,
+      );
+      participantRequestedEu += total.requestedEuContribution;
+      participantDirectCosts += total.totalCosts - total.indirect;
+      participantIndirect += total.indirect;
+      participantEligible += total.totalCosts;
+    }
+
+    totalRequestedEu += participantRequestedEu;
+    totalDirectCosts += participantDirectCosts;
+    totalIndirect += participantIndirect;
+    totalEligible += participantEligible;
+    perParticipant.push({
+      participantId: participant.id,
+      participantNumber: participant.participant_number ?? null,
+      shortName: participant.organisation_short_name ?? participant.organisation_name ?? null,
+      requestedEu: participantRequestedEu,
+      totalEligible: participantEligible,
+      fundingRate,
+    });
+  }
+
+  perParticipant.sort((a, b) => (a.participantNumber || 999) - (b.participantNumber || 999));
+  return {
+    totalRequestedEu: roundCents(totalRequestedEu),
+    totalDirectCosts: roundCents(totalDirectCosts),
+    totalIndirect: roundCents(totalIndirect),
+    totalEligible: roundCents(totalEligible),
+    perParticipant,
+  };
 }
 
 export const budgetSourceQueryKey = (proposalId: string) => ['b31-budget-source', proposalId];
