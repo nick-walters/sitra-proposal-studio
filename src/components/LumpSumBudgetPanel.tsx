@@ -69,13 +69,13 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
          </button>;
        })}
      </div>
-     <div>
-       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-         {saving && <span>Saving…</span>}
-         {participantBudget?.is_locked && !isCoordinator && <span>This participant budget is locked.</span>}
-       </div>
-       <h2 className="text-lg font-semibold">A. Personnel costs</h2>
-       {BLOCKS.map(block => {
+      <div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {saving && <span>Saving…</span>}
+          {participantBudget?.is_locked && !isCoordinator && <span>This participant budget is locked.</span>}
+        </div>
+        <h2 className="text-lg font-semibold">A. Personnel costs</h2>
+        {BLOCKS.map(block => {
          const collapsed = isCollapsed(block.line);
          const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
          return <section key={block.line} className="border-b border-border">
