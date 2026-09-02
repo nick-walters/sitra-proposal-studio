@@ -835,8 +835,26 @@ export function PanelEvaluator({ proposalId }: Props) {
       // mirrors), so the payload is extracted from that source — the legacy
       // section_content print path knew nothing about cards.
       const { buildEvaluationPayload } = await import("@/lib/evaluationPayload");
-      const payload = await buildEvaluationPayload(proposalId);
-      const renderedProposal = payload.text;
+      const [payload, computedBudget] = await Promise.all([
+        buildEvaluationPayload(proposalId),
+        fetchEvaluationBudget(proposalId),
+      ]);
+      const renderedProposal = budgetType === "lump_sum"
+        ? `${payload.text}\n\n# Budget data\n\n` +
+          `Budget type: Lump sum\n` +
+          `Total requested EU contribution: €${computedBudget.totalRequestedEu.toFixed(2)}\n` +
+          `Total direct costs: €${computedBudget.totalDirectCosts.toFixed(2)}\n` +
+          `Total indirect costs: €${computedBudget.totalIndirect.toFixed(2)}\n` +
+          `Total eligible costs: €${computedBudget.totalEligible.toFixed(2)}\n\n` +
+          `Per-participant totals:\n` +
+          computedBudget.perParticipant
+            .map((participant) =>
+              `- Participant ${participant.participantNumber ?? "?"} (${participant.shortName ?? ""}): ` +
+              `requested EU €${participant.requestedEu.toFixed(2)}; eligible costs €${participant.totalEligible.toFixed(2)}; ` +
+              `funding rate ${participant.fundingRate.toFixed(2)}%`,
+            )
+            .join("\n")
+        : payload.text;
 
       if (!renderedProposal || renderedProposal.length < 200) {
         throw new Error("Rendered proposal payload is empty — aborting.");
