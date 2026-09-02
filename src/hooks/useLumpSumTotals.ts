@@ -51,55 +51,8 @@ export type LumpSumTotalsData = {
   defaultFundingRate: number;
 };
 
-/** Cent-level rounding, matching the portal. */
-export function roundCents(value: number) {
-  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
-}
-
-export type LumpSumWpInputs = {
-  /** A: the rounded personnel figure produced by the personnel tables. */
-  personnel: number;
-  /** B: the B.1 line total. */
-  subcontracting: number;
-  /** C: C.1 + C.2 (including mirrored depreciation) + C.3. */
-  purchase: number;
-  /** D: D.1 + D.2. */
-  other: number;
-};
-
-export type LumpSumWpTotals = LumpSumWpInputs & {
-  indirect: number;
-  totalCosts: number;
-  maxEuContribution: number;
-  requestedEuContribution: number;
-  /** The stored request before capping, when it exceeds G. */
-  storedExceedsMax: number | null;
-};
-
-/**
- * The one place E to H are derived. E excludes B, D.1 and D.2 from its base by
- * design: only A and C attract indirect costs.
- */
-export function computeWpTotals(
-  inputs: LumpSumWpInputs,
-  indirectCostRate: number,
-  fundingRate: number,
-  storedRequest: number | null,
-): LumpSumWpTotals {
-  const indirect = roundCents((inputs.personnel + inputs.purchase) * indirectCostRate / 100);
-  const totalCosts = roundCents(inputs.personnel + inputs.subcontracting + inputs.purchase + inputs.other + indirect);
-  const maxEuContribution = roundCents(totalCosts * fundingRate / 100);
-  const stored = storedRequest == null ? null : roundCents(storedRequest);
-  const exceeds = stored != null && stored - maxEuContribution > 0.004;
-  return {
-    ...inputs,
-    indirect,
-    totalCosts,
-    maxEuContribution,
-    requestedEuContribution: stored == null ? maxEuContribution : Math.min(stored, maxEuContribution),
-    storedExceedsMax: exceeds ? stored : null,
-  };
-}
+export type { LumpSumWpInputs, LumpSumWpTotals } from '@/lib/lumpSumFigures';
+export { computeWpTotals, roundCents } from '@/lib/lumpSumFigures';
 
 function errorMessage(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message);

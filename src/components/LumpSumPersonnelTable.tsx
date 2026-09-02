@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { LS_COL, LS_FIGURE_CELL, LS_MAX_TABLE_WIDTH, LS_PERSONNEL_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
+import { costLineTotals, personnelSubtotal } from '@/lib/lumpSumFigures';
+export { costLineTotals } from '@/lib/lumpSumFigures';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 
 const CATEGORIES = [
@@ -74,38 +76,6 @@ function inputValue(value: string) {
   return value.trim() ? String(numberValue(value)) : '';
 }
 
-/**
- * Portal-equivalent totals for a cost line: each category subtotal is
- * ROUND(weighted average rate, 2) × total person-months for that category.
- */
-export function costLineTotals(
-  costLine: string,
-  roles: LumpSumRole[],
-  efforts: LumpSumEffort[],
-  workPackages: LumpSumWorkPackage[],
-  a4UnitCost: number,
-) {
-  const rateOf = (role: LumpSumRole) => (costLine === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0));
-  const pmByRoleWp = new Map(efforts.map(effort => [`${effort.role_id}:${effort.wp_draft_id}`, Number(effort.person_months || 0)]));
-  const pmOf = (role: LumpSumRole) => workPackages.reduce((sum, wp) => sum + (pmByRoleWp.get(`${role.id}:${wp.id}`) ?? 0), 0);
-  const groups = new Map<string, LumpSumRole[]>();
-  for (const role of roles) {
-    const key = costLine === 'A.1' ? (role.he_category || 'blank') : 'all';
-    groups.set(key, [...(groups.get(key) ?? []), role]);
-  }
-  let portalCost = 0;
-  let trueCost = 0;
-  let totalPm = 0;
-  for (const groupRoles of groups.values()) {
-    const groupPm = groupRoles.reduce((sum, role) => sum + pmOf(role), 0);
-    const groupTrue = groupRoles.reduce((sum, role) => sum + pmOf(role) * rateOf(role), 0);
-    const rounded = groupPm ? Math.round((groupTrue / groupPm) * 100) / 100 : 0;
-    portalCost += rounded * groupPm;
-    trueCost += groupTrue;
-    totalPm += groupPm;
-  }
-  return { portalCost, trueCost, totalPm, difference: portalCost - trueCost };
-}
 
 export function DifferenceNote({ difference }: { difference: number }) {
   if (Math.abs(difference) < 0.005) return null;
@@ -192,14 +162,6 @@ function SortableRow({ id, disabled, children }: { id: string; disabled: boolean
   return <tr ref={sortable.setNodeRef} style={style} className="border-t border-border/70">{children(sortable.attributes, sortable.listeners)}</tr>;
 }
 
-function subtotal(roles: LumpSumRole[], efforts: LumpSumEffort[], workPackages: LumpSumWorkPackage[]) {
-  const pmByRoleWp = new Map(efforts.map(effort => [`${effort.role_id}:${effort.wp_draft_id}`, Number(effort.person_months || 0)]));
-  const pms = workPackages.map(wp => roles.reduce((sum, role) => sum + (pmByRoleWp.get(`${role.id}:${wp.id}`) ?? 0), 0));
-  const totalPm = pms.reduce((sum, value) => sum + value, 0);
-  const trueCost = roles.reduce((sum, role) => sum + workPackages.reduce((rolePm, wp) => rolePm + (pmByRoleWp.get(`${role.id}:${wp.id}`) ?? 0), 0) * Number(role.pm_rate || 0), 0);
-  const roundedAverage = totalPm ? Math.round((trueCost / totalPm) * 100) / 100 : 0;
-  return { pms, totalPm, trueCost, roundedAverage, cost: roundedAverage * totalPm };
-}
 
 interface Props {
   costLine: string;
@@ -323,7 +285,7 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
 }
 
 function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRole[]; label: string; efforts: LumpSumEffort[]; workPackages: LumpSumWorkPackage[] }) {
-  const result = subtotal(roles, efforts, workPackages);
+  const result = personnelSubtotal(roles, efforts, workPackages);
   const difference = result.cost - result.trueCost;
   const hasCategoryColumn = roles.some(role => role.he_category !== undefined);
   return <tr className="bg-muted/20 text-xs font-semibold md:text-sm">

@@ -7,7 +7,8 @@ import { formatCurrency } from '@/lib/formatNumber';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
-import { computeWpTotals, roundCents, useLumpSumTotals } from '@/hooks/useLumpSumTotals';
+import { useLumpSumTotals } from '@/hooks/useLumpSumTotals';
+import { averageWeightedPmRate, categoryCost, computeWpTotals, costLineAmount, depreciationAmount, personMonthsForRoles, roundCents } from '@/lib/lumpSumFigures';
 
 /**
  * Read-only mirror of the EU Funding and Tenders portal budget form. It reads
@@ -207,37 +208,18 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
   const participantBudget = totals.data?.participantBudgets.find(budget => budget.participant_id === participantId);
   const fundingRate = participantBudget?.funding_rate_override ?? totals.data?.defaultFundingRate ?? 0;
 
-  /** Person-months for a set of roles within one work package. */
-  const pmFor = useCallback((roleIds: string[], wpId: string) => roleIds.reduce(
-    (sum, roleId) => sum + Number(efforts.find(effort => effort.role_id === roleId && effort.wp_draft_id === wpId)?.person_months || 0),
-    0,
-  ), [efforts]);
-
-  /**
-   * The portal-rounded average weighted rate for a group of roles, over all of
-   * the participant's work packages. This is the figure the portal stores, so
-   * every per-work-package subtotal is derived from it rather than from the raw
-   * role-by-role sum.
-   */
-  const groupRate = useCallback((groupRoles: typeof roles) => {
-    const ids = groupRoles.map(role => role.id);
-    const pm = workPackages.reduce((sum, wp) => sum + pmFor(ids, wp.id), 0);
-    if (!pm) return 0;
-    const trueCost = groupRoles.reduce((sum, role) => {
-      const rate = role.cost_line === 'A.4' ? a4UnitCost : Number(role.pm_rate || 0);
-      const rolePm = workPackages.reduce((inner, wp) => inner + pmFor([role.id], wp.id), 0);
-      return sum + rate * rolePm;
-    }, 0);
-    return Math.round((trueCost / pm) * 100) / 100;
-  }, [a4UnitCost, pmFor, roles, workPackages]);
-
-  const lineTotal = useCallback((costLine: string, wpId: string) => costItems
-    .filter(item => item.cost_line === costLine && item.wp_draft_id === wpId)
-    .reduce((sum, item) => sum + Number(item.amount ?? 0), 0), [costItems]);
-
-  const depreciationTotal = useCallback((costLine: string, wpId: string) => depreciationItems
-    .filter(item => `C.2.${item.resource_type}` === costLine && item.wp_draft_id === wpId)
-    .reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0), [depreciationItems]);
+  const pmFor = useCallback((roleIds: string[], wpId: string) => personMonthsForRoles(
+    roles.filter(role => roleIds.includes(role.id)), efforts, workPackages, wpId,
+  ), [efforts, roles, workPackages]);
+  const groupRate = useCallback((groupRoles: typeof roles) => averageWeightedPmRate(
+    groupRoles, efforts, workPackages, groupRoles[0]?.cost_line ?? 'A.1', a4UnitCost,
+  ), [a4UnitCost, efforts, workPackages]);
+  const lineTotal = useCallback((costLine: string, wpId: string) => costLineAmount(costItems, costLine, wpId), [costItems]);
+  const depreciationTotal = useCallback((costLine: string, wpId: string) => depreciationAmount(
+    depreciationItems,
+    costLine.startsWith('C.2.') ? costLine.slice('C.2.'.length) : '',
+    wpId,
+  ), [depreciationItems]);
 
   const blocks = useMemo(() => workPackages.map(wp => {
     const groups: Group[] = [];
@@ -248,7 +230,7 @@ export function LumpSumPortalView({ proposalId, participantId, userId }: {
       const groupRoles = a1Roles.filter(role => (role.he_category || 'blank') === value);
       const rate = groupRate(groupRoles);
       const pm = pmFor(groupRoles.map(role => role.id), wp.id);
-      return { id: `${wp.id}:A1:${value}`, label, indent: 1, kind: 'rate' as const, quantity: pm, quantityIsPm: true, unitRate: rate, subtotal: roundCents(rate * pm) };
+      return { id: `${wp.id}:A1:${value}`, label, indent: 1, kind: 'rate' as const, quantity: pm, quantityIsPm: true, unitRate: rate, subtotal: roundCents(categoryCost(rate, pm)) };
     });
     const a1Total = roundCents(a1Leaves.reduce((sum, leaf) => sum + leaf.subtotal, 0));
 

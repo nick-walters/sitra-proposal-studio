@@ -12,6 +12,7 @@ import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSum
 import { LS_COL, LS_D_MIN_WIDTH, LS_FIGURE_CELL, LS_ITEMISED_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
+import { mirroredCostLineAmount } from '@/lib/lumpSumFigures';
 import LumpSumDepreciationSection, {
   CollapsibleHeader,
   DEPRECIATION_SECTION_ID,
@@ -187,9 +188,6 @@ function LocalTextInput({ value, disabled, onCommit, className = '' }: { value: 
   />;
 }
 
-function totalFor(items: LumpSumCostItem[]) {
-  return items.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
-}
 
 function wpLabel(wp: LumpSumCostWorkPackage | undefined) {
   return wp ? `WP${wp.number}` : 'Select WP';
@@ -237,11 +235,8 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const mirroredFor = (key: string) => MIRRORED_LINE_KEYS.has(key)
     ? mirroredItems.filter(item => MIRROR_LINE_KEY(item.resource_type) === key)
     : [];
-  const mirroredTotal = (key: string, wpId?: string) => mirroredFor(key)
-    .filter(item => !wpId || item.wp_draft_id === wpId)
-    .reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0);
-  const itemTotal = (key: string) => totalFor(items.filter(item => item.cost_line === key)) + mirroredTotal(key);
-  const wpTotal = (key: string, wpId: string) => totalFor(items.filter(item => item.cost_line === key && item.wp_draft_id === wpId)) + mirroredTotal(key, wpId);
+  const itemTotal = (key: string) => mirroredCostLineAmount(items, depreciation.data?.items ?? [], key);
+  const wpTotal = (key: string, wpId: string) => mirroredCostLineAmount(items, depreciation.data?.items ?? [], key, wpId);
   const keysWpTotal = (keys: readonly string[], wpId: string) => keys.reduce((sum, key) => sum + wpTotal(key, wpId), 0);
   /** One row per work package with a non-zero subtotal; zero work packages are hidden. */
   const subtotalRows = (keys: readonly string[]) => workPackages

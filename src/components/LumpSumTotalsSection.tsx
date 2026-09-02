@@ -5,13 +5,8 @@ import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import { CollapsibleHeader, LINE_INDENT, useLsCollapse } from '@/components/LumpSumDepreciationSection';
-import {
-  WP_COMMENT_LIMIT,
-  computeWpTotals,
-  roundCents,
-  useLumpSumTotals,
-  type LumpSumWpInputs,
-} from '@/hooks/useLumpSumTotals';
+import { WP_COMMENT_LIMIT, useLumpSumTotals, type LumpSumWpInputs } from '@/hooks/useLumpSumTotals';
+import { computeWpTotals, requestedPercentage, roundCents } from '@/lib/lumpSumFigures';
 
 /** Collapse ids are namespaced so they never clash with the A–D line ids. */
 const COLLAPSE_TOTALS = 'ls-F';
@@ -31,10 +26,7 @@ function formatRate(rate: number) {
 }
 
 /** H as a share of G, to two decimals; null when G is zero. */
-function requestedPercent(requested: number, maxContribution: number) {
-  if (!(maxContribution > 0)) return null;
-  return Math.min(100, roundCents(requested / maxContribution * 100));
-}
+const requestedPercent = requestedPercentage;
 
 
 /** Digits and a single decimal separator, capped at two places. */

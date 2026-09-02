@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
-import { computeWpTotals, useLumpSumTotals } from '@/hooks/useLumpSumTotals';
+import { buildWpInputs, computeWpTotals, equipmentAndPersonnelTotals } from '@/lib/lumpSumFigures';
+import { useLumpSumTotals } from '@/hooks/useLumpSumTotals';
 import { formatCurrency } from '@/lib/formatNumber';
 
 /**
@@ -79,9 +79,10 @@ export function useLumpSumValidation(proposalId: string) {
       `${participant.participant_number ?? '—'}. ${participant.organisation_short_name || participant.organisation_name}`;
 
     /**
-     * Per-participant, per-work-package A–D inputs. Personnel comes from
-     * costLineTotals — the same single implementation the personnel tables and
-     * the totals section use — so no rounding rule is duplicated here.
+     * Per-participant, per-work-package A–D inputs come from buildWpInputs in
+     * src/lib/lumpSumFigures.ts — the single shared implementation the personnel
+     * tables, the totals section and the portal view all use, so no rounding
+     * rule is duplicated here.
      */
     const consortiumWpCost = new Map<string, number>();
     workPackages.forEach(wp => consortiumWpCost.set(wp.id, 0));
@@ -94,39 +95,9 @@ export function useLumpSumValidation(proposalId: string) {
       const participantCostItems = costItems.filter(item => item.participant_id === participant.id);
       const participantDepItems = depItems.filter(item => item.participant_id === participant.id);
 
-      const inputs: Record<string, { personnel: number; subcontracting: number; purchase: number; other: number }> = {};
-      for (const wp of workPackages) inputs[wp.id] = { personnel: 0, subcontracting: 0, purchase: 0, other: 0 };
-
-      const addPersonnelGroup = (line: string, groupRoles: typeof roles) => {
-        const groupTotals = costLineTotals(line, groupRoles, efforts, workPackages, a4UnitCost);
-        const rate = groupTotals.totalPm ? groupTotals.portalCost / groupTotals.totalPm : 0;
-        for (const wp of workPackages) {
-          const pm = groupRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0);
-          inputs[wp.id].personnel += rate * pm;
-        }
-      };
-      for (const line of PERSONNEL_LINES) {
-        const lineRoles = roles.filter(role => role.cost_line === line);
-        if (line === 'A.1') {
-          const categories = [...new Set(lineRoles.map(role => role.he_category || 'blank'))];
-          for (const category of categories) addPersonnelGroup(line, lineRoles.filter(role => (role.he_category || 'blank') === category));
-        } else {
-          addPersonnelGroup(line, lineRoles);
-        }
-      }
-      for (const item of participantCostItems) {
-        const target = inputs[item.wp_draft_id];
-        if (!target) continue;
-        const amount = Number(item.amount ?? 0);
-        if (item.cost_line === 'B.1') target.subcontracting += amount;
-        else if (C_LINES.has(item.cost_line)) target.purchase += amount;
-        else if (D_LINES.has(item.cost_line)) target.other += amount;
-      }
-      for (const item of participantDepItems) {
-        if (!item.include_in_c2) continue;
-        const target = inputs[item.wp_draft_id];
-        if (target) target.purchase += Number(item.charged_depreciation ?? 0);
-      }
+      const inputs = buildWpInputs(
+        roles, efforts, workPackages, a4UnitCost, participantCostItems, participantDepItems,
+      );
 
       const fundingRate = Number(
         tData.participantBudgets.find(budget => budget.participant_id === participant.id)?.funding_rate_override
@@ -208,13 +179,9 @@ export function useLumpSumValidation(proposalId: string) {
       }
 
       // Rule 7 — equipment above 15% of personnel costs.
-      const personnelCost = workPackages.reduce((sum, wp) => sum + inputs[wp.id].personnel, 0);
-      const equipmentCost = participantCostItems
-        .filter(item => item.cost_line === 'C.2.equipment')
-        .reduce((sum, item) => sum + Number(item.amount ?? 0), 0)
-        + participantDepItems
-          .filter(item => item.include_in_c2 && item.resource_type === 'equipment')
-          .reduce((sum, item) => sum + Number(item.charged_depreciation ?? 0), 0);
+      const { personnelCost, equipmentCost } = equipmentAndPersonnelTotals(
+        roles, efforts, workPackages, a4UnitCost, participantCostItems, participantDepItems,
+      );
       if (equipmentCost > personnelCost * 0.15) {
         out.push({
           id: `r7-${participant.id}`,
