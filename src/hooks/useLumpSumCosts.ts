@@ -82,8 +82,10 @@ export function useLumpSumCosts(proposalId: string) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
 
   const addItem = useMutation({
-    mutationFn: async ({ participantId, costLine }: { participantId: string; costLine: string }) => {
-      const workPackage = query.data?.workPackages[0];
+    mutationFn: async ({ participantId, costLine, wpDraftId }: { participantId: string; costLine: string; wpDraftId?: string }) => {
+      const workPackage = wpDraftId
+        ? query.data?.workPackages.find(wp => wp.id === wpDraftId)
+        : query.data?.workPackages[0];
       if (!workPackage) throw new Error('No work packages are available for this proposal.');
       await ensureParticipantBudget(proposalId, participantId);
       const current = query.data?.items.filter(item => item.participant_id === participantId && item.cost_line === costLine) ?? [];
