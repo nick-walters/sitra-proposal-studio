@@ -129,7 +129,18 @@ export function useLumpSumDepreciation(proposalId: string) {
 
   const updateItem = useMutation({
     mutationFn: async ({ itemId, field, value }: { itemId: string; field: DepreciationField; value: string | number | boolean | null }) => {
-      let updates: Record<string, string | number | boolean | null>;
+      type DepreciationUpdate = {
+        wp_draft_id?: string;
+        resource_type?: string;
+        short_name?: string;
+        purchase_date?: string | null;
+        purchase_cost?: number;
+        pct_project?: number;
+        pct_useful_life?: number;
+        comments?: string | null;
+        include_in_c2?: boolean;
+      };
+      let updates: DepreciationUpdate;
       switch (field) {
         case 'purchase_cost':
           updates = { purchase_cost: Number(value) || 0 };
