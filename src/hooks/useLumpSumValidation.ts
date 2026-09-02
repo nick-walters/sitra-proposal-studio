@@ -79,9 +79,10 @@ export function useLumpSumValidation(proposalId: string) {
       `${participant.participant_number ?? '—'}. ${participant.organisation_short_name || participant.organisation_name}`;
 
     /**
-     * Per-participant, per-work-package A–D inputs. Personnel comes from
-     * costLineTotals — the same single implementation the personnel tables and
-     * the totals section use — so no rounding rule is duplicated here.
+     * Per-participant, per-work-package A–D inputs come from buildWpInputs in
+     * src/lib/lumpSumFigures.ts — the single shared implementation the personnel
+     * tables, the totals section and the portal view all use, so no rounding
+     * rule is duplicated here.
      */
     const consortiumWpCost = new Map<string, number>();
     workPackages.forEach(wp => consortiumWpCost.set(wp.id, 0));
