@@ -104,6 +104,7 @@ export function BudgetPortalSheet({
   const queryClient = useQueryClient();
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
+  const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
@@ -705,6 +706,20 @@ export function BudgetPortalSheet({
                   <AlertCircle className="w-4 h-4" />
                   Validate
                 </Button>
+                {budgetType === 'lump_sum' && isAdmin && (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
+                    title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
+                    onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
+                  >
+                    {lumpSumAccess.lockState === 'all'
+                      ? <Lock className="w-4 h-4 text-destructive" />
+                      : <Unlock className={`w-4 h-4 ${lumpSumAccess.lockState === 'some' ? 'text-warning' : 'text-green-600'}`} />}
+                    {lumpSumAccess.lockState === 'all' ? 'Unlock all budgets' : 'Lock all budgets'}
+                  </Button>
+                )}
                 <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
                   <Download className="w-4 h-4" />
                   Export budget

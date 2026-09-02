@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatNumber';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
