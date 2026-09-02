@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { WPBubble } from '@/components/B31Pill';
@@ -92,11 +92,27 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
     ? local
     : (local.trim() ? formatNumber(Number(local), decimals) : '');
 
+  /**
+   * The prefix sits immediately left of the right-aligned digits rather than at
+   * the field's left edge, so it reads like the calculated cells. Its offset is
+   * the measured width of the rendered text, taken from an invisible mirror
+   * span with identical typography, so it tracks any figure length exactly.
+   */
+  const mirror = useRef<HTMLSpanElement | null>(null);
+  const [textWidth, setTextWidth] = useState(0);
+  const measured = display || placeholder || '';
+  useLayoutEffect(() => {
+    if (mirror.current) setTextWidth(mirror.current.offsetWidth);
+  }, [measured]);
+
   return <div className="space-y-0.5">
     <div className="relative">
-      {prefix && <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-muted-foreground md:text-sm">{prefix}</span>}
+      {prefix && <>
+        <span ref={mirror} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre text-xs tabular-nums md:text-sm">{measured}</span>
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 flex items-center text-xs text-muted-foreground md:text-sm" style={{ right: 6 + textWidth }}>{prefix}</span>
+      </>}
       <Input
-      className={`${FIELD} ${prefix ? 'pl-6' : ''} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+      className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
       type="text"
       inputMode="decimal"
       placeholder={placeholder}
