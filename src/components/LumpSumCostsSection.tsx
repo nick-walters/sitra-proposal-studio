@@ -260,7 +260,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   if (error) return <div className="pt-3 text-sm text-destructive">Unable to load B–D costs.</div>;
   if (!data) return null;
 
-  const renderItemisedLine = (line: typeof LINES.B[number] | typeof LINES.C[number]) => {
+  const renderItemisedLine = (line: typeof LINES.B[number] | typeof LINES.C[number], nested = false) => {
     const lineItems = items.filter(item => item.cost_line === line.key).sort((a, b) => a.order_index - b.order_index);
     const collapsed = Boolean(collapse[line.key]);
     const handleDragEnd = (event: DragEndEvent) => {
@@ -273,10 +273,25 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       if (moved) next.splice(to, 0, moved);
       reorderItems(next.map(item => item.id));
     };
-    return <section key={line.key} className="border-b border-border/70">
+    return <section key={line.key} className={`border-b border-border/70 ${nested ? 'ml-4' : ''}`}>
       <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-xs font-semibold">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button>}</div>
-      {!collapsed && line.key === MIRROR_LINE_KEY && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
       {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className="w-full table-fixed border-collapse text-sm"><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col style={{ width: COL_WIDTH.amount }} /><col /><col style={{ width: COL_WIDTH.delete }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-right">Subtotal (€)</th><th className="px-1 text-left">Justification</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{line.key === MIRROR_LINE_KEY && mirroredItems.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody></table></SortableContext></DndContext><div className="flex justify-end pt-1 text-sm font-bold tabular-nums"><span className={NUM_READ_FIELD}>Line total: {formatCurrency(itemTotal(line.key))}</span></div></div>}
+    </section>;
+  };
+
+  const renderCParent = (parent: typeof C_PARENTS[number]) => {
+    const collapsed = Boolean(parentCollapse[parent.key]);
+    const childLines = parent.childKeys
+      .map(key => LINES.C.find(line => line.key === key))
+      .filter((line): line is typeof LINES.C[number] => Boolean(line));
+    const total = childLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
+    return <section key={parent.key} className="border-b border-border/70 ml-2">
+      <div className="flex min-h-8 items-center gap-1"><CollapseChevron collapsed={collapsed} onToggle={() => toggleParent(parent.key)} label={parent.label} className="h-6 w-6" /><span className="min-w-0 flex-1 text-sm font-semibold">{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</div>
+      {!collapsed && <>
+        {parent.key === 'C.2' && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
+        {childLines.map(line => renderItemisedLine(line, true))}
+        <div className="flex justify-end py-1 text-sm font-semibold tabular-nums"><span className={`${NUM_READ_FIELD} w-32`}>{parent.key} total: {formatCurrency(total)}</span></div>
+      </>}
     </section>;
   };
 
@@ -295,7 +310,12 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     const visibleLines = category.lines.filter(line => !(line.key === 'D.1' && !data.usesFstp));
     const majorCollapsed = Boolean(majorCollapse[category.key]);
     const categoryTotal = visibleLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
-    return <section key={category.key} className="border-b border-border"><div className="flex min-h-9 items-center gap-1"><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggleMajor(category.key)} label={category.label} /><span className="min-w-0 flex-1 text-lg font-semibold">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{visibleLines.map(line => category.key === 'D' ? renderDLine(line) : renderItemisedLine(line))}<div className="space-y-0.5 border-t border-border/70 py-1">{renderCategorySubtotals(category)}<div className="flex items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className="text-muted-foreground">{category.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(categoryTotal)}</span></div></div></>}</section>;
+    const renderCategoryLine = (line: typeof category.lines[number]) => {
+      if (category.key === 'C' && (line.key === 'C.2.infrastructure' || line.key === 'C.2.equipment' || line.key === 'C.2.other_assets')) return null;
+      if (category.key === 'C' && (line.key === 'C.3.consumables' || line.key === 'C.3.meetings' || line.key === 'C.3.dissemination' || line.key === 'C.3.publication' || line.key === 'C.3.other')) return null;
+      return category.key === 'D' ? renderDLine(line) : renderItemisedLine(line);
+    };
+    return <section key={category.key} className="border-b border-border"><div className="flex min-h-9 items-center gap-1"><CollapseChevron collapsed={majorCollapsed} onToggle={() => toggleMajor(category.key)} label={category.label} /><span className="min-w-0 flex-1 text-lg font-semibold">{category.label}</span>{majorCollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(categoryTotal)}</span>}</div>{!majorCollapsed && <>{category.key === 'C' ? <>{renderCategoryLine(LINES.C[0])}{C_PARENTS.map(renderCParent)}</> : visibleLines.map(renderCategoryLine)}<div className="space-y-0.5 border-t border-border/70 py-1">{renderCategorySubtotals(category)}<div className="flex items-center justify-end gap-2 text-sm font-semibold tabular-nums"><span className="text-muted-foreground">{category.key} total</span><span className={`${NUM_READ_FIELD} w-32`}>{formatCurrency(categoryTotal)}</span></div></div></>}</section>;
   })}</div>;
 }
 
