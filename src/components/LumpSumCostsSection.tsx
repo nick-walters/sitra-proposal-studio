@@ -14,7 +14,9 @@ import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import LumpSumDepreciationSection, {
+  CollapsibleHeader,
   DEPRECIATION_SECTION_ID,
+  HeaderControl,
   LINE_HEADING_ROW,
   LINE_INDENT,
   MAJOR_HEADING_ROW,
