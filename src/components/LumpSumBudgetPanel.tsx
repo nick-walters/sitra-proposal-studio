@@ -66,7 +66,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ A: false, B: true, C: false, D: true });
+  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>(MAJOR_COLLAPSE_DEFAULTS);
   const majorCollapseKey = `ls-major-collapse:${user?.id ?? 'anon'}:${proposalId}`;
   useEffect(() => {
     try {
