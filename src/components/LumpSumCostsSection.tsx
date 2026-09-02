@@ -348,15 +348,17 @@ function SubtotalTable({ rows, scope }: { rows: { wp: LumpSumCostWorkPackage; to
 function TotalRow({ label, value }: { label: string; value: number }) {
   return <table className="w-full table-fixed border-collapse text-sm">
     <colgroup>
-      <col style={{ width: COL_WIDTH.grip }} />
+      <col style={{ width: PERSONNEL_COL_WIDTH.grip }} />
       <col />
-      <col style={{ width: COL_WIDTH.amount }} />
-      <col style={{ width: COL_WIDTH.delete }} />
+      <col style={{ width: PERSONNEL_COL_WIDTH.cost }} />
+      <col style={{ width: PERSONNEL_COL_WIDTH.diff }} />
+      <col style={{ width: PERSONNEL_COL_WIDTH.del }} />
     </colgroup>
     <tbody><tr>
       <td />
       <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{label}</div></td>
-      <td className="px-1"><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(value)}</div></td>
+      <td className="px-1"><div className={`${NUM_READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{formatCurrency(value)}</div></td>
+      <td className="px-1"><div className={`${READ_FIELD} whitespace-nowrap font-normal`}><DifferenceNote difference={0} /></div></td>
       <td />
     </tr></tbody>
   </table>;
