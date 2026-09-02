@@ -22,6 +22,7 @@ interface A3EffortMatrixProps {
   proposalId: string;
   canEdit: boolean;
   isCoordinator?: boolean;
+  isLumpSum?: boolean;
 }
 
 interface WPInfo {
