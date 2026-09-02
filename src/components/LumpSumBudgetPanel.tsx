@@ -97,6 +97,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
        })}
      </div>
      <div className="border-t-2 border-foreground/40 pt-3"><div className="flex items-center justify-between font-semibold"><span>A total</span><span className="tabular-nums whitespace-nowrap">{formatCurrency(overallTotals.portalCost)}<DifferenceNote difference={overallTotals.difference} /></span></div><div className="mt-2 overflow-x-auto"><table className="w-full text-sm"><tbody><tr className="border-t border-border"><td className="py-1.5 font-medium">Total person-months per work package</td>{workPackages.map(wp => <td key={wp.id} className="px-2 py-1.5 text-right tabular-nums">WP{wp.number}<br /><span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span></td>)}</tr></tbody></table></div></div>
+     <LumpSumDepreciationSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
      <LumpSumCostsSection proposalId={proposalId} participantId={selected.id} userId={user?.id} editable={editable} />
    </div>;
 }
