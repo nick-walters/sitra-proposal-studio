@@ -20,8 +20,6 @@ const BLOCKS = [
   { line: 'A.4', label: 'A.4 Personnel costs — SME owners and natural person beneficiaries' },
 ];
 
-const MAJOR_COLLAPSE_DEFAULTS: Record<string, boolean> = { A: false, B: true, C: false, D: true };
-
 function formatPM(value: number) {
   return value.toFixed(1);
 }
@@ -33,22 +31,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const budgetAccess = useLumpSumBudgetAccess(proposalId);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
-  const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>(MAJOR_COLLAPSE_DEFAULTS);
-  const majorCollapseKey = `ls-major-collapse:${user?.id ?? 'anon'}:${proposalId}`;
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(majorCollapseKey);
-      if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) }));
-    } catch { /* view preference only */ }
-  }, [majorCollapseKey]);
-  const toggleMajor = (key: string) => setMajorCollapse(current => {
-    const next = { ...current, [key]: !(current[key] ?? true) };
-    try { localStorage.setItem(majorCollapseKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
-  
-
+  const { isCollapsed, toggle } = useLsCollapse(user?.id, proposalId);
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
