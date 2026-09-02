@@ -239,6 +239,26 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
+                {/*
+                  The percentage is never stored: it is derived from H over G, and
+                  editing it writes H back. Above 100 the request would exceed the
+                  maximum, so the displayed share is clamped and the same red
+                  warning as an over-maximum H appears.
+                */}
+                <td className="px-1 py-0.5">
+                  <DebouncedNumberField
+                    key={`pct-${row.wp.id}-${row.requestedEuContribution}`}
+                    value={requestedPercent(row.requestedEuContribution, row.maxEuContribution)}
+                    placeholder={row.maxEuContribution > 0 ? '100.00' : ''}
+                    disabled={!editable || !(row.maxEuContribution > 0)}
+                    decimals={2}
+                    onCommit={value => totals.setRequestedContribution(
+                      participantId,
+                      row.wp.id,
+                      value == null ? null : roundCents(row.maxEuContribution * value / 100),
+                    )}
+                  />
+                </td>
               </tr>)}
               <tr className="border-t-2 border-foreground/30 bg-muted/30 font-semibold">
                 <td className="px-1 py-0.5">Total</td>
