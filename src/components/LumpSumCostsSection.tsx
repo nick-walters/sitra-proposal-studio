@@ -15,6 +15,8 @@ import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } fr
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import LumpSumDepreciationSection, {
   DEPRECIATION_SECTION_ID,
+  CollapsibleHeader,
+  HeaderControl,
   LINE_HEADING_ROW,
   LINE_INDENT,
   MAJOR_HEADING_ROW,

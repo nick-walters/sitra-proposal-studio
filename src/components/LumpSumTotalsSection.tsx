@@ -5,7 +5,7 @@ import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
-import { LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { CollapsibleHeader, HeaderControl, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import {
   WP_COMMENT_LIMIT,
   computeWpTotals,
