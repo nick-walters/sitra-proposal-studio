@@ -1148,13 +1148,13 @@ export function BudgetPortalSheet({
             </DialogTitle>
           </DialogHeader>
           {editingParticipantId && (
-            <BudgetParticipantForm
-              proposalId={proposalId}
-              participantId={editingParticipantId}
-               proposalType={proposalType}
-               canEdit={activeTabCanEdit}
-               isCoordinator={isCoordinator && !traditionalReadOnly}
-             />
+             <BudgetParticipantForm
+               proposalId={proposalId}
+               participantId={editingParticipantId}
+                proposalType={proposalType}
+                canEdit={activeTabCanEdit}
+                isCoordinator={isCoordinator && !traditionalReadOnly}
+              />
           )}
         </DialogContent>
       </Dialog>
