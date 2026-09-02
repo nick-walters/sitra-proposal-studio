@@ -813,7 +813,7 @@ export function BudgetPortalSheet({
                 ))}
                 {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
               </TabsList>
-              {budgetTabs.includes('lump-sum') && (
+              {activeTab === 'lump-sum' && !lumpSumReadOnly && (
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
                   <Button type="button" size="sm" variant={budgetView === 'enter' ? 'default' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
                   <Button type="button" size="sm" variant={budgetView === 'portal' ? 'default' : 'ghost'} className="h-7 px-2 text-xs" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>

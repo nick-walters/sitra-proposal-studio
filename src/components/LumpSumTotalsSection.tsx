@@ -258,6 +258,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     placeholder={formatNumber(row.maxEuContribution, 2)}
                     disabled={!editable}
                     decimals={2}
+                    prefix="€"
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
