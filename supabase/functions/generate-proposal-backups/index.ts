@@ -812,7 +812,8 @@ function roundLumpSumCents(value: number): number {
 }
 
 function lumpSumParticipantLabel(participant: any): string {
-  return `P${participant?.participant_number ?? "?"} ${participant?.organisation_short_name || participant?.organisation_name || ""}`.trim();
+  if (!participant) return "";
+  return `P${participant.participant_number ?? "?"} ${participant.organisation_short_name || participant.organisation_name || ""}`.trim();
 }
 
 function lumpSumWpLabel(wp: any): string {
@@ -887,6 +888,7 @@ async function appendLumpSumSheets(
     return roundLumpSumCents(roundedRateForGroup(groupKeyForRole(role)) * pm);
   };
   const participantLabel = (id: string) => lumpSumParticipantLabel(participantById.get(id));
+  const participantByIdOrNumber = new Map(participants.map((participant: any) => [participant.id, participant]));
   const wpLabel = (id: string) => lumpSumWpLabel(wpById.get(id));
   const dateLabel = (value: string | null | undefined) => value ? String(value).slice(0, 10) : "";
 
@@ -1000,7 +1002,7 @@ async function appendLumpSumSheets(
   };
   for (const participant of participants) for (const wp of workPackages) {
     const total = totalByWp(participant.id, wp.id);
-    totalsRows.push([participantLabel(participant), wpLabel(wp.id), total.a, total.b, total.c, total.d, total.e, total.f, total.g, total.h, total.comment]);
+    totalsRows.push([lumpSumParticipantLabel(participant), wpLabel(wp.id), total.a, total.b, total.c, total.d, total.e, total.f, total.g, total.h, total.comment]);
   }
   const totalsSheet = XLSX.utils.aoa_to_sheet(totalsRows);
   styleHeaders(totalsSheet, 1, totalsHeaders.length);
