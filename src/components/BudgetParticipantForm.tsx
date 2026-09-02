@@ -100,6 +100,7 @@ export function BudgetParticipantForm({
   proposalType,
   canEdit,
   isCoordinator,
+  readOnly = false,
 }: BudgetParticipantFormProps) {
   const {
     rows,
