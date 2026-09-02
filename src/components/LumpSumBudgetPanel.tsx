@@ -18,7 +18,7 @@ import { CollapsibleHeader, HeaderControl, LINE_INDENT, useLsCollapse } from '@/
 import { LumpSumPortalView } from '@/components/LumpSumPortalView';
 import { LumpSumOverview } from '@/components/LumpSumOverview';
 
-type BudgetView = 'enter' | 'portal';
+type BudgetView = 'enter' | 'portal' | 'overview';
 
 
 const BLOCKS = [
