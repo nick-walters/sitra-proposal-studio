@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
+import { LS_COL, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -165,7 +166,6 @@ const RESOURCE_TYPES = [
 ] as const;
 
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
-const COL_WIDTH = { grip: 30, wp: 96, type: 132, name: 180, date: 130, cost: 112, pct: 78, charged: 118, include: 78, delete: 34 };
 
 
 function sanitizeNumeric(value: string, decimals: number) {
@@ -298,9 +298,9 @@ function SortableDepreciationRow({ item, workPackages, editable, onField, onDele
     <td className="px-1"><LocalNumberInput value={item.purchase_cost} decimals={2} disabled={!editable} onCommit={value => onField('purchase_cost', value)} /></td>
     <td className="px-1"><LocalNumberInput value={item.pct_project} decimals={2} max={100} disabled={!editable} onCommit={value => onField('pct_project', value)} /></td>
     <td className="px-1"><LocalNumberInput value={item.pct_useful_life} decimals={2} max={100} disabled={!editable} onCommit={value => onField('pct_useful_life', value)} /></td>
-    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.charged_depreciation ?? 0))}</div></td>
     <td className="px-1 text-center"><Checkbox checked={item.include_in_c2} disabled={!editable} aria-label="Include in C.2" onCheckedChange={checked => onField('include_in_c2', checked === true)} /></td>
     <td className="px-1"><LocalTextInput value={item.comments ?? ''} disabled={!editable} maxLength={DEPRECIATION_COMMENT_LIMIT} onCommit={value => onField('comments', value)} /></td>
+    <td data-ls-measure="depreciation-item-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.charged_depreciation ?? 0))}</div></td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete investment" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
 }
@@ -345,20 +345,20 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
       <div className="overflow-x-auto pb-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-            <table className="w-full table-fixed border-collapse text-sm">
+            <table className={`${LS_TABLE} text-sm`}>
               <colgroup>
-                <col style={{ width: COL_WIDTH.grip }} />
-                <col style={{ width: COL_WIDTH.wp }} />
-                <col style={{ width: COL_WIDTH.type }} />
-                <col style={{ width: COL_WIDTH.name }} />
-                <col style={{ width: COL_WIDTH.date }} />
-                <col style={{ width: COL_WIDTH.cost }} />
-                <col style={{ width: COL_WIDTH.pct }} />
-                <col style={{ width: COL_WIDTH.pct }} />
-                <col style={{ width: COL_WIDTH.charged }} />
-                <col style={{ width: COL_WIDTH.include }} />
+                <col style={{ width: LS_COL.grip }} />
+                <col style={{ width: LS_COL.summaryWp }} />
+                <col style={{ width: LS_COL.depreciationType }} />
+                <col style={{ width: LS_COL.depreciationName }} />
+                <col style={{ width: LS_COL.depreciationDate }} />
+                <col style={{ width: LS_COL.depreciationCost }} />
+                <col style={{ width: LS_COL.depreciationPercent }} />
+                <col style={{ width: LS_COL.depreciationPercent }} />
+                <col style={{ width: LS_COL.depreciationInclude }} />
                 <col />
-                <col style={{ width: COL_WIDTH.delete }} />
+                <col style={{ width: LS_COL.figure }} />
+                <col style={{ width: LS_COL.gutter }} />
               </colgroup>
               <thead><tr className="text-[11px] text-muted-foreground">
                 <th />
@@ -369,9 +369,9 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 <th className="px-1 text-right">Purchase cost (€)</th>
                 <th className="px-1 text-right">% project</th>
                 <th className="px-1 text-right">% life</th>
-                <th className="px-1 text-right">Charged (€)</th>
                 <th className="px-1 text-center">Include in C.2</th>
                 <th className="px-1 text-left">Comments</th>
+                <th className="px-1 text-right">Charged (€)</th>
                 <th />
               </tr></thead>
               <tbody>
@@ -385,9 +385,9 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 />)}
                 {items.length === 0 && <tr><td colSpan={12} className="px-1 py-2 text-xs text-muted-foreground">No investments recorded.</td></tr>}
                 <tr className="border-t border-border">
-                  <td className="px-1 text-xs font-bold" colSpan={8}>Total charged depreciation</td>
-                  <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-bold`}>{formatCurrency(total)}</div></td>
-                  <td colSpan={3} />
+                  <td className="px-1 text-right text-xs font-bold" colSpan={10}>Total charged depreciation</td>
+                  <td data-ls-measure="depreciation-total-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-bold`}>{formatCurrency(total)}</div></td>
+                  <td />
                 </tr>
               </tbody>
             </table>

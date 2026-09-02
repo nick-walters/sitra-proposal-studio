@@ -18,7 +18,7 @@ export const LS_FIGURE_WIDTH = 120;
  */
 export const LS_RIGHT_GUTTER = 34;
 
-/** Every column width used anywhere in the lump-sum tables. */
+/** Every fixed column width used anywhere in the lump-sum tables. */
 export const LS_COL = {
   grip: 30,
   /** Work package selector column in the B–D cost tables. */
@@ -38,6 +38,13 @@ export const LS_COL = {
   summaryNarrow: 96,
   request: 124,
   percent: 96,
+  /** Depreciation-register columns before its flexible comments spacer. */
+  depreciationType: 132,
+  depreciationName: 180,
+  depreciationDate: 130,
+  depreciationCost: 112,
+  depreciationPercent: 78,
+  depreciationInclude: 78,
   /** The shared figure column and the gutter to its right. */
   figure: LS_FIGURE_WIDTH,
   gutter: LS_RIGHT_GUTTER,
@@ -58,6 +65,9 @@ export const LS_PERSONNEL_MIN_WIDTH = (workPackageCount: number, hasCategoryColu
  */
 export const LS_FIGURE_CELL = 'px-1 text-right tabular-nums';
 export const LS_LABEL_CELL = 'px-1 text-right';
+
+/** Every aligned table uses this exact sizing model. */
+export const LS_TABLE = 'w-full table-fixed border-collapse';
 
 /** Shared colgroup for a label + figure + gutter total row. */
 export const LS_TOTAL_COLS = [LS_COL.grip, null, LS_COL.figure, LS_COL.gutter] as const;
