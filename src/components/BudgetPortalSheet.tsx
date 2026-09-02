@@ -967,7 +967,7 @@ export function BudgetPortalSheet({
                   </div>
                 </CardContent>
               </Card>
-              <A3EffortMatrix proposalId={proposalId} canEdit={activeTabCanEdit} isCoordinator={isAdmin && !traditionalReadOnly} />
+              <A3EffortMatrix proposalId={proposalId} canEdit={activeTabCanEdit} isCoordinator={isAdmin && !traditionalReadOnly} isLumpSum={budgetType === 'lump_sum'} />
             </div>
             <Card>
               <CardHeader>

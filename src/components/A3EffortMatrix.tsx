@@ -225,7 +225,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
     pendingEditsRef.current.set(`${participantId}|${wpId}`, { participantId, wpId, personMonths });
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(flushPendingEdits, 800);
-  }, [flushPendingEdits]);
+  }, [flushPendingEdits, isLumpSum]);
 
 
   if (!wps?.length || !participants?.length) return null;
