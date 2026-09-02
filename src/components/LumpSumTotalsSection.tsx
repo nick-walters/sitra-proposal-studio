@@ -181,48 +181,16 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
     <WPBubble wpNumber={wp.number} wpColor={wp.color} />
   </span>;
 
-  const eCollapsed = isCollapsed(COLLAPSE_E);
   const fCollapsed = isCollapsed(COLLAPSE_F);
   const commentsCollapsed = isCollapsed(COLLAPSE_COMMENTS);
+  const grandPercent = requestedPercent(grand.requestedEuContribution, grand.maxEuContribution);
+  const heading = 'E. Indirect costs | F. Total costs | G. Maximum EU contribution | H. Requested EU contribution';
 
   return <>
     <section className="border-b border-border">
       <div className={MAJOR_HEADING_ROW}>
-        <CollapseChevron collapsed={eCollapsed} onToggle={() => toggle(COLLAPSE_E)} label="E. Indirect costs" />
-        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">E. Indirect costs</span>
-        {eCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(grand.indirect)}</span>}
-      </div>
-      {!eCollapsed && <div className={`space-y-1 pb-2 ${LINE_INDENT}`}>
-        <table className="w-full table-fixed border-collapse text-sm">
-          <colgroup>
-            <col style={{ width: COL.wp }} />
-            <col />
-            <col style={{ width: COL.money }} />
-          </colgroup>
-          <tbody>
-            {rows.map(row => <tr key={row.wp.id} className="border-t border-border/70">
-              <td className="px-1 py-0.5">{wpBadge(row.wp)}</td>
-              <td className="px-1 py-0.5 text-right text-xs text-muted-foreground">{`${formatNumber(indirectCostRate, 2)}% of ${formatCurrency(row.personnel + row.purchase)}`}</td>
-              <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.indirect)}</div></td>
-            </tr>)}
-            <tr className="border-t-2 border-foreground/30 font-semibold">
-              <td />
-              <td className="px-1 py-0.5 text-right"><div className={`${READ_CELL} font-semibold`}>E. Total indirect costs</div></td>
-              <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="text-[11px] text-muted-foreground">
-          Indirect costs are charged at {formatNumber(indirectCostRate, 2)}% of A + C only. Subcontracting (B),
-          financial support to third parties (D.1) and internally invoiced goods and services (D.2) are excluded from the base.
-        </p>
-      </div>}
-    </section>
-
-    <section className="border-b border-border">
-      <div className={MAJOR_HEADING_ROW}>
-        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_F)} label="F. Total costs and EU contribution" />
-        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">F. Total costs and EU contribution</span>
+        <CollapseChevron collapsed={fCollapsed} onToggle={() => toggle(COLLAPSE_F)} label={heading} />
+        <span className="min-w-0 flex-1 truncate text-base font-semibold leading-none">{heading}</span>
         {fCollapsed && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(grand.totalCosts)}</span>}
       </div>
       {!fCollapsed && <div className={`space-y-2 pb-2 ${LINE_INDENT}`}>
