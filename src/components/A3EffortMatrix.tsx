@@ -211,7 +211,8 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
   }, [flushPendingEdits]);
 
   const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
-    await supabase
+    if (isLumpSum) return;
+    const { error } = await supabase
       .from('wp_draft_effort')
       .upsert({
         wp_draft_id: wpId,
@@ -237,7 +238,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
           Staff effort (person months per participant per WP)
         </CardTitle>
         <CardDescription>
-          Values are mirrored to Table 3.1.f.
+          {isLumpSum ? 'Read-only view: enter person months in the lump-sum personnel budget.' : 'Values are mirrored to Table 3.1.f.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -256,7 +257,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">
                   <div className="flex items-center justify-between gap-1">
                     <span>Participant</span>
-                    {isCoordinator && canEdit && (
+                    {!isLumpSum && isCoordinator && canEdit && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -318,7 +319,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
                     wpIdsKey={wpIdsKey}
                     isLocked={isLocked}
                     isCoordinator={isCoordinator}
-                    rowEditable={rowEditable}
+                    rowEditable={isLumpSum ? false : rowEditable}
                     onSave={saveEffortValue}
                     onLock={lockRow}
                     onUnlock={unlockRow}
