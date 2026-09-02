@@ -124,7 +124,9 @@ export function BudgetPortalSheet({
     () => [...budgetTabs, ...(usesFstp ? ['fstp' as const] : [])],
     [budgetTabs, usesFstp],
   );
-  const storageKey = `budget-active-tab:${user?.id ?? 'anonymous'}:${proposalId}`;
+  // Persist per proposal so the preference survives the auth hydration/remount
+  // that occurs when reopening the editor, including from a deep link.
+  const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
@@ -141,11 +143,12 @@ export function BudgetPortalSheet({
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
 
-  useEffect(() => {
-    if (availableTabs.includes(activeTab as typeof availableTabs[number])) {
-      window.localStorage.setItem(storageKey, activeTab);
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (availableTabs.includes(value as typeof availableTabs[number])) {
+      window.localStorage.setItem(storageKey, value);
     }
-  }, [activeTab, availableTabs, storageKey]);
+  };
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
@@ -730,7 +733,7 @@ export function BudgetPortalSheet({
 
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="flex items-center justify-between">
             <TabsList>
               {budgetTabs.includes('budget') && <TabsTrigger value="budget">Actual costs budget</TabsTrigger>}
