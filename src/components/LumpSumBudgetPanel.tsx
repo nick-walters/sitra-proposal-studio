@@ -10,10 +10,8 @@ import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
-import { lineId, majorId, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
-
-
+import { LINE_HEADING_ROW, LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 
 const BLOCKS = [
   { line: 'A.1', label: 'A.1 Personnel costs — employees' },
@@ -21,12 +19,6 @@ const BLOCKS = [
   { line: 'A.3', label: 'A.3 Personnel costs — seconded persons' },
   { line: 'A.4', label: 'A.4 Personnel costs — SME owners and natural person beneficiaries' },
 ];
-
-/** Every heading at the same level shares one geometry. */
-export const MAJOR_HEADING_ROW = 'flex h-8 items-center gap-1';
-export const MAJOR_HEADING_TEXT = 'min-w-0 flex-1 text-base font-semibold';
-export const LINE_HEADING_ROW = 'flex h-7 items-center gap-1';
-export const LINE_HEADING_TEXT = 'min-w-0 flex-1 text-xs font-semibold';
 
 function formatPM(value: number) {
   return value.toFixed(1);
@@ -39,11 +31,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const budgetAccess = useLumpSumBudgetAccess(proposalId);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
-  const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
-  const majorACollapsed = isCollapsed(majorId('A'));
-
-  
-
+  const { isCollapsed, toggle } = useLsCollapse(user?.id, proposalId);
 
   const participants = data?.participants ?? [];
   const selected = participants.find(participant => participant.id === (selectedParticipantId ?? participants[0]?.id));
@@ -124,20 +112,20 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
         </div>
          <section className="border-b border-border">
            <div className={MAJOR_HEADING_ROW}>
-             <CollapseChevron collapsed={majorACollapsed} onToggle={() => toggle(majorId('A'))} label="A. Personnel costs" />
-             <h2 className={MAJOR_HEADING_TEXT}>A. Personnel costs</h2>
-             {majorACollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
+             <CollapseChevron collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" />
+             <h2 className="min-w-0 flex-1 truncate text-base font-semibold leading-none">A. Personnel costs</h2>
+             {isCollapsed('A') && <span className="shrink-0 text-sm font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
            </div>
-           {!majorACollapsed && <>
+           {!isCollapsed('A') && <>
              {BLOCKS.map(block => {
-              const collapsed = isCollapsed(lineId(block.line));
+              const collapsed = isCollapsed(block.line);
               const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
-              return <section key={block.line} className="border-b border-border">
-                 <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
-                   <CollapseChevron collapsed={collapsed} onToggle={() => toggle(lineId(block.line))} label={`${block.line} personnel costs`} className="h-6 w-6" />
-                   <span className={LINE_HEADING_TEXT}>{block.label}</span>
-                  {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
-                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
+              return <section key={block.line} className={`border-b border-border ${LINE_INDENT}`}>
+                <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
+                  <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{block.label}</span>
+                  {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
+                  {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
                 </div>
                 {!collapsed && <div className="space-y-2 pt-2">
                   {block.line === 'A.4' && <label className="block max-w-48 text-xs text-muted-foreground">A.4 unit cost (€)<NumericInput value={a4UnitCost} disabled={!editable} step="0.01" decimals={2} className="mt-1 h-7 w-32 px-1.5 text-right text-xs tabular-nums" onCommit={value => setA4UnitCost(selected.id, value)} /></label>}

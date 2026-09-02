@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { DEPRECIATION_COLLAPSE_ID, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -19,6 +18,87 @@ import {
 } from '@/hooks/useLumpSumDepreciation';
 
 export const DEPRECIATION_SECTION_ID = 'ls-depreciation-section';
+/** Collapse id of the depreciation register itself. */
+export const DEPRECIATION_COLLAPSE_ID = 'depreciation';
+
+/* ------------------------------------------------------------------ *
+ * Shared collapse state for the whole lump sum panel.
+ *
+ * One localStorage entry per user and proposal holds a default ("is
+ * everything collapsed?") plus per-heading overrides. Every heading in the
+ * panel — majors, lines, sub-lines and this register — reads and writes it,
+ * which is what lets the toolbar's collapse-all button move all of them at
+ * once and lets the state survive a reload. A module-level cache with
+ * listeners keeps the separate components in step within one page.
+ * ------------------------------------------------------------------ */
+type LsCollapseState = { def: boolean; overrides: Record<string, boolean> };
+
+const COLLAPSE_CACHE = new Map<string, LsCollapseState>();
+const COLLAPSE_LISTENERS = new Map<string, Set<(state: LsCollapseState) => void>>();
+
+export const lsCollapseStorageKey = (userId: string | null | undefined, proposalId: string) =>
+  `ls-collapse:${userId ?? 'anon'}:${proposalId}`;
+
+function loadCollapse(key: string): LsCollapseState {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<LsCollapseState>;
+      if (parsed && typeof parsed === 'object') {
+        return { def: parsed.def !== false, overrides: parsed.overrides ?? {} };
+      }
+    }
+  } catch { /* view preference only */ }
+  // Everything starts collapsed.
+  return { def: true, overrides: {} };
+}
+
+function readCollapse(key: string): LsCollapseState {
+  const cached = COLLAPSE_CACHE.get(key);
+  if (cached) return cached;
+  const loaded = loadCollapse(key);
+  COLLAPSE_CACHE.set(key, loaded);
+  return loaded;
+}
+
+function writeCollapse(key: string, next: LsCollapseState) {
+  COLLAPSE_CACHE.set(key, next);
+  try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* view preference only */ }
+  COLLAPSE_LISTENERS.get(key)?.forEach(listener => listener(next));
+}
+
+export function useLsCollapse(userId: string | null | undefined, proposalId: string) {
+  const key = lsCollapseStorageKey(userId, proposalId);
+  const [state, setState] = useState<LsCollapseState>(() => readCollapse(key));
+
+  // The user id arrives after the first render, so re-read when the key changes.
+  useEffect(() => {
+    setState(readCollapse(key));
+    const listeners = COLLAPSE_LISTENERS.get(key) ?? new Set<(next: LsCollapseState) => void>();
+    listeners.add(setState);
+    COLLAPSE_LISTENERS.set(key, listeners);
+    return () => { listeners.delete(setState); };
+  }, [key]);
+
+  const isCollapsed = useCallback((id: string) => state.overrides[id] ?? state.def, [state]);
+  const toggle = useCallback((id: string) => {
+    const current = readCollapse(key);
+    const collapsed = current.overrides[id] ?? current.def;
+    writeCollapse(key, { ...current, overrides: { ...current.overrides, [id]: !collapsed } });
+  }, [key]);
+  const setAll = useCallback((collapsed: boolean) => writeCollapse(key, { def: collapsed, overrides: {} }), [key]);
+  const allCollapsed = state.def && !Object.values(state.overrides).some(value => value === false);
+
+  return { isCollapsed, toggle, setAll, allCollapsed };
+}
+
+/** Shared heading geometry: one fixed height per hierarchy level. */
+export const MAJOR_HEADING_ROW = 'flex h-9 items-center gap-1 overflow-hidden';
+export const LINE_HEADING_ROW = 'flex h-8 items-center gap-1 overflow-hidden';
+export const SUBLINE_HEADING_ROW = 'flex h-7 items-center gap-1 overflow-hidden';
+/** One indent step per level: lines sit at 16px, sub-lines at 32px. */
+export const LINE_INDENT = 'pl-4';
+export const SUBLINE_INDENT = 'pl-8';
 
 const RESOURCE_TYPES = [
   { value: 'equipment', label: 'Equipment' },
@@ -28,6 +108,7 @@ const RESOURCE_TYPES = [
 
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
 const COL_WIDTH = { grip: 30, wp: 96, type: 132, name: 180, date: 130, cost: 112, pct: 78, charged: 118, include: 78, delete: 34 };
+
 
 function sanitizeNumeric(value: string, decimals: number) {
   let next = value.replace(/,/g, '').replace(/[^0-9.]/g, '');
@@ -168,9 +249,10 @@ function SortableDepreciationRow({ item, workPackages, editable, onField, onDele
 
 export function LumpSumDepreciationSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
   const { data, isLoading, error, addItem, updateItem, deleteItem, reorderItems } = useLumpSumDepreciation(proposalId);
-  const { isCollapsed, toggle } = useLumpSumCollapse(userId, proposalId);
+  const { isCollapsed, toggle: toggleCollapse } = useLsCollapse(userId, proposalId);
   const collapsed = isCollapsed(DEPRECIATION_COLLAPSE_ID);
-  const toggleCollapse = () => toggle(DEPRECIATION_COLLAPSE_ID);
+  const toggle = () => toggleCollapse(DEPRECIATION_COLLAPSE_ID);
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const items = (data?.items ?? []).filter(item => item.participant_id === participantId).sort((a, b) => a.order_index - b.order_index);
@@ -191,17 +273,18 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
     reorderItems(next.map(item => item.id));
   };
 
-  return <section id={DEPRECIATION_SECTION_ID} className="border-b border-border/70 pl-4">
-    <div className="flex h-7 items-center gap-1">
-      <CollapseChevron collapsed={collapsed} onToggle={toggleCollapse} label="depreciation register" className="h-6 w-6" />
-      <h2 className="min-w-0 flex-1 text-xs font-semibold">Depreciation of equipment, infrastructure and other assets</h2>
-      {collapsed && <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
-      {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button>}
+  return <section id={DEPRECIATION_SECTION_ID} className={`border-b border-border/70 ${SUBLINE_INDENT}`}>
+    <div className={SUBLINE_HEADING_ROW}>
+      <CollapseChevron collapsed={collapsed} onToggle={toggle} label="depreciation register" className="h-6 w-6" />
+      <h2 className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">Depreciation of equipment, infrastructure and other assets</h2>
+      {collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}
+      {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId)}>Add depreciation cost</Button>}
     </div>
     {!collapsed && <>
       <p className="pb-1 text-xs text-muted-foreground">
-        Charged depreciation is the purchase cost multiplied by the percentage used for the project and by the percentage of the asset’s useful life falling within the project. Ticking “Include in C.2” carries the charge into that work package’s C.2 Equipment line automatically.
+        Charged depreciation is the purchase cost multiplied by the percentage used for the project and by the percentage of the asset’s useful life falling within the project. Ticking “Include in C.2” carries the charge into the C.2 sub-line matching the resource type — infrastructure, equipment or other assets — for that work package.
       </p>
+
       <div className="overflow-x-auto pb-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
