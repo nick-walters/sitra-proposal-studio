@@ -700,24 +700,30 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-              <TabsTrigger value="budget">Budget dashboard</TabsTrigger>
-              {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-              {budgetType === 'lump_sum' && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
-            </TabsList>
-            {activeTab !== 'fstp' && (
-              <div className="flex items-center gap-3">
-                <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
-                  <AlertCircle className="w-4 h-4" />
-                  Validate
-                </Button>
-                {budgetType === 'lump_sum' && isCoordinator && (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
-                    title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
-                    onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
-                  >
+             <TabsTrigger value="budget">Actual costs budget</TabsTrigger>
+               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+               {budgetType === 'lump_sum' && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
+             </TabsList>
+             {activeTab !== 'fstp' && (
+               <div className="flex items-center gap-3">
+                 <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
+                   <AlertCircle className="w-4 h-4" />
+                   Validate
+                 </Button>
+                 {budgetType === 'lump_sum' && (
+                   <Button variant="outline" className="gap-2" onClick={() => setAll(!allCollapsed)} aria-label={allCollapsed ? 'Expand all lump-sum sections' : 'Collapse all lump-sum sections'}>
+                     <ChevronsDownUp className="w-4 h-4" />
+                     {allCollapsed ? 'Expand all' : 'Collapse all'}
+                   </Button>
+                 )}
+                 {budgetType === 'lump_sum' && isCoordinator && (
+                   <Button
+                     variant="outline"
+                     className="gap-2"
+                     aria-label={lumpSumAccess.lockState === 'all' ? 'Unlock all participant budgets' : 'Lock all participant budgets'}
+                     title={lumpSumAccess.lockState === 'some' ? 'Some budgets are locked — lock all budgets' : undefined}
+                     onClick={() => lumpSumAccess.setLockAll(lumpSumAccess.lockState !== 'all')}
+                   >
                     {lumpSumAccess.lockState === 'all'
                       ? <Lock className="w-4 h-4 text-destructive" />
                       : <Unlock className={`w-4 h-4 ${lumpSumAccess.lockState === 'some' ? 'text-warning' : 'text-green-600'}`} />}
