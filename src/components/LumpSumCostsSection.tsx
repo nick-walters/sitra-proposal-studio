@@ -94,15 +94,8 @@ const C_PARENTS = [
 ] as const;
 
 const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text-sm';
-/**
- * Calculated values occupy exactly the same box as the editable input above
- * them — same height, padding, radius and font size — but are flat: no border,
- * no field background, matching category A's READ_FIELD exactly. The 1px
- * transparent border is what keeps the right edges coincident.
- */
-const READ_FIELD = 'inline-flex h-7 w-full items-center rounded-md border border-transparent px-1.5 text-xs md:text-sm';
-const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
 const COL_WIDTH = { grip: 30, wp: 100, quantity: 88, unitCost: 112, amount: 120, delete: 34 };
+
 
 
 function numericValue(value: string) {
