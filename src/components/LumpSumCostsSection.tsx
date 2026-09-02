@@ -201,6 +201,8 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
 
 export function LumpSumCostsSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
   const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems, saveDItem } = useLumpSumCosts(proposalId);
+  const depreciation = useLumpSumDepreciation(proposalId);
+  const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true, ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
   const storageKey = `ls-costs-collapse:${userId ?? 'anon'}:${proposalId}`;
   useEffect(() => {
