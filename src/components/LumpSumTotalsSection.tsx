@@ -129,12 +129,12 @@ function DebouncedComment({ value, disabled, onCommit }: { value: string; disabl
   </div>;
 }
 
-export function LumpSumTotalsSection({ proposalId, participantId, userId, editable, personnelByWp }: {
+export function LumpSumTotalsSection({ proposalId, participantId, userId, editable, budgetInputsByWp }: {
   proposalId: string;
   participantId: string;
   userId?: string;
   editable: boolean;
-  /** A per work package, taken from the rounded personnel calculation. */
+  /** A–D per work package, supplied by the panel's existing budget calculations. */
   budgetInputsByWp: Record<string, LumpSumWpInputs>;
 }) {
   const totals = useLumpSumTotals(proposalId);
