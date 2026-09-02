@@ -980,7 +980,7 @@ export function BudgetPortalSheet({
                           <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-middle">
                             <div className="flex items-center justify-between gap-1">
                               <span>Participant</span>
-                              {isAdmin && !traditionalReadOnly && (
+                              {isAdmin && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
