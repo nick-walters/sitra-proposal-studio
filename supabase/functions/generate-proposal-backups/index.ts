@@ -812,7 +812,8 @@ function roundLumpSumCents(value: number): number {
 }
 
 function lumpSumParticipantLabel(participant: any): string {
-  return `P${participant?.participant_number ?? "?"} ${participant?.organisation_short_name || participant?.organisation_name || ""}`.trim();
+  if (!participant) return "";
+  return `P${participant.participant_number ?? "?"} ${participant.organisation_short_name || participant.organisation_name || ""}`.trim();
 }
 
 function lumpSumWpLabel(wp: any): string {
@@ -887,6 +888,7 @@ async function appendLumpSumSheets(
     return roundLumpSumCents(roundedRateForGroup(groupKeyForRole(role)) * pm);
   };
   const participantLabel = (id: string) => lumpSumParticipantLabel(participantById.get(id));
+  const participantByIdOrNumber = new Map(participants.map((participant: any) => [participant.id, participant]));
   const wpLabel = (id: string) => lumpSumWpLabel(wpById.get(id));
   const dateLabel = (value: string | null | undefined) => value ? String(value).slice(0, 10) : "";
 
