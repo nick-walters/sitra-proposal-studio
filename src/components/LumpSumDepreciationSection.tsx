@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { lumpSumCollapseKey } from '@/lib/lumpSumCollapse';
+import { DEPRECIATION_COLLAPSE_ID, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
