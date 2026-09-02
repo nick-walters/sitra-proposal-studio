@@ -150,38 +150,6 @@ export function useLumpSumCosts(proposalId: string) {
     onError: (error: unknown) => toast.error(`Failed to reorder cost items: ${errorMessage(error)}`),
   });
 
-  const saveDItem = useMutation({
-    mutationFn: async ({ participantId, wpDraftId, costLine, unitCost, justification }: {
-      participantId: string;
-      wpDraftId: string;
-      costLine: string;
-      unitCost: number;
-      justification: string;
-    }) => {
-      const existing = query.data?.items.find(item =>
-        item.participant_id === participantId && item.wp_draft_id === wpDraftId && item.cost_line === costLine,
-      );
-      await ensureParticipantBudget(proposalId, participantId);
-      if (existing) {
-        const { error } = await supabase.from('ls_cost_items').update({ unit_cost: unitCost, justification }).eq('id', existing.id);
-        if (error) throw error;
-        return;
-      }
-      const { error } = await supabase.from('ls_cost_items').insert({
-        proposal_id: proposalId,
-        participant_id: participantId,
-        wp_draft_id: wpDraftId,
-        cost_line: costLine,
-        quantity: 1,
-        unit_cost: unitCost,
-        justification,
-        order_index: 0,
-      });
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-    onError: (error: unknown) => toast.error(`Failed to save cost amount: ${errorMessage(error)}`),
-  });
 
   const debounced = (key: string, callback: () => void) => {
     if (timers.current[key]) clearTimeout(timers.current[key]);
