@@ -11,12 +11,16 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { computeBudgetRow } from '@/lib/budgetCompute';
 import type { LumpSumEffort, LumpSumRole, LumpSumWorkPackage } from '@/hooks/useLumpSumPersonnel';
 import type { LumpSumCostItem } from '@/hooks/useLumpSumCosts';
 import type { DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import {
+  buildWpInputs,
+  computeWpTotals,
   personMonthsForRoles,
   equipmentAndPersonnelTotals,
+  roundCents,
 } from '@/lib/lumpSumFigures';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
