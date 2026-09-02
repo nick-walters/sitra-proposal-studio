@@ -173,6 +173,21 @@ export function BudgetPortalSheet({
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
 
+  // Register the lump-sum panel with the shared page-wide editor bar. The
+  // event is intentionally scoped to this A3 surface; other pages retain
+  // their existing collapse behaviour.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', {
+      detail: activeTab === 'lump-sum'
+        ? { allCollapsed, disabled: false, onToggle: () => setAll(!allCollapsed) }
+        : null,
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', { detail: null }));
+    };
+  }, [activeTab, allCollapsed, setAll]);
+
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (availableTabs.includes(value as typeof availableTabs[number])) {
