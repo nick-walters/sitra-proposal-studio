@@ -8,7 +8,6 @@ import { LINE_INDENT, MAJOR_HEADING_ROW, useLsCollapse } from '@/components/Lump
 import {
   WP_COMMENT_LIMIT,
   computeWpTotals,
-  roundCents,
   useLumpSumTotals,
   type LumpSumWpInputs,
 } from '@/hooks/useLumpSumTotals';
@@ -21,9 +20,6 @@ const COLLAPSE_COMMENTS = 'ls-wp-comments';
 const COL = { wp: 96, money: 108, request: 124 };
 const READ_CELL = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-1.5 text-xs tabular-nums md:text-sm';
 const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums md:text-sm';
-
-const C_LINES = ['C.1', 'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other'];
-const D_LINES = ['D.1', 'D.2'];
 
 /** Digits and a single decimal separator, capped at two places. */
 function sanitizeNumeric(raw: string) {
