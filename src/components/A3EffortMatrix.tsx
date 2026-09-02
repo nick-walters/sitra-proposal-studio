@@ -107,7 +107,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
   );
 
   const lockRow = useCallback(async (participantId: string) => {
-    if (!user?.id) return;
+    if (isLumpSum || !user?.id) return;
     const { error } = await supabase
       .from('effort_row_locks')
       .insert({ proposal_id: proposalId, participant_id: participantId, locked_by: user.id });
@@ -116,9 +116,10 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
-  }, [proposalId, user?.id, queryClient]);
+  }, [isLumpSum, proposalId, user?.id, queryClient]);
 
   const unlockRow = useCallback(async (participantId: string) => {
+    if (isLumpSum) return;
     const { error } = await supabase
       .from('effort_row_locks')
       .delete()
@@ -129,7 +130,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false, isL
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
-  }, [proposalId, queryClient]);
+  }, [isLumpSum, proposalId, queryClient]);
 
   // Stable list of WP IDs in column order; reference only changes when the
   // WP set or order changes.
