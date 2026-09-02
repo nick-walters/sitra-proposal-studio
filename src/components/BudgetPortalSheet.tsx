@@ -696,7 +696,7 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-              <TabsTrigger value="budget">Budget dashboard</TabsTrigger>
+              <TabsTrigger value="budget">Actual costs budget</TabsTrigger>
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
               {budgetType === 'lump_sum' && <TabsTrigger value="lump-sum">Lump sum budget</TabsTrigger>}
             </TabsList>

@@ -123,19 +123,19 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
           {isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
         </div>
          <section className="border-b border-border">
-           <div className="flex min-h-9 items-center gap-1">
-             <CollapseChevron collapsed={Boolean(majorCollapse.A)} onToggle={() => toggleMajor('A')} label="A. Personnel costs" />
-             <h2 className="min-w-0 flex-1 text-lg font-semibold">A. Personnel costs</h2>
-             {majorCollapse.A && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
+           <div className={MAJOR_HEADING_ROW}>
+             <CollapseChevron collapsed={majorACollapsed} onToggle={() => toggle(majorId('A'))} label="A. Personnel costs" />
+             <h2 className={MAJOR_HEADING_TEXT}>A. Personnel costs</h2>
+             {majorACollapsed && <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">{formatCurrency(overallTotals.portalCost)}</span>}
            </div>
-           {!majorCollapse.A && <>
+           {!majorACollapsed && <>
              {BLOCKS.map(block => {
               const collapsed = isCollapsed(block.line);
               const lineRoles = participantRoles.filter(role => role.cost_line === block.line);
               return <section key={block.line} className="border-b border-border">
-                <div className="flex min-h-8 items-center gap-1 border-b border-border/60">
-                  <CollapseChevron collapsed={collapsed} onToggle={() => toggle(block.line)} label={`${block.line} personnel costs`} className="h-6 w-6" />
-                  <span className="min-w-0 flex-1 text-xs font-semibold">{block.label}</span>
+                 <div className={`${LINE_HEADING_ROW} border-b border-border/60`}>
+                   <CollapseChevron collapsed={collapsed} onToggle={() => toggle(lineId(block.line))} label={`${block.line} personnel costs`} className="h-6 w-6" />
+                   <span className={LINE_HEADING_TEXT}>{block.label}</span>
                   {collapsed && <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatCurrency(totalForLine(block.line))}</span>}
                   {!collapsed && editable && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onAddRole}>Add role</Button>}
                 </div>
