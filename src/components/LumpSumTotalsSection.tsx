@@ -14,7 +14,7 @@ import {
 } from '@/hooks/useLumpSumTotals';
 
 /** Collapse ids are namespaced so they never clash with the A–D line ids. */
-const COLLAPSE_F = 'ls-F';
+const COLLAPSE_TOTALS = 'ls-F';
 const COLLAPSE_COMMENTS = 'ls-wp-comments';
 
 const COL = { wp: 96, money: 108, request: 124, percent: 96 };
@@ -24,7 +24,7 @@ const FIELD = 'h-7 w-full px-1.5 text-right text-xs tabular-nums md:text-sm';
 /** H as a share of G, to two decimals; null when G is zero. */
 function requestedPercent(requested: number, maxContribution: number) {
   if (!(maxContribution > 0)) return null;
-  return roundCents(requested / maxContribution * 100);
+  return Math.min(100, roundCents(requested / maxContribution * 100));
 }
 
 const C_LINES = ['C.1', 'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other'];
