@@ -383,7 +383,7 @@ const EffortRow = React.memo(function EffortRow({
             </ParticipantBubble>
             {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
           </span>
-          {isCoordinator && (
+          {isCoordinator && rowEditable && (
             <Button
               variant="ghost"
               size="icon"
@@ -464,7 +464,8 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
       onDebouncedChange={handleDebouncedChange}
       debounceMs={500}
       className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
-      disabled={!canEdit}
+      readOnly={!canEdit}
+      aria-readonly={!canEdit}
     />
   );
 }
