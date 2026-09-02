@@ -166,8 +166,6 @@ export function useLumpSumCosts(proposalId: string) {
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    saveDItem: (participantId: string, wpDraftId: string, costLine: string, unitCost: number, justification: string) =>
-      debounced(`d-${participantId}-${wpDraftId}-${costLine}`, () => saveDItem.mutate({ participantId, wpDraftId, costLine, unitCost, justification })),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || saveDItem.isPending,
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending,
   };
 }
