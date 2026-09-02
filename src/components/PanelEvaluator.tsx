@@ -793,7 +793,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                 all_personas: data.all_personas ?? [],
                 haiku_usage: data.haiku_usage ?? null,
                 haiku_model: data.haiku_model ?? null,
-                computed_budget: computedBudget,
+                computed_budget: JSON.parse(JSON.stringify(computedBudget)),
                 instrument_code: instrumentCode,
                 proposal_stage: proposalStage,
                 budget_type: proposalStage === "stage1" ? null : budgetType,
