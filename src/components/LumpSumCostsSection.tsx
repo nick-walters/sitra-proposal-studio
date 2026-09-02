@@ -225,6 +225,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
   const [collapse, setCollapse] = useState<Record<string, boolean>>({ ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
   const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true });
+  const [parentCollapse, setParentCollapse] = useState<Record<string, boolean>>({ 'C.2': false, 'C.3': true });
   const storageKey = `ls-costs-collapse:${userId ?? 'anon'}:${proposalId}`;
   const majorStorageKey = `ls-major-collapse:${userId ?? 'anon'}:${proposalId}`;
   useEffect(() => {
