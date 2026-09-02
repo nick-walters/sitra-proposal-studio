@@ -162,6 +162,7 @@ export function BudgetPortalSheet({
   const traditionalReadOnly = activeTab === 'budget' && traditionalBudgetLocked;
   const lumpSumReadOnly = activeTab === 'lump-sum' && lumpSumBudgetLocked;
   const activeTabCanEdit = canEdit && !traditionalReadOnly;
+  const canOpenTraditionalParticipant = canEdit || traditionalReadOnly;
 
   useEffect(() => {
     const savedTab = window.localStorage.getItem(storageKey);
