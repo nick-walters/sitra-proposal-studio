@@ -59,13 +59,14 @@ function numberOrNull(value: string) {
  * Local state, 350ms debounce plus commit on blur, re-seeded from the server
  * only when the field is unfocused with no pending change.
  */
-function DebouncedNumberField({ value, placeholder, disabled, decimals, max, warningText, onCommit }: {
+function DebouncedNumberField({ value, placeholder, disabled, decimals, max, warningText, prefix, onCommit }: {
   value: number | null;
   placeholder?: string;
   disabled: boolean;
   decimals: number;
   max?: number;
   warningText?: string;
+  prefix?: string;
   onCommit: (value: number | null) => void;
 }) {
   const serverValue = value == null ? '' : String(value);
@@ -93,8 +94,10 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
     : (local.trim() ? formatNumber(Number(local), decimals) : '');
 
   return <div className="space-y-0.5">
-    <Input
-      className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+    <div className="relative">
+      {prefix && <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-muted-foreground md:text-sm">{prefix}</span>}
+      <Input
+      className={`${FIELD} ${prefix ? 'pl-6' : ''} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
       type="text"
       inputMode="decimal"
       placeholder={placeholder}
@@ -112,7 +115,8 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
         setFocused(false);
         if (dirty) { commit(local); setDirty(false); }
       }}
-    />
+      />
+    </div>
     {exceededMax && warningText && <span className="text-[10px] text-destructive" role="alert">{warningText}</span>}
   </div>;
 }
@@ -254,6 +258,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     placeholder={formatNumber(row.maxEuContribution, 2)}
                     disabled={!editable}
                     decimals={2}
+                    prefix="€"
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
