@@ -50,7 +50,7 @@ const BLOCKS = [
   { line: 'A.2', label: 'A.2 Personnel costs — natural persons under direct contract' },
   { line: 'A.3', label: 'A.3 Personnel costs — seconded persons' },
   { line: 'A.4', label: 'A.4 Personnel costs — SME owners and natural person beneficiaries' },
-];
+const MAJOR_COLLAPSE_DEFAULTS: Record<string, boolean> = { A: false, B: true, C: false, D: true };
 
 function formatPM(value: number) {
   return value.toFixed(1);
