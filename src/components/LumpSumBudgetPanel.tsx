@@ -68,7 +68,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
   if (error) return <div className="p-6 text-sm text-destructive">Unable to load lump sum personnel costs.</div>;
   if (!selected) return <div className="p-6 text-sm text-muted-foreground">No participants found for this proposal.</div>;
   
-  return <div className="space-y-4 p-4 md:p-6">
+  return <div className="space-y-2 p-4 md:p-6">
      <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
        {participants.map((participant, index) => {
          const active = participant.id === selected.id;
