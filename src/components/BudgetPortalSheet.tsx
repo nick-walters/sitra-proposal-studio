@@ -182,8 +182,7 @@ export function BudgetPortalSheet({
 
   useEffect(() => {
     try {
-      const savedView = window.localStorage.getItem(portalViewKey);
-      setBudgetView(savedView === 'portal' || savedView === 'overview' ? savedView : 'enter');
+      setBudgetView(window.localStorage.getItem(portalViewKey) === 'portal' ? 'portal' : 'enter');
     } catch {
       setBudgetView('enter');
     }
