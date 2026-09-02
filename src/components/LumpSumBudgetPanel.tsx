@@ -24,7 +24,7 @@ function formatPM(value: number) {
   return value.toFixed(1);
 }
 
-export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
+export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalId: string; readOnly?: boolean }) {
   const { user } = useAuth();
   const { data, isLoading, error, saving, addRole, updateRole, deleteRole, reorderRoles, setEffort, setA4UnitCost } = useLumpSumPersonnel(proposalId);
   const { editableParticipantIds, isCoordinator, loading: permissionsLoading } = useCanEditParticipantBudget(proposalId);
@@ -77,27 +77,29 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
            <button type="button" onClick={() => setSelectedParticipantId(participant.id)} className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
              <ParticipantBubble number={participant.participant_number} shortName={participant.organisation_short_name || participant.organisation_name} />
            </button>
-           {isCoordinator && <>
-             <Button
-               type="button"
-               size="icon"
-               variant="ghost"
-               className="h-5 w-5"
-               aria-label={locked ? `Unlock budget for participant ${participant.participant_number ?? ''}` : `Lock budget for participant ${participant.participant_number ?? ''}`}
-               title={locked ? 'Unlock budget' : 'Lock budget'}
-               onClick={() => budgetAccess.setLock(participant.id, !locked)}
-             >
+            {isCoordinator && <>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-5 w-5"
+                disabled={readOnly}
+                aria-label={locked ? `Unlock budget for participant ${participant.participant_number ?? ''}` : `Lock budget for participant ${participant.participant_number ?? ''}`}
+                title={locked ? 'Unlock budget' : 'Lock budget'}
+                onClick={() => budgetAccess.setLock(participant.id, !locked)}
+              >
                {locked ? <Lock className="h-3 w-3 text-destructive" /> : <Unlock className="h-3 w-3 text-green-600" />}
              </Button>
-             <Button
-               type="button"
-               size="icon"
-               variant="ghost"
-               className="h-5 w-5 text-muted-foreground hover:text-foreground"
-               aria-label={`Manage budget permissions for participant ${participant.participant_number ?? ''}`}
-               title="Manage budget permissions"
-               onClick={() => setPermissionsParticipantId(participant.id)}
-             >
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                disabled={readOnly}
+                aria-label={`Manage budget permissions for participant ${participant.participant_number ?? ''}`}
+                title="Manage budget permissions"
+                onClick={() => setPermissionsParticipantId(participant.id)}
+              >
                <Users className="h-3 w-3" />
              </Button>
            </>}
@@ -107,8 +109,9 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
       <div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {saving && <span>Saving…</span>}
-          {isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
+           {saving && !readOnly && <span>Saving…</span>}
+           {readOnly && <span>This lump sum budget is superseded and read-only.</span>}
+           {!readOnly && isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
         </div>
          <section className="border-b border-border">
            <div className={MAJOR_HEADING_ROW}>
