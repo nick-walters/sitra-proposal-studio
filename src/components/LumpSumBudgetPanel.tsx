@@ -64,12 +64,12 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
   const { isCollapsed, toggle } = useLumpSumCollapse(user?.id, proposalId);
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ A: false });
+  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ A: false, B: true, C: false, D: true });
   const majorCollapseKey = `ls-major-collapse:${user?.id ?? 'anon'}:${proposalId}`;
   useEffect(() => {
     try {
       const stored = localStorage.getItem(majorCollapseKey);
-      setMajorCollapse(current => ({ A: false, B: true, C: false, D: true, ...current, ...(stored ? JSON.parse(stored) as Record<string, boolean> : {}) }));
+      if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) }));
     } catch { /* view preference only */ }
   }, [majorCollapseKey]);
   const toggleMajor = (key: string) => setMajorCollapse(current => {
@@ -77,6 +77,7 @@ export function LumpSumBudgetPanel({ proposalId }: { proposalId: string }) {
     try { localStorage.setItem(majorCollapseKey, JSON.stringify(next)); } catch { /* view preference only */ }
     return next;
   });
+  const toolbarSlot = useToolbarSlot(isCoordinator);
 
 
   const participants = data?.participants ?? [];
