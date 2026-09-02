@@ -738,7 +738,7 @@ export function BudgetPortalSheet({
 
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="flex items-center justify-between">
             <TabsList>
               {budgetTabs.includes('budget') && <TabsTrigger value="budget">Actual costs budget</TabsTrigger>}
