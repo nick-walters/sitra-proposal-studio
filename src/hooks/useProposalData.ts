@@ -19,6 +19,8 @@ interface ProposalData {
   title: string;
   type: 'RIA' | 'IA' | 'CSA';
   budgetType: BudgetType;
+  traditionalBudgetLocked?: boolean;
+  lumpSumBudgetLocked?: boolean;
   status: 'draft' | 'submitted' | 'funded' | 'not_funded';
   submissionStage?: 'full' | 'stage_1';
   isTwoStageSecondStage?: boolean;

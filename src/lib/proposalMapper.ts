@@ -61,6 +61,8 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
   title:                        { snakeCase: 'title',                           fromDb: identity,       toDb: identity },
   type:                         { snakeCase: 'type',                            fromDb: castType,       toDb: identity },
   budgetType:                   { snakeCase: 'budget_type',                     fromDb: castBudgetType, toDb: identity },
+  traditionalBudgetLocked:     { snakeCase: 'traditional_budget_locked',       fromDb: orFalse,        toDb: null },
+  lumpSumBudgetLocked:         { snakeCase: 'lump_sum_budget_locked',           fromDb: orFalse,        toDb: null },
   status:                       { snakeCase: 'status',                          fromDb: castStatus,     toDb: identity },
   createdAt:                    { snakeCase: 'created_at',                      fromDb: toDate,         toDb: null },
   updatedAt:                    { snakeCase: 'updated_at',                      fromDb: toDate,         toDb: null },

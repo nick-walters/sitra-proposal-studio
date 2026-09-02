@@ -5495,6 +5495,7 @@ export type Database = {
           ls_default_funding_rate: number
           ls_indirect_cost_rate: number
           lump_sum_budget_active: boolean
+          lump_sum_budget_locked: boolean
           mirror_contribution_resources: boolean
           mirror_industrial_involvement: boolean
           mirror_infrastructure: boolean
@@ -5524,6 +5525,7 @@ export type Database = {
           topic_url: string | null
           total_budget: number | null
           total_budget_text: string | null
+          traditional_budget_locked: boolean
           type: Database["public"]["Enums"]["proposal_type"]
           updated_at: string
           use_wp_themes: boolean
@@ -5574,6 +5576,7 @@ export type Database = {
           ls_default_funding_rate?: number
           ls_indirect_cost_rate?: number
           lump_sum_budget_active?: boolean
+          lump_sum_budget_locked?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
           mirror_infrastructure?: boolean
@@ -5603,6 +5606,7 @@ export type Database = {
           topic_url?: string | null
           total_budget?: number | null
           total_budget_text?: string | null
+          traditional_budget_locked?: boolean
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
           use_wp_themes?: boolean
@@ -5653,6 +5657,7 @@ export type Database = {
           ls_default_funding_rate?: number
           ls_indirect_cost_rate?: number
           lump_sum_budget_active?: boolean
+          lump_sum_budget_locked?: boolean
           mirror_contribution_resources?: boolean
           mirror_industrial_involvement?: boolean
           mirror_infrastructure?: boolean
@@ -5682,6 +5687,7 @@ export type Database = {
           topic_url?: string | null
           total_budget?: number | null
           total_budget_text?: string | null
+          traditional_budget_locked?: boolean
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
           use_wp_themes?: boolean

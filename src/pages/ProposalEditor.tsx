@@ -763,13 +763,15 @@ export function ProposalEditor() {
         <div className="flex-1 overflow-y-auto">
           <BudgetPortalSheet
             proposalId={id || ''}
-            proposalType={proposal?.type || null}
-            budgetType={proposal?.budgetType}
-            canEdit={canEdit}
-            isCoordinator={isCoordinator}
-            usesFstp={proposal?.usesFstp}
-            fstpType={(proposal as any)?.fstpType || 'grant'}
-            proposalAcronym={proposal?.acronym || ''}
+             proposalType={proposal?.type || null}
+             budgetType={proposal?.budgetType}
+             traditionalBudgetLocked={proposal?.traditionalBudgetLocked}
+             lumpSumBudgetLocked={proposal?.lumpSumBudgetLocked}
+             canEdit={canEdit}
+             isCoordinator={isCoordinator}
+             usesFstp={proposal?.usesFstp}
+             fstpType={(proposal as any)?.fstpType || 'grant'}
+             proposalAcronym={proposal?.acronym || ''}
             onNavigateToParticipantBudget={(participantId) => {
               handleSectionClick({ id: `a3-${participantId}`, title: 'Budget', isPartA: true } as any);
             }}
