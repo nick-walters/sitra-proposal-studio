@@ -153,25 +153,25 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
                </div>
                {/*
                  The A total reuses the B–D total row geometry: the label sits on
-                 one line immediately left of the Cost column and the value's
-                 right edge lines up with the fields above it.
+                 one line immediately left of the Cost column, the value's right
+                 edge lines up with the subtotal figures, and the rounding note
+                 sits directly beneath the figure in that same column.
                */}
                 <table className="w-full table-fixed border-collapse text-sm">
                   <colgroup>
-                    <col style={{ width: COL_WIDTH.grip }} />
+                    <col style={{ width: 30 }} />
                     <col />
-                    <col style={{ width: COL_WIDTH.cost }} />
-                    <col style={{ width: COL_WIDTH.diff }} />
-                    <col style={{ width: COL_WIDTH.del }} />
+                    <col style={{ width: 120 }} />
+                    <col style={{ width: 34 }} />
                   </colgroup>
                   <tbody><tr>
                     <td />
-                    <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>A. Total personnel costs</div></td>
-                    <td className="px-1"><div className={`${NUM_READ_FIELD} justify-end whitespace-nowrap font-semibold`}>{formatCurrency(overallTotals.portalCost)}</div></td>
-                    <td className="px-1"><div className={`${READ_FIELD} whitespace-nowrap font-normal`}><DifferenceNote difference={overallTotals.difference} /></div></td>
+                    <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>Total</div></td>
+                    <td className="px-1"><div className={`${NUM_READ_FIELD} h-auto flex-col items-end justify-end whitespace-nowrap font-semibold`}><span>{formatCurrency(overallTotals.portalCost)}</span><DifferenceNote difference={overallTotals.difference} /></div></td>
                     <td />
                   </tr></tbody>
                 </table>
+
              </div>
            </>}
          </section>
