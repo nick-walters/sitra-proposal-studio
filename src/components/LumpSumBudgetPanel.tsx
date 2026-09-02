@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -10,7 +10,7 @@ import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
-import { LumpSumCostsSection } from '@/components/LumpSumCostsSection';
+import { LumpSumCostsSection, TotalRow } from '@/components/LumpSumCostsSection';
 import { LumpSumTotalsSection } from '@/components/LumpSumTotalsSection';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
@@ -209,20 +209,7 @@ export function LumpSumBudgetPanel({ proposalId, readOnly = false }: { proposalI
                  edge lines up with the subtotal figures, and the rounding note
                  sits directly beneath the figure in that same column.
                */}
-                <table className="w-full table-fixed border-collapse text-sm">
-                  <colgroup>
-                    <col style={{ width: 30 }} />
-                    <col />
-                    <col style={{ width: 120 }} />
-                    <col style={{ width: 34 }} />
-                  </colgroup>
-                  <tbody><tr>
-                    <td />
-                    <td className="px-1 text-right"><div className={`${READ_FIELD} justify-end whitespace-nowrap font-semibold`}>Total</div></td>
-                    <td className="px-1"><div className={`${NUM_READ_FIELD} h-auto flex-col items-end justify-end whitespace-nowrap font-semibold`}><span>{formatCurrency(overallTotals.portalCost)}</span><DifferenceNote difference={overallTotals.difference} /></div></td>
-                    <td />
-                  </tr></tbody>
-                </table>
+                 <TotalRow label="A total" value={overallTotals.portalCost} difference={overallTotals.difference} />
 
              </div>
            </>}
