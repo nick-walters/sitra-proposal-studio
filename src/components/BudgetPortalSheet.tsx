@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import type * as XLSXNS from 'xlsx-js-style';
 // XLSX runtime is loaded lazily inside handleExportXlsx() to keep it out of the initial bundle.
-import { Lock, Unlock, Loader2, Download, AlertCircle, ChevronsDownUp } from 'lucide-react';
+import { Lock, Unlock, Loader2, Download, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Sheet,
@@ -114,6 +114,18 @@ export function BudgetPortalSheet({
   const isAdmin = roleTier === 'coordinator';
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
+
+  // Register the lump-sum panel with the shared page-wide editor bar. The
+  // event is intentionally scoped to this A3 surface; other pages retain
+  // their existing collapse behaviour.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', {
+      detail: activeTab === 'lump-sum'
+        ? { allCollapsed, disabled: false, onToggle: () => setAll(!allCollapsed) }
+        : null,
+    }));
+    return () => window.dispatchEvent(new CustomEvent('lump-sum-collapse-control', { detail: null }));
+  }, [activeTab, allCollapsed, setAll]);
   // Cheap existence checks (limit 1) so a budget type holding real data stays
   // visible even when its lock flag is false.
   const { data: budgetDataPresence } = useQuery({
@@ -782,12 +794,6 @@ export function BudgetPortalSheet({
                   <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
                     <AlertCircle className="w-4 h-4" />
                     Validate
-                  </Button>
-                )}
-                {activeTab === 'lump-sum' && (
-                  <Button variant="outline" className="gap-2" disabled={lumpSumReadOnly} onClick={() => setAll(!allCollapsed)} aria-label={allCollapsed ? 'Expand all lump-sum sections' : 'Collapse all lump-sum sections'}>
-                    <ChevronsDownUp className="w-4 h-4" />
-                    {allCollapsed ? 'Expand all' : 'Collapse all'}
                   </Button>
                 )}
                 {activeTab === 'lump-sum' && isCoordinator && (

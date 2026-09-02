@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode, type Ref, type MouseEvent } from 'react';
+import { forwardRef, useEffect, useState, type ReactNode, type Ref, type MouseEvent } from 'react';
 import {
   Info,
   Cloud,
@@ -154,6 +154,14 @@ export function SaveStateButton({
 /* TOP TIER — page-wide controls, always visible                       */
 /* ------------------------------------------------------------------ */
 
+type LumpSumCollapseControl = {
+  allCollapsed: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+};
+
+const LUMP_SUM_COLLAPSE_EVENT = 'lump-sum-collapse-control';
+
 export interface EditorTopBarProps extends SaveStateButtonProps {
   /** Preview button — omitted entirely when no handler is supplied. */
   onPreview?: () => void;
@@ -234,6 +242,19 @@ export function EditorTopBar({
   onOpenShortcuts,
   trailing,
 }: EditorTopBarProps) {
+  // A3's lump-sum panel has no Part A card registrations, so it supplies its
+  // own control only while the lump-sum tab is active. Other surfaces are
+  // unchanged and continue to use the normal `collapseAll` prop.
+  const [lumpSumCollapse, setLumpSumCollapse] = useState<LumpSumCollapseControl | null>(null);
+  useEffect(() => {
+    const handleLumpSumCollapse = (event: Event) => {
+      setLumpSumCollapse((event as CustomEvent<LumpSumCollapseControl | null>).detail);
+    };
+    window.addEventListener(LUMP_SUM_COLLAPSE_EVENT, handleLumpSumCollapse);
+    return () => window.removeEventListener(LUMP_SUM_COLLAPSE_EVENT, handleLumpSumCollapse);
+  }, []);
+  const activeCollapseAll = lumpSumCollapse ?? collapseAll;
+
   return (
     <div className="flex w-full items-center gap-1.5 px-2 py-1">
       <SaveStateButton
@@ -274,18 +295,18 @@ export function EditorTopBar({
           only and appear solely when their handler is supplied. */}
       <FeatureButton
         icon={
-          collapseAll?.allCollapsed ? (
+          activeCollapseAll?.allCollapsed ? (
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
           ) : (
             <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.5} />
           )
         }
-        primary={collapseAll?.allCollapsed ? 'Expand' : 'Collapse'}
+        primary={activeCollapseAll?.allCollapsed ? 'Expand' : 'Collapse'}
         secondary="all blocks"
         secondarySmall
-        disabled={!collapseAll || collapseAll.disabled}
-        tooltip={collapseAll?.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
-        onClick={collapseAll?.onToggle}
+        disabled={!activeCollapseAll || activeCollapseAll.disabled}
+        tooltip={activeCollapseAll?.allCollapsed ? 'Expand all blocks' : 'Collapse all blocks'}
+        onClick={activeCollapseAll?.onToggle}
       />
 
 
