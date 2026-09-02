@@ -32,7 +32,7 @@ function formatPM(value: number) {
   return value.toFixed(1);
 }
 
-export function LumpSumOverview({ proposalId, userId }: { proposalId: string; userId?: string }) {
+export function LumpSumOverview({ proposalId }: { proposalId: string; userId?: string }) {
   const personnel = useLumpSumPersonnel(proposalId);
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
