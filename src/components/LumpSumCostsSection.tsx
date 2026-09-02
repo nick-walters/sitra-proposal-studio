@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -12,6 +12,7 @@ import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import LumpSumDepreciationSection, { DEPRECIATION_SECTION_ID } from '@/components/LumpSumDepreciationSection';
+import { lineId, majorId, parentId, useLumpSumCollapse } from '@/lib/lumpSumCollapse';
 
 /** C.2 Equipment is the only line that mirrors the depreciation register. */
 const MIRROR_LINE_KEY = 'C.2.equipment';
@@ -89,6 +90,11 @@ const FIELD = 'h-7 w-full rounded-md border bg-background px-1.5 text-xs md:text
  */
 const READ_FIELD = 'inline-flex h-7 w-full items-center rounded-md border border-transparent px-1.5 text-xs md:text-sm';
 const NUM_READ_FIELD = `${READ_FIELD} justify-end text-right tabular-nums`;
+const MAJOR_HEADING_ROW = 'flex h-8 items-center gap-1';
+const MAJOR_HEADING_TEXT = 'min-w-0 flex-1 text-base font-semibold';
+const LINE_HEADING_ROW = 'flex h-7 items-center gap-1';
+const LINE_HEADING_TEXT = 'min-w-0 flex-1 text-xs font-semibold';
+const SUBTOTAL_LABEL = 'shrink-0 whitespace-nowrap text-muted-foreground';
 const COL_WIDTH = { grip: 30, wp: 100, quantity: 88, unitCost: 112, amount: 120, delete: 34 };
 
 
@@ -223,28 +229,13 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems } = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
-  const [collapse, setCollapse] = useState<Record<string, boolean>>({ ...Object.fromEntries([...LINES.B, ...LINES.C, ...LINES.D].map(line => [line.key, line.key.startsWith('C.') ? false : true])) });
-  const [majorCollapse, setMajorCollapse] = useState<Record<string, boolean>>({ B: true, C: false, D: true });
-  const [parentCollapse, setParentCollapse] = useState<Record<string, boolean>>({ 'C.2': false, 'C.3': true });
-  const storageKey = `ls-costs-collapse:${userId ?? 'anon'}:${proposalId}`;
-  const majorStorageKey = `ls-major-collapse:${userId ?? 'anon'}:${proposalId}`;
-  useEffect(() => {
-    try { const stored = localStorage.getItem(storageKey); if (stored) setCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
-  }, [storageKey]);
-  useEffect(() => {
-    try { const stored = localStorage.getItem(majorStorageKey); if (stored) setMajorCollapse(current => ({ ...current, ...(JSON.parse(stored) as Record<string, boolean>) })); } catch { /* view preference only */ }
-  }, [majorStorageKey]);
-  const toggle = (key: string) => setCollapse(current => {
-    const next = { ...current, [key]: !current[key] };
-    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
-  const toggleMajor = (key: string) => setMajorCollapse(current => {
-    const next = { ...current, [key]: !(current[key] ?? true) };
-    try { localStorage.setItem(majorStorageKey, JSON.stringify(next)); } catch { /* view preference only */ }
-    return next;
-  });
-  const toggleParent = (key: 'C.2' | 'C.3') => setParentCollapse(current => ({ ...current, [key]: !current[key] }));
+  const { isCollapsed, toggle } = useLumpSumCollapse(userId, proposalId);
+  const isMajorCollapsed = (key: string) => isCollapsed(majorId(key));
+  const isLineCollapsed = (key: string) => isCollapsed(lineId(key));
+  const isParentCollapsed = (key: string) => isCollapsed(parentId(key));
+  const toggleMajor = (key: string) => toggle(majorId(key));
+  const toggleLine = (key: string) => toggle(lineId(key));
+  const toggleParent = (key: 'C.2' | 'C.3') => toggle(parentId(key));
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
   const workPackages = data?.workPackages ?? [];
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -262,7 +253,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
 
   const renderItemisedLine = (line: typeof LINES.B[number] | typeof LINES.C[number], nested = false) => {
     const lineItems = items.filter(item => item.cost_line === line.key).sort((a, b) => a.order_index - b.order_index);
-    const collapsed = Boolean(collapse[line.key]);
+    const collapsed = isLineCollapsed(line.key);
     const handleDragEnd = (event: DragEndEvent) => {
       if (!event.over || event.active.id === event.over.id) return;
       const from = lineItems.findIndex(item => item.id === event.active.id);
@@ -296,7 +287,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   };
 
   const renderDLine = (line: typeof LINES.D[number]) => {
-    const collapsed = Boolean(collapse[line.key]);
+    const collapsed = isLineCollapsed(line.key);
     const lineItems = items.filter(item => item.cost_line === line.key).sort((a, b) => a.order_index - b.order_index);
     const usedWpIds = new Set(lineItems.map(item => item.wp_draft_id));
     const freeWorkPackages = workPackages.filter(wp => !usedWpIds.has(wp.id));
