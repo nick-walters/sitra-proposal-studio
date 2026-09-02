@@ -24,6 +24,39 @@ interface BudgetParticipantFormProps {
   isCoordinator: boolean;
 }
 
+function BudgetNumberField({
+  value,
+  onChange,
+  disabled = false,
+  className,
+  placeholder,
+  decimals = 0,
+  allowZero = false,
+}: {
+  value: number | '';
+  onChange: (value: number) => void;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+  decimals?: number;
+  allowZero?: boolean;
+}) {
+  if (disabled) {
+    const isEmpty = (allowZero || decimals > 0) ? value === '' : value === '' || value === 0;
+    return <div className={`flex items-center ${className ?? ''}`}>{isEmpty ? '' : formatNumber(value as number, decimals)}</div>;
+  }
+  return (
+    <BudgetNumberField
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      decimals={decimals}
+      allowZero={allowZero}
+      className={className}
+    />
+  );
+}
+
 function CopyButton({ value }: { value: string | number }) {
   const [copied, setCopied] = useState(false);
 
@@ -242,7 +275,7 @@ export function BudgetParticipantForm({
           <div className="flex items-center gap-2 py-1 border-t text-sm">
             <span className="font-medium w-[220px] shrink-0">Requested personnel costs</span>
             <div className="flex-1" />
-            <FormattedNumberInput
+            <BudgetNumberField
               value={row.requestedPersonnelCosts ?? row.personnelCosts}
               onChange={(v) => updateRow(row.id, 'requestedPersonnelCosts', v)}
               disabled={!editable}
@@ -272,7 +305,7 @@ export function BudgetParticipantForm({
           </div>
           {showReq && (
             <>
-              <FormattedNumberInput
+              <BudgetNumberField
                 value={row.requestedSubcontracting ?? row.subcontractingCosts}
                 onChange={(v) => updateRow(row.id, 'requestedSubcontracting', v)}
                 disabled={!editable}
@@ -320,7 +353,7 @@ export function BudgetParticipantForm({
             </div>
             {showReq && (
               <>
-                <FormattedNumberInput
+                <BudgetNumberField
                   value={row.requestedTravel ?? row.purchaseTravel}
                   onChange={(v) => updateRow(row.id, 'requestedTravel', v)}
                   disabled={!editable}
@@ -358,7 +391,7 @@ export function BudgetParticipantForm({
             </div>
             {showReq && (
               <>
-                <FormattedNumberInput
+                <BudgetNumberField
                   value={row.requestedEquipment ?? row.purchaseEquipment}
                   onChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
                   disabled={!editable}
@@ -402,7 +435,7 @@ export function BudgetParticipantForm({
             </div>
             {showReq && (
               <>
-                <FormattedNumberInput
+                <BudgetNumberField
                   value={row.requestedOtherGoods ?? row.purchaseOtherGoods}
                   onChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
                   disabled={!editable}
@@ -446,7 +479,7 @@ export function BudgetParticipantForm({
           </div>
           {showReq && (
             <>
-              <FormattedNumberInput
+              <BudgetNumberField
                 value={row.requestedFstp ?? row.financialSupportThirdParties}
                 onChange={(v) => updateRow(row.id, 'requestedFstp', v)}
                 disabled={!editable}
@@ -481,7 +514,7 @@ export function BudgetParticipantForm({
           </div>
           {showReq && (
             <>
-              <FormattedNumberInput
+              <BudgetNumberField
                 value={row.requestedInternallyInvoiced ?? row.internallyInvoiced}
                 onChange={(v) => updateRow(row.id, 'requestedInternallyInvoiced', v)}
                 disabled={!editable}
@@ -568,7 +601,7 @@ export function BudgetParticipantForm({
                   <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
                 </label>
                 <div className="flex items-center gap-1 flex-1 justify-end">
-                  <FormattedNumberInput
+                  <BudgetNumberField
                     value={row.fundingRateOverride ?? row.fundingRate}
                     onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
                     disabled={!editable}
@@ -616,7 +649,7 @@ export function BudgetParticipantForm({
                   Funding rate
                   <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
                 </label>
-                <FormattedNumberInput
+                <BudgetNumberField
                   value={row.fundingRateOverride ?? row.fundingRate}
                   onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
                   disabled={!editable}
@@ -636,7 +669,7 @@ export function BudgetParticipantForm({
                 <label className="text-sm text-muted-foreground w-[220px] shrink-0">
                   Requested funding rate
                 </label>
-                <FormattedNumberInput
+                <BudgetNumberField
                   value={requestedPct}
                   onChange={(v) => {
                     const absValue = Math.round(row.totalEligibleCosts * (v / 100));
@@ -655,7 +688,7 @@ export function BudgetParticipantForm({
                 <label className="text-sm text-muted-foreground w-[220px] shrink-0">
                   Requested EU contribution
                 </label>
-                  <FormattedNumberInput
+                  <BudgetNumberField
                    value={row.requestedEuContributionOverride ?? row.maxEuContribution}
                    onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
                    disabled={!editable}
@@ -698,7 +731,7 @@ export function BudgetParticipantForm({
         ].map(f => (
           <div key={f.key} className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground w-[220px] shrink-0">{f.label}</label>
-            <FormattedNumberInput
+            <BudgetNumberField
               value={row[f.key] as number}
               onChange={(v) => updateRow(row.id, f.key, v)}
               disabled={!editable}

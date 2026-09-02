@@ -11,6 +11,32 @@ import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import type { PersonnelBreakdownItem } from '@/hooks/useBudgetRows';
 
+function BudgetNumberField({
+  value,
+  onChange,
+  disabled = false,
+  className,
+  decimals = 0,
+}: {
+  value: number | '';
+  onChange: (value: number) => void;
+  disabled?: boolean;
+  className?: string;
+  decimals?: number;
+}) {
+  if (disabled) {
+    return <div className={`flex items-center justify-end ${className ?? ''}`}>{value === '' ? '' : formatNumber(value as number, decimals)}</div>;
+  }
+  return (
+    <BudgetNumberField
+      value={value}
+      onChange={onChange}
+      decimals={decimals}
+      className={className}
+    />
+  );
+}
+
 function CopyCellButton({ value }: { value: number }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(() => {
@@ -40,17 +66,18 @@ function SortableRow({ id, editable, children }: { id: string; editable: boolean
   return (
     <tr ref={setNodeRef} style={style} className="border-t">
       <td className="px-1 py-1 text-center align-middle">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          disabled={!editable}
-          className="p-1 rounded text-[#2563EB] cursor-grab active:cursor-grabbing disabled:opacity-30 disabled:cursor-not-allowed touch-none"
-          aria-label="Drag to reorder"
-          title="Drag to reorder"
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-        </button>
+        {editable && (
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="p-1 rounded text-[#2563EB] cursor-grab active:cursor-grabbing touch-none"
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
       </td>
       {children}
     </tr>
@@ -137,16 +164,17 @@ export function BudgetPersonnelBreakdown({
         <p className="text-xs text-muted-foreground italic flex-1">
           Add one row per staff member or category. The total row below calculates the average weighted PM rate from each category's rate and share of total PMs — this is the rate used in all downstream calculations. Total PMs across rows should match the staff effort table ({formatPM(totalPersonMonths)}).
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onAdd}
-          disabled={!editable}
-          className="shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1" /> Add row
-        </Button>
+        {editable && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onAdd}
+            className="shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add row
+          </Button>
+        )}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -170,13 +198,13 @@ export function BudgetPersonnelBreakdown({
                   <Input
                     value={item.category}
                     onChange={(e) => onUpdate(item.id, 'category', e.target.value)}
-                    disabled={!editable}
+                    readOnly={!editable}
                     placeholder="e.g. Senior researcher (J. Smith)"
                     className="h-7 text-sm"
                   />
                 </td>
                 <td className="px-2 py-1">
-                  <FormattedNumberInput
+                  <BudgetNumberField
                     value={item.pmRate}
                     onChange={(v) => onUpdate(item.id, 'pmRate', v)}
                     disabled={!editable}
@@ -185,7 +213,7 @@ export function BudgetPersonnelBreakdown({
                   />
                 </td>
                 <td className="px-2 py-1">
-                  <FormattedNumberInput
+                  <BudgetNumberField
                     value={item.pmCount}
                     onChange={(v) => onUpdate(item.id, 'pmCount', v)}
                     disabled={!editable}
@@ -197,15 +225,17 @@ export function BudgetPersonnelBreakdown({
                   {formatCurrency((item.pmCount || 0) * (item.pmRate || 0))}
                 </td>
                 <td className="px-2 py-1 text-center">
-                  <button
-                    type="button"
-                    onClick={() => onDelete(item.id)}
-                    disabled={!editable || rows.length <= 1}
-                    className="p-1 rounded hover:bg-destructive/10 disabled:opacity-40"
-                    title={rows.length <= 1 ? 'At least one row is required' : 'Delete row'}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </button>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(item.id)}
+                      disabled={rows.length <= 1}
+                      className="p-1 rounded hover:bg-destructive/10 disabled:opacity-40"
+                      title={rows.length <= 1 ? 'At least one row is required' : 'Delete row'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </button>
+                  )}
                 </td>
               </SortableRow>
             ))}
