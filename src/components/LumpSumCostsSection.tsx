@@ -10,6 +10,37 @@ import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
+import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
+import { DEPRECIATION_SECTION_ID } from '@/components/LumpSumDepreciationSection';
+
+/** C.2 Equipment is the only line that mirrors the depreciation register. */
+const MIRROR_LINE_KEY = 'C.2.equipment';
+
+function mirroredJustification(item: DepreciationItem) {
+  const comments = (item.comments ?? '').trim();
+  return comments ? `${item.short_name} — ${comments}` : item.short_name;
+}
+
+/** A read-only C.2 row computed from a depreciation item. Never stored. */
+function MirroredCostRow({ item, workPackages }: { item: DepreciationItem; workPackages: LumpSumCostWorkPackage[] }) {
+  const wp = workPackages.find(candidate => candidate.id === item.wp_draft_id);
+  const charged = Number(item.charged_depreciation ?? 0);
+  const jump = () => document.getElementById(DEPRECIATION_SECTION_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return <tr className="border-t border-border/70 bg-muted/40 align-middle">
+    <td className="px-1" />
+    <td className="px-1"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(1, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent`}>{formatNumber(charged, 2)}</div></td>
+    <td className="px-1 text-right tabular-nums"><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(charged)}</div></td>
+    <td className="px-1">
+      <div className={`${FIELD} flex items-center justify-between gap-2 border-transparent`}>
+        <span className="truncate" title={mirroredJustification(item)}>{mirroredJustification(item)}</span>
+        <Button type="button" variant="link" size="sm" className="h-5 shrink-0 px-0 text-[10px]" onClick={jump}>from depreciation register</Button>
+      </div>
+    </td>
+    <td className="px-1" />
+  </tr>;
+}
 
 type CostLine = { key: string; label: string; strict: boolean };
 
