@@ -244,6 +244,7 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     try { localStorage.setItem(majorStorageKey, JSON.stringify(next)); } catch { /* view preference only */ }
     return next;
   });
+  const toggleParent = (key: 'C.2' | 'C.3') => setParentCollapse(current => ({ ...current, [key]: !current[key] }));
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
   const workPackages = data?.workPackages ?? [];
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
