@@ -224,7 +224,9 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.summaryMoney }} />
-              <col style={{ width: LS_COL.summaryMoney }} />
+              {/* F is the shared alignment anchor; this spacer absorbs the table's remaining width. */}
+              <col />
+              <col style={{ width: LS_COL.figure }} />
               <col style={{ width: LS_COL.summaryMoney }} />
               <col style={{ width: LS_COL.request }} />
               <col style={{ width: LS_COL.percent }} />
@@ -237,6 +239,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
               <th className="px-1 py-1.5 text-right">C</th>
               <th className="px-1 py-1.5 text-right">D</th>
               <th className="px-1 py-1.5 text-right">E</th>
+              <th aria-hidden="true" />
               <th className="px-1 py-1.5 text-right">F. Total costs</th>
               <th className="px-1 py-1.5 text-right">G. Max EU contribution</th>
               <th className="px-1 py-1.5 text-right">H. Requested EU contribution</th>
@@ -250,6 +253,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.indirect)}</div></td>
+                <td aria-hidden="true" />
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(row.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={READ_CELL}>{formatCurrency(row.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5">
@@ -262,12 +266,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                     onCommit={value => totals.setRequestedContribution(participantId, row.wp.id, value)}
                   />
                 </td>
-                {/*
-                  The percentage is never stored: it is derived from H over G, and
-                  editing it writes H back. Above 100 the request would exceed the
-                  maximum, so the displayed share is clamped and the same red
-                  warning as an over-maximum H appears.
-                */}
+                {/* The percentage is derived from H over G; editing it writes H back. */}
                 <td className="px-1 py-0.5">
                   <DebouncedNumberField
                     key={`pct-${row.wp.id}-${row.requestedEuContribution}`}
@@ -292,6 +291,7 @@ export function LumpSumTotalsSection({ proposalId, participantId, userId, editab
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.purchase)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.other)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.indirect)}</div></td>
+                <td aria-hidden="true" />
                 <td data-ls-measure="F-total" className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.totalCosts)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.maxEuContribution)}</div></td>
                 <td className="px-1 py-0.5"><div className={`${READ_CELL} font-semibold`}>{formatCurrency(grand.requestedEuContribution)}</div></td>
