@@ -10,7 +10,7 @@ import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSumPersonnelTable';
-import { LS_COL, LS_FIGURE_CELL, LS_LABEL_CELL } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
 import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import LumpSumDepreciationSection, {
