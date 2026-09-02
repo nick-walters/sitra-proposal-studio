@@ -269,8 +269,8 @@ export async function appendLumpSumSheets(wb: Workbook, XLSX: Xlsx, proposalId: 
   ])];
   const depreciationSheet = XLSX.utils.aoa_to_sheet(depreciationRows);
   styleHeaders(depreciationSheet, 1, depreciationHeaders.length);
-  styleNumberColumns(depreciationSheet, [5, 8], 2, depreciationRows.length, '#,##0.00');
-  styleNumberColumns(depreciationSheet, [6, 7], 2, depreciationRows.length, '0.00');
+  styleNumberColumns(depreciationSheet, [5, 6, 9], 2, depreciationRows.length, '#,##0.00');
+  styleNumberColumns(depreciationSheet, [7, 8], 2, depreciationRows.length, '0.00');
   autoFit(depreciationSheet, depreciationRows);
   XLSX.utils.book_append_sheet(wb, depreciationSheet, 'Lump sum depreciation');
 
