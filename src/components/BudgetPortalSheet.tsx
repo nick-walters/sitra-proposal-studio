@@ -134,18 +134,18 @@ export function BudgetPortalSheet({
   const activeTabCanEdit = canEdit && !traditionalReadOnly;
 
   useEffect(() => {
+    if (!user?.id) return;
     const savedTab = window.localStorage.getItem(storageKey);
     const nextTab = savedTab && availableTabs.includes(savedTab as typeof availableTabs[number])
       ? savedTab
       : availableTabs[0];
     if (nextTab) setActiveTab(nextTab);
-  }, [storageKey, availableTabs]);
+  }, [user?.id, storageKey, availableTabs]);
 
   useEffect(() => {
-    if (availableTabs.includes(activeTab as typeof availableTabs[number])) {
-      window.localStorage.setItem(storageKey, activeTab);
-    }
-  }, [activeTab, availableTabs, storageKey]);
+    if (!user?.id || !availableTabs.includes(activeTab as typeof availableTabs[number])) return;
+    window.localStorage.setItem(storageKey, activeTab);
+  }, [activeTab, availableTabs, storageKey, user?.id]);
 
   const editingRow = useMemo(
     () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
