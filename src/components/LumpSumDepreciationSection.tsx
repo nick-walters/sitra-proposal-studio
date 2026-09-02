@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WPBubble } from '@/components/B31Pill';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
-import { LS_COL, LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
+import { LS_COL, LS_DEPRECIATION_MIN_WIDTH, LS_FIGURE_CELL, LS_TABLE } from '@/lib/lumpSumLayout';
 import {
   DEPRECIATION_COMMENT_LIMIT,
   useLumpSumDepreciation,
@@ -301,7 +301,7 @@ function SortableDepreciationRow({ item, workPackages, editable, onField, onDele
     <td className="px-1 text-center"><Checkbox checked={item.include_in_c2} disabled={!editable} aria-label="Include in C.2" onCheckedChange={checked => onField('include_in_c2', checked === true)} /></td>
     <td className="px-1"><LocalTextInput value={item.comments ?? ''} disabled={!editable} maxLength={DEPRECIATION_COMMENT_LIMIT} onCommit={value => onField('comments', value)} /></td>
     <td />
-    <td data-ls-measure="depreciation-item-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.charged_depreciation ?? 0))}</div></td>
+    <td data-ls-measure="depreciation-item-charged" className={`${LS_FIGURE_CELL} sticky z-10 bg-background`} style={{ right: LS_COL.gutter }}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-semibold`}>{formatCurrency(Number(item.charged_depreciation ?? 0))}</div></td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete investment" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
 }
@@ -346,7 +346,15 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
       <div className="overflow-x-auto pb-2 w-full">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-            <table className={`${LS_TABLE} text-sm`} style={{ minWidth: Math.min(LS_DEPRECIATION_MIN_WIDTH, LS_MAX_TABLE_WIDTH), width: '100%' }}>
+            {/*
+              The register's fixed block is wider than the other tables' because
+              the short-name and comments fields need room. It still fits the
+              panel container, so the figure column keeps the shared right edge;
+              the wrapper above scrolls only if the viewport is narrower than the
+              fixed block, and the figure column never shrinks.
+            */}
+            <table className={`${LS_TABLE} text-sm`} style={{ minWidth: LS_DEPRECIATION_MIN_WIDTH, width: '100%' }}>
+
               <colgroup>
                 <col style={{ width: LS_COL.grip }} />
                 <col style={{ width: LS_COL.wp }} />
@@ -374,7 +382,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 <th className="px-1 text-center">Include in C.2</th>
                 <th className="px-1 text-left">Comments</th>
                 <th />
-                <th className="px-1 text-right">Charged (€)</th>
+                <th className="sticky z-10 bg-background px-1 text-right" style={{ right: LS_COL.gutter }}>Charged (€)</th>
                 <th />
               </tr></thead>
               <tbody>
@@ -389,7 +397,7 @@ export function LumpSumDepreciationSection({ proposalId, participantId, userId, 
                 {items.length === 0 && <tr><td colSpan={13} className="px-1 py-2 text-xs text-muted-foreground">No investments recorded.</td></tr>}
                 <tr className="border-t border-border">
                   <td className="px-1 text-right text-xs font-bold" colSpan={11}>Total charged depreciation</td>
-                  <td data-ls-measure="depreciation-total-charged" className={LS_FIGURE_CELL}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-bold`}>{formatCurrency(total)}</div></td>
+                  <td data-ls-measure="depreciation-total-charged" className={`${LS_FIGURE_CELL} sticky z-10 bg-background`} style={{ right: LS_COL.gutter }}><div className={`${FIELD} inline-flex items-center justify-end border-transparent font-bold`}>{formatCurrency(total)}</div></td>
                   <td />
                 </tr>
               </tbody>

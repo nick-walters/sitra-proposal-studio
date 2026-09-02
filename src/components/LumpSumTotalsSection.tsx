@@ -101,7 +101,7 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
     <div className="relative">
       {prefix && <>
         <span ref={mirror} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-pre text-xs tabular-nums md:text-sm">{measured}</span>
-        <span aria-hidden className="pointer-events-none absolute inset-y-0 flex items-center text-xs text-muted-foreground md:text-sm" style={{ right: 6 + textWidth }}>{prefix}</span>
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 flex items-center text-xs text-muted-foreground md:text-sm" style={{ right: 7 + textWidth }}>{prefix}</span>
       </>}
       <Input
       className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
