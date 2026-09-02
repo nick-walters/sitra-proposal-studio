@@ -168,18 +168,9 @@ function SortableDepreciationRow({ item, workPackages, editable, onField, onDele
 
 export function LumpSumDepreciationSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
   const { data, isLoading, error, addItem, updateItem, deleteItem, reorderItems } = useLumpSumDepreciation(proposalId);
-  const storageKey = `${lumpSumCollapseKey(userId, proposalId)}:depreciation`;
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem(storageKey) === 'true'; } catch { return false; }
-  });
-  useEffect(() => {
-    try { setCollapsed(localStorage.getItem(storageKey) === 'true'); } catch { /* preference only */ }
-  }, [storageKey]);
-  const toggle = () => setCollapsed(current => {
-    const next = !current;
-    try { localStorage.setItem(storageKey, String(next)); } catch { /* preference only */ }
-    return next;
-  });
+  const { isCollapsed, toggle } = useLumpSumCollapse(userId, proposalId);
+  const collapsed = isCollapsed(DEPRECIATION_COLLAPSE_ID);
+  const toggleCollapse = () => toggle(DEPRECIATION_COLLAPSE_ID);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const items = (data?.items ?? []).filter(item => item.participant_id === participantId).sort((a, b) => a.order_index - b.order_index);
