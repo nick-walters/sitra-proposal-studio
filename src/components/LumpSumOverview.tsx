@@ -37,16 +37,18 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
-  const { isCollapsed, toggle, setAll } = useLsCollapse(userId, proposalId);
+  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
 
   useEffect(() => {
     const key = lsCollapseStorageKey(userId, proposalId);
     try {
-      if (localStorage.getItem(key) == null) setAll(false);
+      if (localStorage.getItem(key) == null) {
+        ['total-costs', 'requested', 'person-months'].forEach(id => toggle(`ls-overview:${id}`));
+      }
     } catch {
       // Collapse preferences are optional and local-only.
     }
-  }, [proposalId, setAll, userId]);
+  }, [proposalId, toggle, userId]);
 
   const workPackages = personnel.data?.workPackages ?? [];
   const participants = personnel.data?.participants ?? [];
