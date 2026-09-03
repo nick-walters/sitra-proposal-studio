@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapsibleHeader, lsCollapseStorageKey, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { formatCurrency } from '@/lib/formatNumber';
@@ -37,7 +37,16 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
-  const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
+  const { isCollapsed, toggle, setAll } = useLsCollapse(userId, proposalId);
+
+  useEffect(() => {
+    const key = lsCollapseStorageKey(userId, proposalId);
+    try {
+      if (localStorage.getItem(key) == null) setAll(false);
+    } catch {
+      // Collapse preferences are optional and local-only.
+    }
+  }, [proposalId, setAll, userId]);
 
   const workPackages = personnel.data?.workPackages ?? [];
   const participants = personnel.data?.participants ?? [];

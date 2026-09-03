@@ -208,15 +208,10 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
   const runValidation = async () => {
     setLoading(true);
     try {
-      const [{ data: budgetRows }, { data: participants }, { data: effortData }, { data: proposal }] = await Promise.all([
-        supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
+      const [{ data: participants }, { data: proposal }] = await Promise.all([
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
-        supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
         supabase.from('proposals').select('type, budget_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
-
-      const results: ValidationRule[] = [];
-      const rows = budgetRows || [];
       const parts = participants || [];
       const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
 
@@ -225,6 +220,13 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         setHasRun(true);
         return;
       }
+
+      const [{ data: budgetRows }, { data: effortData }] = await Promise.all([
+        supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
+        supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
+      ]);
+      const results: ValidationRule[] = [];
+      const rows = budgetRows || [];
 
       const pmTotals = new Map<string, number>();
       (effortData || []).forEach((e: any) => {
