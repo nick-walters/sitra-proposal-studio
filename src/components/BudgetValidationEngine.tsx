@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { formatPercent, formatCurrency } from '@/lib/formatNumber';
 import { computeBudgetRow } from '@/lib/budgetCompute';
+import {
+  buildWpInputs,
+  computeWpTotals,
+  costLineAmount,
+  depreciationAmount,
+  roundCents,
+} from '@/lib/lumpSumFigures';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
