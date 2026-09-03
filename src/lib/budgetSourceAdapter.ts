@@ -323,8 +323,9 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     else equipmentBelowThreshold = true;
   }
 
+  const hasC2SublineSettings = ['C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets'].some(key => mirrorSettings[key] !== undefined);
   const c2MirroredFor = (participantId: string, costLine: string) =>
-    Boolean(mirrorSettings[costLine] || mirrorSettings['C.2']) || equipmentAboveThresholdFor.has(participantId);
+    Boolean(mirrorSettings[costLine] || (!hasC2SublineSettings && mirrorSettings['C.2'])) || equipmentAboveThresholdFor.has(participantId);
 
   /* cost justifications */
   const categories = EMPTY_CATEGORIES();
