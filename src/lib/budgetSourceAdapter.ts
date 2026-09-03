@@ -368,14 +368,9 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     }
   }
 
-  /* ── mirroring: this adapter is the ONLY place that decides ──
-   * C.1 and each C.3 sub-line appear only when their flag is set. C.2 appears
-   * in full when its flag is set, and otherwise only for participants whose
-   * equipment exceeds 15 % of their own personnel cost (the one mandatory case).
-   */
-  categories.travel = mirrors['C.1'] ? categories.travel : [];
-  categories.other_goods = mirrors['C.2'] === undefined && false ? categories.other_goods : otherGoodsMirrored;
-  categories.equipment = mirrors['C.2']
+  /* C.2 is a single equipment switch: checked mirrors every equipment item;
+   * unchecked keeps only participants above the canonical 15% threshold. */
+  categories.equipment = mirrorSettings['C.2']
     ? categories.equipment
     : categories.equipment.filter((entry) => equipmentAboveThresholdFor.has(entry.participantId));
 
