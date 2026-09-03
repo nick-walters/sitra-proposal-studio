@@ -2981,6 +2981,41 @@ export type Database = {
           },
         ]
       }
+      ls_mirror_settings: {
+        Row: {
+          cost_line: string
+          created_at: string
+          id: string
+          is_mirrored: boolean
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          cost_line: string
+          created_at?: string
+          id?: string
+          is_mirrored?: boolean
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          cost_line?: string
+          created_at?: string
+          id?: string
+          is_mirrored?: boolean
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ls_mirror_settings_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ls_participant_budget: {
         Row: {
           a4_unit_cost: number | null
