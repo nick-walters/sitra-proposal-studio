@@ -32,13 +32,11 @@ export type LumpSumCostItem = {
   order_index: number;
 };
 
-/**
- * The C lines that can be mirrored into B3.1 Table 3.1.h. C.2 is a single flag
- * covering all three of its sub-lines, because the 15% rule applies to
- * equipment as a whole.
- */
+/** C lines that can be mirrored into B3.1 Table 3.1.h. Parent states are derived. */
 export const MIRRORABLE_COST_LINES = [
-  'C.1', 'C.2', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
+  'C.1',
+  'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets',
+  'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
 ] as const;
 
 export type LumpSumCostsData = {
@@ -165,15 +163,16 @@ export function useLumpSumCosts(proposalId: string) {
     onError: (error: unknown) => toast.error(`Failed to reorder cost items: ${errorMessage(error)}`),
   });
   /**
-   * Whether a C line is mirrored into B3.1 Table 3.1.h. Proposal-level, so it
-   * also refreshes the B3.1 budget source the adapter feeds.
+   * Proposal-level mirroring switches. A parent checkbox writes all of its
+   * child flags in one mutation; parent state itself is always derived.
    */
-  const setMirror = useMutation({
-    mutationFn: async ({ costLine, isMirrored }: { costLine: string; isMirrored: boolean }) => {
-      const { error } = await supabase
+  const setMirrors = useMutation({
+    mutationFn: async ({ costLines, isMirrored }: { costLines: readonly string[]; isMirrored: boolean }) => {
+      const results = await Promise.all(costLines.map(costLine => supabase
         .from('ls_mirror_settings')
-        .upsert({ proposal_id: proposalId, cost_line: costLine, is_mirrored: isMirrored }, { onConflict: 'proposal_id,cost_line' });
-      if (error) throw error;
+        .upsert({ proposal_id: proposalId, cost_line: costLine, is_mirrored: isMirrored }, { onConflict: 'proposal_id,cost_line' })));
+      const failure = results.find(result => result.error);
+      if (failure?.error) throw failure.error;
     },
     onSuccess: () => {
       invalidate();
@@ -197,8 +196,9 @@ export function useLumpSumCosts(proposalId: string) {
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    setMirror: (costLine: string, isMirrored: boolean) => setMirror.mutate({ costLine, isMirrored }),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirror.isPending,
+    setMirror: (costLine: string, isMirrored: boolean) => setMirrors.mutate({ costLines: [costLine], isMirrored }),
+    setMirrors: (costLines: readonly string[], isMirrored: boolean) => setMirrors.mutate({ costLines, isMirrored }),
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirrors.isPending,
   };
 
 }

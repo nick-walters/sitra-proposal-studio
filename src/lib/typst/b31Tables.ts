@@ -691,7 +691,7 @@ function costCells(
     if (!lines.length) continue;
     const span = lines.length + 1;
     cells.push(
-      `table.cell(rowspan: ${span}, align: left + top, ${participantChip(bucket.participant)})`,
+      `table.cell(rowspan: ${span}, align: left + horizon, ${participantChip(bucket.participant)})`,
     );
     // One row per cost item: the amount, and its own justification beside it.
     lines.forEach((line) => {
