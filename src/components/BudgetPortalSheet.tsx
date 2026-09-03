@@ -1077,9 +1077,7 @@ export function BudgetPortalSheet({
                                         size="sm"
                                         className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap"
                                         onClick={() => {
-                                          if (traditionalReadOnly) {
-                                            setEditingParticipantId(row.participantId);
-                                          } else if (row.isLocked && isAdmin) {
+                                          if (row.isLocked && isAdmin) {
                                             setLockedEditWarning({ participantId: row.participantId });
                                           } else {
                                             setEditingParticipantId(row.participantId);
