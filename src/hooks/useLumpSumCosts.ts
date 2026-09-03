@@ -167,7 +167,7 @@ export function useLumpSumCosts(proposalId: string) {
    * child flags in one mutation; parent state itself is always derived.
    */
   const setMirrors = useMutation({
-    mutationFn: async ({ costLines, isMirrored }: { costLines: string[]; isMirrored: boolean }) => {
+    mutationFn: async ({ costLines, isMirrored }: { costLines: readonly string[]; isMirrored: boolean }) => {
       const results = await Promise.all(costLines.map(costLine => supabase
         .from('ls_mirror_settings')
         .upsert({ proposal_id: proposalId, cost_line: costLine, is_mirrored: isMirrored }, { onConflict: 'proposal_id,cost_line' })));
@@ -197,7 +197,7 @@ export function useLumpSumCosts(proposalId: string) {
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
     setMirror: (costLine: string, isMirrored: boolean) => setMirrors.mutate({ costLines: [costLine], isMirrored }),
-    setMirrors: (costLines: string[], isMirrored: boolean) => setMirrors.mutate({ costLines, isMirrored }),
+    setMirrors: (costLines: readonly string[], isMirrored: boolean) => setMirrors.mutate({ costLines, isMirrored }),
     saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirrors.isPending,
   };
 
