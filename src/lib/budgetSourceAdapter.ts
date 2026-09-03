@@ -285,6 +285,12 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     }
   }
 
+  /* ── proposal-level mirroring switches; absent rows mean false ── */
+  const mirrorSettings = Object.fromEntries(
+    ((mirrorResult.data as { cost_line: string; is_mirrored: boolean }[] | null) || [])
+      .map((row) => [row.cost_line, Boolean(row.is_mirrored)]),
+  );
+
   /* cost justifications */
   const categories = EMPTY_CATEGORIES();
   const buckets = new Map<BudgetCategory, Map<string, B31JustificationItem[]>>();
@@ -298,6 +304,8 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
   for (const item of costItems) {
     const category = categoryForCostLine(item.cost_line);
     if (!category) continue;
+    if (category === 'travel' && !mirrorSettings['C.1']) continue;
+    if (category === 'other_goods' && !mirrorSettings[item.cost_line]) continue;
     const amount = num(item.amount);
     const justification = item.justification || '';
     if (amount === 0 && !justification.trim()) continue;
