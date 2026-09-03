@@ -164,7 +164,23 @@ export function useLumpSumCosts(proposalId: string) {
     onSuccess: invalidate,
     onError: (error: unknown) => toast.error(`Failed to reorder cost items: ${errorMessage(error)}`),
   });
-
+  /**
+   * Whether a C line is mirrored into B3.1 Table 3.1.h. Proposal-level, so it
+   * also refreshes the B3.1 budget source the adapter feeds.
+   */
+  const setMirror = useMutation({
+    mutationFn: async ({ costLine, isMirrored }: { costLine: string; isMirrored: boolean }) => {
+      const { error } = await supabase
+        .from('ls_mirror_settings')
+        .upsert({ proposal_id: proposalId, cost_line: costLine, is_mirrored: isMirrored }, { onConflict: 'proposal_id,cost_line' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['b31-budget-source', proposalId] });
+    },
+    onError: (error: unknown) => toast.error(`Failed to update mirroring: ${errorMessage(error)}`),
+  });
 
   const debounced = (key: string, callback: () => void) => {
     if (timers.current[key]) clearTimeout(timers.current[key]);
@@ -181,6 +197,8 @@ export function useLumpSumCosts(proposalId: string) {
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending,
+    setMirror: (costLine: string, isMirrored: boolean) => setMirror.mutate({ costLine, isMirrored }),
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirror.isPending,
   };
+
 }
