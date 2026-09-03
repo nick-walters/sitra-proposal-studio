@@ -189,6 +189,9 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
     else equipmentBelowThreshold = true;
   }
 
+
+
+
   return {
     budgetType: 'traditional',
     isLumpSum: false,
@@ -358,10 +361,8 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
       depreciation.filter((i) => i.participant_id === participantId),
     );
     personnelCosts[participantId] = totals.personnelCost;
-    const equipTotal =
-      categories.equipment.find((e) => e.participantId === participantId)?.totalCost ?? 0;
-    if (equipTotal <= 0) continue;
-    if (totals.personnelCost > 0 && equipTotal > totals.personnelCost * 0.15) {
+    if (totals.equipmentCost <= 0) continue;
+    if (totals.personnelCost > 0 && totals.equipmentCost > totals.personnelCost * 0.15) {
       equipmentAboveThresholdFor.add(participantId);
     } else {
       equipmentBelowThreshold = true;

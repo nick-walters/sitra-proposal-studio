@@ -344,23 +344,19 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   });
 
   /* ── cost justifications ── */
-  // The adapter is the sole source for both traditional and lump-sum budgets.
+  // The adapter is the single source for lump-sum mirror decisions and the
+  // traditional equipment threshold.
   const toggles: any = proposalRow || {};
   const subcontracting = budgetSource.categories.subcontracting;
   const travel = budgetSource.categories.travel;
   const otherGoods = budgetSource.categories.other_goods;
-  const equipment = budgetSource.categories.equipment.filter((entry) => {
-    const personnelCosts = budgetSource.personnelCosts[entry.participantId] || 0;
-    return personnelCosts > 0 && entry.totalCost > personnelCosts * 0.15;
-  });
+  const equipment = budgetSource.categories.equipment;
 
   const purchaseBlocks: TypstCostBlock[] = [];
   if (toggles.b31_show_purchase_costs && toggles.b31_show_travel_justification && travel.length) {
     purchaseBlocks.push({ categoryLabel: 'Travel', participants: travel });
   }
-  if (equipment.length && (toggles.b31_show_purchase_costs || equipment.length > 0)) {
-    // The board forces the equipment block on when any participant is above the
-    // 15% threshold, regardless of the purchase-costs toggle.
+  if (equipment.length) {
     purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipment });
   }
   if (

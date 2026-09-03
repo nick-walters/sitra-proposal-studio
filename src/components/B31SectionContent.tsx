@@ -25,7 +25,7 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
   const {
     wpData, participants, pertFigure, ganttFigure,
     subcontractingByParticipant, equipmentByParticipant,
-    travelByParticipant, otherGoodsByParticipant,
+    travelByParticipant, otherGoodsByParticipant, isLumpSum,
     loading,
   } = useB31SectionData(proposalId);
 
@@ -42,15 +42,19 @@ export function B31SectionContent({ proposalId, forExport }: Props) {
   if (loading) return null;
 
   // ---- Determine which tables render & their letters ----
-  const c2ForcedOn = presence.equipmentAboveThreshold;
+  const c2ForcedOn = !isLumpSum && presence.equipmentAboveThreshold;
 
-  // Sub-block inclusion in 3.1.h
-  const includeTravel = toggles.purchase_costs && toggles.travel && travelByParticipant.length > 0;
-  const includeEquipment =
-    (toggles.purchase_costs || c2ForcedOn) &&
-    (c2ForcedOn || toggles.equipment) &&
-    equipmentByParticipant.length > 0;
-  const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsByParticipant.length > 0;
+  // For lump-sum proposals, the adapter has already applied the mirror flags.
+  // Traditional proposals retain the existing display toggles and 15% forcing.
+  const includeTravel = isLumpSum
+    ? travelByParticipant.length > 0
+    : toggles.purchase_costs && toggles.travel && travelByParticipant.length > 0;
+  const includeEquipment = isLumpSum
+    ? equipmentByParticipant.length > 0
+    : (toggles.purchase_costs || c2ForcedOn) && (c2ForcedOn || toggles.equipment) && equipmentByParticipant.length > 0;
+  const includeOtherGoods = isLumpSum
+    ? otherGoodsByParticipant.length > 0
+    : toggles.purchase_costs && toggles.other_goods && otherGoodsByParticipant.length > 0;
   const purchaseBlocks: MergedBlock[] = [];
   if (includeTravel)      purchaseBlocks.push({ categoryLabel: 'Travel', participants: travelByParticipant });
   if (includeEquipment)   purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipmentByParticipant });
