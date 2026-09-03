@@ -854,7 +854,7 @@ export function BudgetPortalSheet({
 
           {/* Budget Tab */}
           <TabsContent value="budget" className="space-y-4">
-            {traditionalReadOnly && <div className="border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">This actual costs budget has been superseded and is read-only.</div>}
+            
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
