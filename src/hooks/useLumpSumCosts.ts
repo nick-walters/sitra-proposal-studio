@@ -32,13 +32,11 @@ export type LumpSumCostItem = {
   order_index: number;
 };
 
-/**
- * The C lines that can be mirrored into B3.1 Table 3.1.h. C.2 is a single flag
- * covering all three of its sub-lines, because the 15% rule applies to
- * equipment as a whole.
- */
+/** C lines that can be mirrored into B3.1 Table 3.1.h. Parent states are derived. */
 export const MIRRORABLE_COST_LINES = [
-  'C.1', 'C.2', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
+  'C.1',
+  'C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets',
+  'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
 ] as const;
 
 export type LumpSumCostsData = {
