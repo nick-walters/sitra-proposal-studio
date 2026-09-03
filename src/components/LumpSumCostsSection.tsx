@@ -225,24 +225,20 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
   </tr>;
 }
 
-/**
- * The per-subcategory switch deciding whether a C line's items are mirrored
- * into B3.1 Table 3.1.h. Coordinators and above may change it; everyone else
- * sees the state, disabled.
- */
+/** Mirror controls are deliberately hidden from everyone below proposal admin. */
 function MirrorCheckbox({ costLine, checked, canChange, title, onChange }: {
   costLine: string;
-  checked: boolean;
+  checked: boolean | 'indeterminate';
   canChange: boolean;
   title: string;
   onChange: (next: boolean) => void;
 }) {
+  if (!canChange) return null;
   return <HeaderControl className="gap-1">
     <Checkbox
       id={`mirror-${costLine}`}
       className="h-3.5 w-3.5"
       checked={checked}
-      disabled={!canChange}
       title={title}
       onCheckedChange={value => onChange(value === true)}
     />
@@ -250,10 +246,23 @@ function MirrorCheckbox({ costLine, checked, canChange, title, onChange }: {
   </HeaderControl>;
 }
 
+const DISPLAY_TOTAL_LABELS: Record<string, string> = {
+  'C.2.infrastructure': 'Infrastructure total',
+  'C.2.equipment': 'Equipment total',
+  'C.2.other_assets': 'Other assets total',
+  'C.3.consumables': 'Consumables total',
+  'C.3.meetings': 'Meetings total',
+  'C.3.dissemination': 'Dissemination total',
+  'C.3.publication': 'Publication total',
+  'C.3.other': 'Other total',
+};
+
 export function LumpSumCostsSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
-  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems, setMirror } = useLumpSumCosts(proposalId);
-  const { roleTier } = useProposalRole(proposalId);
-  const canChangeMirroring = roleTier === 'coordinator';
+  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems, setMirror, setMirrors } = useLumpSumCosts(proposalId);
+  // This existing proposal-level role check maps owner/admin/coordinator exactly
+  // as the database is_proposal_admin policy does, including global owner/admin.
+  const { isCoordinator: canChangeMirroring } = useProposalData(proposalId);
+  const depreciation = useLumpSumDepreciation(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
