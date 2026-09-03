@@ -212,7 +212,7 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
 /* ────────────────────────────── lump sum ─────────────────────────────── */
 
 async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
-  const [wpResult, roleResult, effortResult, budgetResult, costResult, deprResult] =
+  const [wpResult, roleResult, effortResult, budgetResult, costResult, deprResult, mirrorResult] =
     await Promise.all([
       supabase
         .from('wp_drafts')
@@ -241,8 +241,12 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
         .select('*')
         .eq('proposal_id', proposalId)
         .order('order_index'),
+      supabase
+        .from('ls_mirror_settings')
+        .select('cost_line, is_mirrored')
+        .eq('proposal_id', proposalId),
     ]);
-  const failure = [wpResult, roleResult, effortResult, budgetResult, costResult, deprResult]
+  const failure = [wpResult, roleResult, effortResult, budgetResult, costResult, deprResult, mirrorResult]
     .find((r) => r.error);
   if (failure?.error) throw failure.error;
 
