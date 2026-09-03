@@ -6,13 +6,15 @@
  * tree, so this module re-issues the SAME queries as plain async calls and
  * returns plain data. Everything here is a re-projection, not a re-use:
  *
- *  - work packages, tasks, deliverables           → `wp_drafts` + children
- *  - effort and cost justifications               → `fetchBudgetSource`, which
- *    dispatches to the active traditional or lump-sum budget tables
- *  - milestones / risks                            → `proposal_milestones` /
+ *  - work packages, tasks, deliverables, effort  → `wp_drafts` + children
+ *    (identical select list to `useB31SectionData`)
+ *  - milestones / risks                          → `proposal_milestones` /
  *    `proposal_risks` + their `_wps` junction tables (authored relational
  *    blocks, not source-fed)
- *  - linked activities                             → `methodology_linked_activities`
+ *  - cost justifications                         → `budget_rows` +
+ *    `budget_cost_justification_items`, with the same per-category grouping
+ *    and the same 15%-of-personnel equipment rule
+ *  - linked activities                           → `methodology_linked_activities`
  *  - captions                                    → `table_captions` (user
  *    overrides) falling back to the component defaults
  *  - Pert / Gantt                                → `figures` rows for caption
@@ -27,7 +29,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchDerivedFigureNumbers, fetchB31SystemFigureNumbers } from '@/lib/figureNumbering';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
-import { fetchBudgetSource, type B31JustificationItem } from '@/lib/budgetSourceAdapter';
 import { fetchPertChartData, type PertChartData } from './pertTypst';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -102,7 +103,7 @@ export interface TypstRisk {
 
 export interface TypstCostEntry {
   participantId: string;
-  items: B31JustificationItem[];
+  items: { amount: number; justification: string }[];
   totalCost: number;
 }
 
@@ -155,6 +156,29 @@ export interface B31TypstData {
   columnHeaders: Record<string, Record<string, string>>;
 }
 
+const COST_CATEGORIES = [
+  'subcontracting',
+  'equipment',
+  'travel',
+  'other_goods',
+] as const;
+
+function groupCosts(
+  budgetRows: any[],
+  justItems: any[],
+  category: string,
+): TypstCostEntry[] {
+  const out: TypstCostEntry[] = [];
+  for (const row of budgetRows) {
+    const items = justItems
+      .filter((i) => i.budget_row_id === row.id && i.category === category)
+      .map((i) => ({ amount: Number(i.amount) || 0, justification: i.justification || '' }));
+    const totalCost = items.reduce((s, i) => s + i.amount, 0);
+    if (totalCost <= 0 || items.length === 0) continue;
+    out.push({ participantId: row.participant_id, items, totalCost });
+  }
+  return out;
+}
 
 export async function fetchB31TypstData(proposalId: string): Promise<B31TypstData> {
   const [
@@ -178,15 +202,16 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .select(
         `id, number, title, short_name, lead_participant_id, color, objectives,
          description_before_tasks, manual_duration, intro_visible,
-          tasks:wp_draft_tasks(
-            id, number, title, description, lead_participant_id, start_month, end_month, order_index,
-            is_visible,
-            participants:wp_draft_task_participants(participant_id)
-          ),
-          deliverables:wp_draft_deliverables(
-            id, number, title, type, dissemination_level, responsible_participant_id,
-            due_month, order_index
-          )`,
+         tasks:wp_draft_tasks(
+           id, number, title, description, lead_participant_id, start_month, end_month, order_index,
+           is_visible,
+           participants:wp_draft_task_participants(participant_id)
+         ),
+         deliverables:wp_draft_deliverables(
+           id, number, title, type, dissemination_level, responsible_participant_id,
+           due_month, order_index
+         ),
+         wp_effort:wp_draft_effort(participant_id, person_months)`,
       )
       .eq('proposal_id', proposalId)
       .order('number'),
@@ -221,8 +246,6 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .eq('proposal_id', proposalId)
       .order('order_index'),
   ]);
-
-  const budgetSource = await fetchBudgetSource(proposalId);
 
   const wps: TypstWP[] = ((wpRows as any[]) || []).map((wp: any) => {
     const color: string =
@@ -269,7 +292,10 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
           responsible_participant_id: d.responsible_participant_id,
           due_month: d.due_month,
         })),
-       effort: budgetSource.effortByWp[wp.id] ?? [],
+      effort: ((wp.wp_effort as any[]) || []).map((e: any) => ({
+        participant_id: e.participant_id,
+        person_months: Number(e.person_months) || 0,
+      })),
     };
   });
 
@@ -344,13 +370,43 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   });
 
   /* ── cost justifications ── */
-  // The adapter is the sole source for both traditional and lump-sum budgets.
+  const { data: budgetRows } = await supabase
+    .from('budget_rows')
+    .select('id, participant_id, personnel_costs, pm_rate')
+    .eq('proposal_id', proposalId);
+
+  let justItems: any[] = [];
+  const rowIds = ((budgetRows as any[]) || []).map((r) => r.id);
+  if (rowIds.length) {
+    const { data } = await supabase
+      .from('budget_cost_justification_items')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .in('category', COST_CATEGORIES as unknown as string[])
+      .order('order_index');
+    justItems = data || [];
+  }
+
+  // Person-month totals per participant, for the 15% equipment rule.
+  const pmTotals = new Map<string, number>();
+  for (const wp of wps) {
+    for (const e of wp.effort) {
+      pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + e.person_months);
+    }
+  }
+
+  const rows = (budgetRows as any[]) || [];
+  const subcontracting = groupCosts(rows, justItems, 'subcontracting');
+  const travel = groupCosts(rows, justItems, 'travel');
+  const otherGoods = groupCosts(rows, justItems, 'other_goods');
+
   const toggles: any = proposalRow || {};
-  const subcontracting = budgetSource.categories.subcontracting;
-  const travel = budgetSource.categories.travel;
-  const otherGoods = budgetSource.categories.other_goods;
-  const equipment = budgetSource.categories.equipment.filter((entry) => {
-    const personnelCosts = budgetSource.personnelCosts[entry.participantId] || 0;
+  const equipment = groupCosts(rows, justItems, 'equipment').filter((entry) => {
+    const row = rows.find((r) => r.participant_id === entry.participantId);
+    const pmRate = row?.pm_rate != null ? Number(row.pm_rate) : 0;
+    const totalPMs = pmTotals.get(entry.participantId) || 0;
+    const personnelCosts =
+      pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(row?.personnel_costs) || 0;
     return personnelCosts > 0 && entry.totalCost > personnelCosts * 0.15;
   });
 

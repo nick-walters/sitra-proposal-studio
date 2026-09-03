@@ -5,9 +5,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { EditableCaption } from '@/components/EditableCaption';
-import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
+import { ParticipantBubble } from '@/components/B31Pill';
 import { MirroredRichText } from '@/components/MirroredRichText';
-import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
@@ -38,10 +37,10 @@ export function B31MergedJustificationTable({
   const getParticipant = (id: string) => participants.find(p => p.id === id);
 
   // Pivot: group by participant first, then by category (preserving the input block order as category order).
-   interface PivotCategory {
-     categoryLabel: string;
-     items: B31SubcontractingParticipant['items'];
-   }
+  interface PivotCategory {
+    categoryLabel: string;
+    items: { amount: number; justification: string }[];
+  }
   interface PivotParticipant {
     participantId: string;
     participantNumber: number;
@@ -120,71 +119,40 @@ export function B31MergedJustificationTable({
             const isFirstParticipant = ppIdx === 0;
             const partTopBorder = isFirstParticipant ? '' : 'border-t border-black';
 
-             const totalItemRows = pp.categories.reduce((s, c) => s + c.items.length, 0);
-             const rows: React.ReactNode[] = [];
-             let itemCounter = 0;
-             const hasWpBadges = pp.categories.some((cat) => cat.items.some((item) => item.wpNumber != null));
+            const totalItemRows = pp.categories.reduce((s, c) => s + c.items.length, 0);
+            const rows: React.ReactNode[] = [];
+            let itemCounter = 0;
 
-             const aggregated = pp.categories.flatMap((cat) =>
-               cat.items.map((item) => ({ ...item, categoryLabel: cat.categoryLabel })),
-             );
-             const aggregatedRun = aggregated.map((item, itemIdx) => (
-               <React.Fragment key={`wp-${itemIdx}`}>
-                 {itemIdx > 0 && <span>; </span>}
-                 <strong><em>{item.categoryLabel}:</em></strong>{' '}
-                 <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                 {item.wpNumber != null && (
-                   <span title={item.wpShortName || undefined}>
-                     {' '}<WPBubble
-                       wpNumber={item.wpNumber}
-                       wpColor={item.wpColor || DEFAULT_WP_COLORS[(item.wpNumber - 1) % DEFAULT_WP_COLORS.length]}
-                       size="document"
-                     />
-                   </span>
-                 )}
-               </React.Fragment>
-             ));
-             pp.categories.forEach((cat) => {
-               cat.items.forEach((item, itemIdx) => {
-                 const isFirstItemOverall = itemCounter === 0;
-                 itemCounter += 1;
-                 const cells: React.ReactNode[] = [];
-                 if (isFirstItemOverall) {
-                   cells.push(
-                     <td
-                       key="part"
-                       className={`${cellStyles} ${partTopBorder}`}
-                       style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
-                       rowSpan={totalItemRows + 1}
-                     >
-                       <ParticipantBubble>{label}</ParticipantBubble>
-                     </td>,
-                   );
-                 }
-                 cells.push(
-                   <td key="amt" className={`${cellStyles} text-right ${isFirstItemOverall ? partTopBorder : ''}`}>
-                     {formatCurrency(item.amount)}
-                   </td>,
-                 );
-                 if (hasWpBadges) {
-                   if (isFirstItemOverall) {
-                     cells.push(
-                       <td key="just" rowSpan={totalItemRows} className={`${cellStyles} ${partTopBorder}`}>
-                         {aggregatedRun}
-                       </td>,
-                     );
-                   }
-                 } else {
-                   cells.push(
-                     <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
-                       <strong><em>{cat.categoryLabel}:</em></strong>{' '}
-                       <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                     </td>,
-                   );
-                 }
-                 rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
-               });
-             });
+            pp.categories.forEach((cat) => {
+              cat.items.forEach((item, itemIdx) => {
+                const isFirstItemOverall = itemCounter === 0;
+                itemCounter += 1;
+                const cells: React.ReactNode[] = [];
+                if (isFirstItemOverall) {
+                  cells.push(
+                    <td
+                      key="part"
+                      className={`${cellStyles} ${partTopBorder}`}
+                      style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
+                      rowSpan={totalItemRows + 1}
+                    >
+                      <ParticipantBubble>{label}</ParticipantBubble>
+                    </td>,
+                  );
+                }
+                cells.push(
+                  <td key="amt" className={`${cellStyles} text-right ${isFirstItemOverall ? partTopBorder : ''}`}>
+                    {formatCurrency(item.amount)}
+                  </td>,
+                );
+                cells.push(
+                  <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
+                    <strong><em>{cat.categoryLabel}:</em></strong> <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
+                  </td>,
+                );
+                rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
+              });
+            });
 
             // Per-participant subtotal row
             rows.push(

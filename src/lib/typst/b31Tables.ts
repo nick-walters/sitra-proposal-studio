@@ -23,7 +23,6 @@ import {
   HE_TABLE_WIDTH_PT,
 } from './tableColumns';
 import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTypst';
-import { getDefaultWPColor } from '@/lib/wpColors';
 
 import { emitPertChart } from './pertTypst';
 import type {
@@ -45,8 +44,6 @@ const NBSP = '\u00a0';
 const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
 /** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
 const CHIP_SEP = ` + t(" ") + `;
-/** Separator between aggregated justification runs. */
-const JUSTIFICATION_SEP = ` + t(${typstString('; ')}) + `;
 /**
  * Tighter chip-to-chip separator for table 3.1.b, whose participant badges
  * carried about 10 px too much space to their right. A plain space with a
@@ -663,31 +660,31 @@ function costCells(
   let nrows = 1;
   let total = 0;
 
-  const itemText = (item: TypstCostEntry['items'][number], categoryLabel?: string): string => {
-    const prefix = categoryLabel ? `${bold(emphLit(categoryLabel + ': '))} + ` : '';
-    const badge = item.wpNumber == null
-      ? ''
-      : `${CHIP_GAP}${wpChip(item.wpNumber, item.wpColor || getDefaultWPColor(item.wpNumber))}`;
-    return `${prefix}${rich(item.justification, ctx)}${badge}`;
-  };
-
   for (const bucket of grouped) {
     const lines = bucket.groups
       .flatMap((g) => g.items.map((item) => ({ item, categoryLabel: g.categoryLabel })))
+      // A cost line with neither money nor a justification is an untouched
+      // category, not a cost: it printed as "Travel:" over an empty cell, or
+      // "Other: —". Nothing to justify, nothing to print. A line carrying an
+      // amount is always kept, justified or not — money must never vanish.
       .filter(({ item }) => Number(item.amount) !== 0 || htmlHasInk(item.justification));
     if (!lines.length) continue;
+    // Every line plus the participant's own subtotal row.
     const span = lines.length + 1;
+    // The merged participant cell is TOP aligned: `he-cell-table` centres
+    // cells on the horizon, which over a tall rowspan floated the badge into
+    // the middle of the participant's block instead of sitting on its first
+    // line, as it does in the editor.
     cells.push(
       `table.cell(rowspan: ${span}, align: left + top, ${participantChip(bucket.participant)})`,
     );
-    lines.forEach((line, index) => {
-      cells.push(lit(formatCurrency(line.item.amount)));
-      if (index === 0) {
-        cells.push(
-          `table.cell(rowspan: ${lines.length}, align: left + top, ${lines.map((entry) => itemText(entry.item, entry.categoryLabel)).join(JUSTIFICATION_SEP)})`,
-        );
-      }
-    });
+    for (const line of lines) {
+      cells.push(
+        lit(formatCurrency(line.item.amount)),
+        (line.categoryLabel ? `${bold(emphLit(line.categoryLabel + ': '))} + ` : '') +
+          rich(line.item.justification, ctx),
+      );
+    }
     cells.push(bold(lit(formatCurrency(bucket.total))), `emph(${lit('Subtotal')})`);
     nrows += span;
     total += bucket.total;
