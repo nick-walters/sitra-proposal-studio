@@ -12,6 +12,8 @@ import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold align-middle";
+/** The same alternating-row grey used by Table 3.1.f. */
+const BAND = '#f4f4f5';
 
 interface Props {
   items: B31SubcontractingParticipant[];
@@ -83,67 +85,61 @@ export function B31SubcontractingTable({ items, participants, proposalId, tableL
           </tr>
         </thead>
         <tbody>
-           {sorted.map((entry, entryIdx) => {
-             const p = getParticipant(entry.participantId);
-             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
-             const isFirstBlock = entryIdx === 0;
-             // Thin divider between participant blocks (header & grand total use the thick lines).
-             const topBorder = isFirstBlock ? '' : 'border-t border-black';
-             const hasWpBadges = entry.items.some((item) => item.wpNumber != null);
-             const wpRun = entry.items.map((item, itemIdx) => (
-               <React.Fragment key={`wp-${itemIdx}`}>
-                 {itemIdx > 0 && <span>; </span>}
-                 <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                 {item.wpNumber != null && (
-                   <span title={item.wpShortName || undefined}>
-                     {' '}<WPBubble
-                       wpNumber={item.wpNumber}
-                       wpColor={item.wpColor || DEFAULT_WP_COLORS[(item.wpNumber - 1) % DEFAULT_WP_COLORS.length]}
-                       size="document"
-                     />
-                   </span>
-                 )}
-               </React.Fragment>
-             ));
-             const itemRows = entry.items.map((item, itemIdx) => {
-               const isFirstItem = itemIdx === 0;
-               return (
-                 <tr key={`${entry.participantId}-${itemIdx}`}>
-                   {isFirstItem && (
-                     <td
-                       className={`${cellStyles} ${topBorder}`}
-                       style={{ whiteSpace: 'nowrap' }}
-                       rowSpan={entry.items.length + 1}
-                     >
-                       <ParticipantBubble>{label}</ParticipantBubble>
-                     </td>
-                   )}
-                   <td className={`${cellStyles} text-right ${isFirstItem ? topBorder : ''}`}>
-                     {formatCurrency(item.amount)}
-                   </td>
-                   {hasWpBadges ? (
-                     isFirstItem && (
-                       <td rowSpan={entry.items.length} className={`${cellStyles} ${topBorder}`}>
-                         {wpRun}
-                       </td>
-                     )
-                   ) : (
-                     <td className={`${cellStyles} ${isFirstItem ? topBorder : ''}`}>
-                       <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                     </td>
-                   )}
-                 </tr>
-               );
-             });
-             // Subtotal row (sits inside the rowSpan group)
-             itemRows.push(
-               <tr key={`${entry.participantId}-subtotal`}>
-                 <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(entry.totalCost)}</td>
-                 <td className={`${cellStyles} italic`}>Subtotal</td>
-               </tr>,
-             );
-             return <React.Fragment key={entry.participantId}>{itemRows}</React.Fragment>;
-           })}
+          {(() => {
+            let bodyRow = 0;
+            return sorted.map((entry, entryIdx) => {
+              const p = getParticipant(entry.participantId);
+              const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
+              const isFirstBlock = entryIdx === 0;
+              // Thin divider between participant blocks (header & grand total use the thick lines).
+              const topBorder = isFirstBlock ? '' : 'border-t border-black';
+              const itemRows = entry.items.map((item, itemIdx) => {
+                const isFirstItem = itemIdx === 0;
+                const banded = bodyRow % 2 === 1;
+                bodyRow += 1;
+                const band = banded ? { backgroundColor: BAND } : undefined;
+                return (
+                  <tr key={`${entry.participantId}-${itemIdx}`}>
+                    {isFirstItem && (
+                      <td
+                        className={`${cellStyles} ${topBorder}`}
+                        style={{ whiteSpace: 'nowrap' }}
+                        rowSpan={entry.items.length + 1}
+                      >
+                        <ParticipantBubble>{label}</ParticipantBubble>
+                      </td>
+                    )}
+                    <td className={`${cellStyles} text-right ${isFirstItem ? topBorder : ''}`} style={band}>
+                      {formatCurrency(item.amount)}
+                    </td>
+                    <td className={`${cellStyles} ${isFirstItem ? topBorder : ''}`} style={band}>
+                      <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
+                      {item.wpNumber != null && (
+                        <span title={item.wpShortName || undefined}>
+                          {' '}<WPBubble
+                            wpNumber={item.wpNumber}
+                            wpColor={item.wpColor || DEFAULT_WP_COLORS[(item.wpNumber - 1) % DEFAULT_WP_COLORS.length]}
+                            size="document"
+                          />
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              });
+              // Subtotal row (sits inside the rowSpan group)
+              const subBanded = bodyRow % 2 === 1;
+              bodyRow += 1;
+              const subBand = subBanded ? { backgroundColor: BAND } : undefined;
+              itemRows.push(
+                <tr key={`${entry.participantId}-subtotal`}>
+                  <td className={`${cellStyles} text-right font-bold`} style={subBand}>{formatCurrency(entry.totalCost)}</td>
+                  <td className={`${cellStyles} italic`} style={subBand}>Subtotal</td>
+                </tr>,
+              );
+              return <React.Fragment key={entry.participantId}>{itemRows}</React.Fragment>;
+            });
+          })()}
           {/* Grand total */}
           <tr>
             <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />

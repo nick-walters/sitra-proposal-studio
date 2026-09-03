@@ -12,6 +12,8 @@ import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold align-middle";
+/** The same alternating-row grey used by Table 3.1.f. */
+const BAND = '#f4f4f5';
 
 export interface MergedBlock {
   categoryLabel: string; // "Travel" | "Equipment" | "Other" | "FSTP" | "Internally invoiced"
@@ -112,7 +114,11 @@ export function B31MergedJustificationTable({
           </tr>
         </thead>
         <tbody>
-          {pivotParticipants.map((pp, ppIdx) => {
+          {(() => {
+            // Running body-row index, so the pale band alternates per ROW across
+            // the whole table rather than restarting for each participant.
+            let bodyRow = 0;
+            return pivotParticipants.map((pp, ppIdx) => {
             const p = getParticipant(pp.participantId);
             const label = p
               ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`
@@ -120,82 +126,76 @@ export function B31MergedJustificationTable({
             const isFirstParticipant = ppIdx === 0;
             const partTopBorder = isFirstParticipant ? '' : 'border-t border-black';
 
-             const totalItemRows = pp.categories.reduce((s, c) => s + c.items.length, 0);
-             const rows: React.ReactNode[] = [];
-             let itemCounter = 0;
-             const hasWpBadges = pp.categories.some((cat) => cat.items.some((item) => item.wpNumber != null));
+            const totalItemRows = pp.categories.reduce((s, c) => s + c.items.length, 0);
+            const rows: React.ReactNode[] = [];
+            let itemCounter = 0;
 
-             const aggregated = pp.categories.flatMap((cat) =>
-               cat.items.map((item) => ({ ...item, categoryLabel: cat.categoryLabel })),
-             );
-             const aggregatedRun = aggregated.map((item, itemIdx) => (
-               <React.Fragment key={`wp-${itemIdx}`}>
-                 {itemIdx > 0 && <span>; </span>}
-                 <strong><em>{item.categoryLabel}:</em></strong>{' '}
-                 <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                 {item.wpNumber != null && (
-                   <span title={item.wpShortName || undefined}>
-                     {' '}<WPBubble
-                       wpNumber={item.wpNumber}
-                       wpColor={item.wpColor || DEFAULT_WP_COLORS[(item.wpNumber - 1) % DEFAULT_WP_COLORS.length]}
-                       size="document"
-                     />
-                   </span>
-                 )}
-               </React.Fragment>
-             ));
-             pp.categories.forEach((cat) => {
-               cat.items.forEach((item, itemIdx) => {
-                 const isFirstItemOverall = itemCounter === 0;
-                 itemCounter += 1;
-                 const cells: React.ReactNode[] = [];
-                 if (isFirstItemOverall) {
-                   cells.push(
-                     <td
-                       key="part"
-                       className={`${cellStyles} ${partTopBorder}`}
-                       style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
-                       rowSpan={totalItemRows + 1}
-                     >
-                       <ParticipantBubble>{label}</ParticipantBubble>
-                     </td>,
-                   );
-                 }
-                 cells.push(
-                   <td key="amt" className={`${cellStyles} text-right ${isFirstItemOverall ? partTopBorder : ''}`}>
-                     {formatCurrency(item.amount)}
-                   </td>,
-                 );
-                 if (hasWpBadges) {
-                   if (isFirstItemOverall) {
-                     cells.push(
-                       <td key="just" rowSpan={totalItemRows} className={`${cellStyles} ${partTopBorder}`}>
-                         {aggregatedRun}
-                       </td>,
-                     );
-                   }
-                 } else {
-                   cells.push(
-                     <td key="just" className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}>
-                       <strong><em>{cat.categoryLabel}:</em></strong>{' '}
-                       <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
-                     </td>,
-                   );
-                 }
-                 rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
-               });
-             });
+            pp.categories.forEach((cat) => {
+              cat.items.forEach((item, itemIdx) => {
+                const isFirstItemOverall = itemCounter === 0;
+                itemCounter += 1;
+                const banded = bodyRow % 2 === 1;
+                bodyRow += 1;
+                const band = banded ? { backgroundColor: BAND } : undefined;
+                const cells: React.ReactNode[] = [];
+                if (isFirstItemOverall) {
+                  cells.push(
+                    <td
+                      key="part"
+                      className={`${cellStyles} ${partTopBorder}`}
+                      style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}
+                      rowSpan={totalItemRows + 1}
+                    >
+                      <ParticipantBubble>{label}</ParticipantBubble>
+                    </td>,
+                  );
+                }
+                cells.push(
+                  <td
+                    key="amt"
+                    className={`${cellStyles} text-right ${isFirstItemOverall ? partTopBorder : ''}`}
+                    style={band}
+                  >
+                    {formatCurrency(item.amount)}
+                  </td>,
+                );
+                cells.push(
+                  <td
+                    key="just"
+                    className={`${cellStyles} ${isFirstItemOverall ? partTopBorder : ''}`}
+                    style={band}
+                  >
+                    <strong><em>{cat.categoryLabel}:</em></strong>{' '}
+                    <MirroredRichText proposalId={proposalId ?? ''} value={item.justification} />
+                    {item.wpNumber != null && (
+                      <span title={item.wpShortName || undefined}>
+                        {' '}<WPBubble
+                          wpNumber={item.wpNumber}
+                          wpColor={item.wpColor || DEFAULT_WP_COLORS[(item.wpNumber - 1) % DEFAULT_WP_COLORS.length]}
+                          size="document"
+                        />
+                      </span>
+                    )}
+                  </td>,
+                );
+                rows.push(<tr key={`${pp.participantId}-${cat.categoryLabel}-${itemIdx}`}>{cells}</tr>);
+              });
+            });
 
             // Per-participant subtotal row
+            const subBanded = bodyRow % 2 === 1;
+            bodyRow += 1;
+            const subBand = subBanded ? { backgroundColor: BAND } : undefined;
             rows.push(
               <tr key={`${pp.participantId}-subtotal`}>
-                <td className={`${cellStyles} text-right font-bold`}>{formatCurrency(pp.total)}</td>
-                <td className={`${cellStyles} italic font-bold`}>Subtotal</td>
+                <td className={`${cellStyles} text-right font-bold`} style={subBand}>{formatCurrency(pp.total)}</td>
+                <td className={`${cellStyles} italic font-bold`} style={subBand}>Subtotal</td>
               </tr>,
             );
 
             return <React.Fragment key={pp.participantId}>{rows}</React.Fragment>;
-          })}
+            });
+          })()}
           <tr>
             <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
