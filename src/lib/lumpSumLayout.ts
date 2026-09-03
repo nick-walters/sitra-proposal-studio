@@ -45,14 +45,19 @@ export const LS_COL = {
   summaryNarrow: 70,
   request: 100,
   percent: LS_FIGURE_WIDTH,
-  /** Depreciation-register columns. */
-  depreciationType: 88,
-  depreciationName: 96,
-  depreciationDate: 104,
+  /**
+   * Depreciation-register columns. The short name and the comments both hold
+   * free text and were unusably narrow, so each is twice its former width; the
+   * date, resource-type and percentage columns give back what they never used.
+   */
+  depreciationType: 80,
+  depreciationName: 192,
+  depreciationDate: 96,
   depreciationCost: 88,
-  depreciationPercent: 56,
+  depreciationPercent: 48,
   depreciationInclude: 48,
-  depreciationComments: 72,
+  depreciationComments: 144,
+
   /** The shared figure column and the gutter to its right. */
   figure: LS_FIGURE_WIDTH,
   gutter: LS_RIGHT_GUTTER,

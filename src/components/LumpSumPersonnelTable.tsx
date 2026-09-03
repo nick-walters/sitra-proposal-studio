@@ -284,7 +284,52 @@ export function LumpSumPersonnelTable({ costLine, roles, efforts, workPackages, 
   </div>;
 }
 
+/**
+ * Total person-months per work package, laid out on the A.1 colgroup so each
+ * figure sits directly under the work-package column it belongs to: one row of
+ * badges, one row of figures beneath them.
+ */
+export function PersonMonthTotalsRows({ label, workPackages, personMonths }: {
+  label: string;
+  workPackages: LumpSumWorkPackage[];
+  personMonths: number[];
+}) {
+  return <table className={`${LS_TABLE} text-xs`} style={{ minWidth: Math.min(LS_PERSONNEL_MIN_WIDTH(workPackages.length, true), LS_MAX_TABLE_WIDTH) }}>
+    <colgroup>
+      <col style={{ width: COL_WIDTH.grip }} />
+      <col />
+      <col style={{ width: COL_WIDTH.category }} />
+      <col style={{ width: COL_WIDTH.rate }} />
+      {workPackages.map(wp => <col key={wp.id} style={{ width: COL_WIDTH.wpPm }} />)}
+      <col style={{ width: COL_WIDTH.totalPm }} />
+      <col style={{ width: COL_WIDTH.figure }} />
+      <col style={{ width: COL_WIDTH.gutter }} />
+    </colgroup>
+    <tbody>
+      <tr>
+        <td className={`${CELL} py-0.5`} />
+        <td colSpan={3} className={`${CELL} py-0.5 text-muted-foreground`}>{label}</td>
+        {workPackages.map(wp => <td key={wp.id} data-ls-measure={`pm-total-badge-${wp.number}`} className={`${CELL} py-0.5 text-right`}>
+          <span title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></span>
+        </td>)}
+        <td className={`${CELL} py-0.5`} />
+        <td className={`${CELL} py-0.5`} />
+        <td className={`${CELL} py-0.5`} />
+      </tr>
+      <tr>
+        <td className={`${CELL} py-0.5`} />
+        <td colSpan={3} className={`${CELL} py-0.5`} />
+        {workPackages.map((wp, index) => <td key={wp.id} data-ls-measure={`pm-total-figure-${wp.number}`} className={`${NUM_CELL} py-0.5 font-semibold`}>{formatPM(personMonths[index] ?? 0)}</td>)}
+        <td className={`${CELL} py-0.5`} />
+        <td className={`${CELL} py-0.5`} />
+        <td className={`${CELL} py-0.5`} />
+      </tr>
+    </tbody>
+  </table>;
+}
+
 function SubtotalRow({ roles, label, efforts, workPackages }: { roles: LumpSumRole[]; label: string; efforts: LumpSumEffort[]; workPackages: LumpSumWorkPackage[] }) {
+
   const result = personnelSubtotal(roles, efforts, workPackages);
   const difference = result.cost - result.trueCost;
   const hasCategoryColumn = roles.some(role => role.he_category !== undefined);
