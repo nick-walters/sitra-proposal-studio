@@ -4,15 +4,13 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WPBubble } from '@/components/B31Pill';
 import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSumPersonnelTable';
 import { LS_COL, LS_D_MIN_WIDTH, LS_FIGURE_CELL, LS_ITEMISED_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
-import { MIRRORABLE_COST_LINES, type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
-import { useProposalData } from '@/hooks/useProposalData';
+import { type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import { mirroredCostLineAmount } from '@/lib/lumpSumFigures';
 import LumpSumDepreciationSection, {
@@ -225,32 +223,6 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
   </tr>;
 }
 
-/** Mirror controls are deliberately hidden from everyone below proposal admin. */
-function MirrorCheckbox({ costLine, checked, canChange, title, onChange }: {
-  costLine: string;
-  checked: boolean | 'indeterminate';
-  canChange: boolean;
-  title: string;
-  onChange: (next: boolean) => void;
-}) {
-  if (!canChange) return null;
-  // The checkbox sits in the existing right gutter, to the right of the shared
-  // figure column. No new column, no width change.
-  return <HeaderControl className="w-[34px] justify-center">
-    <Checkbox
-      id={`mirror-${costLine}`}
-      className="h-3.5 w-3.5"
-      checked={checked}
-      title={title}
-      aria-label={title}
-      onCheckedChange={value => onChange(value === true)}
-    />
-  </HeaderControl>;
-}
-
-const C2_MIRROR_TITLE = 'Mirror equipment to B3.1 Table 3.1.h: when ticked, all equipment is mirrored; when unticked, only participants whose equipment exceeds 15% of their personnel costs are mirrored.';
-
-
 const DISPLAY_TOTAL_LABELS: Record<string, string> = {
   'C.2.infrastructure': 'Infrastructure total',
   'C.2.equipment': 'Equipment total',
@@ -263,14 +235,9 @@ const DISPLAY_TOTAL_LABELS: Record<string, string> = {
 };
 
 export function LumpSumCostsSection({ proposalId, participantId, userId, editable }: { proposalId: string; participantId: string; userId?: string; editable: boolean }) {
-  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems, setMirror, setMirrors } = useLumpSumCosts(proposalId);
-  // This existing proposal-level role check maps owner/admin/coordinator exactly
-  // as the database is_proposal_admin policy does, including global owner/admin.
-  const { isCoordinator: canChangeMirroring } = useProposalData(proposalId);
+  const { data, isLoading, error, addItem, updateQuantity, updateUnitCost, updateJustification, changeWorkPackage, deleteItem, reorderItems } = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
-  const hasC2SublineSettings = ['C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets'].some(key => data?.mirrorSettings[key] !== undefined);
-  const mirrorChecked = (key: string) => Boolean(data?.mirrorSettings[key] || (key.startsWith('C.2.') && data?.mirrorSettings['C.2'] && !hasC2SublineSettings));
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
   const workPackages = data?.workPackages ?? [];
@@ -311,15 +278,9 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
       if (moved) next.splice(to, 0, moved);
       reorderItems(next.map(item => item.id));
     };
-    const mirrorKey = MIRRORABLE_COST_LINES.includes(line.key as typeof MIRRORABLE_COST_LINES[number]) ? line.key : null;
     const displayTotalLabel = DISPLAY_TOTAL_LABELS[line.key] ?? `${line.key} total`;
-    const mirrorTitle = mirrorKey?.startsWith('C.2.')
-      ? C2_MIRROR_TITLE
-      : mirrorKey
-        ? `Mirror ${line.label} to B3.1 Table 3.1.h.`
-        : '';
     return <section key={line.key} className={`border-b border-border/70 ${nested ? SUBLINE_INDENT : LINE_INDENT}`}>
-      <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} level={nested ? 'subline' : 'line'}><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button></HeaderControl>}{mirrorKey && <MirrorCheckbox costLine={mirrorKey} checked={mirrorChecked(mirrorKey)} canChange={canChangeMirroring} title={mirrorTitle} onChange={next => setMirror(mirrorKey, next)} />}</CollapsibleHeader>
+      <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(line.key)} label={line.label} level={nested ? 'subline' : 'line'}><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{line.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(itemTotal(line.key))}</span>}{!collapsed && editable && <HeaderControl><Button type="button" size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => addItem(participantId, line.key)}>Add item</Button></HeaderControl>}</CollapsibleHeader>
       {!collapsed && <div className="overflow-x-auto pb-2"><DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}><SortableContext items={lineItems.map(item => item.id)} strategy={verticalListSortingStrategy}><table className={`${LS_TABLE} text-sm`} style={{ minWidth: LS_ITEMISED_MIN_WIDTH }}><colgroup><col style={{ width: COL_WIDTH.grip }} /><col style={{ width: COL_WIDTH.wp }} /><col style={{ width: COL_WIDTH.quantity }} /><col style={{ width: COL_WIDTH.unitCost }} /><col /><col style={{ width: COL_WIDTH.figure }} /><col style={{ width: COL_WIDTH.gutter }} /></colgroup><thead><tr className="text-[11px] text-muted-foreground"><th /><th className="px-1 text-left">Work package</th><th className="px-1 text-right">Quantity</th><th className="px-1 text-right">Unit cost (€)</th><th className="px-1 text-left">Justification</th><th className="px-1 text-right">Subtotal (€)</th><th /></tr></thead><tbody>{lineItems.map(item => <SortableCostRow key={item.id} item={item} workPackages={workPackages} editable={editable} strict={line.strict} onChangeWp={value => changeWorkPackage(item.id, value)} onDelete={() => deleteItem(item.id)} onQuantity={value => updateQuantity(item.id, value)} onUnitCost={value => updateUnitCost(item.id, value)} onJustification={value => updateJustification(item.id, value)} />)}{mirrored.map(item => <MirroredCostRow key={`depreciation-${item.id}`} item={item} workPackages={workPackages} />)}</tbody><tfoot><InlineTotalRow label={displayTotalLabel} value={itemTotal(line.key)} leadingColumns={5} measure={`${line.key}-line-total`} /></tfoot></table></SortableContext></DndContext></div>}
     </section>;
   };
@@ -329,13 +290,10 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
     const childLines = parent.childKeys
       .map(key => LINES.C.find(line => line.key === key))
       .filter((line): line is typeof LINES.C[number] => Boolean(line));
-    const childStates = childLines.map(line => mirrorChecked(line.key));
-    const checked = childStates.every(Boolean);
-    const indeterminate = childStates.some(Boolean) && !checked;
     // Each sub-line already counts its own mirrored charges once.
     const total = childLines.reduce((sum, line) => sum + itemTotal(line.key), 0);
     return <section key={parent.key} className={`border-b border-border/70 ${LINE_INDENT}`}>
-      <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(parent.key)} label={parent.label} level="line"><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}<MirrorCheckbox costLine={parent.key} checked={indeterminate ? 'indeterminate' : checked} canChange={canChangeMirroring} title={parent.key === 'C.2' ? C2_MIRROR_TITLE : 'Mirror all sub-lines to B3.1 Table 3.1.h.'} onChange={next => setMirrors(parent.childKeys, next)} /></CollapsibleHeader>
+      <CollapsibleHeader collapsed={collapsed} onToggle={() => toggle(parent.key)} label={parent.label} level="line"><span className="min-w-0 flex-1 truncate text-xs font-semibold leading-none">{parent.label}</span>{collapsed && <span className="shrink-0 text-xs font-semibold leading-none tabular-nums text-muted-foreground">{formatCurrency(total)}</span>}</CollapsibleHeader>
       {!collapsed && <>
         {parent.key === 'C.2' && <LumpSumDepreciationSection proposalId={proposalId} participantId={participantId} userId={userId} editable={editable} />}
         {childLines.map(line => renderItemisedLine(line, true))}
