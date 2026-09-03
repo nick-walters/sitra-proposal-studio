@@ -12,6 +12,8 @@ import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold align-middle";
+/** The same alternating-row grey used by Table 3.1.f. */
+const BAND = '#f4f4f5';
 
 export interface MergedBlock {
   categoryLabel: string; // "Travel" | "Equipment" | "Other" | "FSTP" | "Internally invoiced"

@@ -82,26 +82,26 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     const badges = table.querySelectorAll<HTMLElement>('[data-effort-badge]');
     if (!badges.length) return;
     const widest = Math.max(...Array.from(badges, (b) => b.getBoundingClientRect().width));
+    const firstRow = table.querySelector('tbody tr:first-child');
+    const cells = firstRow?.querySelectorAll<HTMLElement>('td') ?? [];
+    const naturalWpWidth = cells.length > 2
+      ? Math.max(...Array.from(cells).slice(1, -1).map((cell) => cell.getBoundingClientRect().width))
+      : null;
     setFirstWidth(Math.ceil(widest) + 3);
+    setOtherWidth((current) => current ?? (naturalWpWidth != null ? Math.ceil(naturalWpWidth) : null));
   }, [tableRef, participants, wpData]);
 
-  const maxOther = firstWidth != null ? (BLOCK_WIDTH - firstWidth) / (colCount - 1) : null;
-  const resolvedOther =
-    maxOther == null ? null : Math.min(otherWidth ?? maxOther, maxOther);
+  const resolvedOther = otherWidth;
 
   const handleUniformResizeStart = useCallback(
     (event: React.MouseEvent) => {
-      if (!isAdminOrOwner || resolvedOther == null || maxOther == null) return;
+      if (!isAdminOrOwner || resolvedOther == null) return;
       event.preventDefault();
       event.stopPropagation();
       dragRef.current = { startX: event.clientX, startWidth: resolvedOther };
       const onMove = (ev: MouseEvent) => {
         if (!dragRef.current) return;
-        const next = Math.min(
-          maxOther,
-          Math.max(24, dragRef.current.startWidth + (ev.clientX - dragRef.current.startX)),
-        );
-        setOtherWidth(next);
+        setOtherWidth(Math.max(24, dragRef.current.startWidth + (ev.clientX - dragRef.current.startX)));
       };
       const onUp = () => {
         dragRef.current = null;
@@ -119,7 +119,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     },
-    [isAdminOrOwner, resolvedOther, maxOther, firstWidth, colCount, setColWidths, saveWidths],
+    [isAdminOrOwner, resolvedOther, firstWidth, colCount, setColWidths, saveWidths],
   );
 
   // Build effort matrix from WP-level effort data
