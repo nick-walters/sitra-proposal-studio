@@ -327,6 +327,9 @@ export function BudgetPortalSheet({
       ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 2, 8) }));
     };
 
+    // Export the budget model the proposal actually uses: never a mixture.
+    const isLumpSumExport = budgetType === 'lump_sum';
+    if (!isLumpSumExport) {
     // ─── Sheet 1: Staff Effort ───
     const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
     const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
@@ -722,13 +725,17 @@ export function BudgetPortalSheet({
     autoFitCols(ws3, overviewAoa);
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+    } // end actual-costs sheets
 
-    await appendLumpSumSheets(wb, XLSX, proposalId, budgetType);
+    if (isLumpSumExport) {
+      await appendLumpSumSheets(wb, XLSX, proposalId, budgetType);
+    }
 
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const acronym = proposalAcronym || 'Budget';
+    const modelLabel = isLumpSumExport ? 'Lump Sum Budget' : 'Actual Costs Budget';
 
     // Post-process xlsx to resize comment note boxes via VML anchors
     const xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -756,12 +763,12 @@ export function BudgetPortalSheet({
       const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${timestamp} ${acronym} Budget.xlsx`;
+      link.download = `${timestamp} ${acronym} ${modelLabel}.xlsx`;
       link.click();
       URL.revokeObjectURL(link.href);
     } catch {
       // Fallback: save without resizing
-      XLSX.writeFile(wb, `${timestamp} ${acronym} Budget.xlsx`);
+      XLSX.writeFile(wb, `${timestamp} ${acronym} ${modelLabel}.xlsx`);
     }
     toast.success('Budget exported to Excel');
   };
