@@ -188,9 +188,13 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
     if (personnel > 0 && totalEquip > personnel * 0.15) equipmentAboveThreshold = true;
     else equipmentBelowThreshold = true;
   }
-
-
-
+  // The 15 % equipment rule lives here for both models, so no consumer filters
+  // mirrored items a second time. Traditional behaviour is unchanged: only
+  // participants whose equipment exceeds 15 % of their personnel costs appear.
+  categories.equipment = categories.equipment.filter((entry) => {
+    const personnel = personnelCosts[entry.participantId] || 0;
+    return personnel > 0 && entry.totalCost > personnel * 0.15;
+  });
 
   return {
     budgetType: 'traditional',
