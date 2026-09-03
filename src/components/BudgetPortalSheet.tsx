@@ -844,7 +844,7 @@ export function BudgetPortalSheet({
                     {lumpSumAccess.lockState === 'all' ? 'Unlock all budgets' : 'Lock all budgets'}
                   </Button>
                 )}
-                <Button variant="outline" className="gap-2" disabled={traditionalReadOnly || lumpSumReadOnly} onClick={handleExportXlsx}>
+                <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
                   <Download className="w-4 h-4" />
                   Export budget
                 </Button>
