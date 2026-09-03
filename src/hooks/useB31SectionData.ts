@@ -161,8 +161,9 @@ export function useB31SectionData(proposalId: string) {
 
   const source = budgetSourceQuery.data;
   const subcontractingByParticipant = source?.categories.subcontracting ?? [];
+  // The adapter is the single decision point for which equipment entries are
+  // mirrored (including the 15 % rule), so nothing is filtered again here.
   const equipmentByParticipant: B31EquipmentParticipant[] = (source?.categories.equipment ?? [])
-    .filter((entry) => source?.presence.equipmentAboveThreshold)
     .map((entry) => ({
       ...entry,
       personnelCosts: source?.personnelCosts[entry.participantId] ?? 0,
@@ -179,12 +180,10 @@ export function useB31SectionData(proposalId: string) {
     pertFigure,
     ganttFigure,
     subcontractingByParticipant,
-    equipmentByParticipant: equipmentByParticipant.filter(
-      (entry) => (source?.personnelCosts[entry.participantId] ?? 0) > 0 &&
-        entry.totalCost > (source?.personnelCosts[entry.participantId] ?? 0) * 0.15,
-    ),
+    equipmentByParticipant,
     travelByParticipant,
     otherGoodsByParticipant,
+    isLumpSum: source?.isLumpSum ?? false,
     loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetSourceQuery.isLoading,
   };
 }

@@ -188,6 +188,13 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
     if (personnel > 0 && totalEquip > personnel * 0.15) equipmentAboveThreshold = true;
     else equipmentBelowThreshold = true;
   }
+  // The 15 % equipment rule lives here for both models, so no consumer filters
+  // mirrored items a second time. Traditional behaviour is unchanged: only
+  // participants whose equipment exceeds 15 % of their personnel costs appear.
+  categories.equipment = categories.equipment.filter((entry) => {
+    const personnel = personnelCosts[entry.participantId] || 0;
+    return personnel > 0 && entry.totalCost > personnel * 0.15;
+  });
 
   return {
     budgetType: 'traditional',
@@ -358,10 +365,8 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
       depreciation.filter((i) => i.participant_id === participantId),
     );
     personnelCosts[participantId] = totals.personnelCost;
-    const equipTotal =
-      categories.equipment.find((e) => e.participantId === participantId)?.totalCost ?? 0;
-    if (equipTotal <= 0) continue;
-    if (totals.personnelCost > 0 && equipTotal > totals.personnelCost * 0.15) {
+    if (totals.equipmentCost <= 0) continue;
+    if (totals.personnelCost > 0 && totals.equipmentCost > totals.personnelCost * 0.15) {
       equipmentAboveThresholdFor.add(participantId);
     } else {
       equipmentBelowThreshold = true;
