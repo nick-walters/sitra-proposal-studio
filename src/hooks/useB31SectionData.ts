@@ -161,10 +161,8 @@ export function useB31SectionData(proposalId: string) {
 
   const source = budgetSourceQuery.data;
   const subcontractingByParticipant = source?.categories.subcontracting ?? [];
-  // Lump-sum mirroring has already been resolved by budgetSourceAdapter. Keep
-  // the legacy threshold filter for traditional proposals unchanged.
   const equipmentByParticipant: B31EquipmentParticipant[] = (source?.categories.equipment ?? [])
-    .filter((entry) => source?.isLumpSum || source?.presence.equipmentAboveThreshold)
+    .filter((entry) => source?.presence.equipmentAboveThreshold)
     .map((entry) => ({
       ...entry,
       personnelCosts: source?.personnelCosts[entry.participantId] ?? 0,
@@ -181,12 +179,10 @@ export function useB31SectionData(proposalId: string) {
     pertFigure,
     ganttFigure,
     subcontractingByParticipant,
-    equipmentByParticipant: source?.isLumpSum
-      ? equipmentByParticipant
-      : equipmentByParticipant.filter(
-        (entry) => (source?.personnelCosts[entry.participantId] ?? 0) > 0 &&
-          entry.totalCost > (source?.personnelCosts[entry.participantId] ?? 0) * 0.15,
-      ),
+    equipmentByParticipant: equipmentByParticipant.filter(
+      (entry) => (source?.personnelCosts[entry.participantId] ?? 0) > 0 &&
+        entry.totalCost > (source?.personnelCosts[entry.participantId] ?? 0) * 0.15,
+    ),
     travelByParticipant,
     otherGoodsByParticipant,
     loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetSourceQuery.isLoading,
