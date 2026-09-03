@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Lock, Unlock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/formatNumber';
-import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
-import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
+import { ParticipantBubble } from '@/components/B31Pill';
+import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, PersonMonthTotalsRows, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { LumpSumValidationPanel } from '@/components/LumpSumValidationPanel';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
@@ -28,9 +28,6 @@ const BLOCKS = [
   { line: 'A.4', label: 'A.4 Personnel costs — SME owners and natural person beneficiaries' },
 ];
 
-function formatPM(value: number) {
-  return value.toFixed(1);
-}
 
 export function LumpSumBudgetPanel({
   proposalId,
@@ -222,13 +219,11 @@ export function LumpSumBudgetPanel({
                  labels each value with the same number-only WPBubble badge the
                  A.1–A.4 tables use for their work-package columns.
                */}
-               <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 px-1.5 pb-1 text-xs">
-                 <span className="mr-auto text-muted-foreground">Total person-months per work package</span>
-                 {workPackages.map(wp => <span key={wp.id} className="inline-flex items-center gap-1">
-                   <span title={wp.short_name ? `WP${wp.number}: ${wp.short_name}` : (wp.title ?? undefined)}><WPBubble wpNumber={wp.number} wpColor={wp.color} /></span>
-                   <span className="font-semibold tabular-nums">{formatPM(participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}</span>
-                 </span>)}
-               </div>
+               <PersonMonthTotalsRows
+                 label="Total person-months per work package"
+                 workPackages={workPackages}
+                 personMonths={workPackages.map(wp => participantRoles.reduce((sum, role) => sum + Number(efforts.find(effort => effort.role_id === role.id && effort.wp_draft_id === wp.id)?.person_months || 0), 0))}
+               />
                {/*
                  The A total reuses the B–D total row geometry: the label sits on
                  one line immediately left of the Cost column, the value's right
