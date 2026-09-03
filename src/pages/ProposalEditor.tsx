@@ -765,8 +765,6 @@ export function ProposalEditor() {
             proposalId={id || ''}
              proposalType={proposal?.type || null}
              budgetType={proposal?.budgetType}
-             traditionalBudgetLocked={proposal?.traditionalBudgetLocked}
-             lumpSumBudgetLocked={proposal?.lumpSumBudgetLocked}
              canEdit={canEdit}
              isCoordinator={isCoordinator}
              usesFstp={proposal?.usesFstp}
