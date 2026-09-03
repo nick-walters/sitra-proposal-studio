@@ -263,7 +263,6 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   // as the database is_proposal_admin policy does, including global owner/admin.
   const { isCoordinator: canChangeMirroring } = useProposalData(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
-  const depreciation = useLumpSumDepreciation(proposalId);
   const mirroredItems = (depreciation.data?.items ?? []).filter(item => item.participant_id === participantId && item.include_in_c2);
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
   const items = data?.items.filter(item => item.participant_id === participantId) ?? [];
