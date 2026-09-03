@@ -5,7 +5,6 @@ import { formatCurrency } from '@/lib/formatNumber';
 import { ParticipantBubble } from '@/components/B31Pill';
 import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, PersonMonthTotalsRows, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
-import { LumpSumValidationPanel } from '@/components/LumpSumValidationPanel';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
