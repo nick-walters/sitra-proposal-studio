@@ -327,6 +327,9 @@ export function BudgetPortalSheet({
       ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 2, 8) }));
     };
 
+    // Export the budget model the proposal actually uses: never a mixture.
+    const isLumpSumExport = budgetType === 'lump_sum';
+    if (!isLumpSumExport) {
     // ─── Sheet 1: Staff Effort ───
     const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
     const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
@@ -722,6 +725,7 @@ export function BudgetPortalSheet({
     autoFitCols(ws3, overviewAoa);
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+    } // end actual-costs sheets
 
     await appendLumpSumSheets(wb, XLSX, proposalId, budgetType);
 
