@@ -159,7 +159,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-full" onFocusCapture={dispatchToolbarFocus}>
+    <div className="w-full max-w-full overflow-x-auto" onFocusCapture={dispatchToolbarFocus}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.f"
@@ -170,11 +170,10 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <table
         ref={tableRef}
         data-table-key="effort-matrix"
-        className={`${tableStyles} b31-effort-matrix first-col-flush max-w-full [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-0 [&_tr]:border-0`}
+        className={`${tableStyles} b31-effort-matrix first-col-flush [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-0 [&_tr]:border-0`}
         style={{
           tableLayout: sized ? 'fixed' : 'auto',
-          width: totalWidth != null ? `${Math.min(totalWidth, BLOCK_WIDTH)}px` : 'auto',
-          maxWidth: `${BLOCK_WIDTH}px`,
+          width: totalWidth != null ? `${totalWidth}px` : 'auto',
           borderCollapse: 'collapse',
         }}
       >
