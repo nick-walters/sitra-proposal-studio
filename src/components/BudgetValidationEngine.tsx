@@ -212,7 +212,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
         supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
-        supabase.from('proposals').select('type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
+        supabase.from('proposals').select('type, budget_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
 
       const results: ValidationRule[] = [];
