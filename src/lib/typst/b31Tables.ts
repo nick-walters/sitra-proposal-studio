@@ -45,8 +45,11 @@ const NBSP = '\u00a0';
 const CHIP_GAP = ` + t(${typstString(NBSP)}) + `;
 /** Chip-to-chip separator: a plain space, so a run of chips may still wrap. */
 const CHIP_SEP = ` + t(" ") + `;
-/** Separator between aggregated justification runs. */
-const JUSTIFICATION_SEP = ` + t(${typstString('; ')}) + `;
+/**
+ * The pale band behind alternating rows — the same `#f4f4f5` the staff effort
+ * table (`B31EffortMatrix.tsx`, `BAND`) uses for its row pills.
+ */
+const COST_BAND = 'rgb("#f4f4f5")';
 /**
  * Tighter chip-to-chip separator for table 3.1.b, whose participant badges
  * carried about 10 px too much space to their right. A plain space with a
