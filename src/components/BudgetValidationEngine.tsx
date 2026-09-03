@@ -283,7 +283,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
       });
 
       // 2. Requested EU contribution vs the topic's indicative maximum budget.
-      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
+      // indicativeMax was parsed before the lump-sum dispatch.
       if (indicativeMax != null && rows.length > 0) {
         const partById = new Map(parts.map((p) => [p.id, p]));
         const requestedTotal = rows.reduce((sum, r: any) => {
