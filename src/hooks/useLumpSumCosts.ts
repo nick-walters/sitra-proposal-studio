@@ -74,21 +74,24 @@ export function useLumpSumCosts(proposalId: string) {
     queryKey,
     enabled: Boolean(proposalId),
     queryFn: async (): Promise<LumpSumCostsData> => {
-      const [itemsResult, wpResult, participantResult, proposalResult] = await Promise.all([
+      const [itemsResult, wpResult, participantResult, proposalResult, mirrorResult] = await Promise.all([
         supabase.from('ls_cost_items').select('id, proposal_id, participant_id, wp_draft_id, cost_line, quantity, unit_cost, amount, justification, order_index').eq('proposal_id', proposalId).order('participant_id').order('cost_line').order('order_index'),
         supabase.from('wp_drafts').select('id, number, short_name, title, color').eq('proposal_id', proposalId).order('number'),
         supabase.from('participants').select('id, participant_number, organisation_short_name').eq('proposal_id', proposalId).order('participant_number'),
         supabase.from('proposals').select('uses_fstp').eq('id', proposalId).single(),
+        supabase.from('ls_mirror_settings').select('cost_line, is_mirrored').eq('proposal_id', proposalId),
       ]);
-      const failure = [itemsResult, wpResult, participantResult, proposalResult].find(result => result.error);
+      const failure = [itemsResult, wpResult, participantResult, proposalResult, mirrorResult].find(result => result.error);
       if (failure?.error) throw failure.error;
       return {
         items: (itemsResult.data ?? []) as LumpSumCostItem[],
         workPackages: (wpResult.data ?? []) as LumpSumCostWorkPackage[],
         participants: (participantResult.data ?? []) as LumpSumCostParticipant[],
         usesFstp: Boolean(proposalResult.data?.uses_fstp),
+        mirrorSettings: Object.fromEntries((mirrorResult.data ?? []).map(row => [row.cost_line, Boolean(row.is_mirrored)])),
       };
     },
+
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
