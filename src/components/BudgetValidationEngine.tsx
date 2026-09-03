@@ -218,6 +218,13 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
       const results: ValidationRule[] = [];
       const rows = budgetRows || [];
       const parts = participants || [];
+      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
+
+      if ((proposal as any)?.budget_type === 'lump_sum') {
+        setRules(await validateLumpSumBudget(proposalId, parts, indicativeMax));
+        setHasRun(true);
+        return;
+      }
 
       const pmTotals = new Map<string, number>();
       (effortData || []).forEach((e: any) => {
