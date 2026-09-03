@@ -12,7 +12,7 @@ import { formatCurrency, formatNumber } from '@/lib/formatNumber';
 import { DifferenceNote, NUM_READ_FIELD, READ_FIELD } from '@/components/LumpSumPersonnelTable';
 import { LS_COL, LS_D_MIN_WIDTH, LS_FIGURE_CELL, LS_ITEMISED_MIN_WIDTH, LS_TABLE } from '@/lib/lumpSumLayout';
 import { MIRRORABLE_COST_LINES, type LumpSumCostItem, type LumpSumCostWorkPackage, useLumpSumCosts } from '@/hooks/useLumpSumCosts';
-import { useProposalRole } from '@/hooks/useProposalRole';
+import { useProposalData } from '@/hooks/useProposalData';
 import { useLumpSumDepreciation, type DepreciationItem } from '@/hooks/useLumpSumDepreciation';
 import { mirroredCostLineAmount } from '@/lib/lumpSumFigures';
 import LumpSumDepreciationSection, {
