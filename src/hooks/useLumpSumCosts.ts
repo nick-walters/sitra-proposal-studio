@@ -196,8 +196,9 @@ export function useLumpSumCosts(proposalId: string) {
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    setMirror: (costLine: string, isMirrored: boolean) => setMirror.mutate({ costLine, isMirrored }),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirror.isPending,
+    setMirror: (costLine: string, isMirrored: boolean) => setMirrors.mutate({ costLines: [costLine], isMirrored }),
+    setMirrors: (costLines: string[], isMirrored: boolean) => setMirrors.mutate({ costLines, isMirrored }),
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirrors.isPending,
   };
 
 }
