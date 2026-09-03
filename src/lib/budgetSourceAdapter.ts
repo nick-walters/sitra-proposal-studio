@@ -298,6 +298,34 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
       .map((row) => [row.cost_line, Boolean(row.is_mirrored)]),
   );
 
+  /* The canonical helper is also used for the threshold test. Its C.2 input is
+   * normalised to equipment so all three C.2 sub-lines plus all depreciation
+   * resource types are included without creating a second calculation path. */
+  const personnelCosts: Record<string, number> = {};
+  const equipmentAboveThresholdFor = new Set<string>();
+  let equipmentBelowThreshold = false;
+  for (const participantId of participantIds) {
+    const pRoles = roles.filter((r) => r.participant_id === participantId && /^A\.[1-4]$/.test(r.cost_line));
+    const a4UnitCost = Number(budgets.find((b) => b.participant_id === participantId)?.a4_unit_cost ?? 0);
+    const participantItems = costItems.filter((i) => i.participant_id === participantId);
+    const participantDepreciation = depreciation.filter((i) => i.participant_id === participantId);
+    const totals = equipmentAndPersonnelTotals(
+      pRoles,
+      efforts,
+      workPackages,
+      a4UnitCost,
+      participantItems.map((item) => item.cost_line.startsWith('C.2.') ? { ...item, cost_line: 'C.2.equipment' } : item),
+      participantDepreciation.map((item) => item.include_in_c2 ? { ...item, resource_type: 'equipment' } : item),
+    );
+    personnelCosts[participantId] = totals.personnelCost;
+    if (totals.equipmentCost <= 0) continue;
+    if (totals.personnelCost > 0 && totals.equipmentCost > totals.personnelCost * 0.15) equipmentAboveThresholdFor.add(participantId);
+    else equipmentBelowThreshold = true;
+  }
+
+  const c2MirroredFor = (participantId: string, costLine: string) =>
+    Boolean(mirrorSettings[costLine] || mirrorSettings['C.2']) || equipmentAboveThresholdFor.has(participantId);
+
   /* cost justifications */
   const categories = EMPTY_CATEGORIES();
   const buckets = new Map<BudgetCategory, Map<string, B31JustificationItem[]>>();
@@ -313,71 +341,25 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     if (!category) continue;
     if (category === 'travel' && !mirrorSettings['C.1']) continue;
     if (category === 'other_goods' && !mirrorSettings[item.cost_line]) continue;
+    if (category === 'equipment' && !c2MirroredFor(item.participant_id, item.cost_line)) continue;
     const amount = num(item.amount);
     const justification = item.justification || '';
     if (amount === 0 && !justification.trim()) continue;
     const wp = wpById.get(item.wp_draft_id);
-    push(category, item.participant_id, {
-      amount,
-      justification,
-      wpNumber: wp?.number ?? null,
-      wpShortName: wp?.short_name ?? wp?.title ?? null,
-      wpColor: wp?.color ?? null,
-    });
+    push(category, item.participant_id, { amount, justification, wpNumber: wp?.number ?? null, wpShortName: wp?.short_name ?? wp?.title ?? null, wpColor: wp?.color ?? null });
   }
 
-  // A depreciation investment mirrored into C.2 is an equipment justification:
-  // its charged depreciation, with the investment's short name and comments.
+  // A depreciation investment mirrors into its C.2 resource-type sub-line.
   for (const item of depreciation) {
-    if (!item.include_in_c2) continue;
+    if (!item.include_in_c2 || !c2MirroredFor(item.participant_id, `C.2.${item.resource_type}`)) continue;
     const amount = num(item.charged_depreciation);
     const text = [item.short_name || '', item.comments || ''].filter((s) => s.trim()).join(' — ');
     if (amount === 0 && !text) continue;
     const wp = wpById.get(item.wp_draft_id);
-    push('equipment', item.participant_id, {
-      amount,
-      justification: text,
-      wpNumber: wp?.number ?? null,
-      wpShortName: wp?.short_name ?? wp?.title ?? null,
-      wpColor: wp?.color ?? null,
-    });
+    push('equipment', item.participant_id, { amount, justification: text, wpNumber: wp?.number ?? null, wpShortName: wp?.short_name ?? wp?.title ?? null, wpColor: wp?.color ?? null });
   }
 
   for (const [category, map] of buckets) categories[category] = entriesFrom(map);
-
-  /* personnel cost and the 15 % equipment rule — rounded portal figures */
-  const personnelCosts: Record<string, number> = {};
-  const equipmentAboveThresholdFor = new Set<string>();
-  let equipmentBelowThreshold = false;
-  for (const participantId of participantIds) {
-    const pRoles = roles.filter(
-      (r) => r.participant_id === participantId && /^A\.[1-4]$/.test(r.cost_line),
-    );
-    const a4UnitCost = Number(
-      budgets.find((b) => b.participant_id === participantId)?.a4_unit_cost ?? 0,
-    );
-    const totals = equipmentAndPersonnelTotals(
-      pRoles,
-      efforts,
-      workPackages,
-      a4UnitCost,
-      costItems.filter((i) => i.participant_id === participantId),
-      depreciation.filter((i) => i.participant_id === participantId),
-    );
-    personnelCosts[participantId] = totals.personnelCost;
-    if (totals.equipmentCost <= 0) continue;
-    if (totals.personnelCost > 0 && totals.equipmentCost > totals.personnelCost * 0.15) {
-      equipmentAboveThresholdFor.add(participantId);
-    } else {
-      equipmentBelowThreshold = true;
-    }
-  }
-
-  /* C.2 is a single equipment switch: checked mirrors every equipment item;
-   * unchecked keeps only participants above the canonical 15% threshold. */
-  categories.equipment = mirrorSettings['C.2']
-    ? categories.equipment
-    : categories.equipment.filter((entry) => equipmentAboveThresholdFor.has(entry.participantId));
 
   const present = (category: BudgetCategory) =>
     categories[category].some((entry) => entry.items.some((i) => i.amount > 0));
