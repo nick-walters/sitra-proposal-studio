@@ -32,12 +32,24 @@ export type LumpSumCostItem = {
   order_index: number;
 };
 
+/**
+ * The C lines that can be mirrored into B3.1 Table 3.1.h. C.2 is a single flag
+ * covering all three of its sub-lines, because the 15% rule applies to
+ * equipment as a whole.
+ */
+export const MIRRORABLE_COST_LINES = [
+  'C.1', 'C.2', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
+] as const;
+
 export type LumpSumCostsData = {
   items: LumpSumCostItem[];
   workPackages: LumpSumCostWorkPackage[];
   participants: LumpSumCostParticipant[];
   usesFstp: boolean;
+  /** cost_line → mirrored. A missing row means not mirrored. */
+  mirrorSettings: Record<string, boolean>;
 };
+
 
 function errorMessage(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error) {
@@ -62,21 +74,24 @@ export function useLumpSumCosts(proposalId: string) {
     queryKey,
     enabled: Boolean(proposalId),
     queryFn: async (): Promise<LumpSumCostsData> => {
-      const [itemsResult, wpResult, participantResult, proposalResult] = await Promise.all([
+      const [itemsResult, wpResult, participantResult, proposalResult, mirrorResult] = await Promise.all([
         supabase.from('ls_cost_items').select('id, proposal_id, participant_id, wp_draft_id, cost_line, quantity, unit_cost, amount, justification, order_index').eq('proposal_id', proposalId).order('participant_id').order('cost_line').order('order_index'),
         supabase.from('wp_drafts').select('id, number, short_name, title, color').eq('proposal_id', proposalId).order('number'),
         supabase.from('participants').select('id, participant_number, organisation_short_name').eq('proposal_id', proposalId).order('participant_number'),
         supabase.from('proposals').select('uses_fstp').eq('id', proposalId).single(),
+        supabase.from('ls_mirror_settings').select('cost_line, is_mirrored').eq('proposal_id', proposalId),
       ]);
-      const failure = [itemsResult, wpResult, participantResult, proposalResult].find(result => result.error);
+      const failure = [itemsResult, wpResult, participantResult, proposalResult, mirrorResult].find(result => result.error);
       if (failure?.error) throw failure.error;
       return {
         items: (itemsResult.data ?? []) as LumpSumCostItem[],
         workPackages: (wpResult.data ?? []) as LumpSumCostWorkPackage[],
         participants: (participantResult.data ?? []) as LumpSumCostParticipant[],
         usesFstp: Boolean(proposalResult.data?.uses_fstp),
+        mirrorSettings: Object.fromEntries((mirrorResult.data ?? []).map(row => [row.cost_line, Boolean(row.is_mirrored)])),
       };
     },
+
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
@@ -149,7 +164,23 @@ export function useLumpSumCosts(proposalId: string) {
     onSuccess: invalidate,
     onError: (error: unknown) => toast.error(`Failed to reorder cost items: ${errorMessage(error)}`),
   });
-
+  /**
+   * Whether a C line is mirrored into B3.1 Table 3.1.h. Proposal-level, so it
+   * also refreshes the B3.1 budget source the adapter feeds.
+   */
+  const setMirror = useMutation({
+    mutationFn: async ({ costLine, isMirrored }: { costLine: string; isMirrored: boolean }) => {
+      const { error } = await supabase
+        .from('ls_mirror_settings')
+        .upsert({ proposal_id: proposalId, cost_line: costLine, is_mirrored: isMirrored }, { onConflict: 'proposal_id,cost_line' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['b31-budget-source', proposalId] });
+    },
+    onError: (error: unknown) => toast.error(`Failed to update mirroring: ${errorMessage(error)}`),
+  });
 
   const debounced = (key: string, callback: () => void) => {
     if (timers.current[key]) clearTimeout(timers.current[key]);
@@ -166,6 +197,8 @@ export function useLumpSumCosts(proposalId: string) {
     changeWorkPackage: (itemId: string, value: string) => updateItem.mutate({ itemId, field: 'wp_draft_id', value }),
     deleteItem: (itemId: string) => deleteItem.mutate(itemId),
     reorderItems: (orderedIds: string[]) => reorderItems.mutate({ orderedIds }),
-    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending,
+    setMirror: (costLine: string, isMirrored: boolean) => setMirror.mutate({ costLine, isMirrored }),
+    saving: addItem.isPending || updateItem.isPending || deleteItem.isPending || reorderItems.isPending || setMirror.isPending,
   };
+
 }
