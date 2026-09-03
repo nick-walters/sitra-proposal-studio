@@ -236,7 +236,7 @@ function MirrorCheckbox({ costLine, checked, canChange, title, onChange }: {
   if (!canChange) return null;
   // The checkbox sits in the existing right gutter, to the right of the shared
   // figure column. No new column, no width change.
-  return <HeaderControl className="justify-center" style={{ width: LS_RIGHT_GUTTER }}>
+  return <HeaderControl className="w-[34px] justify-center">
     <Checkbox
       id={`mirror-${costLine}`}
       className="h-3.5 w-3.5"
