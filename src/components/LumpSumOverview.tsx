@@ -1,13 +1,86 @@
 import { useEffect, useMemo } from 'react';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
 import { CollapsibleHeader, lsCollapseStorageKey, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatCurrency } from '@/lib/formatNumber';
+import { useProposalData } from '@/hooks/useProposalData';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { useLumpSumTotals } from '@/hooks/useLumpSumTotals';
 import { buildWpInputs, computeWpTotals, personMonthsForRoles, roundCents } from '@/lib/lumpSumFigures';
 import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
+
+/**
+ * Mirroring is stored on (proposal_id, cost_line) — it is a proposal-wide
+ * setting, which is why it lives here rather than on a participant tab.
+ */
+const MIRROR_ROWS: { key: string; label: string; children?: { key: string; label: string }[] }[] = [
+  { key: 'C.1', label: 'C.1 Travel and subsistence' },
+  {
+    key: 'C.2',
+    label: 'C.2 Equipment',
+    children: [
+      { key: 'C.2.infrastructure', label: 'Infrastructure' },
+      { key: 'C.2.equipment', label: 'Equipment' },
+      { key: 'C.2.other_assets', label: 'Other assets' },
+    ],
+  },
+  {
+    key: 'C.3',
+    label: 'C.3 Other goods, works and services',
+    children: [
+      { key: 'C.3.consumables', label: 'Consumables' },
+      { key: 'C.3.meetings', label: 'Services for meetings, seminars' },
+      { key: 'C.3.dissemination', label: 'Services for dissemination activities (including website)' },
+      { key: 'C.3.publication', label: 'Publication fees' },
+      { key: 'C.3.other', label: 'Other (shipment, insurance, translation, etc.)' },
+    ],
+  },
+];
+
+const C2_HELPER = 'Ticked mirrors all equipment; unticked mirrors only participants whose equipment exceeds 15% of their personnel costs.';
+
+/** Coordinator-and-above only. The overview itself stays visible to everyone. */
+function MirrorSettingsBlock({ proposalId, collapsed, onToggle }: { proposalId: string; collapsed: boolean; onToggle: () => void }) {
+  const { data, setMirror, setMirrors } = useLumpSumCosts(proposalId);
+  // Same proposal-level role check the checkboxes used before, mapping
+  // owner/admin/coordinator exactly as the is_proposal_admin policy does.
+  const { isCoordinator: canChangeMirroring } = useProposalData(proposalId);
+  if (!canChangeMirroring) return null;
+  const settings = data?.mirrorSettings ?? {};
+  const hasC2SublineSettings = ['C.2.infrastructure', 'C.2.equipment', 'C.2.other_assets'].some(key => settings[key] !== undefined);
+  const isChecked = (key: string) => Boolean(settings[key] || (key.startsWith('C.2.') && settings['C.2'] && !hasC2SublineSettings));
+
+  const row = (key: string, label: string, checked: boolean | 'indeterminate', onChange: (next: boolean) => void, nested: boolean, helper?: string) =>
+    <div key={key} className={nested ? 'pl-8' : ''}>
+      <label className="flex items-center gap-2 py-1 text-xs">
+        <Checkbox className="h-3.5 w-3.5" checked={checked} onCheckedChange={value => onChange(value === true)} />
+        <span className={nested ? '' : 'font-semibold'}>{label}</span>
+      </label>
+      {helper && <p className="pb-1 pl-[22px] text-[11px] text-muted-foreground">{helper}</p>}
+    </div>;
+
+  return <section className="border-b border-border">
+    <CollapsibleHeader collapsed={collapsed} onToggle={onToggle} label="Mirrored to Part B Table 3.1.h" level="major" className="gap-2 px-1">
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-none">Mirrored to Part B Table 3.1.h</span>
+    </CollapsibleHeader>
+    {!collapsed && <div className="px-1 pb-3">
+      <p className="pb-2 text-xs text-muted-foreground">These settings apply to the whole proposal, not to a single participant.</p>
+      {MIRROR_ROWS.map(line => {
+        if (!line.children) return row(line.key, line.label, isChecked(line.key), next => setMirror(line.key, next), false);
+        const childStates = line.children.map(child => isChecked(child.key));
+        const checked = childStates.every(Boolean);
+        const indeterminate = childStates.some(Boolean) && !checked;
+        const childKeys = line.children.map(child => child.key);
+        return <div key={line.key}>
+          {row(line.key, line.label, indeterminate ? 'indeterminate' : checked, next => setMirrors(childKeys, next), false, line.key === 'C.2' ? C2_HELPER : undefined)}
+          {line.children.map(child => row(child.key, child.label, isChecked(child.key), next => setMirror(child.key, next), true))}
+        </div>;
+      })}
+    </div>}
+  </section>;
+}
 
 /**
  * Consortium-wide, read-only overview of the lump sum budget: every participant
@@ -160,5 +233,6 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
     {table('total-costs', 'Total costs (F) by participant and work package', cell => cell.total, row => row.total, formatCurrency, 'Consortium total')}
     {table('requested', 'Lump sum breakdown — requested EU contribution (H)', cell => cell.requested, row => row.requested, formatCurrency, 'Total requested lump sum')}
     {table('person-months', 'Person months by participant and work package', cell => cell.personMonths, row => row.personMonths, formatPM, 'Consortium total')}
+    <MirrorSettingsBlock proposalId={proposalId} collapsed={isCollapsed('ls-overview:mirrors')} onToggle={() => toggle('ls-overview:mirrors')} />
   </div>;
 }
