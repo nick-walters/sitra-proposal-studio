@@ -328,7 +328,7 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
 
   /* personnel cost and the 15 % equipment rule — rounded portal figures */
   const personnelCosts: Record<string, number> = {};
-  let equipmentAboveThreshold = false;
+  const equipmentAboveThresholdFor = new Set<string>();
   let equipmentBelowThreshold = false;
   for (const participantId of participantIds) {
     const pRoles = roles.filter(
@@ -350,11 +350,22 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
       categories.equipment.find((e) => e.participantId === participantId)?.totalCost ?? 0;
     if (equipTotal <= 0) continue;
     if (totals.personnelCost > 0 && equipTotal > totals.personnelCost * 0.15) {
-      equipmentAboveThreshold = true;
+      equipmentAboveThresholdFor.add(participantId);
     } else {
       equipmentBelowThreshold = true;
     }
   }
+
+  /* ── mirroring: this adapter is the ONLY place that decides ──
+   * C.1 and each C.3 sub-line appear only when their flag is set. C.2 appears
+   * in full when its flag is set, and otherwise only for participants whose
+   * equipment exceeds 15 % of their own personnel cost (the one mandatory case).
+   */
+  categories.travel = mirrors['C.1'] ? categories.travel : [];
+  categories.other_goods = mirrors['C.2'] === undefined && false ? categories.other_goods : otherGoodsMirrored;
+  categories.equipment = mirrors['C.2']
+    ? categories.equipment
+    : categories.equipment.filter((entry) => equipmentAboveThresholdFor.has(entry.participantId));
 
   const present = (category: BudgetCategory) =>
     categories[category].some((entry) => entry.items.some((i) => i.amount > 0));
@@ -370,7 +381,9 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
       subcontracting: present('subcontracting'),
       travel: present('travel'),
       equipment: present('equipment'),
-      equipmentAboveThreshold,
+      // Consumers read this as "the equipment block belongs in 3.1.h". After
+      // mirroring is resolved here, anything still present belongs there.
+      equipmentAboveThreshold: present('equipment'),
       equipmentBelowThreshold,
       otherGoods: present('other_goods'),
       fstp: present('fstp'),
@@ -378,6 +391,7 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     },
   };
 }
+
 
 /** The single entry point. Dispatches on `proposals.budget_type`. */
 export async function fetchBudgetSource(proposalId: string): Promise<BudgetSourceData> {
