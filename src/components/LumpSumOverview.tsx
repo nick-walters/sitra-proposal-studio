@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ParticipantBubble, WPBubble } from '@/components/B31Pill';
-import { CollapsibleHeader, useLsCollapse } from '@/components/LumpSumDepreciationSection';
+import { CollapsibleHeader, lsCollapseStorageKey, useLsCollapse } from '@/components/LumpSumDepreciationSection';
 import { formatCurrency } from '@/lib/formatNumber';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
