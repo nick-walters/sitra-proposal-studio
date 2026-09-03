@@ -32,12 +32,24 @@ export type LumpSumCostItem = {
   order_index: number;
 };
 
+/**
+ * The C lines that can be mirrored into B3.1 Table 3.1.h. C.2 is a single flag
+ * covering all three of its sub-lines, because the 15% rule applies to
+ * equipment as a whole.
+ */
+export const MIRRORABLE_COST_LINES = [
+  'C.1', 'C.2', 'C.3.consumables', 'C.3.meetings', 'C.3.dissemination', 'C.3.publication', 'C.3.other',
+] as const;
+
 export type LumpSumCostsData = {
   items: LumpSumCostItem[];
   workPackages: LumpSumCostWorkPackage[];
   participants: LumpSumCostParticipant[];
   usesFstp: boolean;
+  /** cost_line → mirrored. A missing row means not mirrored. */
+  mirrorSettings: Record<string, boolean>;
 };
+
 
 function errorMessage(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error) {
