@@ -662,6 +662,8 @@ function costCells(
   const cells: string[] = header.map((h) => `table.cell(text(weight: "bold", ${h}))`);
   let nrows = 1;
   let total = 0;
+  /** Body row counter, so alternate rows carry the same pale band as 3.1.f. */
+  let bodyRow = 0;
 
   const itemText = (item: TypstCostEntry['items'][number], categoryLabel?: string): string => {
     const prefix = categoryLabel ? `${bold(emphLit(categoryLabel + ': '))} + ` : '';
@@ -670,6 +672,14 @@ function costCells(
       : `${CHIP_GAP}${wpChip(item.wpNumber, item.wpColor || getDefaultWPColor(item.wpNumber))}`;
     return `${prefix}${rich(item.justification, ctx)}${badge}`;
   };
+
+  /** A body cell, banded when its row is one of the alternating shaded rows. */
+  const bodyCell = (body: string, banded: boolean, extra = ''): string =>
+    banded
+      ? `table.cell(fill: ${COST_BAND}, ${extra}${body})`
+      : extra
+        ? `table.cell(${extra}${body})`
+        : body;
 
   for (const bucket of grouped) {
     const lines = bucket.groups
@@ -680,15 +690,19 @@ function costCells(
     cells.push(
       `table.cell(rowspan: ${span}, align: left + top, ${participantChip(bucket.participant)})`,
     );
-    lines.forEach((line, index) => {
-      cells.push(lit(formatCurrency(line.item.amount)));
-      if (index === 0) {
-        cells.push(
-          `table.cell(rowspan: ${lines.length}, align: left + top, ${lines.map((entry) => itemText(entry.item, entry.categoryLabel)).join(JUSTIFICATION_SEP)})`,
-        );
-      }
+    // One row per cost item: the amount, and its own justification beside it.
+    lines.forEach((line) => {
+      const banded = bodyRow % 2 === 1;
+      bodyRow += 1;
+      cells.push(bodyCell(lit(formatCurrency(line.item.amount)), banded));
+      cells.push(bodyCell(itemText(line.item, line.categoryLabel), banded, 'align: left + top, '));
     });
-    cells.push(bold(lit(formatCurrency(bucket.total))), `emph(${lit('Subtotal')})`);
+    const subBanded = bodyRow % 2 === 1;
+    bodyRow += 1;
+    cells.push(
+      bodyCell(bold(lit(formatCurrency(bucket.total))), subBanded),
+      bodyCell(`emph(${lit('Subtotal')})`, subBanded),
+    );
     nrows += span;
     total += bucket.total;
   }
