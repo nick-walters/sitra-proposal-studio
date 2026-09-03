@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { formatPercent, formatCurrency } from '@/lib/formatNumber';
 import { computeBudgetRow } from '@/lib/budgetCompute';
+import {
+  buildWpInputs,
+  computeWpTotals,
+  costLineAmount,
+  depreciationAmount,
+  roundCents,
+} from '@/lib/lumpSumFigures';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -67,6 +74,132 @@ export function parseIndicativeMaximum(text: string | null | undefined): number 
 }
 
 
+async function validateLumpSumBudget(
+  proposalId: string,
+  parts: any[],
+  indicativeMax: number | null,
+): Promise<ValidationRule[]> {
+  const [wpResult, roleResult, effortResult, itemResult, depreciationResult, wpBudgetResult, participantBudgetResult, proposalResult] = await Promise.all([
+    supabase.from('wp_drafts').select('id, number, short_name, title, color').eq('proposal_id', proposalId).order('number'),
+    supabase.from('ls_personnel_roles').select('id, proposal_id, participant_id, cost_line, role_name, he_category, pm_rate, order_index').eq('proposal_id', proposalId),
+    supabase.from('ls_personnel_effort').select('id, role_id, wp_draft_id, person_months').eq('proposal_id', proposalId),
+    supabase.from('ls_cost_items').select('id, proposal_id, participant_id, wp_draft_id, cost_line, quantity, unit_cost, amount, justification, order_index').eq('proposal_id', proposalId),
+    supabase.from('ls_depreciation_items').select('id, proposal_id, participant_id, wp_draft_id, resource_type, short_name, purchase_date, purchase_cost, pct_project, pct_useful_life, comments, include_in_c2, order_index, charged_depreciation').eq('proposal_id', proposalId),
+    supabase.from('ls_wp_budget').select('id, participant_id, wp_draft_id, comments, requested_eu_contribution').eq('proposal_id', proposalId),
+    supabase.from('ls_participant_budget').select('participant_id, a4_unit_cost, funding_rate_override, is_locked').eq('proposal_id', proposalId),
+    supabase.from('proposals').select('ls_indirect_cost_rate, ls_default_funding_rate').eq('id', proposalId).single(),
+  ]);
+  const failure = [wpResult, roleResult, effortResult, itemResult, depreciationResult, wpBudgetResult, participantBudgetResult, proposalResult].find(result => result.error);
+  if (failure?.error) throw failure.error;
+
+  const workPackages = (wpResult.data ?? []) as any[];
+  const roles = (roleResult.data ?? []) as any[];
+  const efforts = (effortResult.data ?? []) as any[];
+  const items = (itemResult.data ?? []) as any[];
+  const depreciation = (depreciationResult.data ?? []) as any[];
+  const wpBudgets = (wpBudgetResult.data ?? []) as any[];
+  const participantBudgets = (participantBudgetResult.data ?? []) as any[];
+  const indirectRate = Number(proposalResult.data?.ls_indirect_cost_rate ?? 0);
+  const defaultFundingRate = Number(proposalResult.data?.ls_default_funding_rate ?? 0);
+  const totals = new Map<string, { direct: number; personnel: number; subcontracting: number; equipment: number; requested: number; hasData: boolean }>();
+  let totalDirect = 0;
+  let totalDirectExFstp = 0;
+  let subcontractingTotal = 0;
+  let personnelTotal = 0;
+  let requestedTotal = 0;
+  let equipmentTotal = 0;
+
+  for (const participant of parts) {
+    const participantRoles = roles.filter(role => role.participant_id === participant.id);
+    const participantItems = items.filter(item => item.participant_id === participant.id);
+    const participantDepreciation = depreciation.filter(item => item.participant_id === participant.id);
+    const participantBudget = participantBudgets.find(row => row.participant_id === participant.id);
+    const a4UnitCost = Number(participantBudget?.a4_unit_cost ?? 0);
+    const fundingRate = participantBudget?.funding_rate_override ?? defaultFundingRate;
+    const inputs = buildWpInputs(participantRoles, efforts, workPackages, a4UnitCost, participantItems, participantDepreciation);
+    const participantTotals = { direct: 0, personnel: 0, subcontracting: 0, equipment: 0, requested: 0, hasData: false };
+
+    for (const wp of workPackages) {
+      const input = inputs[wp.id] ?? { personnel: 0, subcontracting: 0, purchase: 0, other: 0 };
+      const stored = wpBudgets.find(row => row.participant_id === participant.id && row.wp_draft_id === wp.id)?.requested_eu_contribution ?? null;
+      const wpTotal = computeWpTotals(input, indirectRate, Number(fundingRate), stored);
+      const hasData = stored != null || input.personnel !== 0 || input.subcontracting !== 0 || input.purchase !== 0 || input.other !== 0;
+      participantTotals.direct += input.personnel + input.subcontracting + input.purchase + input.other;
+      participantTotals.personnel += input.personnel;
+      participantTotals.subcontracting += input.subcontracting;
+      participantTotals.requested += wpTotal.requestedEuContribution;
+      participantTotals.hasData ||= hasData;
+      participantTotals.equipment += costLineAmount(participantItems, 'C.2.equipment', wp.id) + depreciationAmount(participantDepreciation, 'equipment', wp.id);
+    }
+    totals.set(participant.id, participantTotals);
+    totalDirect += participantTotals.direct;
+    totalDirectExFstp += participantTotals.direct;
+    subcontractingTotal += participantTotals.subcontracting;
+    personnelTotal += participantTotals.personnel;
+    requestedTotal += participantTotals.requested;
+    equipmentTotal += participantTotals.equipment;
+  }
+
+  const results: ValidationRule[] = [];
+  const populatedRows = wpBudgets.filter(row => row.requested_eu_contribution != null || row.comments?.trim());
+  results.push({
+    id: 'empty-budget', name: 'Budget populated',
+    criterion: 'At least one participant has budget data entered', severity: 'error',
+    message: populatedRows.length === 0 ? 'No budget data has been entered' : `${populatedRows.length} work-package budget row(s) entered`,
+    status: populatedRows.length === 0 ? 'failed' : 'passed',
+  });
+
+  if (indicativeMax != null && populatedRows.length > 0) {
+    const overage = roundCents(requestedTotal - indicativeMax);
+    results.push({
+      id: 'indicative-maximum', name: 'Indicative maximum budget',
+      criterion: 'Requested EU contribution does not exceed the topic’s indicative maximum', severity: 'error',
+      message: overage > 0 ? `Requested EU contribution ${formatCurrency(requestedTotal)} exceeds the topic's indicative maximum ${formatCurrency(indicativeMax)} by ${formatCurrency(overage)}` : `Requested EU contribution ${formatCurrency(requestedTotal)} is within the topic's indicative maximum ${formatCurrency(indicativeMax)}`,
+      status: overage > 0 ? 'failed' : 'passed',
+    });
+  } else {
+    results.push({
+      id: 'indicative-maximum', name: 'Indicative maximum budget',
+      criterion: 'Requested EU contribution does not exceed the topic’s indicative maximum', severity: 'error',
+      message: indicativeMax == null ? 'No indicative maximum is recorded on the topic information page, so this check cannot run' : 'No budget data to compare against the indicative maximum', status: 'skipped',
+    });
+  }
+
+  if (totalDirect > 0 && subcontractingTotal > 0) {
+    const ratio = subcontractingTotal / totalDirect;
+    results.push({ id: 'subcontracting-ratio', name: 'Subcontracting ratio', criterion: 'Subcontracting stays at or below 30% of direct costs', severity: 'warning', message: ratio > 0.3 ? `Subcontracting is ${formatPercent(ratio * 100)} of direct costs (>30% requires justification)` : `Subcontracting is ${formatPercent(ratio * 100)} of direct costs`, status: ratio > 0.3 ? 'failed' : 'passed' });
+  } else {
+    results.push({ id: 'subcontracting-ratio', name: 'Subcontracting ratio', criterion: 'Subcontracting stays at or below 30% of direct costs', severity: 'warning', message: totalDirect > 0 ? 'No subcontracting costs entered' : 'No direct costs to measure against', status: totalDirect > 0 ? 'passed' : 'skipped' });
+  }
+
+  const zeroParts = parts.filter(part => (totals.get(part.id)?.direct ?? 0) === 0);
+  results.push({ id: 'zero-budget', name: 'Zero-budget participants', criterion: 'Every participant carries some budget', severity: 'warning', message: parts.length === 0 ? 'No participants have been added yet' : zeroParts.length > 0 ? `${zeroParts.length} participant(s) have no budget: ${zeroParts.map(part => part.organisation_short_name || part.organisation_name).join(', ')}` : `All ${parts.length} participants have budget entered`, status: parts.length === 0 ? 'skipped' : zeroParts.length > 0 ? 'failed' : 'passed' });
+
+  if (totalDirectExFstp > 0 && parts.length > 1) {
+    const top = [...totals.entries()].reduce<[string, number] | null>((best, entry) => best == null || entry[1].direct > best[1] ? [entry[0], entry[1].direct] : best, null);
+    const share = top ? top[1] / totalDirectExFstp : 0;
+    const participant = top ? parts.find(part => part.id === top[0]) : undefined;
+    results.push({ id: 'concentration', name: 'Budget concentration', criterion: 'No participant holds more than 35% of direct costs (excl. FSTP)', severity: 'warning', message: `${participant?.organisation_short_name || 'The largest partner'} holds ${formatPercent(share * 100, 0)} of budget (excl. FSTP; >35% flagged)`, status: share > 0.35 ? 'failed' : 'passed' });
+  } else {
+    results.push({ id: 'concentration', name: 'Budget concentration', criterion: 'No participant holds more than 35% of direct costs (excl. FSTP)', severity: 'warning', message: parts.length > 1 ? 'No direct costs (excl. FSTP) to measure' : 'Only one participant, so concentration does not apply', status: 'skipped' });
+  }
+
+  results.push({ id: 'no-personnel', name: 'Personnel costs', criterion: 'Personnel costs are entered alongside other direct costs', severity: 'warning', message: totalDirect === 0 ? 'No direct costs entered yet' : personnelTotal === 0 ? 'No personnel costs have been entered' : `Personnel costs total ${formatCurrency(personnelTotal)}`, status: totalDirect === 0 ? 'skipped' : personnelTotal === 0 ? 'failed' : 'passed' });
+
+  if (personnelTotal > 0) {
+    const ratio = equipmentTotal / personnelTotal;
+    if (ratio > 0.15) {
+      const justified = items.some(item => item.cost_line === 'C.2.equipment' && item.justification?.trim()) || depreciation.some(item => item.resource_type === 'equipment' && item.include_in_c2 && item.comments?.trim());
+      results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: `Equipment is ${formatPercent(ratio * 100)} of personnel costs (>15% requires justification)${justified ? ' — justification provided' : ''}`, status: justified ? 'passed' : 'failed' });
+    } else {
+      results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: `Equipment is ${formatPercent(ratio * 100)} of personnel costs`, status: 'passed' });
+    }
+  } else {
+    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: 'No personnel costs to measure equipment against', status: 'skipped' });
+  }
+  return results;
+}
+
 export function BudgetValidationDialog({ proposalId, open, onOpenChange }: BudgetValidationDialogProps) {
   const [rules, setRules] = useState<ValidationRule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -75,16 +208,25 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
   const runValidation = async () => {
     setLoading(true);
     try {
-      const [{ data: budgetRows }, { data: participants }, { data: effortData }, { data: proposal }] = await Promise.all([
-        supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
+      const [{ data: participants }, { data: proposal }] = await Promise.all([
         supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
-        supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
-        supabase.from('proposals').select('type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
+        supabase.from('proposals').select('type, budget_type, indicative_budget_per_project').eq('id', proposalId).maybeSingle(),
       ]);
+      const parts = participants || [];
+      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
 
+      if ((proposal as any)?.budget_type === 'lump_sum') {
+        setRules(await validateLumpSumBudget(proposalId, parts, indicativeMax));
+        setHasRun(true);
+        return;
+      }
+
+      const [{ data: budgetRows }, { data: effortData }] = await Promise.all([
+        supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
+        supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
+      ]);
       const results: ValidationRule[] = [];
       const rows = budgetRows || [];
-      const parts = participants || [];
 
       const pmTotals = new Map<string, number>();
       (effortData || []).forEach((e: any) => {
@@ -143,7 +285,7 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
       });
 
       // 2. Requested EU contribution vs the topic's indicative maximum budget.
-      const indicativeMax = parseIndicativeMaximum((proposal as any)?.indicative_budget_per_project);
+      // indicativeMax was parsed before the lump-sum dispatch.
       if (indicativeMax != null && rows.length > 0) {
         const partById = new Map(parts.map((p) => [p.id, p]));
         const requestedTotal = rows.reduce((sum, r: any) => {
