@@ -234,17 +234,22 @@ function MirrorCheckbox({ costLine, checked, canChange, title, onChange }: {
   onChange: (next: boolean) => void;
 }) {
   if (!canChange) return null;
-  return <HeaderControl className="gap-1">
+  // The checkbox sits in the existing 34px right gutter (LS_RIGHT_GUTTER), to the
+  // right of the shared figure column. No new column, no width change.
+  return <HeaderControl className="w-[34px] justify-center">
     <Checkbox
       id={`mirror-${costLine}`}
       className="h-3.5 w-3.5"
       checked={checked}
       title={title}
+      aria-label={title}
       onCheckedChange={value => onChange(value === true)}
     />
-    <label htmlFor={`mirror-${costLine}`} className="cursor-pointer whitespace-nowrap text-[10px] text-muted-foreground" title={title}>Mirror to Table 3.1.h</label>
   </HeaderControl>;
 }
+
+const C2_MIRROR_TITLE = 'Mirror equipment to B3.1 Table 3.1.h: when ticked, all equipment is mirrored; when unticked, only participants whose equipment exceeds 15% of their personnel costs are mirrored.';
+
 
 const DISPLAY_TOTAL_LABELS: Record<string, string> = {
   'C.2.infrastructure': 'Infrastructure total',
