@@ -117,7 +117,9 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
           found.push({ participantNumber: num, participantName: name, field: 'Short name', severity: 'error', message: 'Short name is required', icon: <Hash className="w-3.5 h-3.5" /> });
         if (!p.country?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'Country', severity: 'error', message: 'Country is required', icon: <Globe className="w-3.5 h-3.5" /> });
-        if (!p.legal_entity_type?.trim())
+        // `organisation_category` is the column the participant form and the
+        // add flows write; the legacy `legal_entity_type` is unmaintained.
+        if (!p.organisation_category?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'Legal entity type', severity: 'error', message: 'Legal entity type is required', icon: <FileText className="w-3.5 h-3.5" /> });
         if (!p.pic_number?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'PIC', severity: 'warning', message: 'PIC number is missing', icon: <Hash className="w-3.5 h-3.5" /> });
