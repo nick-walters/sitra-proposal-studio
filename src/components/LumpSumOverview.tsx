@@ -8,6 +8,7 @@ import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { useLumpSumTotals } from '@/hooks/useLumpSumTotals';
+import { useLumpSumRealtime } from '@/hooks/useLumpSumRealtime';
 import { buildWpInputs, computeWpTotals, personMonthsForRoles, roundCents } from '@/lib/lumpSumFigures';
 import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
 
