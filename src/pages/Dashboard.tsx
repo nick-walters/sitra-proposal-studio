@@ -12,7 +12,7 @@ import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HO
 import { Plus, Search, LayoutGrid, List, X, Filter, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, Trophy, XCircle } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { usePinnedProposals } from "@/hooks/usePinnedProposals";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
@@ -35,6 +35,7 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { isComplete: isProfileComplete, isLoading: isProfileLoading, checkProfile } = useProfileCompletion();
   const { createProposalTemplate } = useProposalTemplateCreation();
@@ -123,6 +124,16 @@ export function Dashboard() {
   useEffect(() => {
     fetchProposals();
   }, [fetchProposals]);
+
+  // A delete (or any other mutation elsewhere) navigates home with
+  // state.refreshProposals; the dashboard may already be mounted, so refetch
+  // on arrival and clear the flag so a back/forward does not refetch again.
+  useEffect(() => {
+    if ((location.state as { refreshProposals?: boolean } | null)?.refreshProposals) {
+      fetchProposals();
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, fetchProposals, navigate]);
 
   // Real-time subscription for proposals — one channel per proposal the user
   // holds a role on, so no cross-proposal traffic can reach this client.
