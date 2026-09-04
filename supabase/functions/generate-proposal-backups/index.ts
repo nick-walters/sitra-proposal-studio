@@ -2732,6 +2732,40 @@ async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<M
   );
 }
 
+/**
+ * PERT and Gantt are generated blocks of B3.1 with no `card_figure` placement,
+ * so `computeFigureNumbers` cannot see them. They take the two numbers that
+ * follow the placed figures of section 3.1 — the same rule the app captions
+ * them with (`fetchB31SystemFigureNumbers`).
+ */
+async function deriveB31SystemFigureNumbers(
+  supabase: any,
+  proposalId: string,
+): Promise<{ pert: string; gantt: string }> {
+  const { data: cards } = await supabase
+    .from("proposal_cards").select("id, section_id")
+    .eq("proposal_id", proposalId).is("deleted_at", null);
+  const sectionIds = [...new Set((cards ?? []).map((c: any) => c.section_id).filter(Boolean))] as string[];
+  if (!sectionIds.length) return { pert: "", gantt: "" };
+  const { data: sections } = await supabase
+    .from("proposal_template_sections").select("id, section_number").in("id", sectionIds);
+  const section = (sections ?? []).find(
+    (s: any) => (s.section_number ?? "").replace(/^[A-Za-z]+/, "").trim() === "3.1",
+  );
+  if (!section) return { pert: "", gantt: "" };
+  const sectionCardIds = (cards ?? []).filter((c: any) => c.section_id === section.id).map((c: any) => c.id);
+  let placed = 0;
+  if (sectionCardIds.length) {
+    const { data: placements } = await supabase
+      .from("card_figure").select("figure_id, card_id")
+      .eq("proposal_id", proposalId).in("card_id", sectionCardIds);
+    placed = (placements ?? []).filter((p: any) => p.figure_id).length;
+  }
+  return { pert: `3.1.${figureLetter(placed)}`, gantt: `3.1.${figureLetter(placed + 1)}` };
+}
+
+
+
 async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participants: any[]): Promise<Uint8Array> {
   const lead = cd.lead_participant_id ? participants.find((p) => p.id === cd.lead_participant_id) : null;
   const children: (Paragraph | Table)[] = [
