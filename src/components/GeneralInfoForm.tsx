@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PartACard } from '@/components/PartACard';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -534,8 +535,7 @@ export function GeneralInfoForm({
         ),
       }}
     >
-
-
+      <div className={`${PART_A_FIELD_DENSITY} space-y-4`}>
         {/* Project Identity Card */}
         <PartACard
           collapseKey="a1.project-identity"
@@ -1010,6 +1010,7 @@ export function GeneralInfoForm({
       {isCoordinator && (
         <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
       )}
+      </div>
     </PartAPageLayout>
 
   );
