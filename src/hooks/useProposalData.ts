@@ -86,13 +86,20 @@ export function useProposalData(proposalId: string) {
 
     if (error) {
       logError('fetchProposal', error);
+      // PGRST116 = no row returned by .single(). With RLS in force this covers
+      // both "deleted" and "no longer readable by this user"; any other code is
+      // a genuine failure (network, server) and is reported differently.
+      setProposalError(error.code === 'PGRST116' ? 'not_found' : 'error');
+      setProposal(null);
       return;
     }
 
     if (data) {
+      setProposalError(null);
       setProposal(proposalFromDb(data) as ProposalData);
     }
   }, [proposalId]);
+
 
   // Fetch user role
   const fetchUserRole = useCallback(async () => {
