@@ -2733,6 +2733,27 @@ async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<M
 }
 
 /**
+ * The figures that are actually PART OF THE DOCUMENT: those with at least one
+ * `card_figure` row pointing at a card that is NOT soft-deleted. A figure whose
+ * every placement points at a deleted card — or that has no placement at all —
+ * is orphaned: it renders nowhere, carries no derivable number, and so is left
+ * out of the backup bundle entirely (prompt 92). Nothing is deleted; this only
+ * decides what the bundle contains.
+ */
+async function liveePlacedFigureIds(supabase: any, proposalId: string): Promise<Set<string>> {
+  const [placementRes, cardRes] = await Promise.all([
+    supabase.from("card_figure").select("card_id, figure_id").eq("proposal_id", proposalId),
+    supabase.from("proposal_cards").select("id").eq("proposal_id", proposalId).is("deleted_at", null),
+  ]);
+  const liveCards = new Set((cardRes.data ?? []).map((c: any) => c.id));
+  const ids = new Set<string>();
+  for (const p of placementRes.data ?? []) {
+    if (p.figure_id && liveCards.has(p.card_id)) ids.add(p.figure_id);
+  }
+  return ids;
+}
+
+/**
  * PERT and Gantt are generated blocks of B3.1 with no `card_figure` placement,
  * so `computeFigureNumbers` cannot see them. They take the two numbers that
  * follow the placed figures of section 3.1 — the same rule the app captions
@@ -3065,8 +3086,11 @@ Deno.serve(async (req) => {
       // `card_figure` placement, so they take the B3.1 system numbers.
       const figureFileNumbers = await deriveFigureNumbers(db, proposal.id);
       const systemNumbers = await deriveB31SystemFigureNumbers(db, proposal.id);
+      const livePlacedFigures = await liveePlacedFigureIds(db, proposal.id);
       const usedFigureNames = new Set<string>();
       let unnumberedFigures = 0;
+      let orphanedFigures = 0;
+      const orphanedFigureIds: string[] = [];
 
       const figureNumberFor = (fig: any): { token: string; numbered: boolean } => {
         const token = figureFileNumbers.get(fig.id)
@@ -3092,6 +3116,16 @@ Deno.serve(async (req) => {
       };
 
       for (const fig of figures ?? []) {
+        // ORPHAN EXCLUSION (prompt 92). PERT and Gantt are source-fed B3.1
+        // blocks with no `card_figure` row by design, so they are never
+        // orphans; every other figure must be held by a live card to be part
+        // of the document. Excluded figures are neither exported nor expected.
+        const isSystemFigure = fig.figure_type === "pert" || fig.figure_type === "gantt";
+        if (!isSystemFigure && !livePlacedFigures.has(fig.id)) {
+          orphanedFigures += 1;
+          orphanedFigureIds.push(fig.id);
+          continue;
+        }
         const { token, numbered } = figureNumberFor(fig);
         if (!numbered) unnumberedFigures += 1;
         let bytes: Uint8Array | null = null;
@@ -3134,6 +3168,9 @@ Deno.serve(async (req) => {
       console.log("[backup] figure naming", {
         proposal_id: proposal.id,
         total: (figures ?? []).length,
+        excluded_orphans: orphanedFigures,
+        excluded_orphan_ids: orphanedFigureIds,
+        excluded_reason: "no card_figure placement on a live (non-deleted) card",
         without_derivable_number: unnumberedFigures,
       });
 
