@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   CheckCircle2,
   XCircle,
@@ -275,8 +274,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
               </CardContent>
             </Card>
           ) : (
-            <ScrollArea className="max-h-[500px]">
-              <div className="space-y-4 pr-4">
+            <div className="space-y-4">
                 {Object.entries(grouped).map(([pNum, pIssues]) => {
                   const first = pIssues[0];
                   return (
@@ -304,8 +302,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
                     </div>
                   );
                 })}
-              </div>
-            </ScrollArea>
+            </div>
           )}
         </>
       )}
