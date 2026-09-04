@@ -8,6 +8,7 @@ import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useLumpSumCosts } from '@/hooks/useLumpSumCosts';
 import { useLumpSumDepreciation } from '@/hooks/useLumpSumDepreciation';
 import { useLumpSumTotals } from '@/hooks/useLumpSumTotals';
+import { useLumpSumRealtime } from '@/hooks/useLumpSumRealtime';
 import { buildWpInputs, computeWpTotals, personMonthsForRoles, roundCents } from '@/lib/lumpSumFigures';
 import { LS_COL, LS_FIGURE_CELL } from '@/lib/lumpSumLayout';
 
@@ -110,6 +111,8 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
+  // Read-only for everyone, so nothing here can be reseeded mid-edit.
+  useLumpSumRealtime(proposalId, true);
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
 
   useEffect(() => {
