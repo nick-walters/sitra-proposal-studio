@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PartACard } from '@/components/PartACard';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -187,8 +188,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
         ),
       }}
     >
-
-
+      <div className={`${PART_A_FIELD_DENSITY} space-y-6`}>
         {/* Two-stage submission question - only for second stage proposals */}
         {isTwoStageSecondStage && (
           <PartACard
@@ -340,6 +340,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
             </div>
           )}
         </PartACard>
+      </div>
     </PartAPageLayout>
   );
 

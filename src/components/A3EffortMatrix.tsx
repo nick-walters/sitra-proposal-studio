@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WPBubble, ParticipantBubble } from '@/components/B31Pill';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 
 
 function formatPM(value: number): string {
@@ -462,17 +463,19 @@ function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
   }, [canEdit, onSave, value]);
 
   return (
-    <DebouncedInput
-      key={resetCount}
-      type="number"
-      step="0.1"
-      min="0"
-      value={displayValue}
-      onDebouncedChange={handleDebouncedChange}
-      debounceMs={500}
-      className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
-      readOnly={!canEdit}
-      aria-readonly={!canEdit}
-    />
+    <div className={PART_A_FIELD_DENSITY}>
+      <DebouncedInput
+        key={resetCount}
+        type="number"
+        step="0.1"
+        min="0"
+        value={displayValue}
+        onDebouncedChange={handleDebouncedChange}
+        debounceMs={500}
+        className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
+        readOnly={!canEdit}
+        aria-readonly={!canEdit}
+      />
+    </div>
   );
 }

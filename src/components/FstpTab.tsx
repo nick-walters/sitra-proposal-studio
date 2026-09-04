@@ -12,6 +12,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { Button } from '@/components/ui/button';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFstpContent } from '@/hooks/useFstpContent';
 import { FormattingToolbar } from './RichTextEditor';
@@ -633,7 +634,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`${PART_A_FIELD_DENSITY} space-y-6`}>
       {/* Header with export */}
       <div className="flex items-center justify-end">
         {isCoordinator && (

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { PartACard } from '@/components/PartACard';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -632,8 +633,7 @@ export function ParticipantListView({
         }
         save={{ saving: false, lastSaved }}
       >
-
-
+        <div className={`${PART_A_FIELD_DENSITY} space-y-6`}>
           {/* OCD Controls - coordinator+ only */}
           {isAdmin && (
             <PartACard
@@ -850,6 +850,7 @@ export function ParticipantListView({
             />
           </>
         )}
+        </div>
       </PartAPageLayout>
     </TooltipProvider>
 

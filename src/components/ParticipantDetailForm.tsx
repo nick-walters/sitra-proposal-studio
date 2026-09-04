@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { PartACard } from '@/components/PartACard';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -254,8 +255,7 @@ export function ParticipantDetailForm({
           : undefined,
       }}
     >
-
-
+      <div className={`${PART_A_FIELD_DENSITY} space-y-4`}>
         {/* 1. Organisation Details */}
         <PartACard
           collapseKey="a2.organisation-details"
@@ -554,6 +554,7 @@ export function ParticipantDetailForm({
             </CardContent>
           </Card>
       )}
+      </div>
     </PartAPageLayout>
 
   );

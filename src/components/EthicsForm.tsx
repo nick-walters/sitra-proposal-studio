@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PartACard } from '@/components/PartACard';
+import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { formatNumber } from '@/lib/formatNumber';
 
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
@@ -593,6 +594,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           : undefined,
       }}
     >
+      <div className={`${PART_A_FIELD_DENSITY} space-y-6`}>
 
 
 
@@ -798,6 +800,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
           </p>
         </PartACard>
+      </div>
     </PartAPageLayout>
   );
 }
