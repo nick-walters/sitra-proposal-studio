@@ -202,6 +202,12 @@ export function BudgetPortalSheet({
     const next = isView(stored) && allowedBudgetViews.includes(stored)
       ? stored
       : (allowedBudgetViews.includes('enter') ? 'enter' : allowedBudgetViews[0]);
+    console.info('[budget-view-investigation] restore', {
+      canEdit,
+      portalViewKey,
+      stored,
+      next,
+    });
     setBudgetView(next);
     setBudgetViewRestored(true);
   }, [portalViewKey, allowedBudgetViews]);
@@ -211,6 +217,10 @@ export function BudgetPortalSheet({
     if (!portalViewKey || !budgetViewRestored) return;
     try {
       window.localStorage.setItem(portalViewKey, next);
+      console.info('[budget-view-investigation] write', {
+        next,
+        stored: window.localStorage.getItem(portalViewKey),
+      });
     } catch {
       // View preference is optional when browser storage is unavailable.
     }
