@@ -11,20 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { Plus, Trash2, Users, HelpCircle, BookOpen } from 'lucide-react';
 import {
   Dialog,
@@ -51,6 +37,8 @@ import {
   IDENTIFIER_TYPES,
 } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
+
+const RESEARCHER_ROLES = ['Leading', 'Team member'] as const;
 
 interface ResearchersTableProps {
   researchers: ParticipantResearcher[];
@@ -140,7 +128,7 @@ export function ResearchersTable({
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 xl:grid-cols-5">
                 <div className="space-y-2">
                   <Label>Title</Label>
                   <Select
@@ -158,7 +146,7 @@ export function ResearchersTable({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>First name *</Label>
+                  <Label>First Name *</Label>
                   <Input
                     value={newResearcher.firstName}
                     onChange={(e) => setNewResearcher({ ...newResearcher, firstName: e.target.value })}
@@ -166,7 +154,7 @@ export function ResearchersTable({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Last name *</Label>
+                  <Label>Last Name *</Label>
                   <Input
                     value={newResearcher.lastName}
                     onChange={(e) => setNewResearcher({ ...newResearcher, lastName: e.target.value })}
@@ -197,7 +185,7 @@ export function ResearchersTable({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label>E-mail</Label>
                   <Input
                     type="email"
                     value={newResearcher.email}
@@ -207,7 +195,7 @@ export function ResearchersTable({
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
-                    Career stage
+                    Career Stage
                     <Dialog>
                       <DialogTrigger asChild>
                         <button type="button" className="text-destructive hover:text-destructive/80">
@@ -260,15 +248,31 @@ export function ResearchersTable({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Role in project</Label>
-                  <Input
+                  <Label>Role of researcher (in the project)</Label>
+                  <Select
                     value={newResearcher.roleInProject}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, roleInProject: e.target.value })}
-                    placeholder="e.g., Team member"
+                    onValueChange={(v) => setNewResearcher({ ...newResearcher, roleInProject: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESEARCHER_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reference Identifier</Label>
+                  <Input
+                    value={newResearcher.referenceIdentifier}
+                    onChange={(e) => setNewResearcher({ ...newResearcher, referenceIdentifier: e.target.value })}
+                    placeholder="e.g., 0000-0001-2345-6789"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Identifier type</Label>
+                  <Label>Type of identifier</Label>
                   <Select
                     value={newResearcher.identifierType}
                     onValueChange={(v) => setNewResearcher({ ...newResearcher, identifierType: v })}
@@ -283,14 +287,6 @@ export function ResearchersTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Reference identifier</Label>
-                  <Input
-                    value={newResearcher.referenceIdentifier}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, referenceIdentifier: e.target.value })}
-                    placeholder="e.g., 0000-0001-2345-6789"
-                  />
-                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAddForm(false)}>
@@ -304,7 +300,7 @@ export function ResearchersTable({
           </Card>
         )}
 
-        {/* Researchers Table */}
+        {/* Researchers */}
         {researchers.length === 0 && !showAddForm ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -312,173 +308,97 @@ export function ResearchersTable({
             <p className="text-xs mt-1">Add researchers who will be involved in the project</p>
           </div>
         ) : researchers.length > 0 && (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">Title</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Gender</TableHead>
-                  <TableHead>Nationality</TableHead>
-                  <TableHead>Career stage</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Identifier</TableHead>
-                  {canEdit && <TableHead className="w-[80px]">Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {researchers.map((researcher) => (
-                  <TableRow key={researcher.id}>
-                    <TableCell className="font-medium align-top">
-                      {canEdit ? (
-                        <Select
-                          value={researcher.title || undefined}
-                          onValueChange={(v) => onUpdate(researcher.id, { title: v })}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CONTACT_TITLES.map((t) => (
-                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (researcher.title || '-')}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <div className="space-y-1 min-w-[190px]">
-                          <div className="flex gap-1">
-                            <DebouncedCell
-                              value={researcher.firstName}
-                              placeholder="First name"
-                              onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
-                            />
-                            <DebouncedCell
-                              value={researcher.lastName}
-                              placeholder="Last name"
-                              onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
-                            />
-                          </div>
-                          <DebouncedCell
-                            value={researcher.email || ''}
-                            placeholder="Email"
-                            type="email"
-                            onCommit={(v) => onUpdate(researcher.id, { email: v })}
-                          />
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="font-medium">{researcher.firstName} {researcher.lastName}</p>
-                          {researcher.email && (
-                            <p className="text-xs text-muted-foreground">{researcher.email}</p>
-                          )}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <Select
-                          value={researcher.gender || undefined}
-                          onValueChange={(v) => onUpdate(researcher.id, { gender: v })}
-                        >
-                          <SelectTrigger className="h-8 text-xs min-w-[110px]">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {GENDER_OPTIONS.map((g) => (
-                              <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (researcher.gender || '-')}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <div className="min-w-[150px]">
-                          <CountrySelect
-                            value={researcher.nationality || ''}
-                            onValueChange={(v) => onUpdate(researcher.id, { nationality: v })}
-                          />
-                        </div>
-                      ) : (researcher.nationality || '-')}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <Select
-                          value={researcher.careerStage || undefined}
-                          onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}
-                        >
-                          <SelectTrigger className="h-8 text-xs min-w-[130px]">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CAREER_STAGES.map((stage) => (
-                              <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-xs">
-                          {researcher.careerStage?.replace('Category ', 'Cat. ') || '-'}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <DebouncedCell
-                          value={researcher.roleInProject || ''}
-                          placeholder="Role"
-                          onCommit={(v) => onUpdate(researcher.id, { roleInProject: v })}
-                        />
-                      ) : (researcher.roleInProject || '-')}
-                    </TableCell>
-                    <TableCell className="align-top">
-                      {canEdit ? (
-                        <div className="space-y-1 min-w-[160px]">
-                          <Select
-                            value={researcher.identifierType || undefined}
-                            onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {IDENTIFIER_TYPES.map((t) => (
-                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <DebouncedCell
-                            value={researcher.referenceIdentifier || ''}
-                            placeholder="Identifier"
-                            onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })}
-                          />
-                        </div>
-                      ) : researcher.referenceIdentifier ? (
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">{researcher.identifierType}:</span>{' '}
-                          {researcher.referenceIdentifier}
-                        </div>
-                      ) : '-'}
-                    </TableCell>
+          <div className="space-y-3">
+            {researchers.map((researcher) => (
+              <div key={researcher.id} className="min-w-0 rounded-md border p-3">
+                <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+                  <p className="truncate text-sm font-medium">
+                    {researcher.firstName} {researcher.lastName}
+                  </p>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
+                      aria-label="Delete researcher"
+                      title="Delete researcher"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 xl:grid-cols-5">
+                  <ResearcherField label="Title" value={researcher.title}>
                     {canEdit && (
-                      <TableCell className="align-top">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
-                         aria-label="Delete" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+                      <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {CONTACT_TITLES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                  </ResearcherField>
+                  <ResearcherField label="First Name" value={researcher.firstName}>
+                    {canEdit && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
+                  </ResearcherField>
+                  <ResearcherField label="Last Name" value={researcher.lastName}>
+                    {canEdit && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
+                  </ResearcherField>
+                  <ResearcherField label="Gender" value={researcher.gender}>
+                    {canEdit && (
+                      <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {GENDER_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Nationality" value={researcher.nationality}>
+                    {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
+                  </ResearcherField>
+
+                  <ResearcherField label="E-mail" value={researcher.email}>
+                    {canEdit && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
+                  </ResearcherField>
+                  <ResearcherField label="Career Stage" value={researcher.careerStage}>
+                    {canEdit && (
+                      <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {CAREER_STAGES.map((stage) => <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Role of researcher (in the project)" value={researcher.roleInProject}>
+                    {canEdit && (
+                      <Select value={researcher.roleInProject || undefined} onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
+                        <SelectContent>
+                          {RESEARCHER_ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier}>
+                    {canEdit && <DebouncedCell value={researcher.referenceIdentifier || ''} placeholder="Reference Identifier" onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })} />}
+                  </ResearcherField>
+                  <ResearcherField label="Type of identifier" value={researcher.identifierType}>
+                    {canEdit && (
+                      <Select value={researcher.identifierType || undefined} onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {IDENTIFIER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -509,6 +429,23 @@ export function ResearchersTable({
         </AlertDialog>
       </CardContent>
     </Card>
+  );
+}
+
+function ResearcherField({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <Label className="block min-h-8 text-xs leading-4">{label}</Label>
+      {children ?? <p className="min-h-8 break-words text-sm">{value || '—'}</p>}
+    </div>
   );
 }
 
