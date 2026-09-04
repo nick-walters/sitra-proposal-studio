@@ -2788,7 +2788,6 @@ Deno.serve(async (req) => {
         .from("figures")
         .select("id, figure_type, content, title, caption, created_at")
         .eq("proposal_id", proposal.id)
-        .is("deleted_at", null)
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });
       if (figuresErr) console.error("[backup] figures query failed", figuresErr);
