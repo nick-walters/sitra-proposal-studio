@@ -497,7 +497,61 @@ async function packDocx(children: (Paragraph | Table)[]): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+// ---------- fail loudly (prompt 91) ----------
+
+/**
+ * A discarded query error is how a backup silently produces empty content and
+ * still records success — the mechanism behind both the stale Part B documents
+ * and the missing figures. `strictDb()` wraps a Supabase client so that EVERY
+ * `.from(...)` query it issues throws when PostgREST returns an error. The
+ * throw propagates to `backupOne`'s catch, which records the run as failed.
+ *
+ * Only content reads go through the strict client. Storage downloads,
+ * authorization checks, the SharePoint config read and the retention purge keep
+ * using the raw client, because their failures are either fail-closed already
+ * or genuinely harmless (see prompt 91 item 5).
+ */
+function wrapQuery(builder: any, label: string): any {
+  return new Proxy(builder, {
+    get(target, prop) {
+      if (prop === "then") {
+        return (onFulfilled: any, onRejected: any) =>
+          Promise.resolve(target).then((res: any) => {
+            if (res?.error) {
+              throw new Error(
+                `[backup] query on "${label}" failed: ${res.error.message ?? JSON.stringify(res.error)}`,
+              );
+            }
+            return res;
+          }).then(onFulfilled, onRejected);
+      }
+      const value = Reflect.get(target, prop, target);
+      if (typeof value === "function") {
+        return (...args: any[]) => {
+          const out = value.apply(target, args);
+          return out && typeof out.then === "function" ? wrapQuery(out, label) : out;
+        };
+      }
+      return value;
+    },
+  });
+}
+
+/** Returns a client whose table queries throw instead of returning `{ error }`. */
+function strictDb(client: any): any {
+  return new Proxy(client, {
+    get(target, prop) {
+      if (prop === "from") {
+        return (table: string) => wrapQuery(target.from(table), table);
+      }
+      const value = Reflect.get(target, prop, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
 // ---------- data fetch ----------
+
 
 async function latestSectionContent(supabase: any, proposalId: string, sectionId: string): Promise<string> {
   const { data } = await supabase
