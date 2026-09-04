@@ -1052,10 +1052,9 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
   const handleDeleteProposal = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('proposals')
-        .delete()
-        .eq('id', proposalId);
+      const { error } = await supabase.rpc('delete_proposal', {
+        _proposal_id: proposalId,
+      });
 
       if (error) throw error;
 
@@ -1063,11 +1062,18 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
       navigate('/');
     } catch (error) {
       console.error('Error deleting proposal:', error);
-      toast.error('Failed to delete proposal');
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : String(error);
+      toast.error(`Failed to delete proposal: ${message}`);
     } finally {
       setIsDeleting(false);
     }
   };
+
 
   return (
     <PartACard
