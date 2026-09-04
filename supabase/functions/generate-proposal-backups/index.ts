@@ -3018,69 +3018,103 @@ Deno.serve(async (req) => {
       // Order by created_at (stable creation order), with id as a deterministic
       // tie-break. Output file names come from the derived figure number below,
       // so ordering only affects processing order, not naming.
-      const { data: figures, error: figuresErr } = await supabase
+      const { data: figures } = await db
         .from("figures")
         .select("id, figure_type, content, title, caption, created_at")
         .eq("proposal_id", proposal.id)
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });
-      if (figuresErr) console.error("[backup] figures query failed", figuresErr);
 
-      // File names use the DERIVED figure number (prompt 179). The stored
-      // `figures.figure_number` column is dead and blank on newer figures.
-      const figureFileNumbers = await deriveFigureNumbers(supabase, proposal.id);
+      // File names use the DERIVED figure number — the same authority the app
+      // captions with (prompt 91 item 1). The stored `figures.figure_number`
+      // column is dead. PERT and Gantt are source-fed blocks of B3.1 with no
+      // `card_figure` placement, so they take the B3.1 system numbers.
+      const figureFileNumbers = await deriveFigureNumbers(db, proposal.id);
+      const systemNumbers = await deriveB31SystemFigureNumbers(db, proposal.id);
+      const usedFigureNames = new Set<string>();
+      let unnumberedFigures = 0;
+
+      const figureNumberFor = (fig: any): { token: string; numbered: boolean } => {
+        const derived = figureFileNumbers.get(fig.id)
+          ?? (fig.figure_type === "pert" ? systemNumbers.pert : "")
+          ?? "";
+        const token = derived || (fig.figure_type === "gantt" ? systemNumbers.gantt : "");
+        if (token) return { token: String(token).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true };
+        // Unplaced figure: no derivable number. Fall back to the id so the file
+        // is still produced and can never collide with a numbered sibling.
+        return { token: String(fig.id), numbered: false };
+      };
+
+      /** Two figures resolving to the same number get " (2)", " (3)" … appended. */
+      const uniqueFigureName = (base: string, ext: string): string => {
+        let name = `${acr} Figure ${base} ${stamp}.${ext}`;
+        let n = 1;
+        while (usedFigureNames.has(name)) {
+          n += 1;
+          name = `${acr} Figure ${base} (${n}) ${stamp}.${ext}`;
+        }
+        usedFigureNames.add(name);
+        return name;
+      };
 
       for (const fig of figures ?? []) {
-        const num = String(figureFileNumbers.get(fig.id) || fig.id).replace(/[\/\\:*?"<>|]/g, "_");
+        const { token, numbered } = figureNumberFor(fig);
+        if (!numbered) unnumberedFigures += 1;
         let bytes: Uint8Array | null = null;
         let ext = "png";
         const imageUrl: string | undefined = fig.content?.imageUrl;
+        const exportable = !!imageUrl || fig.figure_type === "pert" || fig.figure_type === "gantt";
 
         if (imageUrl) {
           // Strip query string and bucket prefix to derive storage path.
           const cleaned = String(imageUrl).split("?")[0];
           const m = cleaned.match(/proposal-files\/(.+)$/);
           const path = m ? m[1] : cleaned;
+          const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
+          if (extMatch) ext = extMatch[1].toLowerCase();
           const { data: blob, error } = await supabase.storage
             .from("proposal-files").download(path);
-          if (!error && blob) {
-            bytes = new Uint8Array(await blob.arrayBuffer());
-            const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
-            if (extMatch) ext = extMatch[1].toLowerCase();
-          }
+          if (!error && blob) bytes = new Uint8Array(await blob.arrayBuffer());
+          else console.error("[backup] figure download failed", { figure: fig.id, path, error });
         } else if (fig.figure_type === "pert" || fig.figure_type === "gantt") {
           const cachePath = `${proposal.id}/_figures-cache/${fig.id}.png`;
           const { data: blob, error } = await supabase.storage
             .from("proposal-backups").download(cachePath);
-          if (!error && blob) {
-            bytes = new Uint8Array(await blob.arrayBuffer());
-          }
+          if (!error && blob) bytes = new Uint8Array(await blob.arrayBuffer());
+          else console.error("[backup] cached figure missing", { figure: fig.id, cachePath, error });
         }
 
-        if (bytes) {
+        // Canvas figures (impact/overview) have no exportable raster at all, so
+        // they are not expected and their absence is not a partial run.
+        const name = exportable ? uniqueFigureName(token, ext) : null;
+        if (name) expected.push(name);
+        if (bytes && name) {
           const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"
             : ext === "gif" ? "image/gif"
             : ext === "svg" ? "image/svg+xml"
             : ext === "webp" ? "image/webp"
             : "image/png";
-          files.push({
-            name: `${acr} Figure ${num} ${stamp}.${ext}`,
-            bytes,
-            mime,
-          });
+          files.push({ name, bytes, mime });
         }
       }
+      console.log("[backup] figure naming", {
+        proposal_id: proposal.id,
+        total: (figures ?? []).length,
+        without_derivable_number: unnumberedFigures,
+      });
 
-      const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      const { data: cases } = await db.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const c of cases ?? []) {
         const rawCaseName = (c.short_name ?? c.title ?? `${c.number}`).toString().trim();
         const caseName = rawCaseName.replace(/[\/\\:*?"<>|]/g, "_").replace(/\s+/g, " ").slice(0, 80) || `${c.number}`;
+        expected.push(`${acr} Case ${caseName} ${stamp}.docx`);
         files.push({
           name: `${acr} Case ${caseName} ${stamp}.docx`,
-          bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
+          bytes: await buildCaseDraft(db, proposal, c, participants ?? []),
           mime: DOCX_MIME,
         });
       }
+
 
       files.sort((a, b) => a.name.localeCompare(b.name));
 
