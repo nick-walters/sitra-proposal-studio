@@ -511,6 +511,136 @@ async function latestSectionContent(supabase: any, proposalId: string, sectionId
   return data?.content ?? "";
 }
 
+// ---------- shared card-block reader (Part B modular editors) ----------
+
+/**
+ * One block of a card-based section: the card row plus its authored fields,
+ * already concatenated in field order. This is the single reader used by every
+ * Part B section, including B3.1 (prompt 90).
+ */
+interface CardBlock {
+  id: string;
+  kind: string;
+  templateKey: string | null;
+  sourceKey: string | null;
+  title: string | null;
+  titleMode: string;
+  isVisible: boolean;
+  isSourceFed: boolean;
+  orderIndex: number;
+  html: string;
+}
+
+/**
+ * Loads visible, non-deleted cards with their authored field HTML.
+ * Filter by `sectionId` (the proposal_template_sections uuid) or by
+ * `templateKeyPrefix` (B3.1's "b31." board, which is addressed by key).
+ */
+async function loadCardBlocks(
+  supabase: any,
+  proposalId: string,
+  opts: { sectionId?: string; templateKeyPrefix?: string },
+): Promise<CardBlock[]> {
+  let q = supabase
+    .from("proposal_cards")
+    .select("id, kind, template_key, source_key, title, title_mode, is_visible, is_source_fed, order_index")
+    .eq("proposal_id", proposalId)
+    .is("deleted_at", null);
+  if (opts.sectionId) q = q.eq("section_id", opts.sectionId);
+  if (opts.templateKeyPrefix) q = q.like("template_key", `${opts.templateKeyPrefix}%`);
+  const { data: cards, error: cardsErr } = await q.order("order_index", { ascending: true });
+  if (cardsErr) throw cardsErr;
+  const rows = (cards ?? []) as any[];
+  if (!rows.length) return [];
+
+  const { data: fields, error: fieldsErr } = await supabase
+    .from("card_fields")
+    .select("card_id, content_html, order_index")
+    .in("card_id", rows.map((c) => c.id))
+    .is("deleted_at", null)
+    .order("order_index", { ascending: true });
+  if (fieldsErr) throw fieldsErr;
+  const byCard = new Map<string, string[]>();
+  for (const f of (fields ?? []) as any[]) {
+    const arr = byCard.get(f.card_id) ?? [];
+    arr.push(f.content_html ?? "");
+    byCard.set(f.card_id, arr);
+  }
+
+  return rows.map((c) => ({
+    id: c.id,
+    kind: c.kind ?? "text",
+    templateKey: c.template_key ?? null,
+    sourceKey: c.source_key ?? null,
+    title: c.title ?? null,
+    titleMode: c.title_mode ?? "mirrored",
+    isVisible: c.is_visible !== false,
+    isSourceFed: !!c.is_source_fed,
+    orderIndex: c.order_index ?? 0,
+    html: (byCard.get(c.id) ?? []).join("\n"),
+  }));
+}
+
+/** The reference list a `references` block renders, in derived citation order. */
+async function referenceListParagraphs(supabase: any, proposalId: string): Promise<Paragraph[]> {
+  const { data, error } = await supabase
+    .from("proposal_references")
+    .select("ref_key, formatted_citation, authors, year, title, journal")
+    .eq("proposal_id", proposalId);
+  if (error) { console.error("references fetch failed", error); return []; }
+  const numbers = CURRENT_REF_SNAPSHOT?.citationNumbers ?? new Map<number, number>();
+  const rows = ((data ?? []) as any[])
+    .map((r) => ({ ...r, n: numbers.get(r.ref_key) ?? null }))
+    .filter((r) => r.n != null)
+    .sort((a, b) => (a.n as number) - (b.n as number));
+  return rows.map((r) => {
+    const text = (r.formatted_citation ?? "").trim() ||
+      [r.authors, r.year ? `(${r.year})` : null, r.title, r.journal].filter(Boolean).join(" ");
+    return P(`${r.n}. ${htmlToText(text)}`);
+  });
+}
+
+/**
+ * Renders card blocks to DOCX children exactly in board order. Blocks whose
+ * content the app generates live (tables, charts) cannot be reproduced here, so
+ * they are named explicitly rather than dropped silently.
+ */
+async function cardBlocksToChildren(
+  supabase: any,
+  proposalId: string,
+  blocks: CardBlock[],
+): Promise<(Paragraph | Table)[]> {
+  const out: (Paragraph | Table)[] = [];
+  for (const b of blocks) {
+    if (!b.isVisible) continue;
+    const titleText = htmlToText(b.title ?? "").trim();
+    // 'mirrored' is the only mode the app shows in the document itself;
+    // 'editor_only' and 'off' headers exist for the writer's board only.
+    if (titleText && b.titleMode === "mirrored" && b.kind !== "figure") {
+      out.push(H(HeadingLevel.HEADING_2, titleText));
+    }
+    if (b.kind === "references") {
+      const refs = await referenceListParagraphs(supabase, proposalId);
+      if (refs.length) out.push(...refs);
+      else out.push(P("No references recorded.", { italics: true }));
+      continue;
+    }
+    if (b.html.trim()) {
+      out.push(...htmlToDocxChildren(b.html));
+      continue;
+    }
+    if (b.isSourceFed || b.kind === "figure") {
+      out.push(P(
+        `[${titleText || b.templateKey || b.kind}: generated in the application (${b.kind === "figure" ? "figure" : "live table/list"}) and not reproducible in this DOCX backup.]`,
+        { italics: true },
+      ));
+    }
+  }
+  return out;
+}
+
+
+
 // ---------- Table 3.1.b–style WP description table (shared) ----------
 
 interface WpTableTask {
@@ -1680,12 +1810,56 @@ async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
   return await packDocx(children);
 }
 
+/**
+ * Maps a legacy section label ("b1-1") to the proposal_template_sections uuid
+ * the modular card board is keyed by ("B1.1"), for the sections that have
+ * cards. Cached per proposal for the lifetime of the run.
+ */
+const SECTION_UUID_CACHE = new Map<string, Map<string, string>>();
+async function sectionUuidByNumber(supabase: any, proposalId: string): Promise<Map<string, string>> {
+  const cached = SECTION_UUID_CACHE.get(proposalId);
+  if (cached) return cached;
+  const map = new Map<string, string>();
+  const { data: cardSecs, error: secErr } = await supabase
+    .from("proposal_cards").select("section_id").eq("proposal_id", proposalId).is("deleted_at", null);
+  if (secErr) { console.error("card section lookup failed", secErr); SECTION_UUID_CACHE.set(proposalId, map); return map; }
+  const ids = [...new Set(((cardSecs ?? []) as any[]).map((c) => c.section_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: secs, error: tsErr } = await supabase
+      .from("proposal_template_sections").select("id, section_number").in("id", ids);
+    if (tsErr) console.error("template section lookup failed", tsErr);
+    for (const s of (secs ?? []) as any[]) {
+      if (s.section_number) map.set(String(s.section_number).toUpperCase(), s.id);
+    }
+  }
+  SECTION_UUID_CACHE.set(proposalId, map);
+  return map;
+}
+
+/** "b1-1" -> "B1.1" */
+function sectionNumberFromLabel(label: string): string {
+  return label.toUpperCase();
+}
+
 async function buildPartBSection(supabase: any, proposal: any, sectionId: string, label: string): Promise<Uint8Array> {
-  const content = await latestSectionContent(supabase, proposal.id, sectionId);
-  const children: (Paragraph | Table)[] = [
-    H(HeadingLevel.HEADING_1, `Part ${label}`),
-    ...htmlToDocxChildren(content),
-  ];
+  const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, `Part ${label}`)];
+
+  // Part B moved to modular card boards. Cards are the live document; the
+  // legacy section_versions body is only the pre-cutover fallback (prompt 90).
+  const uuidByNumber = await sectionUuidByNumber(supabase, proposal.id);
+  const sectionUuid = uuidByNumber.get(sectionNumberFromLabel(label));
+  const blocks = sectionUuid
+    ? await loadCardBlocks(supabase, proposal.id, { sectionId: sectionUuid })
+    : [];
+  if (blocks.length) {
+    children.push(...(await cardBlocksToChildren(supabase, proposal.id, blocks)));
+    console.log(`Part ${label} sourced from cards`, { proposal_id: proposal.id, blocks: blocks.length });
+  } else {
+    const content = await latestSectionContent(supabase, proposal.id, sectionId);
+    children.push(...htmlToDocxChildren(content));
+    console.log(`Part ${label} sourced from section_versions (no cards)`, { proposal_id: proposal.id });
+  }
+
 
   // ── B1.2: append structured ongoing-projects table ──
   if (sectionId === "b1-2") {
@@ -1794,36 +1968,27 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     other_goods: !!propFlags?.b31_show_other_goods_justification,
   };
 
-  // Block visibility from the B3.1 block board. The board is the preview the
-  // writer sees, so a hidden block must not appear in the DOCX. When a
-  // proposal has no B3.1 blocks yet (pre-cutover), every block counts as
-  // visible and the b31_show_* booleans alone decide, exactly as before.
-  const { data: b31Cards } = await supabase
-    .from("proposal_cards")
-    .select("id, template_key, is_visible")
-    .eq("proposal_id", proposal.id)
-    .is("deleted_at", null)
-    .like("template_key", "b31.%");
+  // Block visibility from the B3.1 block board, read through the shared card
+  // reader (prompt 90). The board is the preview the writer sees, so a hidden
+  // block must not appear in the DOCX. When a proposal has no B3.1 blocks yet
+  // (pre-cutover), every block counts as visible and the b31_show_* booleans
+  // alone decide, exactly as before.
+  const b31Blocks = await loadCardBlocks(supabase, proposal.id, { templateKeyPrefix: "b31." });
   const cardVisible = new Map<string, boolean>();
-  for (const c of b31Cards ?? []) cardVisible.set(c.template_key, !!c.is_visible);
+  for (const b of b31Blocks) if (b.templateKey) cardVisible.set(b.templateKey, b.isVisible);
   const blockVisible = (key: string) => cardVisible.get(key) !== false;
 
   // Authored text now lives on the b31.intro block. Once the board exists it
   // supersedes the legacy `section_content` bodies, which stay untouched as the
   // rollback path.
-  const introCard = (b31Cards ?? []).find((c: any) => c.template_key === "b31.intro");
+  const introCard = b31Blocks.find((b) => b.templateKey === "b31.intro");
   let introHtml = intro;
   let bodyHtml = body;
   if (introCard) {
-    const { data: introFields } = await supabase
-      .from("card_fields")
-      .select("content_html, order_index")
-      .eq("card_id", introCard.id)
-      .is("deleted_at", null)
-      .order("order_index", { ascending: true });
-    introHtml = (introFields ?? []).map((f: any) => f.content_html ?? "").join("\n");
+    introHtml = introCard.html;
     bodyHtml = "";
   }
+
 
   const { data: wps } = await supabase
     .from("wp_drafts")
