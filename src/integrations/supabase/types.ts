@@ -7378,6 +7378,7 @@ export type Database = {
         Args: { p_expected_version?: number; p_id: string; p_table: string }
         Returns: Json
       }
+      delete_proposal: { Args: { _proposal_id: string }; Returns: undefined }
       ensure_template_draft: {
         Args: { p_template_type_id: string }
         Returns: string
