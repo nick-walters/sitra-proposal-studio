@@ -3165,6 +3165,16 @@ Deno.serve(async (req) => {
       }
 
       const sp = await pushToSharePoint(cfg, acr, files);
+
+      // Partial-run detection: compare what the run was contracted to produce
+      // with what actually reached the bucket (prompt 91 item 3).
+      const uploaded = new Set(files.map((f) => f.name));
+      const missing = expected.filter((name) => !uploaded.has(name));
+      const runStatus = missing.length ? "partial" : "complete";
+      if (missing.length) {
+        console.warn("[backup] partial run", { proposal_id: proposal.id, missing });
+      }
+
       await supabase.from("proposal_backups").insert({
         proposal_id: proposal.id,
         backup_timestamp: now.toISOString(),
@@ -3173,6 +3183,9 @@ Deno.serve(async (req) => {
         bucket_paths: bucketPaths,
         size_bytes: totalBytes,
         error: sp.error ?? null,
+        run_status: runStatus,
+        expected_file_count: expected.length,
+        missing_files: missing,
       });
       const refSummary = { proposal_id: proposal.id, ...CURRENT_REF_STATS };
       if (CURRENT_REF_STATS.found === 0) {
@@ -3180,7 +3193,7 @@ Deno.serve(async (req) => {
       } else {
         console.log("Reference resolution completed", refSummary);
       }
-      return { acronym: acr, files: bucketPaths.length, bytes: totalBytes };
+      return { acronym: acr, files: bucketPaths.length, bytes: totalBytes, run_status: runStatus, missing: missing.length };
     } catch (e) {
       console.error(`Backup failed for ${acr}:`, e);
       await supabase.from("proposal_backups").insert({
@@ -3190,9 +3203,13 @@ Deno.serve(async (req) => {
         bucket_paths: [],
         size_bytes: 0,
         error: (e as Error).message,
+        run_status: "failed",
+        expected_file_count: expected.length,
+        missing_files: expected,
       });
       return { acronym: acr, error: (e as Error).message };
     }
+
   }
 
   // Single-proposal mode: one proposal fits the CPU budget; run inline.
