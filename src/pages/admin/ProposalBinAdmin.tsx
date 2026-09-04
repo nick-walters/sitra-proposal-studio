@@ -51,8 +51,8 @@ function daysUntil(value: string | null): number | null {
 
 export default function ProposalBinAdmin() {
   const navigate = useNavigate();
-  const { role, loading: roleLoading } = useUserRole();
-  const isGlobalAdmin = role === "owner" || role === "admin";
+  const { isAdminOrOwner, loading: roleLoading } = useUserRole();
+  const isGlobalAdmin = isAdminOrOwner;
 
   const [rows, setRows] = useState<BinnedProposal[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
