@@ -276,8 +276,8 @@ export function LumpSumCostsSection({ proposalId, participantId, userId, editabl
   const mirroredFor = (key: string) => MIRRORED_LINE_KEYS.has(key)
     ? mirroredItems.filter(item => MIRROR_LINE_KEY(item.resource_type) === key)
     : [];
-  const itemTotal = (key: string) => mirroredCostLineAmount(items, depreciation.data?.items ?? [], key);
-  const wpTotal = (key: string, wpId: string) => mirroredCostLineAmount(items, depreciation.data?.items ?? [], key, wpId);
+  const itemTotal = (key: string) => mirroredCostLineAmount(items, mirroredItems, key);
+  const wpTotal = (key: string, wpId: string) => mirroredCostLineAmount(items, mirroredItems, key, wpId);
   const keysWpTotal = (keys: readonly string[], wpId: string) => keys.reduce((sum, key) => sum + wpTotal(key, wpId), 0);
   /** One row per work package with a non-zero subtotal; zero work packages are hidden. */
   const subtotalRows = (keys: readonly string[]) => workPackages
