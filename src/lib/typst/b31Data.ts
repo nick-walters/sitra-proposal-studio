@@ -352,20 +352,31 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
   const otherGoods = budgetSource.categories.other_goods;
   const equipment = budgetSource.categories.equipment;
 
+  // On the LUMP-SUM path the adapter's mirror settings are the only decision:
+  // the legacy `b31_show_*` display switches must not gate a second time, or a
+  // row visible on screen would silently vanish from the document.
+  // The TRADITIONAL path keeps those switches exactly as before.
   const purchaseBlocks: TypstCostBlock[] = [];
-  if (toggles.b31_show_purchase_costs && toggles.b31_show_travel_justification && travel.length) {
+  const showTravel = budgetSource.isLumpSum
+    ? travel.length > 0
+    : Boolean(toggles.b31_show_purchase_costs && toggles.b31_show_travel_justification && travel.length);
+  const showOtherGoods = budgetSource.isLumpSum
+    ? otherGoods.length > 0
+    : Boolean(
+        toggles.b31_show_purchase_costs &&
+          toggles.b31_show_other_goods_justification &&
+          otherGoods.length,
+      );
+  if (showTravel) {
     purchaseBlocks.push({ categoryLabel: 'Travel', participants: travel });
   }
   if (equipment.length) {
     purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipment });
   }
-  if (
-    toggles.b31_show_purchase_costs &&
-    toggles.b31_show_other_goods_justification &&
-    otherGoods.length
-  ) {
+  if (showOtherGoods) {
     purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoods });
   }
+
 
 
   // Figure numbers are DERIVED from the block that places the figure

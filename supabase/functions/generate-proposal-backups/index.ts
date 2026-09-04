@@ -1918,10 +1918,10 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
         .order("order_index")
     : { data: [] };
   const itemsByCat = (cat: string) => (justItemsRaw ?? []).filter((it: any) => it.category === cat);
-  const subItems = itemsByCat("subcontracting");
+  let subItems = itemsByCat("subcontracting");
   const equipItemsAll = itemsByCat("equipment");
-  const travelItems = itemsByCat("travel");
-  const otherGoodsItems = itemsByCat("other_goods");
+  let travelItems = itemsByCat("travel");
+  let otherGoodsItems = itemsByCat("other_goods");
 
   const brToPart = new Map<string, string>();
   for (const br of budgetRows ?? []) brToPart.set(br.id, br.participant_id);
@@ -1952,14 +1952,129 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
   }
   const c2ForcedOn = partsForced.size > 0;
   const includeEquipmentCategory = (toggles.purchase_costs || c2ForcedOn) && (c2ForcedOn || toggles.equipment);
-  const equipItems = equipItemsAll.filter((it: any) => {
+  let equipItems = equipItemsAll.filter((it: any) => {
     if (!includeEquipmentCategory) return false;
     const partId = brToPart.get(it.budget_row_id);
     if (!partId) return false;
     return partsForced.has(partId); // below-15% participants are never justified
   });
-  const includeTravel = toggles.purchase_costs && toggles.travel && travelItems.length > 0;
-  const includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsItems.length > 0;
+  let includeTravel = toggles.purchase_costs && toggles.travel && travelItems.length > 0;
+  let includeOtherGoods = toggles.purchase_costs && toggles.other_goods && otherGoodsItems.length > 0;
+
+  // ── LUMP-SUM PATH ──────────────────────────────────────────────────────────
+  // An edge function cannot import src/lib/budgetSourceAdapter.ts, so the
+  // adapter's lump-sum decision is re-implemented here against the same tables
+  // and with the same rules, and this branch REPLACES the traditional
+  // `budget_rows` items above. The traditional branch is left byte-identical.
+  //   * C.1 travel  → mirrored when ls_mirror_settings['C.1'] is on
+  //   * C.3 sub-lines → mirrored per their own cost_line flag
+  //   * C.2 sub-lines → mirrored per flag (legacy 'C.2' parent only when no
+  //     sub-line flag exists at all), OR forced when a participant's total C.2
+  //     (all sub-lines + depreciation charged into C.2) exceeds 15% of their
+  //     personnel cost
+  //   * B.1 subcontracting → always included
+  if (proposal.budget_type === "lump_sum") {
+    const [
+      { data: lsRoles },
+      { data: lsEffort },
+      { data: lsBudget },
+      { data: lsItems },
+      { data: lsDepr },
+      { data: lsMirrors },
+    ] = await Promise.all([
+      supabase.from("ls_personnel_roles").select("id, participant_id, cost_line, pm_rate").eq("proposal_id", proposal.id),
+      supabase.from("ls_personnel_effort").select("role_id, person_months").eq("proposal_id", proposal.id),
+      supabase.from("ls_participant_budget").select("participant_id, a4_unit_cost").eq("proposal_id", proposal.id),
+      supabase.from("ls_cost_items").select("participant_id, cost_line, amount, justification, order_index").eq("proposal_id", proposal.id).order("order_index"),
+      supabase.from("ls_depreciation_items").select("participant_id, resource_type, include_in_c2, charged_depreciation, short_name, comments, order_index").eq("proposal_id", proposal.id).order("order_index"),
+      supabase.from("ls_mirror_settings").select("cost_line, is_mirrored").eq("proposal_id", proposal.id),
+    ]);
+
+    const mirror: Record<string, boolean> = {};
+    for (const m of lsMirrors ?? []) mirror[m.cost_line] = !!m.is_mirrored;
+
+    const pmByRole = new Map<string, number>();
+    for (const e of lsEffort ?? []) {
+      pmByRole.set(e.role_id, (pmByRole.get(e.role_id) || 0) + Number(e.person_months ?? 0));
+    }
+    const a4ByPart = new Map<string, number>();
+    for (const b of lsBudget ?? []) a4ByPart.set(b.participant_id, Number(b.a4_unit_cost ?? 0));
+
+    // Personnel cost per participant: PM × the role's rate (A.4 uses the
+    // participant's A.4 unit cost), the same inputs the canonical helper uses.
+    const lsPersonnelCost = new Map<string, number>();
+    for (const r of lsRoles ?? []) {
+      if (!/^A\.[1-4]$/.test(r.cost_line)) continue;
+      const rate = r.cost_line === "A.4" ? (a4ByPart.get(r.participant_id) ?? 0) : Number(r.pm_rate ?? 0);
+      const cost = rate * (pmByRole.get(r.id) || 0);
+      lsPersonnelCost.set(r.participant_id, (lsPersonnelCost.get(r.participant_id) || 0) + cost);
+    }
+
+    // C.2 exposure per participant: every C.2 sub-line plus depreciation
+    // charged into C.2.
+    const c2ByPart = new Map<string, number>();
+    for (const it of lsItems ?? []) {
+      if (!String(it.cost_line).startsWith("C.2")) continue;
+      c2ByPart.set(it.participant_id, (c2ByPart.get(it.participant_id) || 0) + Number(it.amount ?? 0));
+    }
+    for (const d of lsDepr ?? []) {
+      if (!d.include_in_c2) continue;
+      c2ByPart.set(d.participant_id, (c2ByPart.get(d.participant_id) || 0) + Number(d.charged_depreciation ?? 0));
+    }
+    const lsForced = new Set<string>();
+    for (const [partId, total] of c2ByPart) {
+      if (total <= 0) continue;
+      const pers = lsPersonnelCost.get(partId) || 0;
+      if (pers > 0 ? total > 0.15 * pers : true) lsForced.add(partId);
+    }
+
+    const hasC2Sublines = ["C.2.infrastructure", "C.2.equipment", "C.2.other_assets"]
+      .some((k) => mirror[k] !== undefined);
+    const c2MirroredFor = (partId: string, costLine: string) =>
+      Boolean(mirror[costLine] || (!hasC2Sublines && mirror["C.2"])) || lsForced.has(partId);
+
+    // Synthetic items reuse the traditional renderer: `budget_row_id` carries
+    // the participant id and `brToPart` maps it back to itself.
+    for (const p of participants ?? []) brToPart.set(p.id, p.id);
+    const mk = (partId: string, amount: number, text: string) => ({
+      budget_row_id: partId,
+      amount,
+      justification: text,
+      description: "",
+    });
+
+    const lsSub: any[] = [];
+    const lsTravel: any[] = [];
+    const lsEquip: any[] = [];
+    const lsOther: any[] = [];
+    for (const it of lsItems ?? []) {
+      const line = String(it.cost_line);
+      const amount = Number(it.amount ?? 0);
+      const text = it.justification || "";
+      if (amount === 0 && !text.trim()) continue;
+      if (line === "B.1") lsSub.push(mk(it.participant_id, amount, text));
+      else if (line === "C.1") { if (mirror["C.1"]) lsTravel.push(mk(it.participant_id, amount, text)); }
+      else if (line.startsWith("C.2")) { if (c2MirroredFor(it.participant_id, line)) lsEquip.push(mk(it.participant_id, amount, text)); }
+      else if (line.startsWith("C.3")) { if (mirror[line]) lsOther.push(mk(it.participant_id, amount, text)); }
+    }
+    for (const d of lsDepr ?? []) {
+      if (!d.include_in_c2 || !c2MirroredFor(d.participant_id, `C.2.${d.resource_type}`)) continue;
+      const amount = Number(d.charged_depreciation ?? 0);
+      const text = [d.short_name || "", d.comments || ""].filter((s: string) => s.trim()).join(" — ");
+      if (amount === 0 && !text) continue;
+      lsEquip.push(mk(d.participant_id, amount, text));
+    }
+
+    subItems = lsSub;
+    travelItems = lsTravel;
+    equipItems = lsEquip;
+    otherGoodsItems = lsOther;
+    // Mirror settings are the ONLY gate on this path; the legacy b31_show_*
+    // switches are deliberately bypassed.
+    includeTravel = lsTravel.length > 0;
+    includeOtherGoods = lsOther.length > 0;
+  }
+
 
   const partLabel = (id: string | null) => {
     if (!id) return "—";
