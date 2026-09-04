@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { PartAPageLayout } from './PartAPageLayout';
 
@@ -165,7 +165,8 @@ export function BudgetPortalSheet({
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const portalViewKey = user?.id ? PORTAL_VIEW_KEY(user.id, proposalId) : null;
   const [budgetView, setBudgetView] = useState<BudgetView>('enter');
-  const [budgetViewRestored, setBudgetViewRestored] = useState(false);
+  const restoredPortalViewKeyRef = useRef<string | null>(null);
+  const budgetViewChosenRef = useRef(false);
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
@@ -187,10 +188,12 @@ export function BudgetPortalSheet({
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
 
-  // Restore only once the user id is known, otherwise the read would target the
-  // 'anon' key and silently find nothing.
+  // Read each user/proposal preference exactly once, after the user id is known.
+  // Permissions may hydrate separately, so access validation happens below at
+  // the point of use rather than making this effect depend on `canEdit`.
   useEffect(() => {
-    if (!portalViewKey) return;
+    if (!portalViewKey || restoredPortalViewKeyRef.current === portalViewKey) return;
+    restoredPortalViewKeyRef.current = portalViewKey;
     let stored: string | null = null;
     try {
       stored = window.localStorage.getItem(portalViewKey);
@@ -199,16 +202,17 @@ export function BudgetPortalSheet({
     }
     const isView = (value: string | null): value is BudgetView =>
       value === 'enter' || value === 'portal' || value === 'overview';
-    const next = isView(stored) && allowedBudgetViews.includes(stored)
-      ? stored
-      : (allowedBudgetViews.includes('enter') ? 'enter' : allowedBudgetViews[0]);
-    setBudgetView(next);
-    setBudgetViewRestored(true);
-  }, [portalViewKey, allowedBudgetViews]);
+    if (!budgetViewChosenRef.current) setBudgetView(isView(stored) ? stored : 'enter');
+  }, [portalViewKey]);
+
+  const accessibleBudgetView = allowedBudgetViews.includes(budgetView)
+    ? budgetView
+    : allowedBudgetViews[0];
 
   const chooseBudgetView = (next: BudgetView) => {
+    budgetViewChosenRef.current = true;
     setBudgetView(next);
-    if (!portalViewKey || !budgetViewRestored) return;
+    if (!portalViewKey) return;
     try {
       window.localStorage.setItem(portalViewKey, next);
     } catch {
@@ -846,9 +850,9 @@ export function BudgetPortalSheet({
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
                   {/* Enter budget and Copy to portal are editing surfaces; Overview is
                       read-only and therefore available to every user with access. */}
-                    <Button type="button" variant={budgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
-                    <Button type="button" variant={budgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
-                  <Button type="button" variant={budgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={budgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
+                    <Button type="button" variant={accessibleBudgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
+                    <Button type="button" variant={accessibleBudgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
+                  <Button type="button" variant={accessibleBudgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                 </div>
               )}
             </div>
@@ -1193,7 +1197,7 @@ export function BudgetPortalSheet({
 
           {budgetTabs.includes('lump-sum') && (
             <TabsContent value="lump-sum">
-              <LumpSumBudgetPanel proposalId={proposalId} budgetView={budgetView} />
+              <LumpSumBudgetPanel proposalId={proposalId} budgetView={accessibleBudgetView} />
             </TabsContent>
           )}
 
