@@ -5518,11 +5518,6 @@ export type Database = {
           created_by: string | null
           custom_colors: Json
           deadline: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          purge_after: string | null
-          restored_at: string | null
-          restored_by: string | null
           decision_date: string | null
           decision_date_is_estimated: boolean
           deleted_at: string | null
@@ -5609,11 +5604,6 @@ export type Database = {
           created_by?: string | null
           custom_colors?: Json
           deadline?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          purge_after?: string | null
-          restored_at?: string | null
-          restored_by?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
           deleted_at?: string | null
@@ -5700,11 +5690,6 @@ export type Database = {
           created_by?: string | null
           custom_colors?: Json
           deadline?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          purge_after?: string | null
-          restored_at?: string | null
-          restored_by?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
           deleted_at?: string | null
@@ -7409,11 +7394,6 @@ export type Database = {
         Returns: Json
       }
       delete_proposal: { Args: { _proposal_id: string }; Returns: undefined }
-      suppress_proposal: { Args: { _proposal_id: string }; Returns: undefined }
-      restore_suppressed_proposal: {
-        Args: { _proposal_id: string }
-        Returns: undefined
-      }
       ensure_template_draft: {
         Args: { p_template_type_id: string }
         Returns: string
