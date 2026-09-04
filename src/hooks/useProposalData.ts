@@ -337,7 +337,6 @@ export function useProposalData(proposalId: string) {
         organisation_type: participant.organisationType,
         country: participant.country,
         pic_number: participant.picNumber,
-        legal_entity_type: participant.legalEntityType,
         participant_number: participant.participantNumber,
         contact_email: participant.contactEmail,
         address: participant.address,
@@ -365,7 +364,6 @@ export function useProposalData(proposalId: string) {
     if (updates.organisationType !== undefined) dbUpdates.organisation_type = updates.organisationType;
     if (updates.country !== undefined) dbUpdates.country = updates.country;
     if (updates.picNumber !== undefined) dbUpdates.pic_number = updates.picNumber;
-    if (updates.legalEntityType !== undefined) dbUpdates.legal_entity_type = updates.legalEntityType;
     
     if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
     if (updates.address !== undefined) dbUpdates.address = updates.address;

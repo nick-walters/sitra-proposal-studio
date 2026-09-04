@@ -142,7 +142,6 @@ export function BulkPicLookupDialog({
         organisationType: 'beneficiary',
         country: result.organisation.country,
         picNumber: result.picNumber,
-        legalEntityType: result.organisation.legalEntityType,
         
         organisationCategory: result.organisation.organisationCategory,
         englishName: result.organisation.englishName,
