@@ -157,7 +157,11 @@ function LocalNumberInput({ value, decimals, disabled, onCommit, className = '' 
   />;
 }
 
-function LocalTextInput({ value, disabled, onCommit, className = '' }: { value: string; disabled: boolean; onCommit: (value: string) => void; className?: string }) {
+/** Justification cap for the B, C and D cost lines. UI-only: legacy rows that
+ *  are already longer are never truncated, only prevented from growing. */
+export const JUSTIFICATION_LIMIT = 150;
+
+function LocalTextInput({ value, disabled, onCommit, className = '', maxLength }: { value: string; disabled: boolean; onCommit: (value: string) => void; className?: string; maxLength?: number }) {
   const [localValue, setLocalValue] = useState(value);
   const [dirty, setDirty] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -172,21 +176,47 @@ function LocalTextInput({ value, disabled, onCommit, className = '' }: { value: 
     setDirty(true);
     onCommit(next);
   };
-  const schedule = (next: string) => {
+  // An existing over-length value keeps its own length as the ceiling, so it is
+  // never silently shortened; new text still stops at the limit.
+  const cap = maxLength ? Math.max(maxLength, value.length) : undefined;
+  const schedule = (raw: string) => {
+    const next = cap ? raw.slice(0, cap) : raw;
     setLocalValue(next);
     setDirty(true);
     if (pending.current) clearTimeout(pending.current);
     pending.current = setTimeout(() => commit(next), 350);
   };
-  return <Input
-    className={`${FIELD} ${className}`}
-    value={focused || dirty ? localValue : value}
-    disabled={disabled}
-    onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
-    onChange={event => schedule(event.target.value)}
-    onBlur={() => { setFocused(false); if (dirty) commit(); }}
-  />;
+  const shown = focused || dirty ? localValue : value;
+  const over = maxLength !== undefined && shown.length > maxLength;
+  if (maxLength === undefined) {
+    return <Input
+      className={`${FIELD} ${className}`}
+      value={shown}
+      disabled={disabled}
+      onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
+      onChange={event => schedule(event.target.value)}
+      onBlur={() => { setFocused(false); if (dirty) commit(); }}
+    />;
+  }
+  return <div className="space-y-0.5">
+    <Input
+      className={`${FIELD} ${className}`}
+      value={shown}
+      maxLength={cap}
+      disabled={disabled}
+      onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
+      onChange={event => schedule(event.target.value)}
+      onBlur={() => { setFocused(false); if (dirty) commit(); }}
+    />
+    <span
+      className={`block text-right text-[10px] tabular-nums ${over ? 'font-medium text-destructive' : 'text-muted-foreground'}`}
+      aria-live="polite"
+    >
+      {shown.length}/{maxLength}{over ? ` (${shown.length - maxLength} over — please shorten)` : ''}
+    </span>
+  </div>;
 }
+
 
 
 function wpLabel(wp: LumpSumCostWorkPackage | undefined) {
