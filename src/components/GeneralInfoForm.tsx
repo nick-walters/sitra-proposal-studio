@@ -1053,13 +1053,15 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
   const handleDeleteProposal = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase.rpc('delete_proposal', {
+      // Suppress rather than delete: the row stays for 90 days, hidden from
+      // everyone by RLS, and a platform admin can restore it from the bin.
+      const { error } = await supabase.rpc('suppress_proposal', {
         _proposal_id: proposalId,
       });
 
       if (error) throw error;
 
-      toast.success('Proposal deleted successfully');
+      toast.success('Proposal deleted — recoverable by an administrator for 90 days');
       // Tell the dashboard to refetch: it may already be mounted, in which case
       // navigating home alone would show the deleted proposal until a reload.
       navigate('/dashboard', { replace: true, state: { refreshProposals: true } });
@@ -1087,7 +1089,7 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
       className="border-destructive/50"
     >
       <p className="text-sm text-muted-foreground mb-4">
-        Permanently delete this proposal and all associated data. This action cannot be undone.
+        Delete this proposal and all associated data. It is hidden immediately and kept for 90 days, during which a platform administrator can restore it. After that it is removed permanently.
       </p>
       <AlertDialog>
         <AlertDialogTrigger asChild>
@@ -1109,7 +1111,7 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete <strong>"{proposalTitle}"</strong> and all its data, including:
+              This will remove <strong>"{proposalTitle}"</strong> and all its data from view, including:
               <ul className="list-disc ml-5 mt-2 space-y-1">
                 <li>All sections and content</li>
                 <li>All participants and their data</li>
@@ -1117,7 +1119,9 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
                 <li>All budget items and figures</li>
                 <li>All comments and version history</li>
               </ul>
-              <p className="mt-3 font-medium text-destructive">This action cannot be undone.</p>
+              <p className="mt-3 font-medium text-destructive">
+                It is kept for 90 days and can be restored by a platform administrator during that time. After 90 days it is deleted permanently.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
