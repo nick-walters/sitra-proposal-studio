@@ -1810,12 +1810,56 @@ async function buildA5(supabase: any, proposal: any): Promise<Uint8Array> {
   return await packDocx(children);
 }
 
+/**
+ * Maps a legacy section label ("b1-1") to the proposal_template_sections uuid
+ * the modular card board is keyed by ("B1.1"), for the sections that have
+ * cards. Cached per proposal for the lifetime of the run.
+ */
+const SECTION_UUID_CACHE = new Map<string, Map<string, string>>();
+async function sectionUuidByNumber(supabase: any, proposalId: string): Promise<Map<string, string>> {
+  const cached = SECTION_UUID_CACHE.get(proposalId);
+  if (cached) return cached;
+  const map = new Map<string, string>();
+  const { data: cardSecs, error: secErr } = await supabase
+    .from("proposal_cards").select("section_id").eq("proposal_id", proposalId).is("deleted_at", null);
+  if (secErr) { console.error("card section lookup failed", secErr); SECTION_UUID_CACHE.set(proposalId, map); return map; }
+  const ids = [...new Set(((cardSecs ?? []) as any[]).map((c) => c.section_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: secs, error: tsErr } = await supabase
+      .from("proposal_template_sections").select("id, section_number").in("id", ids);
+    if (tsErr) console.error("template section lookup failed", tsErr);
+    for (const s of (secs ?? []) as any[]) {
+      if (s.section_number) map.set(String(s.section_number).toUpperCase(), s.id);
+    }
+  }
+  SECTION_UUID_CACHE.set(proposalId, map);
+  return map;
+}
+
+/** "b1-1" -> "B1.1" */
+function sectionNumberFromLabel(label: string): string {
+  return label.toUpperCase();
+}
+
 async function buildPartBSection(supabase: any, proposal: any, sectionId: string, label: string): Promise<Uint8Array> {
-  const content = await latestSectionContent(supabase, proposal.id, sectionId);
-  const children: (Paragraph | Table)[] = [
-    H(HeadingLevel.HEADING_1, `Part ${label}`),
-    ...htmlToDocxChildren(content),
-  ];
+  const children: (Paragraph | Table)[] = [H(HeadingLevel.HEADING_1, `Part ${label}`)];
+
+  // Part B moved to modular card boards. Cards are the live document; the
+  // legacy section_versions body is only the pre-cutover fallback (prompt 90).
+  const uuidByNumber = await sectionUuidByNumber(supabase, proposal.id);
+  const sectionUuid = uuidByNumber.get(sectionNumberFromLabel(label));
+  const blocks = sectionUuid
+    ? await loadCardBlocks(supabase, proposal.id, { sectionId: sectionUuid })
+    : [];
+  if (blocks.length) {
+    children.push(...(await cardBlocksToChildren(supabase, proposal.id, blocks)));
+    console.log(`Part ${label} sourced from cards`, { proposal_id: proposal.id, blocks: blocks.length });
+  } else {
+    const content = await latestSectionContent(supabase, proposal.id, sectionId);
+    children.push(...htmlToDocxChildren(content));
+    console.log(`Part ${label} sourced from section_versions (no cards)`, { proposal_id: proposal.id });
+  }
+
 
   // ── B1.2: append structured ongoing-projects table ──
   if (sectionId === "b1-2") {
