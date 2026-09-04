@@ -114,6 +114,7 @@ export function ProposalEditor() {
   // Fetch proposal data from database
   const {
     proposal,
+    proposalError,
     participants,
     participantMembers,
     ethics,
@@ -1109,6 +1110,34 @@ export function ProposalEditor() {
       alertBg: 'bg-muted/50 border-b-muted'
     };
   };
+
+  // The proposal row could not be read: deleted, or access revoked mid-session.
+  // Say so plainly instead of leaving stale in-memory state on screen.
+  if (!loading && proposalError) {
+    return (
+      <div className="h-dvh bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center bg-muted/30 p-6">
+          <div className="text-center max-w-md space-y-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h1 className="text-lg font-medium text-foreground">
+              {proposalError === 'not_found'
+                ? 'This proposal is no longer available'
+                : 'This proposal could not be loaded'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {proposalError === 'not_found'
+                ? 'It has either been deleted, or your access to it has been removed. Nothing you had open here can be saved.'
+                : 'Something went wrong while loading it. Please try again in a moment.'}
+            </p>
+            <Button onClick={() => navigate('/')}>Back to proposal dashboard</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const statusInfo = getCombinedStatusInfo();
   const StatusIcon = statusInfo.icon;
