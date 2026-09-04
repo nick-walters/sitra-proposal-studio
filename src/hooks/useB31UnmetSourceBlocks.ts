@@ -23,6 +23,7 @@ export function useB31UnmetSourceBlocks(proposalId: string, enabled: boolean) {
     equipmentByParticipant,
     travelByParticipant,
     otherGoodsByParticipant,
+    isLumpSum,
     loading,
   } = useB31SectionData(enabled ? proposalId : '');
 
@@ -33,10 +34,14 @@ export function useB31UnmetSourceBlocks(proposalId: string, enabled: boolean) {
     if (subcontractingByParticipant.length === 0) unmet.add('b31.table_g');
 
     const c2ForcedOn = presence.equipmentAboveThreshold;
+    // Lump-sum: travel and other goods follow the adapter's mirror settings,
+    // which have already emptied these arrays when nothing is mirrored, so the
+    // legacy b31_show_* booleans are bypassed. Nothing mirrored still yields
+    // zero blocks and therefore the same "not applicable" outcome as before.
     const purchaseBlocks =
-      (toggles.travel && travelByParticipant.length > 0 ? 1 : 0) +
+      ((isLumpSum || toggles.travel) && travelByParticipant.length > 0 ? 1 : 0) +
       ((c2ForcedOn || toggles.equipment) && equipmentByParticipant.length > 0 ? 1 : 0) +
-      (toggles.other_goods && otherGoodsByParticipant.length > 0 ? 1 : 0);
+      ((isLumpSum || toggles.other_goods) && otherGoodsByParticipant.length > 0 ? 1 : 0);
     if (purchaseBlocks === 0) unmet.add('b31.table_h');
 
     return unmet;
@@ -46,6 +51,7 @@ export function useB31UnmetSourceBlocks(proposalId: string, enabled: boolean) {
     togglesLoading,
     presence.loading,
     presence.equipmentAboveThreshold,
+    isLumpSum,
     toggles.travel,
     toggles.equipment,
     toggles.other_goods,

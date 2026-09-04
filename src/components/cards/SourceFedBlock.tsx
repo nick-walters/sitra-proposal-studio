@@ -105,6 +105,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     equipmentByParticipant,
     travelByParticipant,
     otherGoodsByParticipant,
+    isLumpSum,
     loading,
   } = useB31SectionData(proposalId);
 
@@ -127,14 +128,18 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
 
   // Purchase-cost sub-blocks follow the A3 flags, with the >15% equipment rule
   // forcing equipment on exactly as the legacy mirror does.
+  // Lump-sum proposals decide travel and other goods from the adapter's mirror
+  // settings instead — `useB31SectionData` has already filtered those arrays —
+  // so the legacy b31_show_* booleans are bypassed there, and only there.
   const c2ForcedOn = presence.equipmentAboveThreshold;
   const purchaseBlocks: MergedBlock[] = [];
-  if (toggles.travel && travelByParticipant.length > 0)
+  if ((isLumpSum || toggles.travel) && travelByParticipant.length > 0)
     purchaseBlocks.push({ categoryLabel: 'Travel', participants: travelByParticipant });
   if ((c2ForcedOn || toggles.equipment) && equipmentByParticipant.length > 0)
     purchaseBlocks.push({ categoryLabel: 'Equipment', participants: equipmentByParticipant });
-  if (toggles.other_goods && otherGoodsByParticipant.length > 0)
+  if ((isLumpSum || toggles.other_goods) && otherGoodsByParticipant.length > 0)
     purchaseBlocks.push({ categoryLabel: 'Other', participants: otherGoodsByParticipant });
+
 
   switch (sourceKey) {
     case 'b31.table_a':
