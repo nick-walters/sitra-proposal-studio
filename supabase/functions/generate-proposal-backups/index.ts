@@ -1968,36 +1968,27 @@ async function buildB31(supabase: any, proposal: any): Promise<Uint8Array> {
     other_goods: !!propFlags?.b31_show_other_goods_justification,
   };
 
-  // Block visibility from the B3.1 block board. The board is the preview the
-  // writer sees, so a hidden block must not appear in the DOCX. When a
-  // proposal has no B3.1 blocks yet (pre-cutover), every block counts as
-  // visible and the b31_show_* booleans alone decide, exactly as before.
-  const { data: b31Cards } = await supabase
-    .from("proposal_cards")
-    .select("id, template_key, is_visible")
-    .eq("proposal_id", proposal.id)
-    .is("deleted_at", null)
-    .like("template_key", "b31.%");
+  // Block visibility from the B3.1 block board, read through the shared card
+  // reader (prompt 90). The board is the preview the writer sees, so a hidden
+  // block must not appear in the DOCX. When a proposal has no B3.1 blocks yet
+  // (pre-cutover), every block counts as visible and the b31_show_* booleans
+  // alone decide, exactly as before.
+  const b31Blocks = await loadCardBlocks(supabase, proposal.id, { templateKeyPrefix: "b31." });
   const cardVisible = new Map<string, boolean>();
-  for (const c of b31Cards ?? []) cardVisible.set(c.template_key, !!c.is_visible);
+  for (const b of b31Blocks) if (b.templateKey) cardVisible.set(b.templateKey, b.isVisible);
   const blockVisible = (key: string) => cardVisible.get(key) !== false;
 
   // Authored text now lives on the b31.intro block. Once the board exists it
   // supersedes the legacy `section_content` bodies, which stay untouched as the
   // rollback path.
-  const introCard = (b31Cards ?? []).find((c: any) => c.template_key === "b31.intro");
+  const introCard = b31Blocks.find((b) => b.templateKey === "b31.intro");
   let introHtml = intro;
   let bodyHtml = body;
   if (introCard) {
-    const { data: introFields } = await supabase
-      .from("card_fields")
-      .select("content_html, order_index")
-      .eq("card_id", introCard.id)
-      .is("deleted_at", null)
-      .order("order_index", { ascending: true });
-    introHtml = (introFields ?? []).map((f: any) => f.content_html ?? "").join("\n");
+    introHtml = introCard.html;
     bodyHtml = "";
   }
+
 
   const { data: wps } = await supabase
     .from("wp_drafts")
