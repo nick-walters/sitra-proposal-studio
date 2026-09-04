@@ -110,6 +110,8 @@ export function LumpSumOverview({ proposalId, userId }: { proposalId: string; us
   const costs = useLumpSumCosts(proposalId);
   const depreciation = useLumpSumDepreciation(proposalId);
   const totals = useLumpSumTotals(proposalId);
+  // Read-only for everyone, so nothing here can be reseeded mid-edit.
+  useLumpSumRealtime(proposalId, true);
   const { isCollapsed, toggle } = useLsCollapse(userId, proposalId);
 
   useEffect(() => {
