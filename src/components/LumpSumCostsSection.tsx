@@ -157,7 +157,11 @@ function LocalNumberInput({ value, decimals, disabled, onCommit, className = '' 
   />;
 }
 
-function LocalTextInput({ value, disabled, onCommit, className = '' }: { value: string; disabled: boolean; onCommit: (value: string) => void; className?: string }) {
+/** Justification cap for the B, C and D cost lines. UI-only: legacy rows that
+ *  are already longer are never truncated, only prevented from growing. */
+export const JUSTIFICATION_LIMIT = 150;
+
+function LocalTextInput({ value, disabled, onCommit, className = '', maxLength }: { value: string; disabled: boolean; onCommit: (value: string) => void; className?: string; maxLength?: number }) {
   const [localValue, setLocalValue] = useState(value);
   const [dirty, setDirty] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -172,21 +176,47 @@ function LocalTextInput({ value, disabled, onCommit, className = '' }: { value: 
     setDirty(true);
     onCommit(next);
   };
-  const schedule = (next: string) => {
+  // An existing over-length value keeps its own length as the ceiling, so it is
+  // never silently shortened; new text still stops at the limit.
+  const cap = maxLength ? Math.max(maxLength, value.length) : undefined;
+  const schedule = (raw: string) => {
+    const next = cap ? raw.slice(0, cap) : raw;
     setLocalValue(next);
     setDirty(true);
     if (pending.current) clearTimeout(pending.current);
     pending.current = setTimeout(() => commit(next), 350);
   };
-  return <Input
-    className={`${FIELD} ${className}`}
-    value={focused || dirty ? localValue : value}
-    disabled={disabled}
-    onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
-    onChange={event => schedule(event.target.value)}
-    onBlur={() => { setFocused(false); if (dirty) commit(); }}
-  />;
+  const shown = focused || dirty ? localValue : value;
+  const over = maxLength !== undefined && shown.length > maxLength;
+  if (maxLength === undefined) {
+    return <Input
+      className={`${FIELD} ${className}`}
+      value={shown}
+      disabled={disabled}
+      onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
+      onChange={event => schedule(event.target.value)}
+      onBlur={() => { setFocused(false); if (dirty) commit(); }}
+    />;
+  }
+  return <div className="space-y-0.5">
+    <Input
+      className={`${FIELD} ${className}`}
+      value={shown}
+      maxLength={cap}
+      disabled={disabled}
+      onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
+      onChange={event => schedule(event.target.value)}
+      onBlur={() => { setFocused(false); if (dirty) commit(); }}
+    />
+    <span
+      className={`block text-right text-[10px] tabular-nums ${over ? 'font-medium text-destructive' : 'text-muted-foreground'}`}
+      aria-live="polite"
+    >
+      {shown.length}/{maxLength}{over ? ` (${shown.length - maxLength} over — please shorten)` : ''}
+    </span>
+  </div>;
 }
+
 
 
 function wpLabel(wp: LumpSumCostWorkPackage | undefined) {
@@ -217,7 +247,7 @@ function SortableCostRow({ item, workPackages, editable, strict, onChangeWp, onD
     <td className="px-1"><Select value={item.wp_draft_id} onValueChange={onChangeWp} disabled={!editable}><SelectTrigger className="h-7 px-1.5 text-xs"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span><span className="sr-only"><SelectValue /></span></SelectTrigger><SelectContent>{workPackages.map(candidate => <SelectItem key={candidate.id} value={candidate.id} className="pl-2 [&>span:first-child]:hidden"><span title={candidate.title ?? candidate.short_name ?? ''}><WPBubble wpNumber={candidate.number} wpColor={candidate.color}>{`WP${candidate.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select></td>
     <td className="px-1"><LocalNumberInput value={item.quantity} decimals={2} disabled={!editable} onCommit={onQuantity} /></td>
     <td className="px-1"><LocalNumberInput value={item.unit_cost} decimals={2} disabled={!editable} onCommit={onUnitCost} /></td>
-    <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} className={missingJustification ? warningClass(strict) : ''} onCommit={onJustification} />{missingJustification && <span className={`text-[10px] ${strict ? 'text-destructive' : 'text-warning'}`} aria-live="polite">{strict ? 'Justification required' : 'Justification recommended'}</span>}</td>
+    <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} maxLength={JUSTIFICATION_LIMIT} className={missingJustification ? warningClass(strict) : ''} onCommit={onJustification} />{missingJustification && <span className={`text-[10px] ${strict ? 'text-destructive' : 'text-warning'}`} aria-live="polite">{strict ? 'Justification required' : 'Justification recommended'}</span>}</td>
     <td className={LS_FIGURE_CELL}><div className={`${NUM_READ_FIELD} font-semibold`}>{formatCurrency(Number(item.amount ?? 0))}</div></td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete cost item" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
@@ -396,7 +426,7 @@ function DRow({ item, workPackages, usedWpIds, editable, onChangeWp, onAmount, o
   return <tr className="border-t border-border/70 align-middle">
     <td className="px-1" />
     <td className="px-1"><Select value={item.wp_draft_id} onValueChange={onChangeWp} disabled={!editable}><SelectTrigger className="h-7 px-1.5 text-xs"><span title={wp?.title ?? wp?.short_name ?? ''}><WPBubble wpNumber={wp?.number} wpColor={wp?.color ?? 'hsl(var(--muted-foreground))'}>{wpLabel(wp)}</WPBubble></span><span className="sr-only"><SelectValue /></span></SelectTrigger><SelectContent>{options.map(candidate => <SelectItem key={candidate.id} value={candidate.id} className="pl-2 [&>span:first-child]:hidden"><span title={candidate.title ?? candidate.short_name ?? ''}><WPBubble wpNumber={candidate.number} wpColor={candidate.color}>{`WP${candidate.number}`}</WPBubble></span></SelectItem>)}</SelectContent></Select></td>
-    <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} className={missing ? warningClass(true) : ''} onCommit={onJustification} />{missing && <span className="text-[10px] text-destructive" aria-live="polite">Justification required</span>}</td>
+    <td className="px-1"><LocalTextInput value={item.justification} disabled={!editable} maxLength={JUSTIFICATION_LIMIT} className={missing ? warningClass(true) : ''} onCommit={onJustification} />{missing && <span className="text-[10px] text-destructive" aria-live="polite">Justification required</span>}</td>
     <td className={LS_FIGURE_CELL}><LocalNumberInput value={item.unit_cost} decimals={2} disabled={!editable} onCommit={onAmount} /></td>
     <td className="px-1 text-center"><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={!editable} aria-label="Delete cost item" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button></td>
   </tr>;
