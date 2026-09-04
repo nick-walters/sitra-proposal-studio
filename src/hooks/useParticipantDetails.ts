@@ -277,7 +277,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       .single();
 
     if (error) {
-      toast.error('Failed to add researcher');
+      toast.error(`Failed to add researcher: ${error.message}`);
       console.error(error);
       return;
     }
@@ -294,7 +294,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       .eq('id', id);
 
     if (error) {
-      toast.error('Failed to update researcher');
+      toast.error(`Failed to update researcher: ${error.message}`);
       console.error(error);
       return;
     }
@@ -309,7 +309,7 @@ export function useParticipantDetails(participantId: string | undefined, proposa
       .eq('id', id);
 
     if (error) {
-      toast.error('Failed to delete researcher');
+      toast.error(`Failed to delete researcher: ${error.message}`);
       console.error(error);
       return;
     }
