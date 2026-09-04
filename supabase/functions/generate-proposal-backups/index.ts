@@ -2740,7 +2740,7 @@ async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<M
  * out of the backup bundle entirely (prompt 92). Nothing is deleted; this only
  * decides what the bundle contains.
  */
-async function liveePlacedFigureIds(supabase: any, proposalId: string): Promise<Set<string>> {
+async function livePlacedFigureIds(supabase: any, proposalId: string): Promise<Set<string>> {
   const [placementRes, cardRes] = await Promise.all([
     supabase.from("card_figure").select("card_id, figure_id").eq("proposal_id", proposalId),
     supabase.from("proposal_cards").select("id").eq("proposal_id", proposalId).is("deleted_at", null),
@@ -3086,7 +3086,7 @@ Deno.serve(async (req) => {
       // `card_figure` placement, so they take the B3.1 system numbers.
       const figureFileNumbers = await deriveFigureNumbers(db, proposal.id);
       const systemNumbers = await deriveB31SystemFigureNumbers(db, proposal.id);
-      const livePlacedFigures = await liveePlacedFigureIds(db, proposal.id);
+      const livePlacedFigures = await livePlacedFigureIds(db, proposal.id);
       const usedFigureNames = new Set<string>();
       let unnumberedFigures = 0;
       let orphanedFigures = 0;
