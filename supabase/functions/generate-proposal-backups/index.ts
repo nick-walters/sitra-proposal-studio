@@ -3271,6 +3271,25 @@ Deno.serve(async (req) => {
     const { data: proposals, error: pErr } = await supabase.from("proposals").select("*");
     if (pErr) { console.error("proposals fetch failed", pErr); return; }
     for (const p of proposals ?? []) {
+      // A suppressed proposal is backed up exactly ONCE more, so the bin always
+      // holds a bundle that reflects the moment it was removed. After that
+      // first post-suppression run we skip it: a successful backup timestamped
+      // later than deleted_at is the marker that the final bundle exists.
+      if (p.deleted_at) {
+        const { data: lastOk } = await supabase
+          .from("proposal_backups")
+          .select("backup_timestamp")
+          .eq("proposal_id", p.id)
+          .neq("run_status", "failed")
+          .gt("backup_timestamp", p.deleted_at)
+          .order("backup_timestamp", { ascending: false })
+          .limit(1);
+        if (lastOk?.length) {
+          console.log(`skipping suppressed proposal ${p.acronym ?? p.id}: final backup already taken`);
+          continue;
+        }
+        console.log(`suppressed proposal ${p.acronym ?? p.id}: taking the final backup`);
+      }
       await backupOne(p, cfg);
     }
     try {

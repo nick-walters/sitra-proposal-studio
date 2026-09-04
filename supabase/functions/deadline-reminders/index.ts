@@ -62,9 +62,12 @@ Deno.serve(async (req) => {
         proposal_template_id,
         proposal_templates!inner(
           proposal_id,
-          proposals!inner(acronym)
+          proposals!inner(acronym, deleted_at)
         )
       `)
+      // A suppressed (binned) proposal must stop generating reminders: this
+      // runs with the service role, so RLS does not hide it here.
+      .is("proposal_templates.proposals.deleted_at", null)
       .not("due_date", "is", null)
       .not("assigned_to", "is", null)
       .lte("due_date", threeDaysStr);
