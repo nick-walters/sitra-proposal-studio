@@ -199,6 +199,37 @@ export function BackendAdmin() {
             </Card>
           </Link>
 
+          {/* Proposal recycle bin - Owners and global admins */}
+          <Link to="/admin/proposal-bin" className={!isOwner ? 'pointer-events-none' : ''}>
+            <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-destructive/10 rounded-lg">
+                    <Trash2 className="w-6 h-6 text-destructive" />
+                  </div>
+                  {isOwner ? (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="mt-4">Proposal Recycle Bin</CardTitle>
+                <CardDescription>
+                  Review deleted proposals and restore them within 90 days
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {isOwner ? (
+                    <span className="text-primary">Owner access granted</span>
+                  ) : (
+                    <span>Requires Owner role</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           {/* AI Configuration - Owners only */}
           <Link to="/admin/ai-config" className={!isOwner ? 'pointer-events-none' : ''}>
             <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
