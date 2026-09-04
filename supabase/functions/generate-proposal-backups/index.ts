@@ -2780,11 +2780,17 @@ Deno.serve(async (req) => {
       // Uploaded image/AI figures live in `proposal-files` (path in content.imageUrl).
       // PERT/Gantt figures are cached client-side at
       // `proposal-backups/{proposal_id}/_figures-cache/{figure_id}.png`.
-      const { data: figures } = await supabase
+      // `figures.order_index` was dropped; the table carries no ordering column.
+      // Order by created_at (stable creation order), with id as a deterministic
+      // tie-break. Output file names come from the derived figure number below,
+      // so ordering only affects processing order, not naming.
+      const { data: figures, error: figuresErr } = await supabase
         .from("figures")
-        .select("id, figure_type, content, title, caption, order_index")
+        .select("id, figure_type, content, title, caption, created_at")
         .eq("proposal_id", proposal.id)
-        .order("order_index", { ascending: true });
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
+      if (figuresErr) console.error("[backup] figures query failed", figuresErr);
 
       // File names use the DERIVED figure number (prompt 179). The stored
       // `figures.figure_number` column is dead and blank on newer figures.
