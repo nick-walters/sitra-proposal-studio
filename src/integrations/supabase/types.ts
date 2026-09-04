@@ -5520,6 +5520,8 @@ export type Database = {
           deadline: string | null
           decision_date: string | null
           decision_date_is_estimated: boolean
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           destination: string | null
           destination_footnotes: Json | null
@@ -5549,8 +5551,11 @@ export type Database = {
           opening_date: string | null
           outcome_footnotes: Json | null
           overview_canvas_enabled: boolean
+          purge_after: string | null
           reporting_periods: Json | null
           requires_ocd: boolean | null
+          restored_at: string | null
+          restored_by: string | null
           scope_footnotes: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
           submission_stage: string | null
@@ -5601,6 +5606,8 @@ export type Database = {
           deadline?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           destination?: string | null
           destination_footnotes?: Json | null
@@ -5630,8 +5637,11 @@ export type Database = {
           opening_date?: string | null
           outcome_footnotes?: Json | null
           overview_canvas_enabled?: boolean
+          purge_after?: string | null
           reporting_periods?: Json | null
           requires_ocd?: boolean | null
+          restored_at?: string | null
+          restored_by?: string | null
           scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
@@ -5682,6 +5692,8 @@ export type Database = {
           deadline?: string | null
           decision_date?: string | null
           decision_date_is_estimated?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           destination?: string | null
           destination_footnotes?: Json | null
@@ -5711,8 +5723,11 @@ export type Database = {
           opening_date?: string | null
           outcome_footnotes?: Json | null
           overview_canvas_enabled?: boolean
+          purge_after?: string | null
           reporting_periods?: Json | null
           requires_ocd?: boolean | null
+          restored_at?: string | null
+          restored_by?: string | null
           scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
@@ -7519,6 +7534,10 @@ export type Database = {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json
       }
+      restore_suppressed_proposal: {
+        Args: { _proposal_id: string }
+        Returns: undefined
+      }
       restore_target_version: {
         Args: { p_expected_version?: number; p_version_id: string }
         Returns: Json
@@ -7603,6 +7622,7 @@ export type Database = {
         Returns: undefined
       }
       soft_delete_figure: { Args: { p_figure_id: string }; Returns: undefined }
+      suppress_proposal: { Args: { _proposal_id: string }; Returns: undefined }
       tg_reseq_tasks_for: { Args: { p_wp: string }; Returns: undefined }
       thin_card_field_versions: {
         Args: { p_proposal_id: string }
