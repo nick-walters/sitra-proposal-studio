@@ -540,7 +540,7 @@ export function ContactPersonsSection({
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
-                = copy contact person to researchers list.
+                = appears in the researchers list for this organisation.
               </span>
             </div>
           </div>
@@ -894,18 +894,18 @@ function SortableContactCard({
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-            <Checkbox
-              checked={isResearcher}
-              disabled={!canEdit}
-              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-              aria-label="This person will conduct research in the project"
-            />
-            <Users className="w-3.5 h-3.5" />
-            This person will conduct research in the project
-          </label>
         </div>
       </div>
+        <label className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={isResearcher}
+            disabled={!canEdit}
+            onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+            aria-label="This person will conduct research in the project"
+          />
+          <Users className="w-3.5 h-3.5" />
+          This person will conduct research in the project
+        </label>
 
       {isMCP && (
         <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
