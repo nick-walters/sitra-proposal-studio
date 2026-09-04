@@ -58,6 +58,9 @@ export function Dashboard() {
       const { data, error } = await supabase
         .from('proposals')
         .select('*')
+        // RLS already hides binned proposals from everyone else; global admins
+        // can still read them, and they belong in the recycle bin, not here.
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) {
