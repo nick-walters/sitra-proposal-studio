@@ -6,6 +6,7 @@ import { ParticipantBubble } from '@/components/B31Pill';
 import { DifferenceNote, LumpSumPersonnelTable, NUM_READ_FIELD, NumericInput, PersonMonthTotalsRows, READ_FIELD, costLineTotals } from '@/components/LumpSumPersonnelTable';
 import { LumpSumPermissionsDialog } from '@/components/LumpSumPermissionsDialog';
 import { useCanEditParticipantBudget } from '@/hooks/useCanEditParticipantBudget';
+import { useLumpSumRealtime } from '@/hooks/useLumpSumRealtime';
 import { useLumpSumBudgetAccess } from '@/hooks/useLumpSumBudgetAccess';
 import { useLumpSumPersonnel } from '@/hooks/useLumpSumPersonnel';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,6 +60,13 @@ export function LumpSumBudgetPanel({
   const isLocked = Boolean(participantLock?.is_locked);
   const mayEdit = Boolean(selected && editableParticipantIds.has(selected.id));
   const editable = !readOnly && mayEdit && (!isLocked || isCoordinator);
+  /**
+   * Live updates only where nothing is being typed: the user cannot edit this
+   * participant, or it is locked against them. An editable surface keeps its
+   * local debounced state, so an invalidation would reseed a live field.
+   * The Overview subscribes on its own behalf.
+   */
+  useLumpSumRealtime(proposalId, budgetView === 'enter' && !permissionsLoading && !editable);
   const a4UnitCost = Number(participantBudget?.a4_unit_cost ?? 0);
   const workPackages = data?.workPackages ?? [];
 

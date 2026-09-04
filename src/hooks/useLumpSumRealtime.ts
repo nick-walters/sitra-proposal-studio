@@ -81,7 +81,9 @@ export function useLumpSumRealtime(proposalId: string | undefined, enabled: bool
       timer = setTimeout(flush, COALESCE_MS);
     };
 
-    const channel = supabase.channel(`ls-realtime:${proposalId}`);
+    // Unique topic per subscriber: the Overview and the entry surface can be
+    // mounted at once, and two channels sharing a topic interfere.
+    const channel = supabase.channel(`ls-realtime:${proposalId}:${Math.random().toString(36).slice(2)}`);
     for (const table of TABLES) {
       channel.on(
         'postgres_changes',
