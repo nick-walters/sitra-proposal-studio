@@ -1,0 +1,300 @@
+dd79ed108 chore: update CLAUDE_CONTEXT.md [skip ci]
+9709d05e8 Implemented inline editing
+977edc4aa Changes
+82788a0a5 Changes
+9f0622c72 Changes
+3aa6687f8 Changes
+115bd5a80 chore: update CLAUDE_CONTEXT.md [skip ci]
+2599837d1 Added proposal delete guard
+4ec2048d0 Changes
+f59f6b10c Changes
+b07d640cb chore: update CLAUDE_CONTEXT.md [skip ci]
+62c8bb1d9 Updated OCD delete policy for admins
+2c051382d Changes
+7baf78e88 chore: update CLAUDE_CONTEXT.md [skip ci]
+58bbff956 Added realtime hook & panel
+5f59206e2 Changes
+1cf424a21 Changes
+1189020b0 Changes
+252d402a2 Changes
+17b273c48 Changes
+19384753b chore: update CLAUDE_CONTEXT.md [skip ci]
+a473b1648 Tightened OCUD upload policies
+ef7d663ef Changes
+05f7bbff9 chore: update CLAUDE_CONTEXT.md [skip ci]
+65fc8bd77 Persisted budget views on reload
+cfe156c7b Changes
+90ea02001 Changes
+b75a8648c Changes
+7adb07709 chore: update CLAUDE_CONTEXT.md [skip ci]
+cfa9e075f Excluded orphaned figures
+703b839cb Changes
+bc2dcbaaf Changes
+d21776166 chore: update CLAUDE_CONTEXT.md [skip ci]
+29b231e8e Backed up proposals with figure IDs
+9d3226507 Changes
+09fdcdc5a Changes
+380812006 Changes
+6c52dbeb6 Changes
+009fb3788 Changes
+940080237 Changes
+88c573b24 Changes
+5f472b03b Changes
+3011fa24e chore: update CLAUDE_CONTEXT.md [skip ci]
+228eae86e Refactored Part B backup logic
+ec335bf8f Changes
+c48c39a52 Changes
+2315e77a3 Changes
+81af4095b chore: update CLAUDE_CONTEXT.md [skip ci]
+03f7d1bac Fixed budget view persisting
+6a81d3e68 Changes
+2500ddbbb chore: update CLAUDE_CONTEXT.md [skip ci]
+f29ebc173 Fixed figures backup query
+a083601a7 Changes
+d0a6970a7 Changes
+26205c589 chore: update CLAUDE_CONTEXT.md [skip ci]
+ab882f678 Applied lump-sum bypass to cards
+c64d3e1c9 Changes
+dd6add46a Changes
+0c5b8a9a1 Changes
+120d96802 chore: update CLAUDE_CONTEXT.md [skip ci]
+7ffbb709a Fixed mirrored B3.1 gating
+507ac2a7a Changes
+5bda1364d Changes
+2db5703d9 chore: update CLAUDE_CONTEXT.md [skip ci]
+e6fa69f43 Moved mirrors to Overview view
+1094897a0 Changes
+809f569a3 Changes
+3508a394e chore: update CLAUDE_CONTEXT.md [skip ci]
+e4ae2e8b6 Changes
+fa03e3e9b Changes
+f182651be Changes
+3fc9354d5 Changes
+5ec1bae81 Changes
+862885ea2 Changes
+a992b8c5d Changes
+94ddeeba0 chore: update CLAUDE_CONTEXT.md [skip ci]
+c013f8df9 Applied Prompt 82 mirror fix
+948a97e3d Changes
+0593f059a Changes
+ac4c4ff20 Changes
+a2f14f68c Changes
+94bbe68d4 Changes
+3f5c46baf Changes
+9f934d0cc Changes
+79b45fd70 Changes
+b8311ffdc Changes
+e3c8a9844 Changes
+cc7a1c73f chore: update CLAUDE_CONTEXT.md [skip ci]
+e88c6ec65 Added model flag to consumer
+61d55d252 Changes
+c963dc3f4 Work in progress
+ea095d30c chore: update CLAUDE_CONTEXT.md [skip ci]
+cb2da243f Enabled C-line mirroring table
+9fbe9fd88 Changes
+5c15ed688 Changes
+a17bfeddd Changes
+fc217b2a2 Changes
+5c8fdb242 Changes
+4b7313d8d Changes
+c59cd9fe8 Changes
+fbd37196b Changes
+b51dc5975 Changes
+cc79f58b2 chore: update CLAUDE_CONTEXT.md [skip ci]
+1c6638e74 Added C-line mirroring config
+a48b82027 Changes
+49406c199 chore: update CLAUDE_CONTEXT.md [skip ci]
+5bda45410 Removed lump-sum validation
+af0462f7c Changes
+f2df633b4 Changes
+e9287b1a9 chore: update CLAUDE_CONTEXT.md [skip ci]
+bc4da905e Fixed WP1 WP2 overlap
+74f945c3b Changes
+fda4c3559 Changes
+79845dd60 Changes
+aa9a5a56c Changes
+178fd5818 Changes
+d4924db8e chore: update CLAUDE_CONTEXT.md [skip ci]
+1e6172e9e Mounted PersonMonthTotalsRows
+5f3d2cfdb Work in progress
+7567e11a5 chore: update CLAUDE_CONTEXT.md [skip ci]
+e6fa083c3 Reapplied depreciation widths
+b3fc09ace Changes
+b7c66890f chore: update CLAUDE_CONTEXT.md [skip ci]
+5e2995073 Restored lost clobbered files
+b4bbf4061 Changes
+69ede02e4 chore: update CLAUDE_CONTEXT.md [skip ci]
+a6ad08da3 Updated export routing
+98b9a6a7b Changes
+cfd7b3ca4 Changes
+98e72f130 chore: update CLAUDE_CONTEXT.md [skip ci]
+fa0b5dbec Changes
+2b759d8f0 Changes
+615f4881a Changes
+2785cda6f Changes
+10204f1b5 Changes
+f552b94c4 Changes
+001e27d6f Changes
+0e07d19f5 Changes
+b042046a5 Changes
+e3f320c41 Changes
+affea154c Changes
+9cf3395ed Changes
+47b4ed404 chore: update CLAUDE_CONTEXT.md [skip ci]
+a6621414d Removed dormant lock UI path
+05d7cce8a Changes
+066cf2e95 Changes
+9562ca584 Changes
+fad0e2a07 Changes
+b842714f7 Changes
+5f371d95a chore: update CLAUDE_CONTEXT.md [skip ci]
+f3dd0e61c Changes
+8945e331b Changes
+edc86ebf6 chore: update CLAUDE_CONTEXT.md [skip ci]
+cea74b07c Changes
+0ce91e82a Changes
+58cea2f5b Changes
+b7ee0e245 Changes
+f43493139 Changes
+5d3d7019b Changes
+ea3cd8506 chore: update CLAUDE_CONTEXT.md [skip ci]
+d3dd8f609 Work in progress
+83b1d1435 chore: update CLAUDE_CONTEXT.md [skip ci]
+dcab1d6b5 Work in progress
+e6283da97 chore: update CLAUDE_CONTEXT.md [skip ci]
+13d3c32a0 Added lump-sum export helper
+ac57ef61b Work in progress
+b0546d772 chore: update CLAUDE_CONTEXT.md [skip ci]
+e7c646ba5 Changes
+4dec4c4d5 Changes
+3424e2dc8 Changes
+557ede2eb Changes
+a77123413 Changes
+ea76942a0 Changes
+dd8336be3 chore: update CLAUDE_CONTEXT.md [skip ci]
+b0f7da20e Added overview in B3.1 budget
+50e58e7c8 Changes
+fd91087a3 Changes
+2ba42a1e8 Changes
+24c82b530 Changes
+ca07f366d chore: update CLAUDE_CONTEXT.md [skip ci]
+763342f5f Updated Overview read-only path
+2d0cf4fd3 Changes
+40c84bbed Changes
+42bb51b89 Changes
+8508b443c Changes
+128b6fb4f Changes
+526e4b61f Changes
+9345cb237 Changes
+140bad4a4 Changes
+b1f3f2d19 chore: update CLAUDE_CONTEXT.md [skip ci]
+204a1a06f Refactored lump-sum figs mod
+42f2e1b65 Changes
+472366f96 Work in progress
+1156d685f chore: update CLAUDE_CONTEXT.md [skip ci]
+cd394a3e6 Work in progress
+35bf61321 chore: update CLAUDE_CONTEXT.md [skip ci]
+f8242c151 Changes
+5b5905a43 Changes
+f830b176f Work in progress
+225ba4b30 chore: update CLAUDE_CONTEXT.md [skip ci]
+0bdddeb39 Changes
+72c099097 Changes
+05015cd88 Changes
+7469b4e4f Changes
+12e1ca49d Changes
+eab13fafb chore: update CLAUDE_CONTEXT.md [skip ci]
+7997977fd Added lump sum sheets to backups
+1fe1e04fd Changes
+c78b673d8 Changes
+30ce5ac33 chore: update CLAUDE_CONTEXT.md [skip ci]
+200e60208 Added lump-sum sheets to backup
+9cc78e9ea Changes
+715f4492c Changes
+fc1e391bf chore: update CLAUDE_CONTEXT.md [skip ci]
+58662dcf7 Changes
+458382cb5 chore: update CLAUDE_CONTEXT.md [skip ci]
+1f231f9cb Added lump-sum effort sync
+b9059aaf1 Changes
+3632568e8 Changes
+4ed7f6ad9 Changes
+fa3523dd4 Changes
+c9786c46a Changes
+4440366b0 Changes
+26fe8b6f7 Changes
+4a7c7185a chore: update CLAUDE_CONTEXT.md [skip ci]
+55c34340f Changes
+7524316e5 Changes
+450fa35f8 Changes
+4034fb72f Changes
+e953d9456 Changes
+5b887e778 Changes
+ddeb73bfc Changes
+fac841a70 Changes
+da1ccf67c chore: update CLAUDE_CONTEXT.md [skip ci]
+1f66c6756 Changes
+f7b13a80c Changes
+7775f0505 chore: update CLAUDE_CONTEXT.md [skip ci]
+19a1e8e47 Fixed leading col overflow
+6f9ef13ac Changes
+0002d1384 chore: update CLAUDE_CONTEXT.md [skip ci]
+1b4951da1 Changes
+4e51dec78 chore: update CLAUDE_CONTEXT.md [skip ci]
+90ce86d2f Added Overview toggle option
+75b403b83 Changes
+42c7b3ce3 Changes
+ff450cc0d Changes
+778022b3e Changes
+2c1ef328c chore: update CLAUDE_CONTEXT.md [skip ci]
+116e95f2c Added lump-sum validation panel
+c794b7d7f Work in progress
+47e4e778e chore: update CLAUDE_CONTEXT.md [skip ci]
+7d5c8face Changes
+a2f24adb0 Changes
+a22e0836c Changes
+4a3d7ca14 Changes
+09a75be4e Changes
+0435c39cb Changes
+b32a6927d Changes
+e85dfcccd Changes
+02df113c1 Changes
+d0df55db4 Changes
+859e09bbb Changes
+66baaf9c4 Changes
+2f0a74a52 Changes
+784b54aee chore: update CLAUDE_CONTEXT.md [skip ci]
+31a7381a2 Aligned totals to 1358px edge
+2a9e0436c Changes
+59a2c1ade Changes
+16b8105d3 Changes
+3a5709d1f Changes
+a3db747c4 Work in progress
+c58402266 chore: update CLAUDE_CONTEXT.md [skip ci]
+bd148fd6d Fixed stale portal & € affix
+93adf3db3 Changes
+0c975a174 Changes
+2222199e0 Changes
+a6222448c Changes
+b11fde9a1 Changes
+f04a6503f chore: update CLAUDE_CONTEXT.md [skip ci]
+87d9c6b87 Added `source_id` to CSV export
+06d00b25a Changes
+c02ca2084 chore: update CLAUDE_CONTEXT.md [skip ci]
+179f21f37 Changes
+299734528 Changes
+2c410c5f1 Changes
+659b65935 Changes
+65c470a28 Changes
+0df387231 Changes
+d56382de0 chore: update CLAUDE_CONTEXT.md [skip ci]
+302a58e4f Changes
+a48fb8bf4 Changes
+df5377e79 Changes
+037d5fa68 Changes
+994d1c180 Changes
+9e6d1207d Changes
+83280a957 Changes
+d686d26b1 chore: update CLAUDE_CONTEXT.md [skip ci]
+7d36136a2 Fixed shared LumpSum layout
+7419e97e7 Changes
+82c11eb91 Work in progress
