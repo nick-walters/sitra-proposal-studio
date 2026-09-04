@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +68,7 @@ export function ResearchersTable({
   canEdit,
 }: ResearchersTableProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [newResearcher, setNewResearcher] = useState({
     title: '',
@@ -328,25 +329,134 @@ export function ResearchersTable({
               <TableBody>
                 {researchers.map((researcher) => (
                   <TableRow key={researcher.id}>
-                    <TableCell className="font-medium">{researcher.title || '-'}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{researcher.firstName} {researcher.lastName}</p>
-                        {researcher.email && (
-                          <p className="text-xs text-muted-foreground">{researcher.email}</p>
-                        )}
-                      </div>
+                    <TableCell className="font-medium align-top">
+                      {canEdit ? (
+                        <Select
+                          value={researcher.title || undefined}
+                          onValueChange={(v) => onUpdate(researcher.id, { title: v })}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONTACT_TITLES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (researcher.title || '-')}
                     </TableCell>
-                    <TableCell>{researcher.gender || '-'}</TableCell>
-                    <TableCell>{researcher.nationality || '-'}</TableCell>
-                    <TableCell>
-                      <span className="text-xs">
-                        {researcher.careerStage?.replace('Category ', 'Cat. ') || '-'}
-                      </span>
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <div className="space-y-1 min-w-[190px]">
+                          <div className="flex gap-1">
+                            <DebouncedCell
+                              value={researcher.firstName}
+                              placeholder="First name"
+                              onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
+                            />
+                            <DebouncedCell
+                              value={researcher.lastName}
+                              placeholder="Last name"
+                              onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
+                            />
+                          </div>
+                          <DebouncedCell
+                            value={researcher.email || ''}
+                            placeholder="Email"
+                            type="email"
+                            onCommit={(v) => onUpdate(researcher.id, { email: v })}
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="font-medium">{researcher.firstName} {researcher.lastName}</p>
+                          {researcher.email && (
+                            <p className="text-xs text-muted-foreground">{researcher.email}</p>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell>{researcher.roleInProject || '-'}</TableCell>
-                    <TableCell>
-                      {researcher.referenceIdentifier ? (
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <Select
+                          value={researcher.gender || undefined}
+                          onValueChange={(v) => onUpdate(researcher.id, { gender: v })}
+                        >
+                          <SelectTrigger className="h-8 text-xs min-w-[110px]">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GENDER_OPTIONS.map((g) => (
+                              <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (researcher.gender || '-')}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <div className="min-w-[150px]">
+                          <CountrySelect
+                            value={researcher.nationality || ''}
+                            onValueChange={(v) => onUpdate(researcher.id, { nationality: v })}
+                          />
+                        </div>
+                      ) : (researcher.nationality || '-')}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <Select
+                          value={researcher.careerStage || undefined}
+                          onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}
+                        >
+                          <SelectTrigger className="h-8 text-xs min-w-[130px]">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CAREER_STAGES.map((stage) => (
+                              <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-xs">
+                          {researcher.careerStage?.replace('Category ', 'Cat. ') || '-'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <DebouncedCell
+                          value={researcher.roleInProject || ''}
+                          placeholder="Role"
+                          onCommit={(v) => onUpdate(researcher.id, { roleInProject: v })}
+                        />
+                      ) : (researcher.roleInProject || '-')}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {canEdit ? (
+                        <div className="space-y-1 min-w-[160px]">
+                          <Select
+                            value={researcher.identifierType || undefined}
+                            onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {IDENTIFIER_TYPES.map((t) => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <DebouncedCell
+                            value={researcher.referenceIdentifier || ''}
+                            placeholder="Identifier"
+                            onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })}
+                          />
+                        </div>
+                      ) : researcher.referenceIdentifier ? (
                         <div className="text-xs">
                           <span className="text-muted-foreground">{researcher.identifierType}:</span>{' '}
                           {researcher.referenceIdentifier}
@@ -354,7 +464,7 @@ export function ResearchersTable({
                       ) : '-'}
                     </TableCell>
                     {canEdit && (
-                      <TableCell>
+                      <TableCell className="align-top">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -399,5 +509,57 @@ export function ResearchersTable({
         </AlertDialog>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Editable child-row cell: local state while typing, a 350 ms trailing commit
+ * plus a commit on blur. The server value is only reseeded when the field is
+ * unfocused and has nothing pending, so a slow write can never yank text out
+ * from under the cursor.
+ */
+function DebouncedCell({
+  value,
+  onCommit,
+  placeholder,
+  type = 'text',
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  const [local, setLocal] = useState(value ?? '');
+  const focusedRef = useRef(false);
+  const pendingRef = useRef(false);
+
+  const { push, flush } = useDebouncedSave<string>((v) => {
+    pendingRef.current = false;
+    onCommit(v);
+  }, 350);
+
+  useEffect(() => {
+    if (!focusedRef.current && !pendingRef.current) {
+      setLocal(value ?? '');
+    }
+  }, [value]);
+
+  return (
+    <Input
+      className="h-8 text-xs"
+      type={type}
+      placeholder={placeholder}
+      value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        pendingRef.current = true;
+        push(e.target.value);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        flush();
+      }}
+    />
   );
 }
