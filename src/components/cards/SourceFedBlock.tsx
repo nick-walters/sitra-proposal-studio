@@ -105,6 +105,7 @@ function B31Source({ proposalId, sourceKey }: { proposalId: string; sourceKey: s
     equipmentByParticipant,
     travelByParticipant,
     otherGoodsByParticipant,
+    isLumpSum,
     loading,
   } = useB31SectionData(proposalId);
 
