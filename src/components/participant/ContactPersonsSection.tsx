@@ -775,7 +775,8 @@ function SortableContactCard({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className={`flex items-start gap-3 p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+      <div className={`p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+        <div className="flex items-start gap-3">
         <button
           type="button"
           className="mt-2 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
@@ -895,7 +896,7 @@ function SortableContactCard({
           </div>
 
         </div>
-      </div>
+        </div>
         <label className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={isResearcher}
@@ -906,6 +907,7 @@ function SortableContactCard({
           <Users className="w-3.5 h-3.5" />
           This person will conduct research in the project
         </label>
+      </div>
 
       {isMCP && (
         <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
