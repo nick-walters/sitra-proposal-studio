@@ -78,7 +78,20 @@ export function ResearchersTable({
   });
 
   useEffect(() => {
-    setOrderedResearchers(researchers);
+    setOrderedResearchers((current) => {
+      const currentIds = new Set(current.map((researcher) => researcher.id));
+      const hasSameRows = current.length === researchers.length
+        && researchers.every((researcher) => currentIds.has(researcher.id));
+      if (!hasSameRows) return [...researchers].sort((a, b) => a.orderIndex - b.orderIndex);
+
+      const latestById = new Map(researchers.map((researcher) => [researcher.id, researcher]));
+      return current.map((researcher, orderIndex) => ({
+        ...latestById.get(researcher.id),
+        ...researcher,
+        ...(latestById.get(researcher.id) ?? {}),
+        orderIndex,
+      }));
+    });
   }, [researchers]);
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
