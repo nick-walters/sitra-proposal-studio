@@ -3035,15 +3035,15 @@ Deno.serve(async (req) => {
       let unnumberedFigures = 0;
 
       const figureNumberFor = (fig: any): { token: string; numbered: boolean } => {
-        const derived = figureFileNumbers.get(fig.id)
-          ?? (fig.figure_type === "pert" ? systemNumbers.pert : "")
-          ?? "";
-        const token = derived || (fig.figure_type === "gantt" ? systemNumbers.gantt : "");
+        const token = figureFileNumbers.get(fig.id)
+          || (fig.figure_type === "pert" ? systemNumbers.pert : "")
+          || (fig.figure_type === "gantt" ? systemNumbers.gantt : "");
         if (token) return { token: String(token).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true };
         // Unplaced figure: no derivable number. Fall back to the id so the file
         // is still produced and can never collide with a numbered sibling.
         return { token: String(fig.id), numbered: false };
       };
+
 
       /** Two figures resolving to the same number get " (2)", " (3)" … appended. */
       const uniqueFigureName = (base: string, ext: string): string => {
