@@ -498,7 +498,7 @@ function ResearcherField({
   return (
     <div className="min-w-0 space-y-1">
       <Label className="block text-xs leading-4">{label}</Label>
-      {children ?? <p className="min-h-8 break-words text-sm">{value || '—'}</p>}
+      {children ? children : <p className="flex min-h-8 items-center break-words text-sm">{value || '—'}</p>}
     </div>
   );
 }

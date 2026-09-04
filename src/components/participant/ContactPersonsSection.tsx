@@ -540,7 +540,7 @@ export function ContactPersonsSection({
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
-                = copy contact person to researchers list.
+                = appears in the researchers list for this organisation.
               </span>
             </div>
           </div>
@@ -775,7 +775,8 @@ function SortableContactCard({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className={`flex items-start gap-3 p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+      <div className={`p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+        <div className="flex items-start gap-3">
         <button
           type="button"
           className="mt-2 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
@@ -894,17 +895,18 @@ function SortableContactCard({
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-            <Checkbox
-              checked={isResearcher}
-              disabled={!canEdit}
-              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-              aria-label="This person will conduct research in the project"
-            />
-            <Users className="w-3.5 h-3.5" />
-            This person will conduct research in the project
-          </label>
         </div>
+        </div>
+        <label className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={isResearcher}
+            disabled={!canEdit}
+            onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+            aria-label="This person will conduct research in the project"
+          />
+          <Users className="w-3.5 h-3.5" />
+          This person will conduct research in the project
+        </label>
       </div>
 
       {isMCP && (
