@@ -68,6 +68,7 @@ interface ProposalData {
 export function useProposalData(proposalId: string) {
   const { user } = useAuth();
   const [proposal, setProposal] = useState<ProposalData | null>(null);
+  const [proposalError, setProposalError] = useState<'not_found' | 'error' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantMembers, setParticipantMembers] = useState<ParticipantMember[]>([]);
   const [ethics, setEthics] = useState<EthicsAssessment | null>(null);
@@ -575,6 +576,7 @@ export function useProposalData(proposalId: string) {
 
   return {
     proposal,
+    proposalError,
     participants,
     participantMembers,
     ethics,
