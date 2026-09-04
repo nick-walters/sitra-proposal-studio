@@ -1061,7 +1061,7 @@ function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: stri
       toast.success('Proposal deleted successfully');
       // Tell the dashboard to refetch: it may already be mounted, in which case
       // navigating home alone would show the deleted proposal until a reload.
-      navigate('/', { replace: true, state: { refreshProposals: true } });
+      navigate('/dashboard', { replace: true, state: { refreshProposals: true } });
     } catch (error) {
       console.error('Error deleting proposal:', error);
       const message =
