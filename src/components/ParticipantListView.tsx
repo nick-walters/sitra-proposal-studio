@@ -804,6 +804,10 @@ export function ParticipantListView({
                   </div>
                 </div>
               )}
+
+              <div className="mt-6">
+                <ExpertiseMatrixCard proposalId={proposalId} participants={participants} />
+              </div>
             </TabsContent>
 
             {isAdmin && (
@@ -846,10 +850,6 @@ export function ParticipantListView({
             />
           </>
         )}
-
-        <div className="mt-6">
-          <ExpertiseMatrixCard proposalId={proposalId} participants={participants} />
-        </div>
       </PartAPageLayout>
     </TooltipProvider>
 
