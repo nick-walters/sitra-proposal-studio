@@ -128,7 +128,7 @@ export function ResearchersTable({
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
-              <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="space-y-2">
                   <Label>Title</Label>
                   <Select
@@ -329,7 +329,7 @@ export function ResearchersTable({
                   )}
                 </div>
 
-                <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
                   <ResearcherField label="Title" value={researcher.title}>
                     {canEdit && (
                       <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
@@ -375,8 +375,13 @@ export function ResearchersTable({
                   </ResearcherField>
                   <ResearcherField label="Role of researcher (in the project)" value={researcher.roleInProject}>
                     {canEdit && (
-                      <Select value={researcher.roleInProject || undefined} onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}>
-                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
+                      <Select
+                        value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
+                        onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
+                      >
+                        <SelectTrigger className="h-8 w-full text-xs">
+                          <SelectValue placeholder={researcher.roleInProject || 'Select role'} />
+                        </SelectTrigger>
                         <SelectContent>
                           {RESEARCHER_ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}
                         </SelectContent>
