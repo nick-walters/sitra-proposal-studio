@@ -45,7 +45,7 @@ import {
   type RefSnapshotServer,
 } from "../_shared/referenceResolution.ts";
 import { buildCitationNumberMap } from "../_shared/citationSources.ts";
-import { computeFigureNumbers } from "../_shared/figureNumbering.ts";
+import { computeFigureNumbers, figureLetter } from "../_shared/figureNumbering.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -497,7 +497,61 @@ async function packDocx(children: (Paragraph | Table)[]): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+// ---------- fail loudly (prompt 91) ----------
+
+/**
+ * A discarded query error is how a backup silently produces empty content and
+ * still records success — the mechanism behind both the stale Part B documents
+ * and the missing figures. `strictDb()` wraps a Supabase client so that EVERY
+ * `.from(...)` query it issues throws when PostgREST returns an error. The
+ * throw propagates to `backupOne`'s catch, which records the run as failed.
+ *
+ * Only content reads go through the strict client. Storage downloads,
+ * authorization checks, the SharePoint config read and the retention purge keep
+ * using the raw client, because their failures are either fail-closed already
+ * or genuinely harmless (see prompt 91 item 5).
+ */
+function wrapQuery(builder: any, label: string): any {
+  return new Proxy(builder, {
+    get(target, prop) {
+      if (prop === "then") {
+        return (onFulfilled: any, onRejected: any) =>
+          Promise.resolve(target).then((res: any) => {
+            if (res?.error) {
+              throw new Error(
+                `[backup] query on "${label}" failed: ${res.error.message ?? JSON.stringify(res.error)}`,
+              );
+            }
+            return res;
+          }).then(onFulfilled, onRejected);
+      }
+      const value = Reflect.get(target, prop, target);
+      if (typeof value === "function") {
+        return (...args: any[]) => {
+          const out = value.apply(target, args);
+          return out && typeof out.then === "function" ? wrapQuery(out, label) : out;
+        };
+      }
+      return value;
+    },
+  });
+}
+
+/** Returns a client whose table queries throw instead of returning `{ error }`. */
+function strictDb(client: any): any {
+  return new Proxy(client, {
+    get(target, prop) {
+      if (prop === "from") {
+        return (table: string) => wrapQuery(target.from(table), table);
+      }
+      const value = Reflect.get(target, prop, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
 // ---------- data fetch ----------
+
 
 async function latestSectionContent(supabase: any, proposalId: string, sectionId: string): Promise<string> {
   const { data } = await supabase
@@ -2678,6 +2732,40 @@ async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<M
   );
 }
 
+/**
+ * PERT and Gantt are generated blocks of B3.1 with no `card_figure` placement,
+ * so `computeFigureNumbers` cannot see them. They take the two numbers that
+ * follow the placed figures of section 3.1 — the same rule the app captions
+ * them with (`fetchB31SystemFigureNumbers`).
+ */
+async function deriveB31SystemFigureNumbers(
+  supabase: any,
+  proposalId: string,
+): Promise<{ pert: string; gantt: string }> {
+  const { data: cards } = await supabase
+    .from("proposal_cards").select("id, section_id")
+    .eq("proposal_id", proposalId).is("deleted_at", null);
+  const sectionIds = [...new Set((cards ?? []).map((c: any) => c.section_id).filter(Boolean))] as string[];
+  if (!sectionIds.length) return { pert: "", gantt: "" };
+  const { data: sections } = await supabase
+    .from("proposal_template_sections").select("id, section_number").in("id", sectionIds);
+  const section = (sections ?? []).find(
+    (s: any) => (s.section_number ?? "").replace(/^[A-Za-z]+/, "").trim() === "3.1",
+  );
+  if (!section) return { pert: "", gantt: "" };
+  const sectionCardIds = (cards ?? []).filter((c: any) => c.section_id === section.id).map((c: any) => c.id);
+  let placed = 0;
+  if (sectionCardIds.length) {
+    const { data: placements } = await supabase
+      .from("card_figure").select("figure_id, card_id")
+      .eq("proposal_id", proposalId).in("card_id", sectionCardIds);
+    placed = (placements ?? []).filter((p: any) => p.figure_id).length;
+  }
+  return { pert: `3.1.${figureLetter(placed)}`, gantt: `3.1.${figureLetter(placed + 1)}` };
+}
+
+
+
 async function buildCaseDraft(_supabase: any, _proposal: any, cd: any, participants: any[]): Promise<Uint8Array> {
   const lead = cd.lead_participant_id ? participants.find((p) => p.id === cd.lead_participant_id) : null;
   const children: (Paragraph | Table)[] = [
@@ -2909,37 +2997,52 @@ Deno.serve(async (req) => {
 
   async function backupOne(proposal: any, cfg: any) {
     const acr = safeAcronym(proposal.acronym);
+    // Content reads use the strict client: any PostgREST error throws instead
+    // of yielding an empty document (prompt 91 item 2).
+    const db = strictDb(supabase);
+    // Everything the run is contracted to produce, computed BEFORE it runs, so a
+    // bundle that quietly loses documents can be told apart from a healthy one.
+    const expected: string[] = [];
     try {
       // One snapshot per proposal — every chip in every file resolves from it.
-      CURRENT_REF_SNAPSHOT = await loadRefSnapshot(supabase, proposal.id);
+      CURRENT_REF_SNAPSHOT = await loadRefSnapshot(db, proposal.id);
       CURRENT_REF_STATS = { passes: 0, found: 0, resolved: 0, unresolved: 0 };
       const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
-      const { data: participants } = await supabase
+      const { data: participants } = await db
         .from("participants").select("id, participant_number, organisation_short_name")
         .eq("proposal_id", proposal.id).order("participant_number", { ascending: true });
 
-      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(supabase, proposal), mime: XLSX_MIME });
-      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(supabase, proposal), mime: DOCX_MIME });
+      expected.push(
+        `${acr} Part A1 ${stamp}.docx`, `${acr} Part A2 ${stamp}.docx`, `${acr} Part A3 ${stamp}.xlsx`,
+        `${acr} Part A4 ${stamp}.docx`, `${acr} Part A5 ${stamp}.docx`,
+        ...PART_B_SECTIONS.map((s) => `${acr} Part ${s.label} ${stamp}.docx`),
+        `${acr} Part B3.1 ${stamp}.docx`,
+      );
+
+      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(db, proposal), mime: XLSX_MIME });
+      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(db, proposal), mime: DOCX_MIME });
       for (const sec of PART_B_SECTIONS) {
         files.push({
           name: `${acr} Part ${sec.label} ${stamp}.docx`,
-          bytes: await buildPartBSection(supabase, proposal, sec.id, sec.label),
+          bytes: await buildPartBSection(db, proposal, sec.id, sec.label),
           mime: DOCX_MIME,
         });
       }
-      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(supabase, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(db, proposal), mime: DOCX_MIME });
 
-      const { data: wps } = await supabase.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      const { data: wps } = await db.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const w of wps ?? []) {
+        expected.push(`${acr} WP${w.number} Draft ${stamp}.docx`);
         files.push({
           name: `${acr} WP${w.number} Draft ${stamp}.docx`,
-          bytes: await buildWpDraft(supabase, proposal, w, participants ?? []),
+          bytes: await buildWpDraft(db, proposal, w, participants ?? []),
           mime: DOCX_MIME,
         });
       }
+
 
       // ---- Figures (PNG) ----
       // Uploaded image/AI figures live in `proposal-files` (path in content.imageUrl).
@@ -2949,69 +3052,103 @@ Deno.serve(async (req) => {
       // Order by created_at (stable creation order), with id as a deterministic
       // tie-break. Output file names come from the derived figure number below,
       // so ordering only affects processing order, not naming.
-      const { data: figures, error: figuresErr } = await supabase
+      const { data: figures } = await db
         .from("figures")
         .select("id, figure_type, content, title, caption, created_at")
         .eq("proposal_id", proposal.id)
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });
-      if (figuresErr) console.error("[backup] figures query failed", figuresErr);
 
-      // File names use the DERIVED figure number (prompt 179). The stored
-      // `figures.figure_number` column is dead and blank on newer figures.
-      const figureFileNumbers = await deriveFigureNumbers(supabase, proposal.id);
+      // File names use the DERIVED figure number — the same authority the app
+      // captions with (prompt 91 item 1). The stored `figures.figure_number`
+      // column is dead. PERT and Gantt are source-fed blocks of B3.1 with no
+      // `card_figure` placement, so they take the B3.1 system numbers.
+      const figureFileNumbers = await deriveFigureNumbers(db, proposal.id);
+      const systemNumbers = await deriveB31SystemFigureNumbers(db, proposal.id);
+      const usedFigureNames = new Set<string>();
+      let unnumberedFigures = 0;
+
+      const figureNumberFor = (fig: any): { token: string; numbered: boolean } => {
+        const token = figureFileNumbers.get(fig.id)
+          || (fig.figure_type === "pert" ? systemNumbers.pert : "")
+          || (fig.figure_type === "gantt" ? systemNumbers.gantt : "");
+        if (token) return { token: String(token).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true };
+        // Unplaced figure: no derivable number. Fall back to the id so the file
+        // is still produced and can never collide with a numbered sibling.
+        return { token: String(fig.id), numbered: false };
+      };
+
+
+      /** Two figures resolving to the same number get " (2)", " (3)" … appended. */
+      const uniqueFigureName = (base: string, ext: string): string => {
+        let name = `${acr} Figure ${base} ${stamp}.${ext}`;
+        let n = 1;
+        while (usedFigureNames.has(name)) {
+          n += 1;
+          name = `${acr} Figure ${base} (${n}) ${stamp}.${ext}`;
+        }
+        usedFigureNames.add(name);
+        return name;
+      };
 
       for (const fig of figures ?? []) {
-        const num = String(figureFileNumbers.get(fig.id) || fig.id).replace(/[\/\\:*?"<>|]/g, "_");
+        const { token, numbered } = figureNumberFor(fig);
+        if (!numbered) unnumberedFigures += 1;
         let bytes: Uint8Array | null = null;
         let ext = "png";
         const imageUrl: string | undefined = fig.content?.imageUrl;
+        const exportable = !!imageUrl || fig.figure_type === "pert" || fig.figure_type === "gantt";
 
         if (imageUrl) {
           // Strip query string and bucket prefix to derive storage path.
           const cleaned = String(imageUrl).split("?")[0];
           const m = cleaned.match(/proposal-files\/(.+)$/);
           const path = m ? m[1] : cleaned;
+          const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
+          if (extMatch) ext = extMatch[1].toLowerCase();
           const { data: blob, error } = await supabase.storage
             .from("proposal-files").download(path);
-          if (!error && blob) {
-            bytes = new Uint8Array(await blob.arrayBuffer());
-            const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
-            if (extMatch) ext = extMatch[1].toLowerCase();
-          }
+          if (!error && blob) bytes = new Uint8Array(await blob.arrayBuffer());
+          else console.error("[backup] figure download failed", { figure: fig.id, path, error });
         } else if (fig.figure_type === "pert" || fig.figure_type === "gantt") {
           const cachePath = `${proposal.id}/_figures-cache/${fig.id}.png`;
           const { data: blob, error } = await supabase.storage
             .from("proposal-backups").download(cachePath);
-          if (!error && blob) {
-            bytes = new Uint8Array(await blob.arrayBuffer());
-          }
+          if (!error && blob) bytes = new Uint8Array(await blob.arrayBuffer());
+          else console.error("[backup] cached figure missing", { figure: fig.id, cachePath, error });
         }
 
-        if (bytes) {
+        // Canvas figures (impact/overview) have no exportable raster at all, so
+        // they are not expected and their absence is not a partial run.
+        const name = exportable ? uniqueFigureName(token, ext) : null;
+        if (name) expected.push(name);
+        if (bytes && name) {
           const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"
             : ext === "gif" ? "image/gif"
             : ext === "svg" ? "image/svg+xml"
             : ext === "webp" ? "image/webp"
             : "image/png";
-          files.push({
-            name: `${acr} Figure ${num} ${stamp}.${ext}`,
-            bytes,
-            mime,
-          });
+          files.push({ name, bytes, mime });
         }
       }
+      console.log("[backup] figure naming", {
+        proposal_id: proposal.id,
+        total: (figures ?? []).length,
+        without_derivable_number: unnumberedFigures,
+      });
 
-      const { data: cases } = await supabase.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      const { data: cases } = await db.from("case_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const c of cases ?? []) {
         const rawCaseName = (c.short_name ?? c.title ?? `${c.number}`).toString().trim();
         const caseName = rawCaseName.replace(/[\/\\:*?"<>|]/g, "_").replace(/\s+/g, " ").slice(0, 80) || `${c.number}`;
+        expected.push(`${acr} Case ${caseName} ${stamp}.docx`);
         files.push({
           name: `${acr} Case ${caseName} ${stamp}.docx`,
-          bytes: await buildCaseDraft(supabase, proposal, c, participants ?? []),
+          bytes: await buildCaseDraft(db, proposal, c, participants ?? []),
           mime: DOCX_MIME,
         });
       }
+
 
       files.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -3028,6 +3165,16 @@ Deno.serve(async (req) => {
       }
 
       const sp = await pushToSharePoint(cfg, acr, files);
+
+      // Partial-run detection: compare what the run was contracted to produce
+      // with what actually reached the bucket (prompt 91 item 3).
+      const uploaded = new Set(files.map((f) => f.name));
+      const missing = expected.filter((name) => !uploaded.has(name));
+      const runStatus = missing.length ? "partial" : "complete";
+      if (missing.length) {
+        console.warn("[backup] partial run", { proposal_id: proposal.id, missing });
+      }
+
       await supabase.from("proposal_backups").insert({
         proposal_id: proposal.id,
         backup_timestamp: now.toISOString(),
@@ -3036,6 +3183,9 @@ Deno.serve(async (req) => {
         bucket_paths: bucketPaths,
         size_bytes: totalBytes,
         error: sp.error ?? null,
+        run_status: runStatus,
+        expected_file_count: expected.length,
+        missing_files: missing,
       });
       const refSummary = { proposal_id: proposal.id, ...CURRENT_REF_STATS };
       if (CURRENT_REF_STATS.found === 0) {
@@ -3043,7 +3193,7 @@ Deno.serve(async (req) => {
       } else {
         console.log("Reference resolution completed", refSummary);
       }
-      return { acronym: acr, files: bucketPaths.length, bytes: totalBytes };
+      return { acronym: acr, files: bucketPaths.length, bytes: totalBytes, run_status: runStatus, missing: missing.length };
     } catch (e) {
       console.error(`Backup failed for ${acr}:`, e);
       await supabase.from("proposal_backups").insert({
@@ -3053,9 +3203,13 @@ Deno.serve(async (req) => {
         bucket_paths: [],
         size_bytes: 0,
         error: (e as Error).message,
+        run_status: "failed",
+        expected_file_count: expected.length,
+        missing_files: expected,
       });
       return { acronym: acr, error: (e as Error).message };
     }
+
   }
 
   // Single-proposal mode: one proposal fits the CPU budget; run inline.
