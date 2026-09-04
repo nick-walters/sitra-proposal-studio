@@ -163,13 +163,21 @@ export function BudgetPortalSheet({
   // that occurs when reopening the editor, including from a deep link.
   const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
-  const portalViewKey = PORTAL_VIEW_KEY(user?.id, proposalId);
+  const portalViewKey = user?.id ? PORTAL_VIEW_KEY(user.id, proposalId) : null;
   const [budgetView, setBudgetView] = useState<BudgetView>('enter');
+  const [budgetViewRestored, setBudgetViewRestored] = useState(false);
   const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
   const [lockedEditWarning, setLockedEditWarning] = useState<{ participantId: string } | null>(null);
   const activeTabCanEdit = canEdit;
   const canOpenTraditionalParticipant = canEdit;
+
+  // Overview is read-only and open to anyone with proposal access; the two
+  // editing surfaces require edit rights. Order defines the fallback.
+  const allowedBudgetViews = useMemo<BudgetView[]>(
+    () => (canEdit ? ['enter', 'portal', 'overview'] : ['overview']),
+    [canEdit],
+  );
 
   useEffect(() => {
     const savedTab = window.localStorage.getItem(storageKey);
@@ -179,22 +187,35 @@ export function BudgetPortalSheet({
     if (nextTab) setActiveTab(nextTab);
   }, [storageKey, availableTabs]);
 
+  // Restore only once the user id is known, otherwise the read would target the
+  // 'anon' key and silently find nothing.
   useEffect(() => {
+    if (!portalViewKey) return;
+    let stored: string | null = null;
     try {
-      setBudgetView(window.localStorage.getItem(portalViewKey) === 'portal' ? 'portal' : 'enter');
+      stored = window.localStorage.getItem(portalViewKey);
     } catch {
-      setBudgetView('enter');
+      stored = null;
     }
-  }, [portalViewKey]);
+    const isView = (value: string | null): value is BudgetView =>
+      value === 'enter' || value === 'portal' || value === 'overview';
+    const next = isView(stored) && allowedBudgetViews.includes(stored)
+      ? stored
+      : (allowedBudgetViews.includes('enter') ? 'enter' : allowedBudgetViews[0]);
+    setBudgetView(next);
+    setBudgetViewRestored(true);
+  }, [portalViewKey, allowedBudgetViews]);
 
   const chooseBudgetView = (next: BudgetView) => {
     setBudgetView(next);
+    if (!portalViewKey || !budgetViewRestored) return;
     try {
       window.localStorage.setItem(portalViewKey, next);
     } catch {
       // View preference is optional when browser storage is unavailable.
     }
   };
+
 
   // Register the lump-sum panel with the shared page-wide editor bar. The
   // control is cleared when this A3 surface unmounts or another tab is active.
