@@ -45,7 +45,7 @@ import {
   type RefSnapshotServer,
 } from "../_shared/referenceResolution.ts";
 import { buildCitationNumberMap } from "../_shared/citationSources.ts";
-import { computeFigureNumbers } from "../_shared/figureNumbering.ts";
+import { computeFigureNumbers, figureLetter } from "../_shared/figureNumbering.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
