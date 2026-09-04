@@ -3853,6 +3853,7 @@ export type Database = {
           full_name: string
           id: string
           is_primary_contact: boolean | null
+          order_index: number
           participant_id: string
           person_id: string | null
           person_months: number | null
@@ -3873,6 +3874,7 @@ export type Database = {
           full_name: string
           id?: string
           is_primary_contact?: boolean | null
+          order_index?: number
           participant_id: string
           person_id?: string | null
           person_months?: number | null
@@ -3893,6 +3895,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_primary_contact?: boolean | null
+          order_index?: number
           participant_id?: string
           person_id?: string | null
           person_months?: number | null
@@ -4037,9 +4040,11 @@ export type Database = {
           email: string | null
           first_name: string
           gender: string | null
+          hidden: boolean
           id: string
           identifier_type: string | null
           last_name: string
+          member_id: string | null
           nationality: string | null
           order_index: number | null
           participant_id: string
@@ -4054,9 +4059,11 @@ export type Database = {
           email?: string | null
           first_name: string
           gender?: string | null
+          hidden?: boolean
           id?: string
           identifier_type?: string | null
           last_name: string
+          member_id?: string | null
           nationality?: string | null
           order_index?: number | null
           participant_id: string
@@ -4071,9 +4078,11 @@ export type Database = {
           email?: string | null
           first_name?: string
           gender?: string | null
+          hidden?: boolean
           id?: string
           identifier_type?: string | null
           last_name?: string
+          member_id?: string | null
           nationality?: string | null
           order_index?: number | null
           participant_id?: string
@@ -4083,6 +4092,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "participant_researchers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "participant_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "participant_researchers_participant_id_fkey"
             columns: ["participant_id"]

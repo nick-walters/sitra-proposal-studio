@@ -206,10 +206,14 @@ export function useProposalData(proposalId: string) {
   const fetchParticipantMembers = useCallback(async () => {
     if (!proposalId || !user) return;
 
+    // Contacts are shown in the order the user dragged them into; created_at
+    // only breaks ties between rows that share an order_index.
     const { data, error } = await supabase
       .from('participant_members')
       .select('*, participants!inner(proposal_id)')
-      .eq('participants.proposal_id', proposalId);
+      .eq('participants.proposal_id', proposalId)
+      .order('order_index', { ascending: true })
+      .order('created_at', { ascending: true });
 
     if (error) {
       logError('fetchParticipantMembers', error);
@@ -467,9 +471,20 @@ export function useProposalData(proposalId: string) {
 
   // Add participant member
   const addParticipantMember = async (member: Omit<ParticipantMember, 'id'>) => {
+    // A new contact goes to the end of the ordered list rather than jumping to
+    // the top on the default order_index of 0.
+    const { data: lastOrdered } = await supabase
+      .from('participant_members')
+      .select('order_index')
+      .eq('participant_id', member.participantId)
+      .order('order_index', { ascending: false })
+      .limit(1);
+    const nextOrderIndex = (lastOrdered?.[0]?.order_index ?? -1) + 1;
+
     const { data, error } = await supabase
       .from('participant_members')
       .insert({
+        order_index: nextOrderIndex,
         participant_id: member.participantId,
         full_name: member.fullName,
         email: member.email,
