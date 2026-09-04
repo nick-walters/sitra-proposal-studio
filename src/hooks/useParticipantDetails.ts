@@ -17,6 +17,30 @@ export interface ParticipantDescriptions {
   participation_justification: string;
 }
 
+export async function reorderParticipantResearchers(researchers: ParticipantResearcher[]) {
+  const ordered = researchers.map((researcher, orderIndex) => ({
+    ...researcher,
+    orderIndex,
+  }));
+
+  const results = await Promise.all(
+    ordered.map((researcher) =>
+      supabase
+        .from('participant_researchers')
+        .update({ order_index: researcher.orderIndex })
+        .eq('id', researcher.id),
+    ),
+  );
+  const failed = results.find((result) => result.error)?.error;
+  if (failed) {
+    toast.error(`Failed to reorder researchers: ${failed.message}`);
+    console.error(failed);
+    return null;
+  }
+
+  return ordered;
+}
+
 const EMPTY_DESCRIPTIONS: ParticipantDescriptions = {
   contribution_resources: '',
   value_chain: '',

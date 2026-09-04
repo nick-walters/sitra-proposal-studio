@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
+import { reorderParticipantResearchers } from '@/hooks/useParticipantDetails';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Users, HelpCircle, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Users, HelpCircle, BookOpen, GripVertical } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +60,8 @@ export function ResearchersTable({
   canEdit,
 }: ResearchersTableProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [orderedResearchers, setOrderedResearchers] = useState(researchers);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [newResearcher, setNewResearcher] = useState({
@@ -70,6 +76,39 @@ export function ResearchersTable({
     referenceIdentifier: '',
     identifierType: '',
   });
+
+  useEffect(() => {
+    setOrderedResearchers((current) => {
+      const currentIds = new Set(current.map((researcher) => researcher.id));
+      const hasSameRows = current.length === researchers.length
+        && researchers.every((researcher) => currentIds.has(researcher.id));
+      if (!hasSameRows) return [...researchers].sort((a, b) => a.orderIndex - b.orderIndex);
+
+      const latestById = new Map(researchers.map((researcher) => [researcher.id, researcher]));
+      return current.map((researcher, orderIndex) => ({
+        ...latestById.get(researcher.id),
+        ...researcher,
+        ...(latestById.get(researcher.id) ?? {}),
+        orderIndex,
+      }));
+    });
+  }, [researchers]);
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedResearchers.findIndex((researcher) => researcher.id === active.id);
+    const newIndex = orderedResearchers.findIndex((researcher) => researcher.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previous = orderedResearchers;
+    const next = arrayMove(previous, oldIndex, newIndex).map((researcher, orderIndex) => ({
+      ...researcher,
+      orderIndex,
+    }));
+    setOrderedResearchers(next);
+    const persisted = await reorderParticipantResearchers(next);
+    if (!persisted) setOrderedResearchers(previous);
+  };
 
   const handleAdd = () => {
     if (!newResearcher.firstName.trim() || !newResearcher.lastName.trim()) {
@@ -129,7 +168,7 @@ export function ResearchersTable({
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Title</Label>
                   <Select
                     value={newResearcher.title}
@@ -145,7 +184,7 @@ export function ResearchersTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>First Name *</Label>
                   <Input
                     value={newResearcher.firstName}
@@ -153,7 +192,7 @@ export function ResearchersTable({
                     placeholder="First name"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Last Name *</Label>
                   <Input
                     value={newResearcher.lastName}
@@ -161,7 +200,7 @@ export function ResearchersTable({
                     placeholder="Last name"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Gender</Label>
                   <Select
                     value={newResearcher.gender}
@@ -177,14 +216,14 @@ export function ResearchersTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Nationality</Label>
                   <CountrySelect
                     value={newResearcher.nationality}
                     onValueChange={(v) => setNewResearcher({ ...newResearcher, nationality: v })}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>E-mail</Label>
                   <Input
                     type="email"
@@ -193,7 +232,7 @@ export function ResearchersTable({
                     placeholder="researcher@university.eu"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label className="flex items-center gap-1">
                     Career Stage
                     <Dialog>
@@ -247,8 +286,8 @@ export function ResearchersTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Role of researcher (in the project)</Label>
+                <div className="space-y-1">
+                  <Label>Role of researcher</Label>
                   <Select
                     value={newResearcher.roleInProject}
                     onValueChange={(v) => setNewResearcher({ ...newResearcher, roleInProject: v })}
@@ -263,7 +302,7 @@ export function ResearchersTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Reference Identifier</Label>
                   <Input
                     value={newResearcher.referenceIdentifier}
@@ -271,7 +310,7 @@ export function ResearchersTable({
                     placeholder="e.g., 0000-0001-2345-6789"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label>Type of identifier</Label>
                   <Select
                     value={newResearcher.identifierType}
@@ -308,13 +347,18 @@ export function ResearchersTable({
             <p className="text-xs mt-1">Add researchers who will be involved in the project</p>
           </div>
         ) : researchers.length > 0 && (
-          <div className="space-y-3">
-            {researchers.map((researcher) => (
-              <div key={researcher.id} className="min-w-0 rounded-md border p-3">
-                <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
-                  <p className="truncate text-sm font-medium">
-                    {researcher.firstName} {researcher.lastName}
-                  </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedResearchers.map((researcher) => researcher.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {orderedResearchers.map((researcher) => (
+                  <SortableResearcher key={researcher.id} id={researcher.id} disabled={!canEdit}>
+                    {(attributes, listeners) => <>
+                <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
+                  {canEdit ? (
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary" {...attributes} {...listeners} aria-label="Drag to reorder researcher" title="Drag to reorder researcher">
+                      <GripVertical className="h-4 w-4" />
+                    </Button>
+                  ) : <span />}
                   {canEdit && (
                     <Button
                       variant="ghost"
@@ -373,7 +417,7 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
-                  <ResearcherField label="Role of researcher (in the project)" value={researcher.roleInProject}>
+                  <ResearcherField label="Role of researcher" value={researcher.roleInProject}>
                     {canEdit && (
                       <Select
                         value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
@@ -402,9 +446,12 @@ export function ResearchersTable({
                     )}
                   </ResearcherField>
                 </div>
+                    </>}
+                  </SortableResearcher>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {/* Delete Researcher Confirmation */}
@@ -447,9 +494,34 @@ function ResearcherField({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 space-y-1.5">
-      <Label className="block min-h-8 text-xs leading-4">{label}</Label>
+    <div className="min-w-0 space-y-1">
+      <Label className="block text-xs leading-4">{label}</Label>
       {children ?? <p className="min-h-8 break-words text-sm">{value || '—'}</p>}
+    </div>
+  );
+}
+
+function SortableResearcher({
+  id,
+  disabled,
+  children,
+}: {
+  id: string;
+  disabled: boolean;
+  children: (
+    attributes: ReturnType<typeof useSortable>['attributes'],
+    listeners: ReturnType<typeof useSortable>['listeners'],
+  ) => React.ReactNode;
+}) {
+  const sortable = useSortable({ id, disabled });
+  const style = {
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging ? 0.55 : 1,
+  };
+  return (
+    <div ref={sortable.setNodeRef} style={style} className="min-w-0 rounded-md border p-3">
+      {children(sortable.attributes, sortable.listeners)}
     </div>
   );
 }
