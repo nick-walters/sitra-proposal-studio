@@ -2963,37 +2963,52 @@ Deno.serve(async (req) => {
 
   async function backupOne(proposal: any, cfg: any) {
     const acr = safeAcronym(proposal.acronym);
+    // Content reads use the strict client: any PostgREST error throws instead
+    // of yielding an empty document (prompt 91 item 2).
+    const db = strictDb(supabase);
+    // Everything the run is contracted to produce, computed BEFORE it runs, so a
+    // bundle that quietly loses documents can be told apart from a healthy one.
+    const expected: string[] = [];
     try {
       // One snapshot per proposal — every chip in every file resolves from it.
-      CURRENT_REF_SNAPSHOT = await loadRefSnapshot(supabase, proposal.id);
+      CURRENT_REF_SNAPSHOT = await loadRefSnapshot(db, proposal.id);
       CURRENT_REF_STATS = { passes: 0, found: 0, resolved: 0, unresolved: 0 };
       const files: { name: string; bytes: Uint8Array; mime: string }[] = [];
-      const { data: participants } = await supabase
+      const { data: participants } = await db
         .from("participants").select("id, participant_number, organisation_short_name")
         .eq("proposal_id", proposal.id).order("participant_number", { ascending: true });
 
-      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(supabase, proposal), mime: XLSX_MIME });
-      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(supabase, proposal), mime: DOCX_MIME });
-      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(supabase, proposal), mime: DOCX_MIME });
+      expected.push(
+        `${acr} Part A1 ${stamp}.docx`, `${acr} Part A2 ${stamp}.docx`, `${acr} Part A3 ${stamp}.xlsx`,
+        `${acr} Part A4 ${stamp}.docx`, `${acr} Part A5 ${stamp}.docx`,
+        ...PART_B_SECTIONS.map((s) => `${acr} Part ${s.label} ${stamp}.docx`),
+        `${acr} Part B3.1 ${stamp}.docx`,
+      );
+
+      files.push({ name: `${acr} Part A1 ${stamp}.docx`, bytes: await buildA1(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A2 ${stamp}.docx`, bytes: await buildA2(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A3 ${stamp}.xlsx`, bytes: await buildA3Xlsx(db, proposal), mime: XLSX_MIME });
+      files.push({ name: `${acr} Part A4 ${stamp}.docx`, bytes: await buildA4(db, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part A5 ${stamp}.docx`, bytes: await buildA5(db, proposal), mime: DOCX_MIME });
       for (const sec of PART_B_SECTIONS) {
         files.push({
           name: `${acr} Part ${sec.label} ${stamp}.docx`,
-          bytes: await buildPartBSection(supabase, proposal, sec.id, sec.label),
+          bytes: await buildPartBSection(db, proposal, sec.id, sec.label),
           mime: DOCX_MIME,
         });
       }
-      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(supabase, proposal), mime: DOCX_MIME });
+      files.push({ name: `${acr} Part B3.1 ${stamp}.docx`, bytes: await buildB31(db, proposal), mime: DOCX_MIME });
 
-      const { data: wps } = await supabase.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
+      const { data: wps } = await db.from("wp_drafts").select("*").eq("proposal_id", proposal.id).order("number", { ascending: true });
       for (const w of wps ?? []) {
+        expected.push(`${acr} WP${w.number} Draft ${stamp}.docx`);
         files.push({
           name: `${acr} WP${w.number} Draft ${stamp}.docx`,
-          bytes: await buildWpDraft(supabase, proposal, w, participants ?? []),
+          bytes: await buildWpDraft(db, proposal, w, participants ?? []),
           mime: DOCX_MIME,
         });
       }
+
 
       // ---- Figures (PNG) ----
       // Uploaded image/AI figures live in `proposal-files` (path in content.imageUrl).
