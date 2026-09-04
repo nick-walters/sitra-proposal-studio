@@ -4522,8 +4522,11 @@ export type Database = {
           bucket_paths: Json
           created_at: string
           error: string | null
+          expected_file_count: number | null
           id: string
+          missing_files: Json
           proposal_id: string
+          run_status: string
           sharepoint_path: string | null
           sharepoint_status: string
           size_bytes: number
@@ -4533,8 +4536,11 @@ export type Database = {
           bucket_paths?: Json
           created_at?: string
           error?: string | null
+          expected_file_count?: number | null
           id?: string
+          missing_files?: Json
           proposal_id: string
+          run_status?: string
           sharepoint_path?: string | null
           sharepoint_status?: string
           size_bytes?: number
@@ -4544,8 +4550,11 @@ export type Database = {
           bucket_paths?: Json
           created_at?: string
           error?: string | null
+          expected_file_count?: number | null
           id?: string
+          missing_files?: Json
           proposal_id?: string
+          run_status?: string
           sharepoint_path?: string | null
           sharepoint_status?: string
           size_bytes?: number
