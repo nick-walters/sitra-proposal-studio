@@ -511,3 +511,55 @@ export function ResearchersTable({
     </Card>
   );
 }
+
+/**
+ * Editable child-row cell: local state while typing, a 350 ms trailing commit
+ * plus a commit on blur. The server value is only reseeded when the field is
+ * unfocused and has nothing pending, so a slow write can never yank text out
+ * from under the cursor.
+ */
+function DebouncedCell({
+  value,
+  onCommit,
+  placeholder,
+  type = 'text',
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  const [local, setLocal] = useState(value ?? '');
+  const focusedRef = useRef(false);
+  const pendingRef = useRef(false);
+
+  const { push, flush } = useDebouncedSave<string>((v) => {
+    pendingRef.current = false;
+    onCommit(v);
+  }, 350);
+
+  useEffect(() => {
+    if (!focusedRef.current && !pendingRef.current) {
+      setLocal(value ?? '');
+    }
+  }, [value]);
+
+  return (
+    <Input
+      className="h-8 text-xs"
+      type={type}
+      placeholder={placeholder}
+      value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        pendingRef.current = true;
+        push(e.target.value);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        flush();
+      }}
+    />
+  );
+}
