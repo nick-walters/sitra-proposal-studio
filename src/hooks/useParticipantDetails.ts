@@ -41,6 +41,29 @@ export async function reorderParticipantResearchers(researchers: ParticipantRese
   return ordered;
 }
 
+/**
+ * Rewrites participant_members.order_index for the whole list so the sequence
+ * stays contiguous and zero-based after a drag. Same shape as the researcher
+ * reorder above: optimistic in the caller, rolled back when this returns null.
+ */
+export async function reorderParticipantMembers(memberIds: string[]) {
+  const results = await Promise.all(
+    memberIds.map((id, orderIndex) =>
+      supabase
+        .from('participant_members')
+        .update({ order_index: orderIndex })
+        .eq('id', id),
+    ),
+  );
+  const failed = results.find((result) => result.error)?.error;
+  if (failed) {
+    toast.error(`Failed to reorder contacts: ${failed.message}`);
+    console.error(failed);
+    return null;
+  }
+  return memberIds;
+}
+
 const EMPTY_DESCRIPTIONS: ParticipantDescriptions = {
   contribution_resources: '',
   value_chain: '',
@@ -87,6 +110,9 @@ export function useParticipantDetails(participantId: string | undefined, proposa
           .from('participant_researchers')
           .select('*')
           .eq('participant_id', participantId)
+          // Rows hidden by unticking a contact's research checkbox keep all
+          // their researcher-only data but stay out of the visible list.
+          .eq('hidden', false)
           .order('order_index'),
         supabase
           .from('participant_organisation_roles')
@@ -280,7 +306,87 @@ export function useParticipantDetails(participantId: string | undefined, proposa
   // ============================================
   const addResearcher = async (researcher: Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!participantId) return;
-    
+
+    // Contact-linked researchers are upserted by member_id rather than
+    // inserted, so unticking and reticking the checkbox reuses the same row
+    // and every researcher-only field survives.
+    //   hidden === false      -> show (create the row if it does not exist)
+    //   hidden === true       -> hide, never delete
+    //   hidden === undefined  -> name/email flow-through only; never creates
+    if (researcher.memberId) {
+      const { data: existing, error: lookupError } = await supabase
+        .from('participant_researchers')
+        .select('*')
+        .eq('member_id', researcher.memberId)
+        .maybeSingle();
+
+      if (lookupError) {
+        toast.error(`Failed to read linked researcher: ${lookupError.message}`);
+        console.error(lookupError);
+        return;
+      }
+
+      if (!existing) {
+        if (researcher.hidden !== false) return;
+        const { data: created, error: insertError } = await supabase
+          .from('participant_researchers')
+          .insert({
+            participant_id: participantId,
+            member_id: researcher.memberId,
+            hidden: false,
+            first_name: researcher.firstName,
+            last_name: researcher.lastName,
+            email: researcher.email || null,
+            title: researcher.title || null,
+            gender: researcher.gender || null,
+            nationality: researcher.nationality || null,
+            career_stage: researcher.careerStage || null,
+            role_in_project: researcher.roleInProject || null,
+            reference_identifier: researcher.referenceIdentifier || null,
+            identifier_type: researcher.identifierType || null,
+            order_index: researcher.orderIndex,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          toast.error(`Failed to add researcher: ${insertError.message}`);
+          console.error(insertError);
+          return;
+        }
+        setResearchers(prev => [...prev, transformResearcherFromRow(created)]);
+        toast.success('Added to the researchers list');
+        return created;
+      }
+
+      const nextHidden = researcher.hidden ?? existing.hidden ?? false;
+      const { data: updated, error: updateError } = await supabase
+        .from('participant_researchers')
+        .update({
+          hidden: nextHidden,
+          first_name: researcher.firstName,
+          last_name: researcher.lastName,
+          email: researcher.email || null,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        toast.error(`Failed to update researcher: ${updateError.message}`);
+        console.error(updateError);
+        return;
+      }
+
+      setResearchers(prev => {
+        const withoutRow = prev.filter(r => r.id !== updated.id);
+        return nextHidden ? withoutRow : [...withoutRow, transformResearcherFromRow(updated)];
+      });
+      if (researcher.hidden === true) toast.success('Removed from the researchers list');
+      if (researcher.hidden === false) toast.success('Added to the researchers list');
+      return updated;
+    }
+
     const { data, error } = await supabase
       .from('participant_researchers')
       .insert({

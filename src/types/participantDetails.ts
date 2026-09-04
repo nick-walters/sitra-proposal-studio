@@ -86,6 +86,14 @@ export interface ParticipantResearcher {
   referenceIdentifier?: string;
   identifierType?: string;
   orderIndex: number;
+  /**
+   * Set when this researcher is the mirror of a contact person
+   * (participant_members row). Linked researchers take their name and email
+   * from the contact and are therefore read-only in the researchers list.
+   */
+  memberId?: string | null;
+  /** A linked researcher whose checkbox has been unticked: row kept, hidden. */
+  hidden?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -190,6 +198,8 @@ export interface ParticipantResearcherRow {
   reference_identifier: string | null;
   identifier_type: string | null;
   order_index: number;
+  member_id?: string | null;
+  hidden?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -261,6 +271,8 @@ export function transformResearcherFromRow(row: ParticipantResearcherRow): Parti
     referenceIdentifier: row.reference_identifier || undefined,
     identifierType: row.identifier_type || undefined,
     orderIndex: row.order_index,
+    memberId: row.member_id ?? null,
+    hidden: row.hidden ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -280,6 +292,8 @@ export function transformResearcherToRow(researcher: Partial<ParticipantResearch
   if (researcher.referenceIdentifier !== undefined) row.reference_identifier = researcher.referenceIdentifier || null;
   if (researcher.identifierType !== undefined) row.identifier_type = researcher.identifierType || null;
   if (researcher.orderIndex !== undefined) row.order_index = researcher.orderIndex;
+  if (researcher.memberId !== undefined) row.member_id = researcher.memberId;
+  if (researcher.hidden !== undefined) row.hidden = researcher.hidden;
   return row;
 }
 

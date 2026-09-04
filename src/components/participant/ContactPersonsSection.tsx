@@ -1,4 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useDebouncedSave } from '@/hooks/useDebouncedSave';
+import { reorderParticipantMembers } from '@/hooks/useParticipantDetails';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +22,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Crown, Copy, ShieldCheck, ShieldOff, Loader2, Edit2, Check, X, Users } from 'lucide-react';
+import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { MCPDetailFields } from './MCPDetailFields';
-import { CopyToResearcherDialog } from './CopyToResearcherDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -75,10 +80,8 @@ export function ContactPersonsSection({
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', phone: '', originalEmail: '', wantsPlatformAccess: undefined as 'yes' | 'no' | undefined });
-  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
-  const [copyDialogData, setCopyDialogData] = useState<{ firstName: string; lastName: string; email: string; roleInProject: string } | null>(null);
+  const [orderedMembers, setOrderedMembers] = useState<ParticipantMember[]>(members);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [unsetMCPConfirm, setUnsetMCPConfirm] = useState<string | null>(null);
   const [newContact, setNewContact] = useState({
@@ -135,6 +138,124 @@ export function ContactPersonsSection({
     syncAccessStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalId, canGrant]);
+
+  // The fetch already returns contacts in order_index order; local state keeps
+  // a dragged order on screen while the writes are in flight.
+  useEffect(() => {
+    setOrderedMembers((current) => {
+      const currentIds = new Set(current.map((member) => member.id));
+      const sameRows = current.length === members.length && members.every((m) => currentIds.has(m.id));
+      if (!sameRows) return members;
+      const latestById = new Map(members.map((m) => [m.id, m]));
+      return current.map((m) => latestById.get(m.id) ?? m);
+    });
+  }, [members]);
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedMembers.findIndex((m) => m.id === active.id);
+    const newIndex = orderedMembers.findIndex((m) => m.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const previous = orderedMembers;
+    const next = arrayMove(previous, oldIndex, newIndex);
+    setOrderedMembers(next);
+    const persisted = await reorderParticipantMembers(next.map((m) => m.id));
+    if (!persisted) setOrderedMembers(previous);
+  };
+
+  /** Mirrors a contact's name/email onto its linked researcher row, if any. */
+  const syncLinkedResearcher = (member: ParticipantMember, fullName: string, email: string) => {
+    const linked = researchers.find((r) => r.memberId === member.id);
+    if (!linked) return;
+    const parts = fullName.trim().split(' ');
+    onAddResearcher({
+      participantId: participant.id,
+      memberId: member.id,
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || '',
+      email,
+      orderIndex: linked.orderIndex,
+    } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
+  };
+
+  /** Ticking the box shows the linked researcher; unticking hides the row. */
+  const handleToggleResearch = (member: ParticipantMember, checked: boolean) => {
+    const parts = member.fullName.trim().split(' ');
+    onAddResearcher({
+      participantId: participant.id,
+      memberId: member.id,
+      hidden: !checked,
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || '',
+      email: member.email || '',
+      orderIndex: researchers.length,
+    } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
+  };
+
+  /**
+   * Commits one always-editable contact field. Name and email edits also flow
+   * through to the MCP fields and to a linked researcher row, and changing the
+   * email drops any access granted to the old address.
+   */
+  const commitMemberField = async (
+    member: ParticipantMember,
+    field: 'firstName' | 'lastName' | 'email' | 'phone',
+    value: string,
+  ) => {
+    const parts = member.fullName.split(' ');
+    const firstName = field === 'firstName' ? value : parts[0] || '';
+    const lastName = field === 'lastName' ? value : parts.slice(1).join(' ') || '';
+    const email = field === 'email' ? value : member.email || '';
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+    const updates: Partial<ParticipantMember> = {};
+    if (field === 'phone') {
+      updates.roleInProject = value.trim();
+    } else if (field === 'email') {
+      updates.email = value.trim();
+    } else {
+      updates.fullName = fullName;
+    }
+
+    if (field === 'email') {
+      const oldEmail = member.email?.toLowerCase();
+      const newEmail = value.trim().toLowerCase();
+      if (oldEmail && newEmail !== oldEmail && member.accessGranted && proposalId) {
+        try {
+          const { data: oldProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', oldEmail)
+            .maybeSingle();
+          if (oldProfile) {
+            const { error } = await supabase
+              .from('user_roles')
+              .delete()
+              .eq('user_id', oldProfile.id)
+              .eq('proposal_id', proposalId);
+            if (error) throw error;
+          }
+          updates.accessGranted = false;
+          updates.accessGrantedRole = undefined;
+          toast.info(`Access revoked for the previous email (${oldEmail})`);
+        } catch (error: any) {
+          toast.error(`Failed to revoke access for the previous email: ${error?.message ?? error}`);
+          console.error(error);
+        }
+      }
+    }
+
+    onUpdateMember(member.id, updates);
+
+    if (member.isPrimaryContact) {
+      if (field === 'firstName') onUpdateParticipant('mainContactFirstName', value.trim());
+      if (field === 'lastName') onUpdateParticipant('mainContactLastName', value.trim());
+      if (field === 'email') onUpdateParticipant('contactEmail', value.trim());
+      if (field === 'phone') onUpdateParticipant('mainContactPhone', value.trim());
+    }
+
+    if (field !== 'phone') syncLinkedResearcher(member, fullName, email.trim());
+  };
 
   const handlePersonSelect = (person: SelectedPerson | null) => {
     setSelectedPerson(person);
@@ -271,110 +392,6 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactPosition', '');
       onUpdateParticipant('mainContactDepartment', '');
     }
-  };
-
-  const handleStartEdit = (member: ParticipantMember) => {
-    const parts = member.fullName.split(' ');
-    setEditingId(member.id);
-    setEditForm({
-      firstName: parts[0] || '',
-      lastName: parts.slice(1).join(' ') || '',
-      email: member.email || '',
-      phone: member.roleInProject || '',
-      originalEmail: member.email || '',
-      wantsPlatformAccess: member.wantsPlatformAccess ? 'yes' : member.wantsPlatformAccess === false ? 'no' : undefined,
-    });
-  };
-
-  const handleSaveEdit = async (memberId: string) => {
-    if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.email.trim()) {
-      toast.error('First name, last name and email are required');
-      return;
-    }
-    const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
-    const member = members.find(m => m.id === memberId);
-    const oldEmail = member?.email?.toLowerCase();
-    const newEmail = editForm.email.trim().toLowerCase();
-    const emailChanged = oldEmail && newEmail !== oldEmail;
-
-    // If email changed and old email had access, revoke old access
-    if (emailChanged && member?.accessGranted && proposalId) {
-      try {
-        const { data: oldProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', oldEmail)
-          .maybeSingle();
-
-        if (oldProfile) {
-          await supabase
-            .from('user_roles')
-            .delete()
-            .eq('user_id', oldProfile.id)
-            .eq('proposal_id', proposalId);
-        }
-        toast.info(`Access revoked for previous email (${oldEmail})`);
-      } catch (error) {
-        console.error('Error revoking old email access:', error);
-      }
-    }
-
-    // Build update payload
-    const updates: Partial<ParticipantMember> = {
-      fullName,
-      email: editForm.email.trim(),
-      roleInProject: editForm.phone.trim(),
-    };
-
-    // If email changed, reset access state and apply new access preference
-    if (emailChanged) {
-      updates.accessGranted = false;
-      updates.accessGrantedRole = undefined;
-      updates.wantsPlatformAccess = editForm.wantsPlatformAccess === 'yes' ? true : editForm.wantsPlatformAccess === 'no' ? false : undefined;
-    }
-
-    onUpdateMember(memberId, updates);
-
-    // If this member is the MCP, sync to participant fields
-    if (member?.isPrimaryContact) {
-      onUpdateParticipant('mainContactFirstName', editForm.firstName.trim());
-      onUpdateParticipant('mainContactLastName', editForm.lastName.trim());
-      onUpdateParticipant('contactEmail', editForm.email.trim());
-    }
-
-    setEditingId(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-  };
-
-  const handleCopyToResearchers = (member: ParticipantMember) => {
-    const parts = member.fullName.split(' ');
-    const firstName = parts[0] || '';
-    const lastName = parts.slice(1).join(' ') || '';
-
-    // Check for duplicates
-    const exists = researchers.some(
-      (r) => r.firstName.toLowerCase() === firstName.toLowerCase() && r.lastName.toLowerCase() === lastName.toLowerCase()
-    );
-    if (exists) {
-      const proceed = window.confirm(`A researcher named "${firstName} ${lastName}" already exists. Add a duplicate?`);
-      if (!proceed) return;
-    }
-
-    setCopyDialogData({
-      firstName,
-      lastName,
-      email: member.email || '',
-      roleInProject: '',
-    });
-    setCopyDialogOpen(true);
-  };
-
-  const handleResearcherConfirm = (researcher: Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>) => {
-    onAddResearcher(researcher);
-    toast.success('Added to researchers list');
   };
 
   const handleGrantAccess = async (member: ParticipantMember) => {
@@ -618,229 +635,34 @@ export function ContactPersonsSection({
             <p className="text-sm">No contact persons added yet</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {[...members].sort((a, b) => (b.isPrimaryContact ? 1 : 0) - (a.isPrimaryContact ? 1 : 0)).map((member) => {
-              const nameParts = member.fullName.split(' ');
-              const firstName = nameParts[0] || '';
-              const lastName = nameParts.slice(1).join(' ') || '';
-              const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-              const isMCP = member.isPrimaryContact;
-              const wantsAccess = member.wantsPlatformAccess;
-              const hasAccess = member.accessGranted;
-              const isGranting = grantingId === member.id;
-              const isRevoking = revokingId === member.id;
-              const isEditing = editingId === member.id;
-
-              return (
-                <div key={member.id}>
-                  {isEditing ? (
-                    <div className={`p-3 rounded-lg space-y-3 ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">First name *</Label>
-                          <Input
-                            value={editForm.firstName}
-                            onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Last name *</Label>
-                          <Input
-                            value={editForm.lastName}
-                            onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Email *</Label>
-                          <Input
-                            type="email"
-                            value={editForm.email}
-                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Phone</Label>
-                          <Input
-                            type="tel"
-                            value={editForm.phone}
-                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        {editForm.email.trim().toLowerCase() !== editForm.originalEmail.toLowerCase() && (
-                          <div className="space-y-1 sm:col-span-2">
-                            <Label className="text-xs">Should this person have access to the proposal? *</Label>
-                            <Select
-                              value={editForm.wantsPlatformAccess || ''}
-                              onValueChange={(v) => setEditForm({ ...editForm, wantsPlatformAccess: v as 'yes' | 'no' })}
-                            >
-                              <SelectTrigger className="h-8 text-sm">
-                                <SelectValue placeholder="Select..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="no">No</SelectItem>
-                                <SelectItem value="yes">Yes</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit}>
-                          <X className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleSaveEdit(member.id)} aria-label="Confirm" title="Confirm">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`flex items-center justify-between p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMCP ? 'bg-primary/20' : 'bg-primary/10'}`}>
-                          <span className="text-sm font-medium text-primary">{initials}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium flex items-center gap-1.5">
-                            {firstName} {lastName}
-                            {isMCP && (
-                              <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>
-                            )}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {member.email || 'No email'}
-                            {member.roleInProject ? ` · ${member.roleInProject}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {/* Edit */}
-                        {canEdit && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground"
-                                onClick={() => handleStartEdit(member)}
-                               aria-label="Edit" title="Edit">
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Edit contact</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* MCP toggle — only show if this member is MCP or no MCP exists */}
-                        {canEdit && (isMCP || !hasMCP) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
-                                onClick={() => handleSetMCP(member.id)}
-                               aria-label="Toggle main contact" title="Toggle main contact">
-                                <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* Copy to researchers */}
-                        {canEdit && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground"
-                                onClick={() => handleCopyToResearchers(member)}
-                               aria-label="Copy" title="Copy">
-                                <Users className="w-3.5 h-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Copy to researchers list</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* Access management (owners/coordinators only) */}
-                        {canGrant && wantsAccess && proposalId && proposalAcronym && (
-                          <>
-                            {hasAccess ? (
-                              <>
-                              {['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '') ? (
-                                  <Badge className="gap-1 text-xs bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
-                                    <ShieldCheck className="w-3 h-3" />
-                                    Has access
-                                  </Badge>
-                                ) : (
-                                  <Badge className="gap-1 text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
-                                    <ShieldCheck className="w-3 h-3" />
-                                    Invite sent
-                                  </Badge>
-                                )}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 text-destructive hover:text-destructive"
-                                      onClick={() => handleRevokeAccess(member)}
-                                      disabled={isRevoking}
-                                     aria-label="Revoke access" title="Revoke access">
-                                      {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Revoke access</TooltipContent>
-                                </Tooltip>
-                              </>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1 text-xs"
-                                onClick={() => handleGrantAccess(member)}
-                                disabled={isGranting || !member.email}
-                              >
-                                {isGranting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-                                Give access
-                              </Button>
-                            )}
-                          </>
-                        )}
-
-                        {/* Delete */}
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive h-7 w-7"
-                            onClick={() => setDeleteConfirm({ id: member.id, name: member.fullName })}
-                           aria-label="Delete" title="Delete">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* MCP expanded details */}
-                  {isMCP && (
-                    <MCPDetailFields
-                      participant={participant}
-                      onUpdate={onUpdateParticipant}
-                      canEdit={canEdit}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedMembers.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {orderedMembers.map((member) => (
+                  <SortableContactCard
+                    key={member.id}
+                    member={member}
+                    participant={participant}
+                    canEdit={canEdit}
+                    canGrant={canGrant}
+                    hasMCP={hasMCP}
+                    proposalId={proposalId}
+                    proposalAcronym={proposalAcronym}
+                    grantingId={grantingId}
+                    revokingId={revokingId}
+                    isResearcher={researchers.some((r) => r.memberId === member.id)}
+                    onCommitField={commitMemberField}
+                    onToggleResearch={handleToggleResearch}
+                    onSetMCP={handleSetMCP}
+                    onGrantAccess={handleGrantAccess}
+                    onRevokeAccess={handleRevokeAccess}
+                    onRequestDelete={(id, name) => setDeleteConfirm({ id, name })}
+                    onUpdateParticipant={onUpdateParticipant}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {/* Delete CP Confirmation */}
@@ -895,17 +717,244 @@ export function ContactPersonsSection({
           </AlertDialogContent>
         </AlertDialog>
 
-        {copyDialogData && (
-          <CopyToResearcherDialog
-            open={copyDialogOpen}
-            onOpenChange={setCopyDialogOpen}
-            initialData={copyDialogData}
-            onConfirm={handleResearcherConfirm}
-            participantId={participant.id}
-            nextOrderIndex={researchers.length}
-          />
-        )}
       </CardContent>
     </Card>
+  );
+}
+
+/** One always-editable contact card, draggable by the grip on its left. */
+function SortableContactCard({
+  member,
+  participant,
+  canEdit,
+  canGrant,
+  hasMCP,
+  proposalId,
+  proposalAcronym,
+  grantingId,
+  revokingId,
+  isResearcher,
+  onCommitField,
+  onToggleResearch,
+  onSetMCP,
+  onGrantAccess,
+  onRevokeAccess,
+  onRequestDelete,
+  onUpdateParticipant,
+}: {
+  member: ParticipantMember;
+  participant: Participant;
+  canEdit: boolean;
+  canGrant: boolean;
+  hasMCP: boolean;
+  proposalId?: string;
+  proposalAcronym?: string;
+  grantingId: string | null;
+  revokingId: string | null;
+  isResearcher: boolean;
+  onCommitField: (member: ParticipantMember, field: 'firstName' | 'lastName' | 'email' | 'phone', value: string) => void;
+  onToggleResearch: (member: ParticipantMember, checked: boolean) => void;
+  onSetMCP: (id: string) => void;
+  onGrantAccess: (member: ParticipantMember) => void;
+  onRevokeAccess: (member: ParticipantMember) => void;
+  onRequestDelete: (id: string, name: string) => void;
+  onUpdateParticipant: (field: string, value: any) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: member.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 };
+
+  const nameParts = member.fullName.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+  const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const isMCP = member.isPrimaryContact;
+  const wantsAccess = member.wantsPlatformAccess;
+  const hasAccess = member.accessGranted;
+  const isGranting = grantingId === member.id;
+  const isRevoking = revokingId === member.id;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className={`flex items-start gap-3 p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+        <button
+          type="button"
+          className="mt-2 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
+          aria-label="Reorder contact"
+          title="Drag to reorder"
+          disabled={!canEdit}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+
+        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${isMCP ? 'bg-primary/20' : 'bg-primary/10'}`}>
+          <span className="text-sm font-medium text-primary">{initials}</span>
+        </div>
+
+        <div className="flex-1 min-w-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1">
+            <Label className="text-xs">First name *</Label>
+            <DebouncedContactField value={firstName} disabled={!canEdit} onCommit={(v) => onCommitField(member, 'firstName', v)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Last name *</Label>
+            <DebouncedContactField value={lastName} disabled={!canEdit} onCommit={(v) => onCommitField(member, 'lastName', v)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Email *</Label>
+            <DebouncedContactField value={member.email || ''} type="email" disabled={!canEdit} onCommit={(v) => onCommitField(member, 'email', v)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Phone</Label>
+            <DebouncedContactField value={member.roleInProject || ''} type="tel" disabled={!canEdit} onCommit={(v) => onCommitField(member, 'phone', v)} />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-1">
+            {isMCP && <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>}
+
+            {canEdit && (isMCP || !hasMCP) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
+                    onClick={() => onSetMCP(member.id)}
+                    aria-label="Toggle main contact"
+                    title="Toggle main contact"
+                  >
+                    <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
+              </Tooltip>
+            )}
+
+            {canGrant && wantsAccess && proposalId && proposalAcronym && (
+              <>
+                {hasAccess ? (
+                  <>
+                    {['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '') ? (
+                      <Badge className="gap-1 text-xs bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
+                        <ShieldCheck className="w-3 h-3" />
+                        Has access
+                      </Badge>
+                    ) : (
+                      <Badge className="gap-1 text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                        <ShieldCheck className="w-3 h-3" />
+                        Invite sent
+                      </Badge>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => onRevokeAccess(member)}
+                          disabled={isRevoking}
+                          aria-label="Revoke access"
+                          title="Revoke access"
+                        >
+                          {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Revoke access</TooltipContent>
+                    </Tooltip>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => onGrantAccess(member)}
+                    disabled={isGranting || !member.email}
+                  >
+                    {isGranting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+                    Give access
+                  </Button>
+                )}
+              </>
+            )}
+
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive h-7 w-7"
+                onClick={() => onRequestDelete(member.id, member.fullName)}
+                aria-label="Delete"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+            <Checkbox
+              checked={isResearcher}
+              disabled={!canEdit}
+              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+              aria-label="This person will conduct research in the project"
+            />
+            <Users className="w-3.5 h-3.5" />
+            This person will conduct research in the project
+          </label>
+        </div>
+      </div>
+
+      {isMCP && (
+        <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
+      )}
+    </div>
+  );
+}
+
+/** Local state, 350 ms trailing debounce, commit on blur, reseed only when idle. */
+function DebouncedContactField({
+  value,
+  onCommit,
+  type = 'text',
+  disabled,
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  type?: string;
+  disabled?: boolean;
+}) {
+  const [local, setLocal] = useState(value ?? '');
+  const focusedRef = useRef(false);
+  const pendingRef = useRef(false);
+
+  const { push, flush } = useDebouncedSave<string>((v) => {
+    pendingRef.current = false;
+    onCommit(v);
+  }, 350);
+
+  useEffect(() => {
+    if (!focusedRef.current && !pendingRef.current) setLocal(value ?? '');
+  }, [value]);
+
+  return (
+    <Input
+      className="h-8 text-sm"
+      type={type}
+      disabled={disabled}
+      value={local}
+      onFocus={() => { focusedRef.current = true; }}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        pendingRef.current = true;
+        push(e.target.value);
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        flush();
+      }}
+    />
   );
 }

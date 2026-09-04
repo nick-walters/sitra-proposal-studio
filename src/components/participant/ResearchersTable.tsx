@@ -355,11 +355,11 @@ export function ResearchersTable({
                     {(attributes, listeners) => <>
                 <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
                   {canEdit ? (
-                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-primary" {...attributes} {...listeners} aria-label="Drag to reorder researcher" title="Drag to reorder researcher">
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-blue-600" {...attributes} {...listeners} aria-label="Drag to reorder researcher" title="Drag to reorder researcher">
                       <GripVertical className="h-4 w-4" />
                     </Button>
                   ) : <span />}
-                  {canEdit && (
+                  {canEdit && !researcher.memberId && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -384,11 +384,13 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
+                  {/* researcher.memberId set => mirrored from a contact person:
+                      name and email are owned by the contact card and read-only here. */}
                   <ResearcherField label="First Name" value={researcher.firstName}>
-                    {canEdit && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
                   </ResearcherField>
                   <ResearcherField label="Last Name" value={researcher.lastName}>
-                    {canEdit && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
                   </ResearcherField>
                   <ResearcherField label="Gender" value={researcher.gender}>
                     {canEdit && (
@@ -405,7 +407,7 @@ export function ResearchersTable({
                   </ResearcherField>
 
                   <ResearcherField label="E-mail" value={researcher.email}>
-                    {canEdit && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
                   </ResearcherField>
                   <ResearcherField label="Career Stage" value={researcher.careerStage}>
                     {canEdit && (
@@ -520,7 +522,7 @@ function SortableResearcher({
     opacity: sortable.isDragging ? 0.55 : 1,
   };
   return (
-    <div ref={sortable.setNodeRef} style={style} className="min-w-0 rounded-md border p-3">
+    <div ref={sortable.setNodeRef} style={style} className="min-w-0 rounded-lg bg-muted/50 p-3">
       {children(sortable.attributes, sortable.listeners)}
     </div>
   );
