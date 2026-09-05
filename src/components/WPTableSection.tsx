@@ -532,6 +532,59 @@ function SortableTaskModule({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Serialised per-task saves                                           */
+/*                                                                     */
+/* `save_versioned_row` compares only the row version — it has no idea  */
+/* WHO wrote last. So two overlapping saves from the SAME user (a title */
+/* typed quickly, or a title save while the description flush is in     */
+/* flight) both carry the version loaded before the first one landed,   */
+/* and the second is rejected as "changed elsewhere". The user was      */
+/* conflicting with themselves.                                         */
+/*                                                                     */
+/* The queue below lets at most one save per task be in flight, merges  */
+/* anything typed meanwhile into a single follow-up patch, and yields a */
+/* macrotask between saves so the version returned by the previous      */
+/* write has been committed to state before the next one reads it.      */
+/* Genuine conflicts — another user writing between two of our saves —  */
+/* are still detected, because the expected version is still checked.   */
+/* ------------------------------------------------------------------ */
+
+type TaskPatch = Partial<WPDraftTask>;
+const taskSavePending = new Map<string, TaskPatch>();
+const taskSaveInFlight = new Map<string, Promise<void>>();
+const taskSaveRunner = new Map<string, (patch: TaskPatch) => Promise<boolean>>();
+
+function queueTaskUpdate(
+  taskId: string,
+  patch: TaskPatch,
+  run: (patch: TaskPatch) => Promise<boolean>,
+): Promise<void> {
+  taskSaveRunner.set(taskId, run);
+  taskSavePending.set(taskId, { ...(taskSavePending.get(taskId) ?? {}), ...patch });
+  const existing = taskSaveInFlight.get(taskId);
+  if (existing) return existing;
+
+  const loop = (async () => {
+    try {
+      while (taskSavePending.has(taskId)) {
+        const next = taskSavePending.get(taskId)!;
+        taskSavePending.delete(taskId);
+        const runner = taskSaveRunner.get(taskId);
+        if (!runner) break;
+        await runner(next);
+        // Give React a chance to commit the new row version before the next
+        // save reads it; without this the follow-up save is stale again.
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+      }
+    } finally {
+      taskSaveInFlight.delete(taskId);
+    }
+  })();
+  taskSaveInFlight.set(taskId, loop);
+  return loop;
+}
+
 interface TaskModuleProps {
   task: WPDraftTask;
   wpNumber: number;
