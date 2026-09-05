@@ -775,7 +775,7 @@ function TaskModule({
         <Select
           value={task.lead_participant_id || ''}
           onValueChange={(value) =>
-            onUpdate(task.id, {
+            saveTask(task.id, {
               lead_participant_id: value === '__clear__' ? null : value || null,
             })
           }
@@ -856,7 +856,7 @@ function TaskModule({
             task={task}
             projectDuration={projectDuration}
             readOnly={readOnly}
-            onUpdate={onUpdate}
+            onUpdate={saveTask}
           />
         </div>
       </div>
