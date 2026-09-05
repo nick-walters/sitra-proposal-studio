@@ -55,6 +55,11 @@ export function ParticipantMultiSelect({
   };
 
   const selectedParticipants = participants.filter(p => selectedIds.includes(p.id));
+  // Shared display rule: the offered list already excludes the task leader, so
+  // "every offered participant selected" is exactly "all participants except
+  // the leader". Collapsed field only — the dropdown still lists everyone.
+  const showAllBadge =
+    collapseWhenAll && coversAllParticipants(participants.map(p => p.id), null, selectedIds);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
