@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { reorderParticipantMembers } from '@/hooks/useParticipantDetails';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,7 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical } from 'lucide-react';
+import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { MCPDetailFields } from './MCPDetailFields';
@@ -45,6 +44,17 @@ interface SelectedPerson {
   email: string | null;
   default_role: string | null;
 }
+
+/** The four editable fields of a contact card, as held while editing. */
+interface ContactEditValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+const PHONE_PLACEHOLDER = 'Please add a phone number';
+
 
 interface ContactPersonsSectionProps {
   participant: Participant;
@@ -84,6 +94,12 @@ export function ContactPersonsSection({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [unsetMCPConfirm, setUnsetMCPConfirm] = useState<string | null>(null);
+  // Pending confirmation for a save that would revoke a contact's access.
+  const [pendingEmailSave, setPendingEmailSave] = useState<{
+    member: ParticipantMember;
+    values: ContactEditValues;
+    resolve: (confirmed: boolean) => void;
+  } | null>(null);
   const [newContact, setNewContact] = useState({
     firstName: '',
     lastName: '',
@@ -193,69 +209,87 @@ export function ContactPersonsSection({
   };
 
   /**
-   * Commits one always-editable contact field. Name and email edits also flow
-   * through to the MCP fields and to a linked researcher row, and changing the
-   * email drops any access granted to the old address.
+   * Writes one contact card's edited fields. Only ever called from an explicit
+   * Save, never while typing. Name and email edits flow through to the MCP
+   * fields and to a linked researcher row, and changing the email drops any
+   * access granted to the old address.
    */
-  const commitMemberField = async (
-    member: ParticipantMember,
-    field: 'firstName' | 'lastName' | 'email' | 'phone',
-    value: string,
-  ) => {
-    const parts = member.fullName.split(' ');
-    const firstName = field === 'firstName' ? value : parts[0] || '';
-    const lastName = field === 'lastName' ? value : parts.slice(1).join(' ') || '';
-    const email = field === 'email' ? value : member.email || '';
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const applyMemberEdits = async (member: ParticipantMember, values: ContactEditValues) => {
+    const firstName = values.firstName.trim();
+    const lastName = values.lastName.trim();
+    const email = values.email.trim();
+    const phone = values.phone.trim();
+    const fullName = `${firstName} ${lastName}`.trim();
 
-    const updates: Partial<ParticipantMember> = {};
-    if (field === 'phone') {
-      updates.roleInProject = value.trim();
-    } else if (field === 'email') {
-      updates.email = value.trim();
-    } else {
-      updates.fullName = fullName;
-    }
+    const updates: Partial<ParticipantMember> = {
+      fullName,
+      email,
+      roleInProject: phone,
+    };
 
-    if (field === 'email') {
-      const oldEmail = member.email?.toLowerCase();
-      const newEmail = value.trim().toLowerCase();
-      if (oldEmail && newEmail !== oldEmail && member.accessGranted && proposalId) {
-        try {
-          const { data: oldProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', oldEmail)
-            .maybeSingle();
-          if (oldProfile) {
-            const { error } = await supabase
-              .from('user_roles')
-              .delete()
-              .eq('user_id', oldProfile.id)
-              .eq('proposal_id', proposalId);
-            if (error) throw error;
-          }
-          updates.accessGranted = false;
-          updates.accessGrantedRole = undefined;
-          toast.info(`Access revoked for the previous email (${oldEmail})`);
-        } catch (error: any) {
-          toast.error(`Failed to revoke access for the previous email: ${error?.message ?? error}`);
-          console.error(error);
+    const oldEmail = member.email?.toLowerCase();
+    const newEmail = email.toLowerCase();
+    if (oldEmail && newEmail !== oldEmail && member.accessGranted && proposalId) {
+      try {
+        const { data: oldProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', oldEmail)
+          .maybeSingle();
+        if (oldProfile) {
+          const { error } = await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', oldProfile.id)
+            .eq('proposal_id', proposalId);
+          if (error) throw error;
         }
+        updates.accessGranted = false;
+        updates.accessGrantedRole = undefined;
+        toast.info(`Access revoked for the previous email (${oldEmail})`);
+      } catch (error: any) {
+        toast.error(`Failed to revoke access for the previous email: ${error?.message ?? error}`);
+        console.error(error);
       }
     }
 
     onUpdateMember(member.id, updates);
 
     if (member.isPrimaryContact) {
-      if (field === 'firstName') onUpdateParticipant('mainContactFirstName', value.trim());
-      if (field === 'lastName') onUpdateParticipant('mainContactLastName', value.trim());
-      if (field === 'email') onUpdateParticipant('contactEmail', value.trim());
-      if (field === 'phone') onUpdateParticipant('mainContactPhone', value.trim());
+      onUpdateParticipant('mainContactFirstName', firstName);
+      onUpdateParticipant('mainContactLastName', lastName);
+      onUpdateParticipant('contactEmail', email);
+      onUpdateParticipant('mainContactPhone', phone);
     }
 
-    if (field !== 'phone') syncLinkedResearcher(member, fullName, email.trim());
+    syncLinkedResearcher(member, fullName, email);
   };
+
+  /**
+   * Deliberate save for a contact card. Required fields are checked first, and
+   * an email change for a contact who currently has access is confirmed before
+   * anything is written. Returns true when the card may leave edit mode.
+   */
+  const saveMemberEdits = async (member: ParticipantMember, values: ContactEditValues) => {
+    if (!values.firstName.trim() || !values.lastName.trim() || !values.email.trim()) {
+      toast.error('First name, last name and email are required');
+      return false;
+    }
+
+    const oldEmail = member.email?.toLowerCase() || '';
+    const newEmail = values.email.trim().toLowerCase();
+    if (oldEmail && newEmail !== oldEmail && member.accessGranted) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        setPendingEmailSave({ member, values, resolve });
+      });
+      setPendingEmailSave(null);
+      if (!confirmed) return false;
+    }
+
+    await applyMemberEdits(member, values);
+    return true;
+  };
+
 
   const handlePersonSelect = (person: SelectedPerson | null) => {
     setSelectedPerson(person);
@@ -651,7 +685,7 @@ export function ContactPersonsSection({
                     grantingId={grantingId}
                     revokingId={revokingId}
                     isResearcher={researchers.some((r) => r.memberId === member.id)}
-                    onCommitField={commitMemberField}
+                    onSaveEdits={saveMemberEdits}
                     onToggleResearch={handleToggleResearch}
                     onSetMCP={handleSetMCP}
                     onGrantAccess={handleGrantAccess}
@@ -717,6 +751,36 @@ export function ContactPersonsSection({
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Email change / access revocation confirmation */}
+        <AlertDialog
+          open={!!pendingEmailSave}
+          onOpenChange={(open) => {
+            if (!open && pendingEmailSave) pendingEmailSave.resolve(false);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Change email and revoke access?</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{pendingEmailSave?.member.fullName}</strong> currently has access to this
+                proposal with the email address {pendingEmailSave?.member.email}. Saving this change
+                to {pendingEmailSave?.values.email.trim()} will revoke their access, and a
+                coordinator will have to grant access again to the new address.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => pendingEmailSave?.resolve(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => pendingEmailSave?.resolve(true)}
+              >
+                Save and revoke access
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+
       </CardContent>
     </Card>
   );
@@ -734,7 +798,7 @@ function SortableContactCard({
   grantingId,
   revokingId,
   isResearcher,
-  onCommitField,
+  onSaveEdits,
   onToggleResearch,
   onSetMCP,
   onGrantAccess,
@@ -752,7 +816,7 @@ function SortableContactCard({
   grantingId: string | null;
   revokingId: string | null;
   isResearcher: boolean;
-  onCommitField: (member: ParticipantMember, field: 'firstName' | 'lastName' | 'email' | 'phone', value: string) => void;
+  onSaveEdits: (member: ParticipantMember, values: ContactEditValues) => Promise<boolean>;
   onToggleResearch: (member: ParticipantMember, checked: boolean) => void;
   onSetMCP: (id: string) => void;
   onGrantAccess: (member: ParticipantMember) => void;
@@ -772,6 +836,41 @@ function SortableContactCard({
   const hasAccess = member.accessGranted;
   const isGranting = grantingId === member.id;
   const isRevoking = revokingId === member.id;
+
+  // Deliberate editing: fields are read-only until Edit is pressed, and nothing
+  // is written until Save. Discard simply drops the local draft. This restores
+  // the editingId / editForm / Edit2-Check-X pattern the section used before it
+  // was made always-editable.
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<ContactEditValues>({
+    firstName,
+    lastName,
+    email: member.email || '',
+    phone: member.roleInProject || '',
+  });
+
+  const startEdit = () => {
+    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setIsEditing(false);
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const done = await onSaveEdits(member, form);
+      if (done) setIsEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const phoneValue = member.roleInProject || '';
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -796,25 +895,108 @@ function SortableContactCard({
         <div className="flex-1 min-w-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1">
             <Label className="text-xs">First name *</Label>
-            <DebouncedContactField value={firstName} disabled={!canEdit} onCommit={(v) => onCommitField(member, 'firstName', v)} />
+            {isEditing ? (
+              <Input
+                className="h-8 text-sm"
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                aria-label="First name"
+              />
+            ) : (
+              <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Last name *</Label>
-            <DebouncedContactField value={lastName} disabled={!canEdit} onCommit={(v) => onCommitField(member, 'lastName', v)} />
+            {isEditing ? (
+              <Input
+                className="h-8 text-sm"
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                aria-label="Last name"
+              />
+            ) : (
+              <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email *</Label>
-            <DebouncedContactField value={member.email || ''} type="email" disabled={!canEdit} onCommit={(v) => onCommitField(member, 'email', v)} />
+            {isEditing ? (
+              <Input
+                className="h-8 text-sm"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                aria-label="Email"
+              />
+            ) : (
+              <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Phone</Label>
-            <DebouncedContactField value={member.roleInProject || ''} type="tel" disabled={!canEdit} onCommit={(v) => onCommitField(member, 'phone', v)} />
+            {isEditing ? (
+              <Input
+                className="h-8 text-sm"
+                type="tel"
+                value={form.phone}
+                placeholder={PHONE_PLACEHOLDER}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                aria-label="Phone"
+              />
+            ) : phoneValue ? (
+              <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
+            ) : (
+              <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
+                {PHONE_PLACEHOLDER}
+              </p>
+            )}
           </div>
         </div>
+
 
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           <div className="flex items-center gap-1">
             {isMCP && <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>}
+
+            {canEdit && (isEditing ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-primary"
+                  onClick={() => { void saveEdit(); }}
+                  disabled={saving}
+                  aria-label="Save contact"
+                  title="Save"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground"
+                  onClick={cancelEdit}
+                  disabled={saving}
+                  aria-label="Discard changes"
+                  title="Discard changes"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={startEdit}
+                aria-label="Edit contact"
+                title="Edit"
+              >
+                <Edit2 className="w-4 h-4" />
+              </Button>
+            ))}
+
 
             {canEdit && (isMCP || !hasMCP) && (
               <Tooltip>
@@ -913,50 +1095,5 @@ function SortableContactCard({
         <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
       )}
     </div>
-  );
-}
-
-/** Local state, 350 ms trailing debounce, commit on blur, reseed only when idle. */
-function DebouncedContactField({
-  value,
-  onCommit,
-  type = 'text',
-  disabled,
-}: {
-  value: string;
-  onCommit: (value: string) => void;
-  type?: string;
-  disabled?: boolean;
-}) {
-  const [local, setLocal] = useState(value ?? '');
-  const focusedRef = useRef(false);
-  const pendingRef = useRef(false);
-
-  const { push, flush } = useDebouncedSave<string>((v) => {
-    pendingRef.current = false;
-    onCommit(v);
-  }, 350);
-
-  useEffect(() => {
-    if (!focusedRef.current && !pendingRef.current) setLocal(value ?? '');
-  }, [value]);
-
-  return (
-    <Input
-      className="h-8 text-sm"
-      type={type}
-      disabled={disabled}
-      value={local}
-      onFocus={() => { focusedRef.current = true; }}
-      onChange={(e) => {
-        setLocal(e.target.value);
-        pendingRef.current = true;
-        push(e.target.value);
-      }}
-      onBlur={() => {
-        focusedRef.current = false;
-        flush();
-      }}
-    />
   );
 }
