@@ -781,6 +781,7 @@ function TaskModule({
             onChange={(ids) => onParticipantsChange(task.id, ids)}
             disabled={readOnly}
             placeholder="Participants"
+            collapseWhenAll
             subtle
           />
         </div>

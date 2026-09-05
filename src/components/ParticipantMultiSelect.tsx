@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ParticipantSummary } from '@/types/proposal';
 import { ParticipantBubble } from '@/components/B31Pill';
+import { ALL_PARTICIPANTS_LABEL, coversAllParticipants } from '@/lib/taskParticipantDisplay';
 
 interface ParticipantMultiSelectProps {
   participants: ParticipantSummary[];
@@ -22,6 +23,11 @@ interface ParticipantMultiSelectProps {
    * exactly as the task leader dropdown beside it does.
    */
   subtle?: boolean;
+  /**
+   * Collapse the badges into one "All participants" badge when the selection
+   * covers every offered participant (see src/lib/taskParticipantDisplay.ts).
+   */
+  collapseWhenAll?: boolean;
 }
 
 export function ParticipantMultiSelect({
@@ -31,6 +37,7 @@ export function ParticipantMultiSelect({
   disabled = false,
   placeholder = 'Select...',
   subtle = false,
+  collapseWhenAll = false,
 }: ParticipantMultiSelectProps) {
 
   const [open, setOpen] = useState(false);
@@ -55,6 +62,11 @@ export function ParticipantMultiSelect({
   };
 
   const selectedParticipants = participants.filter(p => selectedIds.includes(p.id));
+  // Shared display rule: the offered list already excludes the task leader, so
+  // "every offered participant selected" is exactly "all participants except
+  // the leader". Collapsed field only — the dropdown still lists everyone.
+  const showAllBadge =
+    collapseWhenAll && coversAllParticipants(participants.map(p => p.id), null, selectedIds);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,6 +86,8 @@ export function ParticipantMultiSelect({
           <div className="flex flex-wrap gap-0.5 overflow-hidden">
             {selectedIds.length === 0 ? (
               <span className="truncate">{placeholder}</span>
+            ) : showAllBadge ? (
+              <ParticipantBubble>{ALL_PARTICIPANTS_LABEL}</ParticipantBubble>
             ) : (
               selectedParticipants.map(p => (
                 <ParticipantBubble key={p.id}>
