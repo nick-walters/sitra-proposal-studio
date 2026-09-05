@@ -622,6 +622,18 @@ function TaskModule({
   onToggleCollapsed,
 }: TaskModuleProps) {
   const isVisible = task.is_visible !== false;
+  // The queue must always call the CURRENT save function, because that closure
+  // carries the row version last returned by the server.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const saveTask = useCallback(
+    async (taskId: string, updates: TaskPatch): Promise<boolean> => {
+      await queueTaskUpdate(taskId, updates, (patch) => onUpdateRef.current(taskId, patch));
+      return true;
+    },
+    [],
+  );
+
   const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
     (id) => id !== task.lead_participant_id,
   );
