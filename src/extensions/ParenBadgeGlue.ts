@@ -35,22 +35,25 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     let start = badgeFrom;
     let end = badgeTo;
 
-    // Character immediately before the badge, within the same text block
+    // Character immediately before the badge, within the same text block.
+    // Round AND square opening brackets are glued, so neither can be left
+    // dangling at the end of the previous line.
     const $from = doc.resolve(badgeFrom);
     if ($from.parentOffset > 0) {
       const charBefore = doc.textBetween(badgeFrom - 1, badgeFrom);
-      if (charBefore === '(') start = badgeFrom - 1;
+      if (charBefore === '(' || charBefore === '[') start = badgeFrom - 1;
     }
 
     // Character immediately after the badge, within the same text block.
-    // A closing bracket is glued as before; so is a plain SPACE, so that the
-    // space can never be carried to the head of the next line, where it read
-    // as a stray indent after a wrapped chip.
+    // A closing round/square bracket is glued as before; so is a plain SPACE,
+    // so that the space can never be carried to the head of the next line,
+    // where it read as a stray indent after a wrapped chip.
     const $to = doc.resolve(badgeTo);
     if ($to.parentOffset < $to.parent.content.size) {
       const charAfter = doc.textBetween(badgeTo, badgeTo + 1);
-      if (charAfter === ')' || charAfter === ' ') end = badgeTo + 1;
+      if (charAfter === ')' || charAfter === ']' || charAfter === ' ') end = badgeTo + 1;
     }
+
 
     if (start < badgeFrom || end > badgeTo) {
       decorations.push(Decoration.inline(start, end, { style: 'white-space: nowrap;' }));
