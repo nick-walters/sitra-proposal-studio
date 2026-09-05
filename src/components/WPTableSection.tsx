@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
+import { coversAllParticipants } from '@/lib/taskParticipantDisplay';
 import { LockedWPRichField } from '@/components/wp/LockedWPRichField';
 import { MarginRail } from '@/components/cards/MarginRail';
 import { CollapseChevron } from '@/components/cards/CollapseChevron';
