@@ -26,8 +26,8 @@ import { htmlToTypstInline, typstString, type ConvertContext } from './htmlToTyp
 import { getDefaultWPColor } from '@/lib/wpColors';
 
 import { emitPertChart } from './pertTypst';
-import type {
 import { ALL_PARTICIPANTS_LABEL, coversAllParticipants } from '@/lib/taskParticipantDisplay';
+import type {
   B31TypstData,
   TypstCostBlock,
   TypstCostEntry,
