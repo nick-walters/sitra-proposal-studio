@@ -2058,3 +2058,11 @@ body.table-col-resizing * {
   text-decoration: line-through;
   text-decoration-color: rgba(239, 68, 68, 0.9);
 }
+
+/* Cross-reference chips: a bracket must never wrap away from its chip.
+   `glueBadgeBrackets` (src/lib/renderRefBadges.ts) wraps "(chip)" / "[chip]"
+   in this span; only those two characters plus the chip are held together, so
+   surrounding prose still wraps normally. */
+.ref-bracket-glue {
+  white-space: nowrap;
+}
