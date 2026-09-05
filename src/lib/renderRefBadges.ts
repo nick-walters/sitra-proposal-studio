@@ -487,11 +487,26 @@ export const BRACKET_GLUE_CLASS = 'ref-bracket-glue';
  */
 export function glueBadgeBrackets(root: ParentNode) {
   root.querySelectorAll<HTMLElement>(SPACING_SELECTOR).forEach((badge) => {
-    const parent = badge.parentElement;
-    if (!parent || parent.classList?.contains(BRACKET_GLUE_CLASS)) return;
+    // Stored chips are often nested inside a presentational wrapper span
+    // (e.g. `<span style="color: inherit;">`), so the bracket sits beside the
+    // WRAPPER, not the chip. Climb to the outermost element that contains the
+    // chip and nothing else.
+    let node: HTMLElement = badge;
+    while (
+      node.parentElement &&
+      node.parentElement.tagName === 'SPAN' &&
+      node.parentElement.childNodes.length === 1 &&
+      !node.parentElement.classList.contains(BRACKET_GLUE_CLASS)
+    ) {
+      node = node.parentElement;
+    }
 
-    const prev = badge.previousSibling;
-    const next = badge.nextSibling;
+    const parent = node.parentElement ?? (node.parentNode as ParentNode | null);
+    if (!parent) return;
+    if (node.parentElement?.classList?.contains(BRACKET_GLUE_CLASS)) return;
+
+    const prev = node.previousSibling;
+    const next = node.nextSibling;
     const prevText = prev && prev.nodeType === 3 ? prev.textContent ?? '' : '';
     const nextText = next && next.nodeType === 3 ? next.textContent ?? '' : '';
     const hasOpen = !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1));
@@ -506,18 +521,19 @@ export function glueBadgeBrackets(root: ParentNode) {
     // the app stylesheet.
     glue.setAttribute('style', 'white-space: nowrap');
 
-    parent.insertBefore(glue, badge);
+    (parent as ParentNode).insertBefore(glue, node);
     if (hasOpen && prev) {
       prev.textContent = prevText.slice(0, -1);
       glue.appendChild(doc.createTextNode(prevText.slice(-1)));
     }
-    glue.appendChild(badge);
+    glue.appendChild(node);
     if (hasClose && next) {
       next.textContent = nextText.slice(1);
       glue.appendChild(doc.createTextNode(nextText.slice(0, 1)));
     }
   });
 }
+
 
 
 /** Same glue, applied to an HTML string. No-op outside the browser. */
