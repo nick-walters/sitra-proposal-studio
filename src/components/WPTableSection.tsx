@@ -641,6 +641,51 @@ function TaskModule({
     ? participants.filter((p) => p.id !== task.lead_participant_id)
     : participants;
 
+  /**
+   * Leader change, keeping "select all" true.
+   *
+   * The leader is not offered in the participants dropdown, so a selection that
+   * covered everyone stops covering everyone the moment the former leader
+   * becomes selectable again. If the selection covered everyone IMMEDIATELY
+   * BEFORE the change (judged with the shared `coversAllParticipants` rule), the
+   * former leader is written into the stored selection; otherwise nothing is
+   * auto-selected. The new leader is removed from the stored rows in the same
+   * write — a leader is never also a participant. The leader field itself goes
+   * through `saveTask`, so it uses the same serialised task-save queue.
+   */
+  const handleLeaderChange = useCallback(
+    async (value: string) => {
+      const newLeaderId = value === '__clear__' ? null : value || null;
+      const storedIds = (task.participants?.map((p) => p.participant_id) || []);
+      const allIds = participants.map((p) => p.id);
+      const previousLeaderId = task.lead_participant_id ?? null;
+      const coveredBefore = coversAllParticipants(
+        allIds,
+        previousLeaderId,
+        storedIds.filter((id) => id !== previousLeaderId),
+      );
+
+      let next = storedIds.filter((id) => id !== newLeaderId);
+      if (
+        coveredBefore &&
+        previousLeaderId &&
+        previousLeaderId !== newLeaderId &&
+        allIds.includes(previousLeaderId) &&
+        !next.includes(previousLeaderId)
+      ) {
+        next = [...next, previousLeaderId];
+      }
+
+      await saveTask(task.id, { lead_participant_id: newLeaderId });
+
+      const changed =
+        next.length !== storedIds.length || next.some((id) => !storedIds.includes(id));
+      if (changed) await onParticipantsChange(task.id, next);
+    },
+    [task.id, task.participants, task.lead_participant_id, participants, saveTask, onParticipantsChange],
+  );
+
+
   return (
     <div
       className={cn('space-y-1 bg-white py-2', !isVisible && 'opacity-50')}
