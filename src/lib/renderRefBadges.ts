@@ -466,7 +466,59 @@ export function glueBadgeSpacing(root: ParentNode) {
     const out = glued + rest;
     if (out !== text) next.textContent = out;
   });
+  glueBadgeBrackets(root);
 }
+
+const OPEN_BRACKETS = '([';
+const CLOSE_BRACKETS = ')]';
+export const BRACKET_GLUE_CLASS = 'ref-bracket-glue';
+
+/**
+ * Keeps a round/square bracket on the same line as the chip it belongs to.
+ *
+ * A chip is an ATOMIC inline box, and browsers offer a line-break opportunity
+ * on either side of one even when the neighbouring character is a bracket. So
+ * "(WP4)" could wrap with the closing bracket stranded alone at the head of
+ * the next line. Wrapping the bracket(s) AND the chip in one `nowrap` span
+ * removes those two opportunities only — the surrounding text still wraps
+ * normally, and the group is never wider than the chip plus two characters.
+ *
+ * Idempotent: a chip already inside a glue span is skipped.
+ */
+export function glueBadgeBrackets(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>(SPACING_SELECTOR).forEach((badge) => {
+    const parent = badge.parentElement;
+    if (!parent || parent.classList?.contains(BRACKET_GLUE_CLASS)) return;
+
+    const prev = badge.previousSibling;
+    const next = badge.nextSibling;
+    const prevText = prev && prev.nodeType === 3 ? prev.textContent ?? '' : '';
+    const nextText = next && next.nodeType === 3 ? next.textContent ?? '' : '';
+    const hasOpen = !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1));
+    const hasClose = !!nextText && CLOSE_BRACKETS.includes(nextText.slice(0, 1));
+    if (!hasOpen && !hasClose) return;
+
+    const doc = badge.ownerDocument;
+    if (!doc) return;
+    const glue = doc.createElement('span');
+    glue.className = BRACKET_GLUE_CLASS;
+    // Inline style as well as the class: export/print containers do not load
+    // the app stylesheet.
+    glue.setAttribute('style', 'white-space: nowrap');
+
+    parent.insertBefore(glue, badge);
+    if (hasOpen && prev) {
+      prev.textContent = prevText.slice(0, -1);
+      glue.appendChild(doc.createTextNode(prevText.slice(-1)));
+    }
+    glue.appendChild(badge);
+    if (hasClose && next) {
+      next.textContent = nextText.slice(1);
+      glue.appendChild(doc.createTextNode(nextText.slice(0, 1)));
+    }
+  });
+}
+
 
 /** Same glue, applied to an HTML string. No-op outside the browser. */
 export function glueBadgeSpacingInHtml(html: string): string {
