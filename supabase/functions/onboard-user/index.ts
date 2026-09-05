@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (t1Err) throw t1Err;
+    if (t1Err) fail("task_check_contact_info", t1Err);
 
     // 4. Create task: "Indicate availability"
     const { data: task2, error: t2Err } = await admin
@@ -188,10 +188,10 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (t2Err) throw t2Err;
+    if (t2Err) fail("task_indicate_availability", t2Err);
 
     // 5. Notifications for tasks
-    await admin.from("notifications").insert([
+    const { error: taskNotifErr } = await admin.from("notifications").insert([
       {
         user_id: user.id,
         proposal_id: proposalId,
@@ -209,10 +209,20 @@ Deno.serve(async (req) => {
         metadata: { source: "task", task_id: task2.id },
       },
     ]);
+    if (taskNotifErr) fail("task_notifications", taskNotifErr);
+
+    // Mark as onboarded ONLY after every piece of work succeeded, so a failure
+    // can be retried on the next open.
+    const { error: markErr } = await admin.from("proposal_user_onboarding").insert({
+      proposal_id: proposalId,
+      user_id: user.id,
+    });
+    if (markErr && markErr.code !== "23505") fail("mark_onboarded", markErr);
 
     return new Response(JSON.stringify({ success: true, message_id: msg.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (err) {
     console.error("Onboard error:", err);
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {
