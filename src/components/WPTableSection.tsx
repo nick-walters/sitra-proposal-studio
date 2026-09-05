@@ -727,7 +727,7 @@ function TaskModule({
             disabled={readOnly}
             staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
             className="font-['Times_New_Roman',Times,serif] text-[11pt] font-bold [&_p]:m-0"
-            onChange={(html) => { void onUpdate(task.id, { title: html }); }}
+            onChange={(html) => { void saveTask(task.id, { title: html }); }}
           />
         </div>
         <MarginRail>
@@ -739,7 +739,7 @@ function TaskModule({
                 size="icon"
                 className="h-7 w-7 shrink-0"
                 aria-pressed={!isVisible}
-                onClick={() => void onUpdate(task.id, { is_visible: !isVisible })}
+                onClick={() => void saveTask(task.id, { is_visible: !isVisible })}
               >
                 {isVisible ? (
                   <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
@@ -873,7 +873,7 @@ function TaskModule({
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
-            onChange={(value) => { void onUpdate(task.id, { description: value }); }}
+            onChange={(value) => { void saveTask(task.id, { description: value }); }}
             disabled={readOnly}
             minHeight="60px"
             proposalId={proposalId ?? ''}
