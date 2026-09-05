@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -532,6 +532,59 @@ function SortableTaskModule({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Serialised per-task saves                                           */
+/*                                                                     */
+/* `save_versioned_row` compares only the row version — it has no idea  */
+/* WHO wrote last. So two overlapping saves from the SAME user (a title */
+/* typed quickly, or a title save while the description flush is in     */
+/* flight) both carry the version loaded before the first one landed,   */
+/* and the second is rejected as "changed elsewhere". The user was      */
+/* conflicting with themselves.                                         */
+/*                                                                     */
+/* The queue below lets at most one save per task be in flight, merges  */
+/* anything typed meanwhile into a single follow-up patch, and yields a */
+/* macrotask between saves so the version returned by the previous      */
+/* write has been committed to state before the next one reads it.      */
+/* Genuine conflicts — another user writing between two of our saves —  */
+/* are still detected, because the expected version is still checked.   */
+/* ------------------------------------------------------------------ */
+
+type TaskPatch = Partial<WPDraftTask>;
+const taskSavePending = new Map<string, TaskPatch>();
+const taskSaveInFlight = new Map<string, Promise<void>>();
+const taskSaveRunner = new Map<string, (patch: TaskPatch) => Promise<boolean>>();
+
+function queueTaskUpdate(
+  taskId: string,
+  patch: TaskPatch,
+  run: (patch: TaskPatch) => Promise<boolean>,
+): Promise<void> {
+  taskSaveRunner.set(taskId, run);
+  taskSavePending.set(taskId, { ...(taskSavePending.get(taskId) ?? {}), ...patch });
+  const existing = taskSaveInFlight.get(taskId);
+  if (existing) return existing;
+
+  const loop = (async () => {
+    try {
+      while (taskSavePending.has(taskId)) {
+        const next = taskSavePending.get(taskId)!;
+        taskSavePending.delete(taskId);
+        const runner = taskSaveRunner.get(taskId);
+        if (!runner) break;
+        await runner(next);
+        // Give React a chance to commit the new row version before the next
+        // save reads it; without this the follow-up save is stale again.
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+      }
+    } finally {
+      taskSaveInFlight.delete(taskId);
+    }
+  })();
+  taskSaveInFlight.set(taskId, loop);
+  return loop;
+}
+
 interface TaskModuleProps {
   task: WPDraftTask;
   wpNumber: number;
@@ -569,6 +622,18 @@ function TaskModule({
   onToggleCollapsed,
 }: TaskModuleProps) {
   const isVisible = task.is_visible !== false;
+  // The queue must always call the CURRENT save function, because that closure
+  // carries the row version last returned by the server.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const saveTask = useCallback(
+    async (taskId: string, updates: TaskPatch): Promise<boolean> => {
+      await queueTaskUpdate(taskId, updates, (patch) => onUpdateRef.current(taskId, patch));
+      return true;
+    },
+    [],
+  );
+
   const selectedParticipantIds = (task.participants?.map((p) => p.participant_id) || []).filter(
     (id) => id !== task.lead_participant_id,
   );
@@ -662,7 +727,7 @@ function TaskModule({
             disabled={readOnly}
             staticExtensions={HEADING_TITLE_FIELD_EXTENSIONS}
             className="font-['Times_New_Roman',Times,serif] text-[11pt] font-bold [&_p]:m-0"
-            onChange={(html) => { void onUpdate(task.id, { title: html }); }}
+            onChange={(html) => { void saveTask(task.id, { title: html }); }}
           />
         </div>
         <MarginRail>
@@ -674,7 +739,7 @@ function TaskModule({
                 size="icon"
                 className="h-7 w-7 shrink-0"
                 aria-pressed={!isVisible}
-                onClick={() => void onUpdate(task.id, { is_visible: !isVisible })}
+                onClick={() => void saveTask(task.id, { is_visible: !isVisible })}
               >
                 {isVisible ? (
                   <Eye className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.5} />
@@ -710,7 +775,7 @@ function TaskModule({
         <Select
           value={task.lead_participant_id || ''}
           onValueChange={(value) =>
-            onUpdate(task.id, {
+            saveTask(task.id, {
               lead_participant_id: value === '__clear__' ? null : value || null,
             })
           }
@@ -791,7 +856,7 @@ function TaskModule({
             task={task}
             projectDuration={projectDuration}
             readOnly={readOnly}
-            onUpdate={onUpdate}
+            onUpdate={saveTask}
           />
         </div>
       </div>
@@ -808,7 +873,7 @@ function TaskModule({
           <LockedWPRichField
             targetId={wpTaskTargetId(task.id, 'description')}
             value={task.description || ''}
-            onChange={(value) => { void onUpdate(task.id, { description: value }); }}
+            onChange={(value) => { void saveTask(task.id, { description: value }); }}
             disabled={readOnly}
             minHeight="60px"
             proposalId={proposalId ?? ''}
