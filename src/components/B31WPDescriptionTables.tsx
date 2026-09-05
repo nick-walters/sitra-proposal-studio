@@ -7,6 +7,7 @@ import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { EditableCaption } from '@/components/EditableCaption';
 
 import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
+import { ALL_PARTICIPANTS_LABEL, coversAllParticipants } from '@/lib/taskParticipantDisplay';
 import { B31Pill, WPBubble, ParticipantBubble } from './B31Pill';
 import { TABLE_FONT_FAMILY, TABLE_FONT_SIZE } from '@/lib/tableStyleSpec';
 import { ensureRichHtml } from '@/lib/richTextUpgrade';
@@ -124,13 +125,14 @@ function TaskGroup({
   const leader = participants.find((p) => p.id === task.lead_participant_id);
   const partnerIds = (task.participants || []).map((p) => p.participant_id).filter((id) => id !== task.lead_participant_id);
   const partners = participants.filter((p) => partnerIds.includes(p.id));
-  // When the leader plus the partners cover every participant, collapse the
-  // partner badges into a single "All other participants" bubble.
-  const coversAllParticipants =
-    participants.length > 0 &&
-    !!leader &&
-    partners.length > 0 &&
-    partners.length >= participants.length - 1;
+  // Shared display rule (src/lib/taskParticipantDisplay.ts): when the selection
+  // covers every participant except the task leader, collapse the partner
+  // badges into a single "All participants" bubble.
+  const showAllBadge = coversAllParticipants(
+    participants.map((p) => p.id),
+    task.lead_participant_id,
+    partnerIds,
+  );
   const start = formatMonth(task.start_month);
   const end = formatMonth(task.end_month);
 
@@ -163,9 +165,9 @@ function TaskGroup({
               <span className="inline-flex items-center" style={{ marginRight: 11 }}>
                 <LeaderPill leader={leader} placeholder="No task leader" />
               </span>
-              {coversAllParticipants ? (
+              {showAllBadge ? (
                 <ParticipantBubble style={{ fontStyle: 'normal' }}>
-                  All other participants
+                  {ALL_PARTICIPANTS_LABEL}
                 </ParticipantBubble>
               ) : (
                 partners.map((p) => (
