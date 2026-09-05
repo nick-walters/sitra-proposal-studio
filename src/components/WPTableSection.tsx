@@ -774,11 +774,8 @@ function TaskModule({
       >
         <Select
           value={task.lead_participant_id || ''}
-          onValueChange={(value) =>
-            saveTask(task.id, {
-              lead_participant_id: value === '__clear__' ? null : value || null,
-            })
-          }
+          onValueChange={(value) => { void handleLeaderChange(value); }}
+
           disabled={readOnly}
         >
           <SelectTrigger
