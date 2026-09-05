@@ -27,6 +27,7 @@ import { getDefaultWPColor } from '@/lib/wpColors';
 
 import { emitPertChart } from './pertTypst';
 import type {
+import { ALL_PARTICIPANTS_LABEL, coversAllParticipants } from '@/lib/taskParticipantDisplay';
   B31TypstData,
   TypstCostBlock,
   TypstCostEntry,
@@ -255,10 +256,18 @@ export function emitWpDescriptions(
       rows.push([rich(wp.description_before_tasks, ctx)]);
     }
     for (const task of wp.tasks) {
-      const partners = task.participantIds
-        .filter((id) => id !== task.lead_participant_id)
-        .map((id) => wpParticipantChip(byId.get(id)))
-        .filter((c) => c !== EMPTY);
+      // Shared display rule (src/lib/taskParticipantDisplay.ts): a selection
+      // covering every participant except the leader draws ONE chip.
+      const partners = coversAllParticipants(
+        data.participants.map((p) => p.id),
+        task.lead_participant_id,
+        task.participantIds,
+      )
+        ? [`chip-pill(${typstString(ALL_PARTICIPANTS_LABEL)}, black, filled: true)`]
+        : task.participantIds
+            .filter((id) => id !== task.lead_participant_id)
+            .map((id) => wpParticipantChip(byId.get(id)))
+            .filter((c) => c !== EMPTY);
       // The duration is pushed to the RIGHT edge of the row, as the board
       // draws it, instead of trailing the badges.
       const months =
