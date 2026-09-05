@@ -4362,6 +4362,7 @@ export type Database = {
           department: string | null
           email: string
           facebook: string | null
+          feature_tour_seen_at: string | null
           first_name: string | null
           full_name: string | null
           gdpr_consented_at: string | null
@@ -4389,6 +4390,7 @@ export type Database = {
           department?: string | null
           email: string
           facebook?: string | null
+          feature_tour_seen_at?: string | null
           first_name?: string | null
           full_name?: string | null
           gdpr_consented_at?: string | null
@@ -4416,6 +4418,7 @@ export type Database = {
           department?: string | null
           email?: string
           facebook?: string | null
+          feature_tour_seen_at?: string | null
           first_name?: string | null
           full_name?: string | null
           gdpr_consented_at?: string | null
