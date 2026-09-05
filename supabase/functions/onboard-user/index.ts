@@ -56,6 +56,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // The proposal must still exist. Global owners/admins pass the role check for
+    // ANY id (including deleted proposals), which previously caused a foreign key
+    // violation half-way through onboarding.
+    const { data: proposalRow, error: proposalErr } = await admin
+      .from("proposals")
+      .select("id")
+      .eq("id", proposalId)
+      .maybeSingle();
+    if (proposalErr) {
+      console.error("Onboard error: proposal lookup failed", {
+        proposalId,
+        userId: user.id,
+        step: "proposal_lookup",
+        error: proposalErr,
+      });
+      throw proposalErr;
+    }
+    if (!proposalRow) {
+      console.warn("Onboard skipped: proposal does not exist", {
+        proposalId,
+        userId: user.id,
+      });
+      return new Response(JSON.stringify({ error: "Proposal not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check if already onboarded
     const { data: existing } = await admin
       .from("proposal_user_onboarding")
@@ -70,20 +98,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Mark as onboarded
-    await admin.from("proposal_user_onboarding").insert({
-      proposal_id: proposalId,
-      user_id: user.id,
-    });
+    const fail = (step: string, error: unknown) => {
+      console.error("Onboard error:", {
+        step,
+        proposalId,
+        userId: user.id,
+        error,
+      });
+      throw error;
+    };
 
     const now = new Date();
     const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const startDate = now.toISOString().split("T")[0];
     const endDate = sevenDaysLater.toISOString().split("T")[0];
 
-    // SYSTEM_AUTHOR_ID: a fake UUID that represents "Sitra Proposal Studio"
-    // We use a deterministic UUID so the messaging board can recognise it
-    const SYSTEM_AUTHOR_ID = "00000000-0000-0000-0000-000000000001";
 
     // 1. Create private welcome message visible only to this user
     const { data: msg, error: msgErr } = await admin
