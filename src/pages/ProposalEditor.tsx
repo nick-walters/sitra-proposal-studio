@@ -1,5 +1,7 @@
 import { jumpToElementId } from '@/lib/jumpToElement';
 import { Header } from "@/components/Header";
+import { FeatureTour } from "@/components/tour/FeatureTour";
+import { useFeatureTour } from "@/hooks/useFeatureTour";
 import { getCaseTypePrefix } from "@/lib/caseTypeLabels";
 import { StorageImage } from "@/components/StorageImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -160,6 +162,9 @@ export function ProposalEditor() {
 
   // First-access onboarding: welcome message + starter tasks
   useProposalOnboarding(id);
+
+  // Five-step introduction, shown once per user on the first proposal opened
+  const featureTour = useFeatureTour(id);
 
   // Section visibility locks
   const { lockedSections, toggleLock: toggleSectionLock } = useSectionVisibility(id);
@@ -1146,6 +1151,7 @@ export function ProposalEditor() {
     <TrackChangesProvider proposalId={id}>
     {/* Author and time of every tracked change, on hover, on every surface. */}
     <TrackChangeHoverTooltip proposalId={id} />
+    <FeatureTour open={featureTour.open} onClose={featureTour.close} />
     <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}

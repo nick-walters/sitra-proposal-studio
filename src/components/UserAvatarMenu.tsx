@@ -5,7 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { UserProfileDialog } from "./UserProfileDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, ChevronDown, Settings } from "lucide-react";
+import { User, LogOut, ChevronDown, Settings, LifeBuoy } from "lucide-react";
+import { requestFeatureTour } from "@/hooks/useFeatureTour";
 
 interface UserAvatarMenuProps {
   userId: string;
@@ -120,6 +121,18 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
             >
               <Settings className="w-4 h-4" />
               Settings
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 font-normal"
+              onClick={() => {
+                setIsOpen(false);
+                requestFeatureTour();
+              }}
+            >
+              <LifeBuoy className="w-4 h-4" />
+              Show me around
             </Button>
             <Button 
               variant="ghost" 
