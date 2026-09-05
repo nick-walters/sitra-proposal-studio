@@ -131,21 +131,17 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (msgErr) throw msgErr;
+    if (msgErr) fail("welcome_message", msgErr);
 
     // Add the user as the only recipient of this private message
-    await admin.from("proposal_message_recipients").insert({
+    const { error: recErr } = await admin.from("proposal_message_recipients").insert({
       message_id: msg.id,
       user_id: user.id,
     });
-
-    // Tag it as a system message via metadata (we'll use a convention)
-    // Store system sender info in a separate approach: we'll add a column or use content prefix
-    // For now, we mark the message with a special metadata approach by updating content with a marker
-    // Actually, let's just store the system flag differently - we'll handle display in the frontend
+    if (recErr) fail("message_recipient", recErr);
 
     // 2. Create notification for the welcome message
-    await admin.from("notifications").insert({
+    const { error: welcomeNotifErr } = await admin.from("notifications").insert({
       user_id: user.id,
       proposal_id: proposalId,
       type: "mention",
@@ -153,6 +149,8 @@ Deno.serve(async (req) => {
       message: "You have a welcome message on the message board",
       metadata: { source: "message", message_id: msg.id, system_message: true },
     });
+    if (welcomeNotifErr) fail("welcome_notification", welcomeNotifErr);
+
 
     // 3. Create task: "Check contact info"
     const { data: task1, error: t1Err } = await admin
