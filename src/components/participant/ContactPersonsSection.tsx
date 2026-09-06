@@ -254,15 +254,18 @@ export function ContactPersonsSection({
     const firstName = values.firstName.trim();
     const lastName = values.lastName.trim();
     const email = values.email.trim();
-    const phone = values.phone.trim();
+    const phone = stripPhoneSpaces(values.phone.trim());
     const fullName = `${firstName} ${lastName}`.trim();
+    // Title is only collected for the main contact; ordinary cards never write it.
+    const title = member.isPrimaryContact ? (values.title?.trim() || '') : undefined;
 
     const updates: Partial<MemberWithPhone> = {
       fullName,
       email,
       phone,
-      title: values.title?.trim() || undefined,
+      ...(title !== undefined ? { title: title || undefined } : {}),
     };
+
 
 
 
