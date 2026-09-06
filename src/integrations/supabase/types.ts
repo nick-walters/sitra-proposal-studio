@@ -3859,6 +3859,7 @@ export type Database = {
           person_months: number | null
           phone: string | null
           role_in_project: string | null
+          title: string | null
           updated_at: string
           user_id: string | null
           wants_platform_access: boolean | null
@@ -3881,6 +3882,7 @@ export type Database = {
           person_months?: number | null
           phone?: string | null
           role_in_project?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string | null
           wants_platform_access?: boolean | null
@@ -3903,6 +3905,7 @@ export type Database = {
           person_months?: number | null
           phone?: string | null
           role_in_project?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string | null
           wants_platform_access?: boolean | null
@@ -4146,7 +4149,6 @@ export type Database = {
           main_contact_gender: string | null
           main_contact_last_name: string | null
           main_contact_phone: string | null
-          main_contact_phone2: string | null
           main_contact_position: string | null
           main_contact_postcode: string | null
           main_contact_street: string | null
@@ -4203,7 +4205,6 @@ export type Database = {
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
-          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
@@ -4260,7 +4261,6 @@ export type Database = {
           main_contact_gender?: string | null
           main_contact_last_name?: string | null
           main_contact_phone?: string | null
-          main_contact_phone2?: string | null
           main_contact_position?: string | null
           main_contact_postcode?: string | null
           main_contact_street?: string | null
