@@ -283,11 +283,12 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', firstName);
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
-      // Phone 2 belongs to the main contact role, so it is written on the participant.
-      if (values.phone2 !== undefined) {
-        onUpdateParticipant('mainContactPhone2', values.phone2.trim());
+      // The main contact's title is mirrored onto the participant for the portal fields.
+      if (values.title !== undefined) {
+        onUpdateParticipant('mainContactTitle', values.title.trim());
       }
     }
+
 
 
     syncLinkedResearcher(member, fullName, email);
