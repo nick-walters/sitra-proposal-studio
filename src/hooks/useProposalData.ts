@@ -518,6 +518,8 @@ export function useProposalData(proposalId: string) {
     if (updates.fullName !== undefined) dbUpdates.full_name = updates.fullName;
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.roleInProject !== undefined) dbUpdates.role_in_project = updates.roleInProject;
+    if ((updates as any).phone !== undefined) dbUpdates.phone = (updates as any).phone;
+
     if (updates.personMonths !== undefined) dbUpdates.person_months = updates.personMonths;
     if (updates.isPrimaryContact !== undefined) dbUpdates.is_primary_contact = updates.isPrimaryContact;
     if (updates.wantsPlatformAccess !== undefined) dbUpdates.wants_platform_access = updates.wantsPlatformAccess;
