@@ -987,7 +987,7 @@ function SortableContactCard({
                 )}
               </div>
             )}
-            <div className="min-w-0 flex-1 basis-40">
+            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
               <Label className="text-xs">First name *</Label>
               {isEditing ? (
                 <Input
@@ -1000,7 +1000,7 @@ function SortableContactCard({
                 <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
               )}
             </div>
-            <div className="min-w-0 flex-1 basis-40">
+            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
               <Label className="text-xs">Last name *</Label>
               {isEditing ? (
                 <Input
