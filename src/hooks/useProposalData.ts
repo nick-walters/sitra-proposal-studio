@@ -227,6 +227,8 @@ export function useProposalData(proposalId: string) {
         userId: m.user_id || undefined,
         fullName: m.full_name,
         email: m.email || undefined,
+        // Phone 1 belongs to the person and lives on their own member row.
+        phone: m.phone || undefined,
         roleInProject: m.role_in_project || undefined,
         personMonths: m.person_months || undefined,
         isPrimaryContact: m.is_primary_contact || false,
@@ -237,7 +239,8 @@ export function useProposalData(proposalId: string) {
         accessGrantedRole: m.access_granted_role || undefined,
         accessGrantedBy: m.access_granted_by || undefined,
         accessGrantedAt: m.access_granted_at || undefined,
-      }))
+      }) as ParticipantMember)
+
     );
   }, [proposalId, user]);
 
