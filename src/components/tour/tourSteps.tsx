@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import { OrganisationIllustration } from "./illustrations/OrganisationIllustration";
+import { BudgetIllustration } from "./illustrations/BudgetIllustration";
+import { CrossReferenceIllustration } from "./illustrations/CrossReferenceIllustration";
+import { FlowIllustration } from "./illustrations/FlowIllustration";
+import { ReviewIllustration } from "./illustrations/ReviewIllustration";
 
 /**
  * The content of the first-open feature tour, held as data so the wording can
@@ -18,14 +23,17 @@ export interface TourStep {
   illustration: ReactNode;
 }
 
-function Placeholder({ step, note }: { step: number; note: string }) {
-  return (
-    <div className="h-full w-full rounded-md border border-dashed border-border bg-muted/40 flex flex-col items-center justify-center gap-2 px-6 text-center">
-      <span className="text-4xl font-semibold text-muted-foreground/60">{step}</span>
-      <span className="text-sm text-muted-foreground">{note}</span>
-    </div>
-  );
-}
+/**
+ * One illustration per step, in order. Swapping an illustration is a one-line
+ * change here — the components live in ./illustrations/.
+ */
+const ILLUSTRATIONS: ReactNode[] = [
+  <OrganisationIllustration />,
+  <BudgetIllustration />,
+  <CrossReferenceIllustration />,
+  <FlowIllustration />,
+  <ReviewIllustration />,
+];
 
 const CONTENT: Omit<TourStep, "illustration">[] = [
   {
@@ -62,5 +70,5 @@ const CONTENT: Omit<TourStep, "illustration">[] = [
 
 export const TOUR_STEPS: TourStep[] = CONTENT.map((step, index) => ({
   ...step,
-  illustration: <Placeholder step={index + 1} note={step.illustrationNote} />,
+  illustration: ILLUSTRATIONS[index],
 }));
