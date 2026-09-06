@@ -228,11 +228,12 @@ export function ContactPersonsSection({
     const phone = values.phone.trim();
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const updates: Partial<ParticipantMember> = {
+    const updates: Partial<MemberWithPhone> = {
       fullName,
       email,
-      roleInProject: phone,
+      phone,
     };
+
 
     const oldEmail = member.email?.toLowerCase();
     const newEmail = email.toLowerCase();
