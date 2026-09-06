@@ -869,24 +869,26 @@ function SortableContactCard({
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const memberPhone = (member as MemberWithPhone).phone || '';
-  const participantPhone2 = (participant as unknown as { mainContactPhone2?: string | null }).mainContactPhone2 || '';
-  const [form, setForm] = useState<ContactEditValues>({
+  const memberTitle = (member as MemberWithPhone).title || '';
+  const emptyForm = (): ContactEditValues => ({
+    title: memberTitle,
     firstName,
     lastName,
     email: member.email || '',
     phone: memberPhone,
-    phone2: participantPhone2,
   });
+  const [form, setForm] = useState<ContactEditValues>(emptyForm);
 
   const startEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
+    setForm(emptyForm());
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
+    setForm(emptyForm());
     setIsEditing(false);
   };
+
 
 
   const saveEdit = async () => {
