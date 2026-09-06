@@ -260,7 +260,6 @@ export interface Participant {
   mainContactLastName?: string;
   mainContactGender?: string;
   mainContactPhone?: string;
-  mainContactPhone2?: string;
   mainContactDepartment?: string;
   mainContactDeptSameAsOrg?: boolean;
   mainContactStreet?: string;
