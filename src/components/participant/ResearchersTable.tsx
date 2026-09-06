@@ -497,15 +497,17 @@ function ResearcherField({
   label,
   value,
   children,
+  className,
 }: {
   label: string;
   value?: string;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
+    <div className={`min-w-0 space-y-1 ${className ?? ''}`}>
       <Label className="block text-xs leading-4">{label}</Label>
-      {children ? children : <p className="flex min-h-8 items-center break-words text-sm">{value || '—'}</p>}
+      {children ? children : <p className="flex min-h-8 items-center break-words text-xs">{value || '—'}</p>}
     </div>
   );
 }
