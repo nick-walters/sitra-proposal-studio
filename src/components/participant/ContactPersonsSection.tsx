@@ -1136,18 +1136,19 @@ function SortableContactCard({
             )}
           </div>
 
+          <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+            <Checkbox
+              checked={isResearcher}
+              disabled={!canEdit}
+              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+              aria-label="Will conduct research in the project"
+            />
+            <Users className="w-3.5 h-3.5" />
+            Will conduct research in the project
+          </label>
+
         </div>
         </div>
-        <label className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">
-          <Checkbox
-            checked={isResearcher}
-            disabled={!canEdit}
-            onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-            aria-label="This person will conduct research in the project"
-          />
-          <Users className="w-3.5 h-3.5" />
-          This person will conduct research in the project
-        </label>
       </div>
 
       {isMCP && (
@@ -1155,11 +1156,9 @@ function SortableContactCard({
           participant={participant}
           onUpdate={onUpdateParticipant}
           canEdit={canEdit}
-          isEditing={isEditing}
-          phone2={form.phone2 ?? ''}
-          onPhone2Change={(v) => setForm((f) => ({ ...f, phone2: v }))}
         />
       )}
+
 
     </div>
   );
