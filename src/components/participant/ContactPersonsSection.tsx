@@ -413,17 +413,13 @@ export function ContactPersonsSection({
     const newValue = !member?.isPrimaryContact;
     onUpdateMember(memberId, { isPrimaryContact: newValue });
 
-    // Sync basic info to participant's mainContact fields
+    // Sync basic info to participant's mainContact fields. The phone is NOT
+    // carried over: Phone 1 travels with the person on their own member row.
     if (newValue && member) {
       const parts = member.fullName.split(' ');
       onUpdateParticipant('mainContactFirstName', parts[0] || '');
       onUpdateParticipant('mainContactLastName', parts.slice(1).join(' ') || '');
       onUpdateParticipant('contactEmail', member.email || '');
-      // Carry over phone (stored on the member's roleInProject field) and
-      // the organisation website to the MCP fields
-      if (member.roleInProject) {
-        onUpdateParticipant('mainContactPhone', member.roleInProject);
-      }
       if (participant.website && !participant.mainContactWebsite) {
         onUpdateParticipant('mainContactWebsite', participant.website);
       }
@@ -434,10 +430,10 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', '');
       onUpdateParticipant('mainContactLastName', '');
       onUpdateParticipant('contactEmail', '');
-      onUpdateParticipant('mainContactPhone', '');
       onUpdateParticipant('mainContactPosition', '');
       onUpdateParticipant('mainContactDepartment', '');
     }
+
   };
 
   const handleGrantAccess = async (member: ParticipantMember) => {
