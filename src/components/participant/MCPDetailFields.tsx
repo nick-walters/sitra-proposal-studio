@@ -44,7 +44,7 @@ interface MCPFields {
   useOrganisationAddress?: boolean | null;
 }
 
-export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFieldsProps) {
+export function MCPDetailFields({ participant, onUpdate, canEdit, isEditing, phone2, onPhone2Change }: MCPDetailFieldsProps) {
   const fields = participant as unknown as MCPFields;
   const useOrgAddress = fields.useOrganisationAddress ?? true;
   const deptSameAsOrg = fields.mainContactDeptSameAsOrg ?? true;
