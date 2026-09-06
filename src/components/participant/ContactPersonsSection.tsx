@@ -851,22 +851,26 @@ function SortableContactCard({
   // was made always-editable.
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const memberPhone = (member as MemberWithPhone).phone || '';
+  const participantPhone2 = (participant as unknown as { mainContactPhone2?: string | null }).mainContactPhone2 || '';
   const [form, setForm] = useState<ContactEditValues>({
     firstName,
     lastName,
     email: member.email || '',
-    phone: member.roleInProject || '',
+    phone: memberPhone,
+    phone2: participantPhone2,
   });
 
   const startEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
     setIsEditing(false);
   };
+
 
   const saveEdit = async () => {
     setSaving(true);
