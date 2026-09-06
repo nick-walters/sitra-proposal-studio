@@ -987,7 +987,7 @@ function SortableContactCard({
                 )}
               </div>
             )}
-            <div className="min-w-0 flex-1 basis-40">
+            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
               <Label className="text-xs">First name *</Label>
               {isEditing ? (
                 <Input
@@ -1000,7 +1000,7 @@ function SortableContactCard({
                 <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
               )}
             </div>
-            <div className="min-w-0 flex-1 basis-40">
+            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
               <Label className="text-xs">Last name *</Label>
               {isEditing ? (
                 <Input
@@ -1192,17 +1192,18 @@ function SortableContactCard({
 
         </div>
         </div>
-      </div>
 
-      {isMCP && (
-        <div className="pl-4">
-          <MCPDetailFields
-            values={isEditing ? mcpForm : storedMcp}
-            onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
-            isEditing={isEditing}
-          />
-        </div>
-      )}
+        {/* The main contact's extra fields live inside the same card. */}
+        {isMCP && (
+          <div className="pl-[68px]">
+            <MCPDetailFields
+              values={isEditing ? mcpForm : storedMcp}
+              onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
+              isEditing={isEditing}
+            />
+          </div>
+        )}
+      </div>
 
 
     </div>
