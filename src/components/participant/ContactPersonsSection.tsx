@@ -347,7 +347,7 @@ export function ContactPersonsSection({
       participantId: participant.id,
       fullName,
       email: newContact.email.trim(),
-      roleInProject: newContact.phone.trim(),
+      phone: newContact.phone.trim(),
       personMonths: 0,
       isPrimaryContact: false,
       wantsPlatformAccess: newContact.wantsPlatformAccess === 'yes',
