@@ -246,7 +246,9 @@ export function ContactPersonsSection({
       fullName,
       email,
       phone,
+      title: values.title?.trim() || undefined,
     };
+
 
 
     const oldEmail = member.email?.toLowerCase();
