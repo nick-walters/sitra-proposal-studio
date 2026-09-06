@@ -947,29 +947,31 @@ function SortableContactCard({
         </div>
 
         <div className="flex-1 min-w-0 space-y-1.5">
-          {/* Row 1: Title, First name, Last name */}
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs">Title</Label>
-              {isEditing ? (
-                <Select
-                  value={form.title || ''}
-                  onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
-                >
-                  <SelectTrigger className="h-8 text-sm" aria-label="Title">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTACT_TITLES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
-              )}
-            </div>
-            <div>
+          {/* Row 1: Title (main contact only), First name, Last name */}
+          <div className="flex flex-wrap items-start gap-2">
+            {isMCP && (
+              <div className="w-[88px] shrink-0">
+                <Label className="text-xs">Title</Label>
+                {isEditing ? (
+                  <Select
+                    value={form.title || ''}
+                    onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm" aria-label="Title">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTACT_TITLES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
+                )}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 basis-40">
               <Label className="text-xs">First name *</Label>
               {isEditing ? (
                 <Input
@@ -982,7 +984,7 @@ function SortableContactCard({
                 <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0 flex-1 basis-40">
               <Label className="text-xs">Last name *</Label>
               {isEditing ? (
                 <Input
@@ -996,6 +998,7 @@ function SortableContactCard({
               )}
             </div>
           </div>
+
 
           {/* Row 2: Email, Phone */}
           <div className="grid gap-2 sm:grid-cols-2">
