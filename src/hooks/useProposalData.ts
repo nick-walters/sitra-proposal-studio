@@ -492,6 +492,8 @@ export function useProposalData(proposalId: string) {
         full_name: member.fullName,
         email: member.email,
         role_in_project: member.roleInProject,
+        phone: (member as any).phone,
+
         person_months: member.personMonths,
         is_primary_contact: member.isPrimaryContact,
         wants_platform_access: member.wantsPlatformAccess || false,
