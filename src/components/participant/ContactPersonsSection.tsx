@@ -879,13 +879,28 @@ function SortableContactCard({
   });
   const [form, setForm] = useState<ContactEditValues>(emptyForm);
 
+  // The main-contact-only fields live on the participant row but are edited
+  // through this card's pencil/save/discard, so they need their own draft.
+  const readMcp = (): MCPFields => {
+    const source = participant as unknown as MCPFields;
+    const draft: MCPFields = {};
+    for (const key of MCP_FIELD_KEYS) {
+      (draft as Record<string, unknown>)[key] = source[key];
+    }
+    return draft;
+  };
+  const storedMcp = readMcp();
+  const [mcpForm, setMcpForm] = useState<MCPFields>(readMcp);
+
   const startEdit = () => {
     setForm(emptyForm());
+    setMcpForm(readMcp());
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
     setForm(emptyForm());
+    setMcpForm(readMcp());
     setIsEditing(false);
   };
 
@@ -895,7 +910,15 @@ function SortableContactCard({
     setSaving(true);
     try {
       const done = await onSaveEdits(member, form);
-      if (done) setIsEditing(false);
+      if (done) {
+        if (isMCP) {
+          const stored = readMcp();
+          for (const key of MCP_FIELD_KEYS) {
+            if (mcpForm[key] !== stored[key]) onUpdateParticipant(key, mcpForm[key]);
+          }
+        }
+        setIsEditing(false);
+      }
     } finally {
       setSaving(false);
     }
