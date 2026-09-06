@@ -45,15 +45,22 @@ interface SelectedPerson {
   default_role: string | null;
 }
 
-/** The four editable fields of a contact card, as held while editing. */
+/** The editable fields of a contact card, as held while editing. */
 interface ContactEditValues {
   firstName: string;
   lastName: string;
   email: string;
+  /** Phone 1 — belongs to the person, stored on participant_members.phone. */
   phone: string;
+  /** Phone 2 — belongs to the main contact role, stored on participants.main_contact_phone2. */
+  phone2?: string;
 }
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
+
+/** A member row carrying its own phone number (Phone 1). */
+type MemberWithPhone = ParticipantMember & { phone?: string };
+
 
 
 interface ContactPersonsSectionProps {
