@@ -3857,6 +3857,7 @@ export type Database = {
           participant_id: string
           person_id: string | null
           person_months: number | null
+          phone: string | null
           role_in_project: string | null
           updated_at: string
           user_id: string | null
@@ -3878,6 +3879,7 @@ export type Database = {
           participant_id: string
           person_id?: string | null
           person_months?: number | null
+          phone?: string | null
           role_in_project?: string | null
           updated_at?: string
           user_id?: string | null
@@ -3899,6 +3901,7 @@ export type Database = {
           participant_id?: string
           person_id?: string | null
           person_months?: number | null
+          phone?: string | null
           role_in_project?: string | null
           updated_at?: string
           user_id?: string | null

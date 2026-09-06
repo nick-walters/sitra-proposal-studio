@@ -45,15 +45,22 @@ interface SelectedPerson {
   default_role: string | null;
 }
 
-/** The four editable fields of a contact card, as held while editing. */
+/** The editable fields of a contact card, as held while editing. */
 interface ContactEditValues {
   firstName: string;
   lastName: string;
   email: string;
+  /** Phone 1 — belongs to the person, stored on participant_members.phone. */
   phone: string;
+  /** Phone 2 — belongs to the main contact role, stored on participants.main_contact_phone2. */
+  phone2?: string;
 }
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
+
+/** A member row carrying its own phone number (Phone 1). */
+type MemberWithPhone = ParticipantMember & { phone?: string };
+
 
 
 interface ContactPersonsSectionProps {
@@ -221,11 +228,12 @@ export function ContactPersonsSection({
     const phone = values.phone.trim();
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const updates: Partial<ParticipantMember> = {
+    const updates: Partial<MemberWithPhone> = {
       fullName,
       email,
-      roleInProject: phone,
+      phone,
     };
+
 
     const oldEmail = member.email?.toLowerCase();
     const newEmail = email.toLowerCase();
@@ -259,8 +267,12 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', firstName);
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
-      onUpdateParticipant('mainContactPhone', phone);
+      // Phone 2 belongs to the main contact role, so it is written on the participant.
+      if (values.phone2 !== undefined) {
+        onUpdateParticipant('mainContactPhone2', values.phone2.trim());
+      }
     }
+
 
     syncLinkedResearcher(member, fullName, email);
   };
@@ -335,7 +347,7 @@ export function ContactPersonsSection({
       participantId: participant.id,
       fullName,
       email: newContact.email.trim(),
-      roleInProject: newContact.phone.trim(),
+      phone: newContact.phone.trim(),
       personMonths: 0,
       isPrimaryContact: false,
       wantsPlatformAccess: newContact.wantsPlatformAccess === 'yes',
@@ -401,17 +413,13 @@ export function ContactPersonsSection({
     const newValue = !member?.isPrimaryContact;
     onUpdateMember(memberId, { isPrimaryContact: newValue });
 
-    // Sync basic info to participant's mainContact fields
+    // Sync basic info to participant's mainContact fields. The phone is NOT
+    // carried over: Phone 1 travels with the person on their own member row.
     if (newValue && member) {
       const parts = member.fullName.split(' ');
       onUpdateParticipant('mainContactFirstName', parts[0] || '');
       onUpdateParticipant('mainContactLastName', parts.slice(1).join(' ') || '');
       onUpdateParticipant('contactEmail', member.email || '');
-      // Carry over phone (stored on the member's roleInProject field) and
-      // the organisation website to the MCP fields
-      if (member.roleInProject) {
-        onUpdateParticipant('mainContactPhone', member.roleInProject);
-      }
       if (participant.website && !participant.mainContactWebsite) {
         onUpdateParticipant('mainContactWebsite', participant.website);
       }
@@ -422,10 +430,10 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', '');
       onUpdateParticipant('mainContactLastName', '');
       onUpdateParticipant('contactEmail', '');
-      onUpdateParticipant('mainContactPhone', '');
       onUpdateParticipant('mainContactPosition', '');
       onUpdateParticipant('mainContactDepartment', '');
     }
+
   };
 
   const handleGrantAccess = async (member: ParticipantMember) => {
@@ -843,22 +851,26 @@ function SortableContactCard({
   // was made always-editable.
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const memberPhone = (member as MemberWithPhone).phone || '';
+  const participantPhone2 = (participant as unknown as { mainContactPhone2?: string | null }).mainContactPhone2 || '';
   const [form, setForm] = useState<ContactEditValues>({
     firstName,
     lastName,
     email: member.email || '',
-    phone: member.roleInProject || '',
+    phone: memberPhone,
+    phone2: participantPhone2,
   });
 
   const startEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: member.roleInProject || '' });
+    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
     setIsEditing(false);
   };
+
 
   const saveEdit = async () => {
     setSaving(true);
@@ -870,7 +882,7 @@ function SortableContactCard({
     }
   };
 
-  const phoneValue = member.roleInProject || '';
+  const phoneValue = memberPhone;
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -934,7 +946,7 @@ function SortableContactCard({
             )}
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Phone</Label>
+            <Label className="text-xs">Phone 1</Label>
             {isEditing ? (
               <Input
                 className="h-8 text-sm"
@@ -1092,8 +1104,16 @@ function SortableContactCard({
       </div>
 
       {isMCP && (
-        <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
+        <MCPDetailFields
+          participant={participant}
+          onUpdate={onUpdateParticipant}
+          canEdit={canEdit}
+          isEditing={isEditing}
+          phone2={form.phone2 ?? ''}
+          onPhone2Change={(v) => setForm((f) => ({ ...f, phone2: v }))}
+        />
       )}
+
     </div>
   );
 }
