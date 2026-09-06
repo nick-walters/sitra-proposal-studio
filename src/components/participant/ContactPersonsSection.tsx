@@ -172,7 +172,7 @@ export function ContactPersonsSection({
 
     syncAccessStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proposalId, canGrant, members]);
+  }, [proposalId, canGrant]);
 
 
   // The fetch already returns contacts in order_index order; local state keeps
