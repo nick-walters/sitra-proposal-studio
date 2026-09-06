@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { FeatureTourHost } from "@/components/tour/FeatureTourHost";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -88,6 +89,8 @@ const App = () => {
           <AuthProvider>
             <BrowserRouter>
               <ScrollToTop />
+              {/* One app-wide tour mount: manual "Show me around" works on every route. */}
+              <FeatureTourHost />
               <AppRoutes />
             </BrowserRouter>
           </AuthProvider>
