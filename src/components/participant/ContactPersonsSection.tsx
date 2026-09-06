@@ -58,6 +58,12 @@ interface ContactEditValues {
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
 
+/**
+ * Tidies a phone number once the user leaves the field: spaces only, so the
+ * plus sign, brackets and hyphens survive untouched. Never called while typing.
+ */
+const stripPhoneSpaces = (value: string) => value.replace(/\s+/g, '');
+
 /** A member row carrying its own phone number and title. */
 type MemberWithPhone = ParticipantMember & { phone?: string; title?: string };
 
@@ -1025,6 +1031,7 @@ function SortableContactCard({
                   value={form.phone}
                   placeholder={PHONE_PLACEHOLDER}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
                   aria-label="Phone"
                 />
               ) : phoneValue ? (
