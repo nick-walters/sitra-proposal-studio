@@ -897,13 +897,21 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("Has Gender Equality Plan", yn(p.has_gender_equality_plan)));
     children.push(KV("Dependency declaration", p.dependency_declaration));
 
+    // Phone 1 belongs to the person, so it is read from the main contact's member row.
+    const { data: mainMember } = await supabase
+      .from("participant_members")
+      .select("phone")
+      .eq("participant_id", p.id)
+      .eq("is_primary_contact", true)
+      .maybeSingle();
+
     children.push(H(HeadingLevel.HEADING_3, "Main contact"));
     children.push(KV("Name", `${p.main_contact_title ?? ""} ${p.main_contact_first_name ?? ""} ${p.main_contact_last_name ?? ""}`.trim()));
     children.push(KV("Position", p.main_contact_position));
     children.push(KV("Gender", p.main_contact_gender));
     children.push(KV("Email", p.contact_email));
-    // Phone 1 belongs to the person: read it from the main contact's member row.
-    children.push(KV("Phone", mem?.find((m: any) => m.is_primary_contact)?.phone ?? ""));
+    children.push(KV("Phone", mainMember?.phone ?? ""));
+
 
     if (!p.use_organisation_address) {
       children.push(KV("Contact address", `${p.main_contact_street ?? ""}, ${p.main_contact_postcode ?? ""} ${p.main_contact_town ?? ""}, ${p.main_contact_country ?? ""}`));
