@@ -176,7 +176,7 @@ export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFie
         )}
       </div>
 
-      {/* Website & Phones */}
+      {/* Website & the main contact role's second phone */}
       <div className="grid gap-4 sm:grid-cols-3 pt-2 border-t">
         <div className="space-y-2">
           <Label>Website</Label>
@@ -188,26 +188,28 @@ export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFie
           />
         </div>
         <div className="space-y-2">
-          <Label>Phone 1</Label>
-          <DebouncedInput
-            type="tel"
-            value={fields.mainContactPhone || ''}
-            onDebouncedChange={(v) => onUpdate('mainContactPhone', v)}
-            placeholder="+358..."
-            disabled={!canEdit}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Phone 2</Label>
-          <DebouncedInput
-            type="tel"
-            value={fields.mainContactPhone2 || ''}
-            onDebouncedChange={(v) => onUpdate('mainContactPhone2', v)}
-            placeholder="+358..."
-            disabled={!canEdit}
-          />
+          <Label>Phone 2 (main contact role)</Label>
+          {isEditing ? (
+            <Input
+              type="tel"
+              value={phone2 ?? ''}
+              onChange={(e) => onPhone2Change?.(e.target.value)}
+              placeholder={PHONE2_PLACEHOLDER}
+              aria-label="Phone 2 (main contact role)"
+            />
+          ) : fields.mainContactPhone2 ? (
+            <p className="h-10 flex items-center text-sm">{fields.mainContactPhone2}</p>
+          ) : (
+            <p className="h-10 flex items-center text-sm italic text-muted-foreground/70">
+              {PHONE2_PLACEHOLDER}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Stays with the main contact role, not with the person.
+          </p>
         </div>
       </div>
+
     </div>
   );
 }
