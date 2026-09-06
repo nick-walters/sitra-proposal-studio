@@ -343,7 +343,7 @@ export async function createMethodologyAssignmentNotification(params: {
   try {
     const { data: participant, error: participantError } = await supabase
       .from('participants')
-      .select('main_contact_email, organisation_short_name, organisation_name')
+      .select('contact_email, organisation_short_name, organisation_name')
       .eq('id', participantId)
       .maybeSingle();
 
@@ -352,8 +352,20 @@ export async function createMethodologyAssignmentNotification(params: {
       return { status: 'skipped', reason: 'error' };
     }
 
-    const email = participant?.main_contact_email?.trim().toLowerCase();
-    if (!email) return { status: 'skipped', reason: 'no-contact' };
+    const email = participant?.contact_email?.trim().toLowerCase();
+    if (!email) {
+      console.warn(
+        'Methodology notification skipped: participant has no contact_email',
+        {
+          participantId,
+          proposalId,
+          organisation:
+            participant?.organisation_short_name || participant?.organisation_name || null,
+        },
+      );
+      return { status: 'skipped', reason: 'no-contact' };
+    }
+
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
