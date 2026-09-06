@@ -13,16 +13,10 @@ import { Participant } from '@/types/proposal';
 import { CONTACT_TITLES, GENDER_OPTIONS } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
 
-const PHONE2_PLACEHOLDER = 'Please add a phone number';
-
 interface MCPDetailFieldsProps {
   participant: Participant;
   onUpdate: (field: string, value: unknown) => void;
   canEdit: boolean;
-  /** Phone 2 follows the contact card's Edit / Save flow rather than saving as you type. */
-  isEditing?: boolean;
-  phone2?: string;
-  onPhone2Change?: (value: string) => void;
 }
 
 
@@ -33,7 +27,6 @@ interface MCPFields {
   mainContactGender?: string | null;
   mainContactPosition?: string | null;
   mainContactPhone?: string | null;
-  mainContactPhone2?: string | null;
   mainContactDepartment?: string | null;
   mainContactDeptSameAsOrg?: boolean | null;
   mainContactStreet?: string | null;
@@ -44,10 +37,11 @@ interface MCPFields {
   useOrganisationAddress?: boolean | null;
 }
 
-export function MCPDetailFields({ participant, onUpdate, canEdit, isEditing, phone2, onPhone2Change }: MCPDetailFieldsProps) {
+export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFieldsProps) {
   const fields = participant as unknown as MCPFields;
   const useOrgAddress = fields.useOrganisationAddress ?? true;
   const deptSameAsOrg = fields.mainContactDeptSameAsOrg ?? true;
+
 
   return (
     <div className="space-y-4 pl-4 border-l-2 border-primary/20 mt-3">
