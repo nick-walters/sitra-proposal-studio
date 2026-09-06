@@ -302,14 +302,11 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
       // The main contact's title is mirrored onto the participant for the portal fields.
-      if (values.title !== undefined) {
-        onUpdateParticipant('mainContactTitle', values.title.trim());
-      }
+      onUpdateParticipant('mainContactTitle', title ?? '');
     }
 
-
-
-    syncLinkedResearcher(member, fullName, email);
+    // A linked researcher inherits the contact's title along with name and email.
+    syncLinkedResearcher(member, fullName, email, member.isPrimaryContact ? (title ?? '') : '');
   };
 
   /**
