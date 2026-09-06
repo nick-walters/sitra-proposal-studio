@@ -47,19 +47,20 @@ interface SelectedPerson {
 
 /** The editable fields of a contact card, as held while editing. */
 interface ContactEditValues {
+  /** Title (Dr, Prof, …) — belongs to the person, stored on participant_members.title. */
+  title?: string;
   firstName: string;
   lastName: string;
   email: string;
-  /** Phone 1 — belongs to the person, stored on participant_members.phone. */
+  /** Phone — belongs to the person, stored on participant_members.phone. */
   phone: string;
-  /** Phone 2 — belongs to the main contact role, stored on participants.main_contact_phone2. */
-  phone2?: string;
 }
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
 
-/** A member row carrying its own phone number (Phone 1). */
-type MemberWithPhone = ParticipantMember & { phone?: string };
+/** A member row carrying its own phone number and title. */
+type MemberWithPhone = ParticipantMember & { phone?: string; title?: string };
+
 
 
 
