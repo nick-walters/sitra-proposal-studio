@@ -969,9 +969,10 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     if (mem?.length) {
       children.push(H(HeadingLevel.HEADING_3, "Team members"));
       children.push(simpleTable(
-        ["Name", "Role in project", "Email", "PM", "Primary contact"],
-        mem.map((m: any) => [m.full_name ?? "", m.role_in_project ?? "", m.email ?? "", m.person_months ?? "", yn(m.is_primary_contact)]),
+        ["Name", "Role in project", "Phone", "Email", "PM", "Primary contact"],
+        mem.map((m: any) => [m.full_name ?? "", m.role_in_project ?? "", m.phone ?? "", m.email ?? "", m.person_months ?? "", yn(m.is_primary_contact)]),
       ));
+
     }
     if (roles?.length) {
       children.push(H(HeadingLevel.HEADING_3, "Organisation roles"));
