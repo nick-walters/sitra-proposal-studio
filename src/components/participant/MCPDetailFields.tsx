@@ -10,19 +10,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Participant } from '@/types/proposal';
-import { CONTACT_TITLES, GENDER_OPTIONS } from '@/types/participantDetails';
+import { GENDER_OPTIONS } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
-
-const PHONE2_PLACEHOLDER = 'Please add a phone number';
 
 interface MCPDetailFieldsProps {
   participant: Participant;
   onUpdate: (field: string, value: unknown) => void;
   canEdit: boolean;
-  /** Phone 2 follows the contact card's Edit / Save flow rather than saving as you type. */
-  isEditing?: boolean;
-  phone2?: string;
-  onPhone2Change?: (value: string) => void;
 }
 
 
@@ -33,7 +27,6 @@ interface MCPFields {
   mainContactGender?: string | null;
   mainContactPosition?: string | null;
   mainContactPhone?: string | null;
-  mainContactPhone2?: string | null;
   mainContactDepartment?: string | null;
   mainContactDeptSameAsOrg?: boolean | null;
   mainContactStreet?: string | null;
@@ -44,34 +37,19 @@ interface MCPFields {
   useOrganisationAddress?: boolean | null;
 }
 
-export function MCPDetailFields({ participant, onUpdate, canEdit, isEditing, phone2, onPhone2Change }: MCPDetailFieldsProps) {
+export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFieldsProps) {
   const fields = participant as unknown as MCPFields;
   const useOrgAddress = fields.useOrganisationAddress ?? true;
   const deptSameAsOrg = fields.mainContactDeptSameAsOrg ?? true;
+
 
   return (
     <div className="space-y-4 pl-4 border-l-2 border-primary/20 mt-3">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Main contact additional details</p>
 
-      {/* Title, Gender, Position */}
+      {/* Gender, Position — the title now lives on the contact card itself */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label>Title</Label>
-          <Select
-            value={fields.mainContactTitle || ''}
-            onValueChange={(v) => onUpdate('mainContactTitle', v)}
-            disabled={!canEdit}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              {CONTACT_TITLES.map((t) => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
         <div className="space-y-2">
           <Label>Gender</Label>
           <Select
@@ -183,7 +161,7 @@ export function MCPDetailFields({ participant, onUpdate, canEdit, isEditing, pho
         )}
       </div>
 
-      {/* Website & the main contact role's second phone */}
+      {/* Website */}
       <div className="grid gap-4 sm:grid-cols-3 pt-2 border-t">
         <div className="space-y-2">
           <Label>Website</Label>
@@ -194,28 +172,8 @@ export function MCPDetailFields({ participant, onUpdate, canEdit, isEditing, pho
             disabled={!canEdit}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Phone 2 (main contact role)</Label>
-          {isEditing ? (
-            <Input
-              type="tel"
-              value={phone2 ?? ''}
-              onChange={(e) => onPhone2Change?.(e.target.value)}
-              placeholder={PHONE2_PLACEHOLDER}
-              aria-label="Phone 2 (main contact role)"
-            />
-          ) : fields.mainContactPhone2 ? (
-            <p className="h-10 flex items-center text-sm">{fields.mainContactPhone2}</p>
-          ) : (
-            <p className="h-10 flex items-center text-sm italic text-muted-foreground/70">
-              {PHONE2_PLACEHOLDER}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Stays with the main contact role, not with the person.
-          </p>
-        </div>
       </div>
+
 
     </div>
   );

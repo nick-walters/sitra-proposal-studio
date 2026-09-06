@@ -897,7 +897,7 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("Has Gender Equality Plan", yn(p.has_gender_equality_plan)));
     children.push(KV("Dependency declaration", p.dependency_declaration));
 
-    // Phone 1 belongs to the person, so it is read from the main contact's member row.
+    // The phone belongs to the person, so it is read from the main contact's member row.
     const { data: mainMember } = await supabase
       .from("participant_members")
       .select("phone")

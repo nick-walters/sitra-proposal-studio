@@ -184,7 +184,6 @@ export function useProposalData(proposalId: string) {
         mainContactLastName: p.main_contact_last_name || undefined,
         mainContactGender: p.main_contact_gender || undefined,
         mainContactPhone: p.main_contact_phone || undefined,
-        mainContactPhone2: p.main_contact_phone2 || undefined,
         mainContactDepartment: p.main_contact_department || undefined,
         mainContactDeptSameAsOrg: p.main_contact_dept_same_as_org ?? true,
         mainContactStreet: p.main_contact_street || undefined,
@@ -229,6 +228,7 @@ export function useProposalData(proposalId: string) {
         email: m.email || undefined,
         // Phone 1 belongs to the person and lives on their own member row.
         phone: m.phone || undefined,
+        title: m.title || undefined,
         roleInProject: m.role_in_project || undefined,
         personMonths: m.person_months || undefined,
         isPrimaryContact: m.is_primary_contact || false,
@@ -388,7 +388,6 @@ export function useProposalData(proposalId: string) {
     if (updates.mainContactLastName !== undefined) dbUpdates.main_contact_last_name = updates.mainContactLastName;
     if (updates.mainContactGender !== undefined) dbUpdates.main_contact_gender = updates.mainContactGender;
     if (updates.mainContactPhone !== undefined) dbUpdates.main_contact_phone = updates.mainContactPhone;
-    if (updates.mainContactPhone2 !== undefined) dbUpdates.main_contact_phone2 = updates.mainContactPhone2;
     if (updates.mainContactDepartment !== undefined) dbUpdates.main_contact_department = updates.mainContactDepartment;
     if (updates.mainContactDeptSameAsOrg !== undefined) dbUpdates.main_contact_dept_same_as_org = updates.mainContactDeptSameAsOrg;
     if (updates.mainContactStreet !== undefined) dbUpdates.main_contact_street = updates.mainContactStreet;
@@ -493,6 +492,7 @@ export function useProposalData(proposalId: string) {
         email: member.email,
         role_in_project: member.roleInProject,
         phone: (member as any).phone,
+        title: (member as any).title,
 
         person_months: member.personMonths,
         is_primary_contact: member.isPrimaryContact,
@@ -519,6 +519,7 @@ export function useProposalData(proposalId: string) {
     if (updates.email !== undefined) dbUpdates.email = updates.email;
     if (updates.roleInProject !== undefined) dbUpdates.role_in_project = updates.roleInProject;
     if ((updates as any).phone !== undefined) dbUpdates.phone = (updates as any).phone;
+    if ((updates as any).title !== undefined) dbUpdates.title = (updates as any).title;
 
     if (updates.personMonths !== undefined) dbUpdates.person_months = updates.personMonths;
     if (updates.isPrimaryContact !== undefined) dbUpdates.is_primary_contact = updates.isPrimaryContact;

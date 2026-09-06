@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/tooltip';
 import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
-import { ParticipantResearcher } from '@/types/participantDetails';
+import { ParticipantResearcher, CONTACT_TITLES } from '@/types/participantDetails';
 import { MCPDetailFields } from './MCPDetailFields';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,19 +47,20 @@ interface SelectedPerson {
 
 /** The editable fields of a contact card, as held while editing. */
 interface ContactEditValues {
+  /** Title (Dr, Prof, …) — belongs to the person, stored on participant_members.title. */
+  title?: string;
   firstName: string;
   lastName: string;
   email: string;
-  /** Phone 1 — belongs to the person, stored on participant_members.phone. */
+  /** Phone — belongs to the person, stored on participant_members.phone. */
   phone: string;
-  /** Phone 2 — belongs to the main contact role, stored on participants.main_contact_phone2. */
-  phone2?: string;
 }
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
 
-/** A member row carrying its own phone number (Phone 1). */
-type MemberWithPhone = ParticipantMember & { phone?: string };
+/** A member row carrying its own phone number and title. */
+type MemberWithPhone = ParticipantMember & { phone?: string; title?: string };
+
 
 
 
@@ -245,7 +246,9 @@ export function ContactPersonsSection({
       fullName,
       email,
       phone,
+      title: values.title?.trim() || undefined,
     };
+
 
 
     const oldEmail = member.email?.toLowerCase();
@@ -280,11 +283,12 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', firstName);
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
-      // Phone 2 belongs to the main contact role, so it is written on the participant.
-      if (values.phone2 !== undefined) {
-        onUpdateParticipant('mainContactPhone2', values.phone2.trim());
+      // The main contact's title is mirrored onto the participant for the portal fields.
+      if (values.title !== undefined) {
+        onUpdateParticipant('mainContactTitle', values.title.trim());
       }
     }
+
 
 
     syncLinkedResearcher(member, fullName, email);
@@ -865,24 +869,26 @@ function SortableContactCard({
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const memberPhone = (member as MemberWithPhone).phone || '';
-  const participantPhone2 = (participant as unknown as { mainContactPhone2?: string | null }).mainContactPhone2 || '';
-  const [form, setForm] = useState<ContactEditValues>({
+  const memberTitle = (member as MemberWithPhone).title || '';
+  const emptyForm = (): ContactEditValues => ({
+    title: memberTitle,
     firstName,
     lastName,
     email: member.email || '',
     phone: memberPhone,
-    phone2: participantPhone2,
   });
+  const [form, setForm] = useState<ContactEditValues>(emptyForm);
 
   const startEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
+    setForm(emptyForm());
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
-    setForm({ firstName, lastName, email: member.email || '', phone: memberPhone, phone2: participantPhone2 });
+    setForm(emptyForm());
     setIsEditing(false);
   };
+
 
 
   const saveEdit = async () => {
@@ -917,67 +923,95 @@ function SortableContactCard({
           <span className="text-sm font-medium text-primary">{initials}</span>
         </div>
 
-        <div className="flex-1 min-w-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1">
-            <Label className="text-xs">First name *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                value={form.firstName}
-                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                aria-label="First name"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
-            )}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Row 1: Title, First name, Last name */}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <Label className="text-xs">Title</Label>
+              {isEditing ? (
+                <Select
+                  value={form.title || ''}
+                  onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
+                >
+                  <SelectTrigger className="h-8 text-sm" aria-label="Title">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTACT_TITLES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">First name *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  value={form.firstName}
+                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                  aria-label="First name"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Last name *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  value={form.lastName}
+                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                  aria-label="Last name"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
+              )}
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Last name *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                value={form.lastName}
-                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                aria-label="Last name"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Email *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                aria-label="Email"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Phone 1</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                type="tel"
-                value={form.phone}
-                placeholder={PHONE_PLACEHOLDER}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                aria-label="Phone"
-              />
-            ) : phoneValue ? (
-              <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
-            ) : (
-              <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
-                {PHONE_PLACEHOLDER}
-              </p>
-            )}
+
+          {/* Row 2: Email, Phone */}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Email *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  aria-label="Email"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Phone</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  type="tel"
+                  value={form.phone}
+                  placeholder={PHONE_PLACEHOLDER}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  aria-label="Phone"
+                />
+              ) : phoneValue ? (
+                <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
+              ) : (
+                <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
+                  {PHONE_PLACEHOLDER}
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
 
 
         <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -1102,18 +1136,19 @@ function SortableContactCard({
             )}
           </div>
 
+          <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+            <Checkbox
+              checked={isResearcher}
+              disabled={!canEdit}
+              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+              aria-label="Will conduct research in the project"
+            />
+            <Users className="w-3.5 h-3.5" />
+            Will conduct research in the project
+          </label>
+
         </div>
         </div>
-        <label className="mt-2 flex items-center justify-end gap-2 text-xs text-muted-foreground">
-          <Checkbox
-            checked={isResearcher}
-            disabled={!canEdit}
-            onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-            aria-label="This person will conduct research in the project"
-          />
-          <Users className="w-3.5 h-3.5" />
-          This person will conduct research in the project
-        </label>
       </div>
 
       {isMCP && (
@@ -1121,11 +1156,9 @@ function SortableContactCard({
           participant={participant}
           onUpdate={onUpdateParticipant}
           canEdit={canEdit}
-          isEditing={isEditing}
-          phone2={form.phone2 ?? ''}
-          onPhone2Change={(v) => setForm((f) => ({ ...f, phone2: v }))}
         />
       )}
+
 
     </div>
   );
