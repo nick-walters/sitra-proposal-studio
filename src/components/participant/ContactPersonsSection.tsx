@@ -206,8 +206,13 @@ export function ContactPersonsSection({
     if (!persisted) setOrderedMembers(previous);
   };
 
-  /** Mirrors a contact's name/email onto its linked researcher row, if any. */
-  const syncLinkedResearcher = (member: ParticipantMember, fullName: string, email: string) => {
+  /** Mirrors a contact's title/name/email onto its linked researcher row, if any. */
+  const syncLinkedResearcher = (
+    member: ParticipantMember,
+    fullName: string,
+    email: string,
+    title?: string,
+  ) => {
     const linked = researchers.find((r) => r.memberId === member.id);
     if (!linked) return;
     const parts = fullName.trim().split(' ');
@@ -217,6 +222,7 @@ export function ContactPersonsSection({
       firstName: parts[0] || '',
       lastName: parts.slice(1).join(' ') || '',
       email,
+      title: title ?? (member as MemberWithPhone).title ?? '',
       orderIndex: linked.orderIndex,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
   };
@@ -231,9 +237,12 @@ export function ContactPersonsSection({
       firstName: parts[0] || '',
       lastName: parts.slice(1).join(' ') || '',
       email: member.email || '',
+      // Only the main contact carries a title, and it is inherited here.
+      title: member.isPrimaryContact ? ((member as MemberWithPhone).title || '') : '',
       orderIndex: researchers.length,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
   };
+
 
   /**
    * Writes one contact card's edited fields. Only ever called from an explicit
