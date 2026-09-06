@@ -51,7 +51,7 @@ export function FeatureTour({ open, onClose }: FeatureTourProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 -mt-1 -mr-1 gap-1 text-muted-foreground font-normal"
+            className="h-7 -mt-1 mr-5 gap-1 text-muted-foreground font-normal"
             onClick={onClose}
           >
             <X className="w-3.5 h-3.5" />
