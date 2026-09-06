@@ -946,7 +946,7 @@ function SortableContactCard({
             )}
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Phone</Label>
+            <Label className="text-xs">Phone 1</Label>
             {isEditing ? (
               <Input
                 className="h-8 text-sm"
