@@ -923,67 +923,95 @@ function SortableContactCard({
           <span className="text-sm font-medium text-primary">{initials}</span>
         </div>
 
-        <div className="flex-1 min-w-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1">
-            <Label className="text-xs">First name *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                value={form.firstName}
-                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                aria-label="First name"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
-            )}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Row 1: Title, First name, Last name */}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div>
+              <Label className="text-xs">Title</Label>
+              {isEditing ? (
+                <Select
+                  value={form.title || ''}
+                  onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
+                >
+                  <SelectTrigger className="h-8 text-sm" aria-label="Title">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTACT_TITLES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">First name *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  value={form.firstName}
+                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                  aria-label="First name"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Last name *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  value={form.lastName}
+                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                  aria-label="Last name"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
+              )}
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Last name *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                value={form.lastName}
-                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                aria-label="Last name"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Email *</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                aria-label="Email"
-              />
-            ) : (
-              <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Phone 1</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                type="tel"
-                value={form.phone}
-                placeholder={PHONE_PLACEHOLDER}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                aria-label="Phone"
-              />
-            ) : phoneValue ? (
-              <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
-            ) : (
-              <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
-                {PHONE_PLACEHOLDER}
-              </p>
-            )}
+
+          {/* Row 2: Email, Phone */}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Email *</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  aria-label="Email"
+                />
+              ) : (
+                <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Phone</Label>
+              {isEditing ? (
+                <Input
+                  className="h-8 text-sm"
+                  type="tel"
+                  value={form.phone}
+                  placeholder={PHONE_PLACEHOLDER}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  aria-label="Phone"
+                />
+              ) : phoneValue ? (
+                <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
+              ) : (
+                <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
+                  {PHONE_PLACEHOLDER}
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
 
 
         <div className="flex flex-col items-end gap-1.5 shrink-0">
