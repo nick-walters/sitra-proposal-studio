@@ -388,16 +388,16 @@ export function ResearchersTable({
                   </ResearcherField>
                   {/* researcher.memberId set => mirrored from a contact person:
                       title, name and email are owned by the contact card and read-only here. */}
-                  <ResearcherField label="First Name" value={researcher.firstName} className="min-w-0 flex-1 basis-28">
+                  <ResearcherField label="First Name" value={researcher.firstName} className="min-w-0 flex-1 basis-24">
                     {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
                   </ResearcherField>
-                  <ResearcherField label="Last Name" value={researcher.lastName} className="min-w-0 flex-1 basis-28">
+                  <ResearcherField label="Last Name" value={researcher.lastName} className="min-w-0 flex-1 basis-24">
                     {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
                   </ResearcherField>
-                  <ResearcherField label="E-mail" value={researcher.email} className="min-w-0 flex-1 basis-48">
+                  <ResearcherField label="E-mail" value={researcher.email} className="min-w-0 flex-1 basis-40">
                     {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
                   </ResearcherField>
-                  <ResearcherField label="Gender" value={researcher.gender} className="w-32 shrink-0">
+                  <ResearcherField label="Gender" value={researcher.gender} className="w-[112px] shrink-0">
                     {canEdit && (
                       <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
@@ -407,14 +407,14 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
-                  <ResearcherField label="Nationality" value={researcher.nationality} className="w-48 shrink-0">
+                  <ResearcherField label="Nationality" value={researcher.nationality} className="w-[152px] shrink-0">
                     {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
                   </ResearcherField>
                   </div>
 
                   {/* Row 2: Career Stage, Role of researcher, Reference Identifier, Type of identifier */}
                   <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
-                  <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[216px] shrink-0">
+                  <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[240px] shrink-0">
                     {canEdit && (
                       <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
