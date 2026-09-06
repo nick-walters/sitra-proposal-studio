@@ -882,7 +882,7 @@ function SortableContactCard({
     }
   };
 
-  const phoneValue = member.roleInProject || '';
+  const phoneValue = memberPhone;
 
   return (
     <div ref={setNodeRef} style={style}>
