@@ -373,9 +373,11 @@ export function ResearchersTable({
                   )}
                 </div>
 
-                <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
-                  <ResearcherField label="Title" value={researcher.title}>
-                    {canEdit && (
+                <div className="min-w-0 space-y-3">
+                  {/* Row 1: Title, First Name, Last Name, E-mail, Gender, Nationality */}
+                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
+                  <ResearcherField label="Title" value={researcher.title} className="w-[88px] shrink-0">
+                    {canEdit && !researcher.memberId && (
                       <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent>
@@ -385,14 +387,17 @@ export function ResearchersTable({
                     )}
                   </ResearcherField>
                   {/* researcher.memberId set => mirrored from a contact person:
-                      name and email are owned by the contact card and read-only here. */}
-                  <ResearcherField label="First Name" value={researcher.firstName}>
+                      title, name and email are owned by the contact card and read-only here. */}
+                  <ResearcherField label="First Name" value={researcher.firstName} className="min-w-0 flex-1 basis-28">
                     {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
                   </ResearcherField>
-                  <ResearcherField label="Last Name" value={researcher.lastName}>
+                  <ResearcherField label="Last Name" value={researcher.lastName} className="min-w-0 flex-1 basis-28">
                     {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
                   </ResearcherField>
-                  <ResearcherField label="Gender" value={researcher.gender}>
+                  <ResearcherField label="E-mail" value={researcher.email} className="min-w-0 flex-1 basis-48">
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
+                  </ResearcherField>
+                  <ResearcherField label="Gender" value={researcher.gender} className="w-32 shrink-0">
                     {canEdit && (
                       <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
@@ -402,14 +407,14 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
-                  <ResearcherField label="Nationality" value={researcher.nationality}>
+                  <ResearcherField label="Nationality" value={researcher.nationality} className="w-48 shrink-0">
                     {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
                   </ResearcherField>
+                  </div>
 
-                  <ResearcherField label="E-mail" value={researcher.email}>
-                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
-                  </ResearcherField>
-                  <ResearcherField label="Career Stage" value={researcher.careerStage}>
+                  {/* Row 2: Career Stage, Role of researcher, Reference Identifier, Type of identifier */}
+                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
+                  <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[216px] shrink-0">
                     {canEdit && (
                       <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
@@ -419,7 +424,7 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
-                  <ResearcherField label="Role of researcher" value={researcher.roleInProject}>
+                  <ResearcherField label="Role of researcher" value={researcher.roleInProject} className="w-36 shrink-0">
                     {canEdit && (
                       <Select
                         value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
@@ -434,10 +439,10 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
-                  <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier}>
+                  <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier} className="w-[168px] shrink-0">
                     {canEdit && <DebouncedCell value={researcher.referenceIdentifier || ''} placeholder="Reference Identifier" onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })} />}
                   </ResearcherField>
-                  <ResearcherField label="Type of identifier" value={researcher.identifierType}>
+                  <ResearcherField label="Type of identifier" value={researcher.identifierType} className="w-[136px] shrink-0">
                     {canEdit && (
                       <Select value={researcher.identifierType || undefined} onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}>
                         <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
@@ -447,7 +452,9 @@ export function ResearchersTable({
                       </Select>
                     )}
                   </ResearcherField>
+                  </div>
                 </div>
+
                     </>}
                   </SortableResearcher>
                 ))}
