@@ -902,7 +902,9 @@ async function buildA2(supabase: any, proposal: any): Promise<Uint8Array> {
     children.push(KV("Position", p.main_contact_position));
     children.push(KV("Gender", p.main_contact_gender));
     children.push(KV("Email", p.contact_email));
-    children.push(KV("Phone", p.main_contact_phone));
+    // Phone 1 belongs to the person: read it from the main contact's member row.
+    children.push(KV("Phone", mem?.find((m: any) => m.is_primary_contact)?.phone ?? ""));
+
     if (!p.use_organisation_address) {
       children.push(KV("Contact address", `${p.main_contact_street ?? ""}, ${p.main_contact_postcode ?? ""} ${p.main_contact_town ?? ""}, ${p.main_contact_country ?? ""}`));
     }
