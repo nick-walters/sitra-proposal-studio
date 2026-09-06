@@ -24,7 +24,7 @@ import {
 import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher, CONTACT_TITLES } from '@/types/participantDetails';
-import { MCPDetailFields } from './MCPDetailFields';
+import { MCPDetailFields, MCP_FIELD_KEYS, type MCPFields } from './MCPDetailFields';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -57,6 +57,12 @@ interface ContactEditValues {
 }
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
+
+/**
+ * Tidies a phone number once the user leaves the field: spaces only, so the
+ * plus sign, brackets and hyphens survive untouched. Never called while typing.
+ */
+const stripPhoneSpaces = (value: string) => value.replace(/\s+/g, '');
 
 /** A member row carrying its own phone number and title. */
 type MemberWithPhone = ParticipantMember & { phone?: string; title?: string };
@@ -200,8 +206,13 @@ export function ContactPersonsSection({
     if (!persisted) setOrderedMembers(previous);
   };
 
-  /** Mirrors a contact's name/email onto its linked researcher row, if any. */
-  const syncLinkedResearcher = (member: ParticipantMember, fullName: string, email: string) => {
+  /** Mirrors a contact's title/name/email onto its linked researcher row, if any. */
+  const syncLinkedResearcher = (
+    member: ParticipantMember,
+    fullName: string,
+    email: string,
+    title?: string,
+  ) => {
     const linked = researchers.find((r) => r.memberId === member.id);
     if (!linked) return;
     const parts = fullName.trim().split(' ');
@@ -211,6 +222,7 @@ export function ContactPersonsSection({
       firstName: parts[0] || '',
       lastName: parts.slice(1).join(' ') || '',
       email,
+      title: title ?? (member as MemberWithPhone).title ?? '',
       orderIndex: linked.orderIndex,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
   };
@@ -225,9 +237,12 @@ export function ContactPersonsSection({
       firstName: parts[0] || '',
       lastName: parts.slice(1).join(' ') || '',
       email: member.email || '',
+      // Only the main contact carries a title, and it is inherited here.
+      title: member.isPrimaryContact ? ((member as MemberWithPhone).title || '') : '',
       orderIndex: researchers.length,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
   };
+
 
   /**
    * Writes one contact card's edited fields. Only ever called from an explicit
@@ -239,15 +254,18 @@ export function ContactPersonsSection({
     const firstName = values.firstName.trim();
     const lastName = values.lastName.trim();
     const email = values.email.trim();
-    const phone = values.phone.trim();
+    const phone = stripPhoneSpaces(values.phone.trim());
     const fullName = `${firstName} ${lastName}`.trim();
+    // Title is only collected for the main contact; ordinary cards never write it.
+    const title = member.isPrimaryContact ? (values.title?.trim() || '') : undefined;
 
     const updates: Partial<MemberWithPhone> = {
       fullName,
       email,
       phone,
-      title: values.title?.trim() || undefined,
+      ...(title !== undefined ? { title: title || undefined } : {}),
     };
+
 
 
 
@@ -284,14 +302,11 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
       // The main contact's title is mirrored onto the participant for the portal fields.
-      if (values.title !== undefined) {
-        onUpdateParticipant('mainContactTitle', values.title.trim());
-      }
+      onUpdateParticipant('mainContactTitle', title ?? '');
     }
 
-
-
-    syncLinkedResearcher(member, fullName, email);
+    // A linked researcher inherits the contact's title along with name and email.
+    syncLinkedResearcher(member, fullName, email, member.isPrimaryContact ? (title ?? '') : '');
   };
 
   /**
@@ -653,6 +668,7 @@ export function ContactPersonsSection({
                     type="tel"
                     value={newContact.phone}
                     onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    onBlur={() => setNewContact((c) => ({ ...c, phone: stripPhoneSpaces(c.phone) }))}
                     placeholder="+358..."
                   />
                 </div>
@@ -879,13 +895,28 @@ function SortableContactCard({
   });
   const [form, setForm] = useState<ContactEditValues>(emptyForm);
 
+  // The main-contact-only fields live on the participant row but are edited
+  // through this card's pencil/save/discard, so they need their own draft.
+  const readMcp = (): MCPFields => {
+    const source = participant as unknown as MCPFields;
+    const draft: MCPFields = {};
+    for (const key of MCP_FIELD_KEYS) {
+      (draft as Record<string, unknown>)[key] = source[key];
+    }
+    return draft;
+  };
+  const storedMcp = readMcp();
+  const [mcpForm, setMcpForm] = useState<MCPFields>(readMcp);
+
   const startEdit = () => {
     setForm(emptyForm());
+    setMcpForm(readMcp());
     setIsEditing(true);
   };
 
   const cancelEdit = () => {
     setForm(emptyForm());
+    setMcpForm(readMcp());
     setIsEditing(false);
   };
 
@@ -895,7 +926,15 @@ function SortableContactCard({
     setSaving(true);
     try {
       const done = await onSaveEdits(member, form);
-      if (done) setIsEditing(false);
+      if (done) {
+        if (isMCP) {
+          const stored = readMcp();
+          for (const key of MCP_FIELD_KEYS) {
+            if (mcpForm[key] !== stored[key]) onUpdateParticipant(key, mcpForm[key]);
+          }
+        }
+        setIsEditing(false);
+      }
     } finally {
       setSaving(false);
     }
@@ -924,29 +963,31 @@ function SortableContactCard({
         </div>
 
         <div className="flex-1 min-w-0 space-y-1.5">
-          {/* Row 1: Title, First name, Last name */}
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs">Title</Label>
-              {isEditing ? (
-                <Select
-                  value={form.title || ''}
-                  onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
-                >
-                  <SelectTrigger className="h-8 text-sm" aria-label="Title">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTACT_TITLES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
-              )}
-            </div>
-            <div>
+          {/* Row 1: Title (main contact only), First name, Last name */}
+          <div className="flex flex-wrap items-start gap-2">
+            {isMCP && (
+              <div className="w-[88px] shrink-0">
+                <Label className="text-xs">Title</Label>
+                {isEditing ? (
+                  <Select
+                    value={form.title || ''}
+                    onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
+                  >
+                    <SelectTrigger className="h-8 text-sm" aria-label="Title">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTACT_TITLES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
+                )}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 basis-40">
               <Label className="text-xs">First name *</Label>
               {isEditing ? (
                 <Input
@@ -959,7 +1000,7 @@ function SortableContactCard({
                 <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0 flex-1 basis-40">
               <Label className="text-xs">Last name *</Label>
               {isEditing ? (
                 <Input
@@ -973,6 +1014,7 @@ function SortableContactCard({
               )}
             </div>
           </div>
+
 
           {/* Row 2: Email, Phone */}
           <div className="grid gap-2 sm:grid-cols-2">
@@ -999,6 +1041,7 @@ function SortableContactCard({
                   value={form.phone}
                   placeholder={PHONE_PLACEHOLDER}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
                   aria-label="Phone"
                 />
               ) : phoneValue ? (
@@ -1152,11 +1195,13 @@ function SortableContactCard({
       </div>
 
       {isMCP && (
-        <MCPDetailFields
-          participant={participant}
-          onUpdate={onUpdateParticipant}
-          canEdit={canEdit}
-        />
+        <div className="pl-4">
+          <MCPDetailFields
+            values={isEditing ? mcpForm : storedMcp}
+            onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
+            isEditing={isEditing}
+          />
+        </div>
       )}
 
 

@@ -353,111 +353,17 @@ export function ResearchersTable({
                 {orderedResearchers.map((researcher) => (
                   <SortableResearcher key={researcher.id} id={researcher.id} disabled={!canEdit}>
                     {(attributes, listeners) => <>
-                <div className="flex items-start gap-3">
-                  {/* Grip matches the contact cards: blue, plain button, top-aligned on the left. */}
-                  <button
-                    type="button"
-                    className="mt-2 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
-                    aria-label="Reorder researcher"
-                    title="Drag to reorder"
-                    disabled={!canEdit}
-                    {...attributes}
-                    {...listeners}
-                  >
-                    <GripVertical className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    {/* Row 1: Title, First name, Last name */}
-                    <div className="flex flex-wrap items-start gap-2">
-                      <ResearcherField label="Title" value={researcher.title} className="w-[5.5rem] shrink-0">
-                        {canEdit && (
-                          <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
-                            <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                            <SelectContent>
-                              {CONTACT_TITLES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </ResearcherField>
-                      {/* researcher.memberId set => mirrored from a contact person:
-                          name and email are owned by the contact card and read-only here. */}
-                      <ResearcherField label="First Name" value={researcher.firstName} className="flex-1 basis-40">
-                        {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
-                      </ResearcherField>
-                      <ResearcherField label="Last Name" value={researcher.lastName} className="flex-1 basis-40">
-                        {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
-                      </ResearcherField>
-                    </div>
-
-                    {/* Row 2: Email, Gender, Nationality */}
-                    <div className="flex flex-wrap items-start gap-2">
-                      <ResearcherField label="E-mail" value={researcher.email} className="flex-1 basis-64">
-                        {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
-                      </ResearcherField>
-                      <ResearcherField label="Gender" value={researcher.gender} className="w-[8rem] shrink-0">
-                        {canEdit && (
-                          <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
-                            <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                            <SelectContent>
-                              {GENDER_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </ResearcherField>
-                      <ResearcherField label="Nationality" value={researcher.nationality} className="w-[12rem] shrink-0">
-                        {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
-                      </ResearcherField>
-                    </div>
-
-                    {/* Row 3: Career stage, Role of researcher, Reference identifier, Type of identifier */}
-                    <div className="flex flex-wrap items-start gap-2">
-                      <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[13.5rem] shrink-0">
-                        {canEdit && (
-                          <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
-                            <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                            <SelectContent>
-                              {CAREER_STAGES.map((stage) => <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </ResearcherField>
-                      <ResearcherField label="Role of researcher" value={researcher.roleInProject} className="w-[9rem] shrink-0">
-                        {canEdit && (
-                          <Select
-                            value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
-                            onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
-                          >
-                            <SelectTrigger className="h-8 w-full text-xs">
-                              <SelectValue placeholder={researcher.roleInProject || 'Select role'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {RESEARCHER_ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </ResearcherField>
-                      <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier} className="w-[10.5rem] shrink-0">
-                        {canEdit && <DebouncedCell value={researcher.referenceIdentifier || ''} placeholder="Reference Identifier" onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })} />}
-                      </ResearcherField>
-                      <ResearcherField label="Type of identifier" value={researcher.identifierType} className="w-[8.5rem] shrink-0">
-                        {canEdit && (
-                          <Select value={researcher.identifierType || undefined} onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}>
-                            <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                            <SelectContent>
-                              {IDENTIFIER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </ResearcherField>
-                    </div>
-                  </div>
-
+                <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
+                  {canEdit ? (
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-blue-600" {...attributes} {...listeners} aria-label="Drag to reorder researcher" title="Drag to reorder researcher">
+                      <GripVertical className="h-4 w-4" />
+                    </Button>
+                  ) : <span />}
                   {canEdit && !researcher.memberId && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive h-7 w-7 mt-1 shrink-0"
+                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                       onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
                       aria-label="Delete researcher"
                       title="Delete researcher"
@@ -465,6 +371,88 @@ export function ResearchersTable({
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
+                </div>
+
+                <div className="min-w-0 space-y-3">
+                  {/* Row 1: Title, First Name, Last Name, E-mail, Gender, Nationality */}
+                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
+                  <ResearcherField label="Title" value={researcher.title} className="w-[88px] shrink-0">
+                    {canEdit && !researcher.memberId && (
+                      <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {CONTACT_TITLES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  {/* researcher.memberId set => mirrored from a contact person:
+                      title, name and email are owned by the contact card and read-only here. */}
+                  <ResearcherField label="First Name" value={researcher.firstName} className="min-w-0 flex-1 basis-28">
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
+                  </ResearcherField>
+                  <ResearcherField label="Last Name" value={researcher.lastName} className="min-w-0 flex-1 basis-28">
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
+                  </ResearcherField>
+                  <ResearcherField label="E-mail" value={researcher.email} className="min-w-0 flex-1 basis-48">
+                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
+                  </ResearcherField>
+                  <ResearcherField label="Gender" value={researcher.gender} className="w-32 shrink-0">
+                    {canEdit && (
+                      <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {GENDER_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Nationality" value={researcher.nationality} className="w-48 shrink-0">
+                    {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
+                  </ResearcherField>
+                  </div>
+
+                  {/* Row 2: Career Stage, Role of researcher, Reference Identifier, Type of identifier */}
+                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
+                  <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[216px] shrink-0">
+                    {canEdit && (
+                      <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {CAREER_STAGES.map((stage) => <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Role of researcher" value={researcher.roleInProject} className="w-36 shrink-0">
+                    {canEdit && (
+                      <Select
+                        value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
+                        onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
+                      >
+                        <SelectTrigger className="h-8 w-full text-xs">
+                          <SelectValue placeholder={researcher.roleInProject || 'Select role'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RESEARCHER_ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier} className="w-[168px] shrink-0">
+                    {canEdit && <DebouncedCell value={researcher.referenceIdentifier || ''} placeholder="Reference Identifier" onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })} />}
+                  </ResearcherField>
+                  <ResearcherField label="Type of identifier" value={researcher.identifierType} className="w-[136px] shrink-0">
+                    {canEdit && (
+                      <Select value={researcher.identifierType || undefined} onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}>
+                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          {IDENTIFIER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </ResearcherField>
+                  </div>
                 </div>
 
                     </>}
@@ -508,22 +496,21 @@ export function ResearchersTable({
 function ResearcherField({
   label,
   value,
-  className,
   children,
+  className,
 }: {
   label: string;
   value?: string;
-  className?: string;
   children?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className={`min-w-0 ${className ?? ''}`}>
+    <div className={`min-w-0 space-y-1 ${className ?? ''}`}>
       <Label className="block text-xs leading-4">{label}</Label>
-      {children ? children : <p className="flex min-h-8 items-center break-words text-sm">{value || '—'}</p>}
+      {children ? children : <p className="flex min-h-8 items-center break-words text-xs">{value || '—'}</p>}
     </div>
   );
 }
-
 
 function SortableResearcher({
   id,
