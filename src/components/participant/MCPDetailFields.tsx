@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Participant } from '@/types/proposal';
-import { CONTACT_TITLES, GENDER_OPTIONS } from '@/types/participantDetails';
+import { GENDER_OPTIONS } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
 
 interface MCPDetailFieldsProps {
