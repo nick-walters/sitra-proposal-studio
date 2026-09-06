@@ -1104,8 +1104,16 @@ function SortableContactCard({
       </div>
 
       {isMCP && (
-        <MCPDetailFields participant={participant} onUpdate={onUpdateParticipant} canEdit={canEdit} />
+        <MCPDetailFields
+          participant={participant}
+          onUpdate={onUpdateParticipant}
+          canEdit={canEdit}
+          isEditing={isEditing}
+          phone2={form.phone2 ?? ''}
+          onPhone2Change={(v) => setForm((f) => ({ ...f, phone2: v }))}
+        />
       )}
+
     </div>
   );
 }
