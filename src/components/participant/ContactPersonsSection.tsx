@@ -1192,17 +1192,18 @@ function SortableContactCard({
 
         </div>
         </div>
-      </div>
 
-      {isMCP && (
-        <div className="pl-4">
-          <MCPDetailFields
-            values={isEditing ? mcpForm : storedMcp}
-            onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
-            isEditing={isEditing}
-          />
-        </div>
-      )}
+        {/* The main contact's extra fields live inside the same card. */}
+        {isMCP && (
+          <div className="pl-[68px]">
+            <MCPDetailFields
+              values={isEditing ? mcpForm : storedMcp}
+              onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
+              isEditing={isEditing}
+            />
+          </div>
+        )}
+      </div>
 
 
     </div>
