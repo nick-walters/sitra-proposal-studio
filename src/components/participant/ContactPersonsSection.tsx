@@ -115,15 +115,17 @@ export function ContactPersonsSection({
     wantsPlatformAccess: 'no' as 'yes' | 'no',
   });
 
-  // Sync access status: check if roles still exist in backend
+  // Sync access status: reconcile the stored flag with the real roles, in BOTH
+  // directions. A contact who still holds a role must show as having access even
+  // if the flag was cleared by an earlier edit.
   useEffect(() => {
     if (!proposalId || !canGrant) return;
 
     const syncAccessStatus = async () => {
-      const membersWithAccess = members.filter(m => m.accessGranted && m.email);
-      if (membersWithAccess.length === 0) return;
+      const membersWithEmail = members.filter(m => m.email);
+      if (membersWithEmail.length === 0) return;
 
-      for (const member of membersWithAccess) {
+      for (const member of membersWithEmail) {
         try {
           const { data: profile } = await supabase
             .from('profiles')
@@ -131,26 +133,36 @@ export function ContactPersonsSection({
             .eq('email', member.email!.toLowerCase())
             .maybeSingle();
 
-          if (profile) {
-            const { data: role } = await supabase
-              .from('user_roles')
-              .select('id, role')
-              .eq('user_id', profile.id)
-              .eq('proposal_id', proposalId)
-              .maybeSingle();
-
-            const { data: globalRole } = await supabase
-              .from('user_roles')
-              .select('id, role')
-              .eq('user_id', profile.id)
-              .is('proposal_id', null)
-              .maybeSingle();
-
-            const hasRole = role || (globalRole && ['owner', 'admin'].includes(globalRole.role));
-
-            if (!hasRole) {
+          if (!profile) {
+            if (member.accessGranted) {
               onUpdateMember(member.id, { accessGranted: false, accessGrantedRole: undefined });
             }
+            continue;
+          }
+
+          const { data: role } = await supabase
+            .from('user_roles')
+            .select('id, role')
+            .eq('user_id', profile.id)
+            .eq('proposal_id', proposalId)
+            .maybeSingle();
+
+          const { data: globalRole } = await supabase
+            .from('user_roles')
+            .select('id, role')
+            .eq('user_id', profile.id)
+            .is('proposal_id', null)
+            .maybeSingle();
+
+          const effectiveRole = role?.role
+            ?? (globalRole && ['owner', 'admin'].includes(globalRole.role) ? globalRole.role : undefined);
+
+          if (!effectiveRole) {
+            if (member.accessGranted) {
+              onUpdateMember(member.id, { accessGranted: false, accessGrantedRole: undefined });
+            }
+          } else if (!member.accessGranted || member.accessGrantedRole !== effectiveRole) {
+            onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: effectiveRole });
           }
         } catch (err) {
           console.error('Error syncing access status:', err);
@@ -160,7 +172,8 @@ export function ContactPersonsSection({
 
     syncAccessStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proposalId, canGrant]);
+  }, [proposalId, canGrant, members]);
+
 
   // The fetch already returns contacts in order_index order; local state keeps
   // a dragged order on screen while the writes are in flight.
