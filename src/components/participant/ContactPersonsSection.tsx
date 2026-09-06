@@ -267,8 +267,12 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', firstName);
       onUpdateParticipant('mainContactLastName', lastName);
       onUpdateParticipant('contactEmail', email);
-      onUpdateParticipant('mainContactPhone', phone);
+      // Phone 2 belongs to the main contact role, so it is written on the participant.
+      if (values.phone2 !== undefined) {
+        onUpdateParticipant('mainContactPhone2', values.phone2.trim());
+      }
     }
+
 
     syncLinkedResearcher(member, fullName, email);
   };
