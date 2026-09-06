@@ -47,25 +47,9 @@ export function MCPDetailFields({ participant, onUpdate, canEdit }: MCPDetailFie
     <div className="space-y-4 pl-4 border-l-2 border-primary/20 mt-3">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Main contact additional details</p>
 
-      {/* Title, Gender, Position */}
+      {/* Gender, Position — the title now lives on the contact card itself */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label>Title</Label>
-          <Select
-            value={fields.mainContactTitle || ''}
-            onValueChange={(v) => onUpdate('mainContactTitle', v)}
-            disabled={!canEdit}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              {CONTACT_TITLES.map((t) => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
         <div className="space-y-2">
           <Label>Gender</Label>
           <Select
