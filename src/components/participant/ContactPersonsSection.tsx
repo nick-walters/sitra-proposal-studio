@@ -668,6 +668,7 @@ export function ContactPersonsSection({
                     type="tel"
                     value={newContact.phone}
                     onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    onBlur={() => setNewContact((c) => ({ ...c, phone: stripPhoneSpaces(c.phone) }))}
                     placeholder="+358..."
                   />
                 </div>

@@ -367,6 +367,8 @@ export function useParticipantDetails(participantId: string | undefined, proposa
           first_name: researcher.firstName,
           last_name: researcher.lastName,
           email: researcher.email || null,
+          // Title is owned by the contact card for linked researchers.
+          ...(researcher.title !== undefined ? { title: researcher.title || null } : {}),
         })
         .eq('id', existing.id)
         .select()
