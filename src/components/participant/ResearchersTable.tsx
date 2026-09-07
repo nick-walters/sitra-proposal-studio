@@ -299,7 +299,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
                 <DebouncedTextField
                   value={researcher.firstName || ''}
                   placeholder="First name*"
@@ -307,7 +307,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
                 <DebouncedTextField
                   value={researcher.lastName || ''}
                   placeholder="Last name*"
@@ -315,7 +315,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[120px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[110px]">
                 <DebouncedTextField
                   value={researcher.email || ''}
                   placeholder="Email*"
@@ -325,7 +325,7 @@ function SortableResearcherCard({
                 />
               </div>
 
-              <div className="w-[123px] shrink-0 flex items-stretch gap-0.5">
+              <div className="w-[110px] shrink-0 flex items-stretch gap-0.5">
                 <div className="min-w-0 flex-1">
                   {editable ? (
                     <Select
@@ -350,7 +350,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="w-[197px] shrink-0">
+              <div className="w-[150px] shrink-0">
                 {editable ? (
                   <CountrySelect
                     value={researcher.nationality || ''}
@@ -529,7 +529,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
                 <DebouncedTextField
                   value={draft.firstName}
                   placeholder="First name*"
@@ -537,7 +537,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('firstName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
                 <DebouncedTextField
                   value={draft.lastName}
                   placeholder="Last name*"
@@ -545,7 +545,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('lastName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[120px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[110px]">
                 <DebouncedTextField
                   value={draft.email}
                   placeholder="Email*"
@@ -554,7 +554,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('email', v)}
                 />
               </div>
-              <div className="w-[123px] shrink-0 flex items-stretch gap-0.5">
+              <div className="w-[110px] shrink-0 flex items-stretch gap-0.5">
                 <div className="min-w-0 flex-1">
                   <Select value={draft.gender} onValueChange={(v) => commit('gender', v)}>
                     <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
@@ -569,7 +569,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="w-[197px] shrink-0">
+              <div className="w-[150px] shrink-0">
                 <CountrySelect
                   value={draft.nationality}
                   onValueChange={(v) => commit('nationality', v)}
