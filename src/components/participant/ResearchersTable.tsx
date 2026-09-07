@@ -43,6 +43,35 @@ import { CountrySelect } from '@/components/CountrySelect';
 
 const RESEARCHER_ROLES = ['Leading', 'Team member'] as const;
 
+/**
+ * Every researcher field width lives here once, so the saved cards and the
+ * add-a-researcher card can never drift apart.
+ */
+const W = {
+  title: 'w-[68px]',
+  name: 'min-w-0 flex-1 basis-0 min-w-[88px]',
+  email: 'min-w-0 flex-1 basis-0 min-w-[126px]',
+  gender: 'w-[104px]',
+  nationality: 'w-[150px]',
+  careerStage: 'w-[250px]',
+  role: 'w-[131px]',
+  /** Fills whatever is left on row two, so the row has no trailing gap. */
+  identifier: 'min-w-0 flex-1 basis-0 min-w-[188px]',
+  identifierType: 'w-[125px]',
+} as const;
+
+/**
+ * A plain dropdown with no chevron. The shared trigger's arrow is dropped via
+ * its own hideArrow prop, and the space it occupied is genuinely reclaimed:
+ * justify-start with no gap, and the value span becomes a normal shrinking
+ * block that truncates. That last part also fixes the Prompt 22 fault, where
+ * justify-between plus the -webkit-box line-clamp pushed an overflowing value
+ * to the right instead of leaving it flush left.
+ */
+const PLAIN_SELECT_CLASS =
+  `${FIELD_CLASS} justify-start gap-0 pr-2 [&>span]:line-clamp-none [&>span]:block [&>span]:min-w-0`
+  + ' [&>span]:flex-1 [&>span]:text-left [&>span]:truncate [&>span]:whitespace-nowrap';
+
 /** The country picker forced to the shared field height and font. */
 const COUNTRY_FIELD_CLASS =
   'h-7 text-sm px-2 font-normal [&>svg]:h-3 [&>svg]:w-3';
@@ -254,6 +283,8 @@ function SortableResearcherCard({
   // owned by the contact card and stay read-only here.
   const linked = !!researcher.memberId;
   const editable = canEdit;
+  const careerStageLabel =
+    CAREER_STAGES.find((stage) => stage.value === researcher.careerStage)?.label || '';
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -274,14 +305,14 @@ function SortableResearcherCard({
           <div className="flex-1 min-w-0 space-y-1">
             {/* Row 1: Title, First name, Last name, Email, Gender, Nationality */}
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="w-[78px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.title} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   {editable && !linked ? (
                     <Select
                       value={researcher.title || ''}
                       onValueChange={(v) => onUpdate(researcher.id, { title: v })}
                     >
-                      <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                      <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Title" title={researcher.title || 'Title'}>
                         <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
                       </SelectTrigger>
                       <SelectContent>
@@ -299,7 +330,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
+              <div className={W.name}>
                 <DebouncedTextField
                   value={researcher.firstName || ''}
                   placeholder="First name*"
@@ -307,7 +338,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
+              <div className={W.name}>
                 <DebouncedTextField
                   value={researcher.lastName || ''}
                   placeholder="Last name*"
@@ -315,7 +346,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[110px]">
+              <div className={W.email}>
                 <DebouncedTextField
                   value={researcher.email || ''}
                   placeholder="Email*"
@@ -325,14 +356,14 @@ function SortableResearcherCard({
                 />
               </div>
 
-              <div className="w-[110px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.gender} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   {editable ? (
                     <Select
                       value={researcher.gender || ''}
                       onValueChange={(v) => onUpdate(researcher.id, { gender: v })}
                     >
-                      <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
+                      <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Gender" title={researcher.gender || 'Gender'}>
                         <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
                       </SelectTrigger>
                       <SelectContent>
@@ -350,7 +381,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="w-[150px] shrink-0">
+              <div className={`${W.nationality} shrink-0`}>
                 {editable ? (
                   <CountrySelect
                     value={researcher.nationality || ''}
@@ -368,14 +399,14 @@ function SortableResearcherCard({
 
             {/* Row 2: Career stage, Role, Reference identifier, Type of identifier */}
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="w-[240px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.careerStage} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   {editable ? (
                     <Select
                       value={researcher.careerStage || ''}
                       onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}
                     >
-                      <SelectTrigger className={FIELD_CLASS} aria-label="Career stage">
+                      <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Career stage" title={careerStageLabel || 'Career stage'}>
                         <SelectValue placeholder={<SelectPlaceholder text="Career stage*" />} />
                       </SelectTrigger>
                       <SelectContent>
@@ -393,14 +424,14 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="w-[136px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.role} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   {editable ? (
                     <Select
                       value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : ''}
                       onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
                     >
-                      <SelectTrigger className={FIELD_CLASS} aria-label="Role">
+                      <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Role" title={researcher.roleInProject || 'Role of researcher'}>
                         <SelectValue placeholder={<SelectPlaceholder text="Role*" />} />
                       </SelectTrigger>
                       <SelectContent>
@@ -418,7 +449,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="w-[188px] shrink-0">
+              <div className={W.identifier}>
                 <DebouncedTextField
                   value={researcher.referenceIdentifier || ''}
                   placeholder="Identifier"
@@ -427,13 +458,13 @@ function SortableResearcherCard({
                 />
               </div>
 
-              <div className="w-[131px] shrink-0">
+              <div className={`${W.identifierType} shrink-0`}>
                 {editable ? (
                   <Select
                     value={researcher.identifierType || ''}
                     onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}
                   >
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Identifier type">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Identifier type" title={researcher.identifierType || 'Type of identifier'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Identifier type" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -514,10 +545,10 @@ function NewResearcherCard({
 
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="w-[78px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.title} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.title} onValueChange={(v) => commit('title', v)}>
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Title" title={draft.title || 'Title'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -529,7 +560,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
+              <div className={W.name}>
                 <DebouncedTextField
                   value={draft.firstName}
                   placeholder="First name*"
@@ -537,7 +568,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('firstName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[88px]">
+              <div className={W.name}>
                 <DebouncedTextField
                   value={draft.lastName}
                   placeholder="Last name*"
@@ -545,7 +576,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('lastName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[110px]">
+              <div className={W.email}>
                 <DebouncedTextField
                   value={draft.email}
                   placeholder="Email*"
@@ -554,10 +585,10 @@ function NewResearcherCard({
                   onCommit={(v) => commit('email', v)}
                 />
               </div>
-              <div className="w-[110px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.gender} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.gender} onValueChange={(v) => commit('gender', v)}>
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Gender" title={draft.gender || 'Gender'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -569,7 +600,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="w-[150px] shrink-0">
+              <div className={`${W.nationality} shrink-0`}>
                 <CountrySelect
                   value={draft.nationality}
                   onValueChange={(v) => commit('nationality', v)}
@@ -580,10 +611,10 @@ function NewResearcherCard({
             </div>
 
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="w-[240px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.careerStage} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.careerStage} onValueChange={(v) => commit('careerStage', v)}>
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Career stage">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Career stage" title={CAREER_STAGES.find((stage) => stage.value === draft.careerStage)?.label || 'Career stage'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Career stage*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -595,10 +626,10 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="w-[136px] shrink-0 flex items-stretch gap-0.5">
+              <div className={`${W.role} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.roleInProject} onValueChange={(v) => commit('roleInProject', v)}>
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Role">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Role" title={draft.roleInProject || 'Role of researcher'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Role*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -610,7 +641,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="w-[188px] shrink-0">
+              <div className={W.identifier}>
                 <DebouncedTextField
                   value={draft.referenceIdentifier}
                   placeholder="Identifier"
@@ -618,9 +649,9 @@ function NewResearcherCard({
                   onCommit={(v) => commit('referenceIdentifier', v)}
                 />
               </div>
-              <div className="w-[131px] shrink-0">
+              <div className={`${W.identifierType} shrink-0`}>
                 <Select value={draft.identifierType} onValueChange={(v) => commit('identifierType', v)}>
-                  <SelectTrigger className={FIELD_CLASS} aria-label="Identifier type">
+                  <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Identifier type" title={draft.identifierType || 'Type of identifier'}>
                     <SelectValue placeholder={<SelectPlaceholder text="Identifier type" />} />
                   </SelectTrigger>
                   <SelectContent>

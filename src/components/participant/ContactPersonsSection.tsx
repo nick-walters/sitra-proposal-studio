@@ -59,6 +59,36 @@ interface ContactEditValues {
 
 const PHONE_PLACEHOLDER = 'Please add a phone number';
 
+/** Contact card field widths, defined once and shared by saved and new cards. */
+const CW = {
+  name: 'min-w-0 flex-1 basis-0 min-w-[106px]',
+  title: 'w-[68px]',
+  email: 'min-w-0 flex-[2] basis-0 min-w-[300px]',
+  phone: 'min-w-0 flex-1 basis-0 min-w-[130px]',
+} as const;
+
+/**
+ * A plain dropdown with no chevron. The shared trigger drops its arrow through
+ * its own hideArrow prop; justify-start with no gap and no right-hand reserve
+ * means the width is genuinely given back to the value. Replacing the
+ * line-clamp with a truncating block keeps an overflowing value flush left —
+ * the Prompt 22 indent fault.
+ */
+const PLAIN_SELECT_CLASS =
+  `${FIELD_CLASS} justify-start gap-0 pr-2 [&>span]:line-clamp-none [&>span]:block [&>span]:min-w-0`
+  + ' [&>span]:flex-1 [&>span]:text-left [&>span]:truncate [&>span]:whitespace-nowrap';
+
+/**
+ * The main contact's Gender dropdown is rendered by the shared detail fields,
+ * so its chevron removal and −6px width are applied from here, on the wrapper.
+ */
+const MCP_OVERRIDES =
+  "[&_.w-32]:w-[122px] [&_[aria-label='Gender']]:justify-start [&_[aria-label='Gender']]:gap-0"
+  + " [&_[aria-label='Gender']]:pr-2 [&_[aria-label='Gender']>svg]:hidden"
+  + " [&_[aria-label='Gender']>span]:line-clamp-none [&_[aria-label='Gender']>span]:block"
+  + " [&_[aria-label='Gender']>span]:min-w-0 [&_[aria-label='Gender']>span]:flex-1"
+  + " [&_[aria-label='Gender']>span]:text-left [&_[aria-label='Gender']>span]:truncate";
+
 /**
  * Tidies a phone number once the user leaves the field: spaces only, so the
  * plus sign, brackets and hyphens survive untouched. Never called while typing.
@@ -870,7 +900,7 @@ function SortableContactCard({
         <div className="flex-1 min-w-0 space-y-1">
           {/* Row 1: First name, Last name, Title (main contact only) */}
           <div className="flex flex-wrap items-stretch gap-1">
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+            <div className={CW.name}>
               <CompactTextField
                 value={isEditing ? form.firstName : firstName}
                 onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
@@ -878,7 +908,7 @@ function SortableContactCard({
                 isEditing={isEditing}
               />
             </div>
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+            <div className={CW.name}>
               <CompactTextField
                 value={isEditing ? form.lastName : lastName}
                 onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
@@ -888,13 +918,13 @@ function SortableContactCard({
               />
             </div>
             {isMCP && (
-              <div className="w-[78px] shrink-0">
+              <div className={`${CW.title} shrink-0`}>
                 {isEditing ? (
                   <Select
                     value={form.title || ''}
                     onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
                   >
-                    <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Title" title={(isEditing ? form.title : memberTitle) || 'Title'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -915,7 +945,7 @@ function SortableContactCard({
 
           {/* Row 2: Email, Phone, and the research checkbox aligned with them */}
           <div className="flex flex-wrap items-stretch gap-1">
-            <div className="min-w-0 flex-[2] basis-0 min-w-[320px]">
+            <div className={CW.email}>
 
               <CompactTextField
                 value={isEditing ? form.email : (member.email || '')}
@@ -925,7 +955,7 @@ function SortableContactCard({
                 isEditing={isEditing}
               />
             </div>
-            <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+            <div className={CW.phone}>
               <CompactTextField
                 value={isEditing ? form.phone : phoneValue}
                 onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
@@ -1081,7 +1111,7 @@ function SortableContactCard({
         {/* The main contact's extra fields live inside the same card, aligned
             with the fields above now the avatar has gone. */}
         {isMCP && (
-          <div className="pl-5">
+          <div className={`pl-5 ${MCP_OVERRIDES}`}>
             <MCPDetailFields
               values={isEditing ? mcpForm : storedMcp}
               onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
@@ -1140,7 +1170,7 @@ function NewContactCard({
 
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <div className={CW.name}>
                 <CompactTextField
                   value={form.firstName}
                   onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
@@ -1148,7 +1178,7 @@ function NewContactCard({
                   isEditing
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <div className={CW.name}>
                 <CompactTextField
                   value={form.lastName}
                   onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
@@ -1160,7 +1190,7 @@ function NewContactCard({
             </div>
 
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="min-w-0 flex-[2] basis-0 min-w-[320px]">
+              <div className={CW.email}>
                 <CompactTextField
                   value={form.email}
                   onChange={(v) => setForm((f) => ({ ...f, email: v }))}
@@ -1169,7 +1199,7 @@ function NewContactCard({
                   isEditing
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+              <div className={CW.phone}>
                 <CompactTextField
                   value={form.phone}
                   onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
