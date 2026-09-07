@@ -1,6 +1,8 @@
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Check, Copy } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,6 +40,107 @@ export const MCP_FIELD_KEYS: (keyof MCPFields)[] = [
   'useOrganisationAddress',
 ];
 
+/** Compact input styling shared by contact cards and the main contact's details. */
+export const FIELD_CLASS =
+  'h-7 text-sm px-2 placeholder:italic placeholder:text-muted-foreground/70';
+
+/** A dropdown's placeholder, italic and grey to match the text inputs. */
+export function SelectPlaceholder({ text }: { text: string }) {
+  return <span className="italic text-muted-foreground/70">{text}</span>;
+}
+
+/**
+ * Read-only presentation. An empty field still shows its placeholder, so the
+ * card explains itself without any field headings.
+ */
+export function ReadValue({ value, placeholder }: { value?: string | null; placeholder: string }) {
+  const text = value?.trim() || '';
+  return (
+    <p
+      className={`h-7 min-w-0 flex-1 flex items-center text-sm px-2 truncate ${
+        text ? '' : 'italic text-muted-foreground/70'
+      }`}
+    >
+      {text || placeholder}
+    </p>
+  );
+}
+
+/** Copy control matching the lump sum portal copy view. */
+export function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* clipboard blocked: still show the tick so the user keeps their place */
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className="h-5 w-5 shrink-0"
+      title={`Copy ${label}`}
+      aria-label={`Copy ${label}`}
+      onClick={copy}
+      disabled={!text}
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-green-600" />
+      ) : (
+        <Copy className="h-3 w-3 text-muted-foreground" />
+      )}
+    </Button>
+  );
+}
+
+/**
+ * One text field: placeholder instead of a heading, with a copy button beside
+ * it. Dropdowns deliberately have no copy button.
+ */
+export function CompactTextField({
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  isEditing,
+  type = 'text',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder: string;
+  isEditing: boolean;
+  type?: string;
+}) {
+  const label = placeholder.replace('*', '');
+  return (
+    <div className="flex items-center gap-0.5">
+      {isEditing ? (
+        <Input
+          className={FIELD_CLASS}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          aria-label={label}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
+      ) : (
+        <ReadValue value={value} placeholder={placeholder} />
+      )}
+      <CopyButton text={value} label={label} />
+    </div>
+  );
+}
+
 interface MCPDetailFieldsProps {
   /** Draft values while editing; the stored values when read-only. */
   values: MCPFields;
@@ -46,33 +149,23 @@ interface MCPDetailFieldsProps {
   isEditing: boolean;
 }
 
-/** Read-only presentation matching the contact card's plain-text rows. */
-function ReadOnly({ value }: { value?: string | null }) {
-  return <p className="h-8 flex items-center text-sm truncate">{value || ''}</p>;
-}
-
 export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFieldsProps) {
   const useOrgAddress = values.useOrganisationAddress ?? true;
   const deptSameAsOrg = values.mainContactDeptSameAsOrg ?? true;
   const genderLabel = GENDER_OPTIONS.find((g) => g.value === values.mainContactGender)?.label || '';
 
   return (
-    <div className="mt-2 space-y-1.5 border-t pt-2">
-      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-        Main contact additional details
-      </p>
-
+    <div className="mt-1 space-y-1 border-t pt-1">
       {/* Gender, Position in organisation, Website */}
-      <div className="flex flex-wrap items-start gap-2">
+      <div className="flex flex-wrap items-center gap-1">
         <div className="w-32 shrink-0">
-          <Label className="text-xs">Gender</Label>
           {isEditing ? (
             <Select
               value={values.mainContactGender || ''}
               onValueChange={(v) => onChange('mainContactGender', v)}
             >
-              <SelectTrigger className="h-8 text-sm" aria-label="Gender">
-                <SelectValue placeholder="Select" />
+              <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
+                <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
               </SelectTrigger>
               <SelectContent>
                 {GENDER_OPTIONS.map((g) => (
@@ -81,41 +174,31 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
               </SelectContent>
             </Select>
           ) : (
-            <ReadOnly value={genderLabel} />
+            <div className="flex items-center">
+              <ReadValue value={genderLabel} placeholder="Gender*" />
+            </div>
           )}
         </div>
         <div className="min-w-0 flex-1 basis-56">
-          <Label className="text-xs">Position in organisation</Label>
-          {isEditing ? (
-            <Input
-              className="h-8 text-sm"
-              value={values.mainContactPosition || ''}
-              onChange={(e) => onChange('mainContactPosition', e.target.value)}
-              placeholder="e.g., Professor, Director"
-              aria-label="Position in organisation"
-            />
-          ) : (
-            <ReadOnly value={values.mainContactPosition} />
-          )}
+          <CompactTextField
+            value={values.mainContactPosition || ''}
+            onChange={(v) => onChange('mainContactPosition', v)}
+            placeholder="Position in organisation*"
+            isEditing={isEditing}
+          />
         </div>
         <div className="min-w-0 flex-1 basis-56">
-          <Label className="text-xs">Website</Label>
-          {isEditing ? (
-            <Input
-              className="h-8 text-sm"
-              value={values.mainContactWebsite || ''}
-              onChange={(e) => onChange('mainContactWebsite', e.target.value)}
-              placeholder="https://..."
-              aria-label="Website"
-            />
-          ) : (
-            <ReadOnly value={values.mainContactWebsite} />
-          )}
+          <CompactTextField
+            value={values.mainContactWebsite || ''}
+            onChange={(v) => onChange('mainContactWebsite', v)}
+            placeholder="Website"
+            isEditing={isEditing}
+          />
         </div>
       </div>
 
       {/* Department */}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={deptSameAsOrg}
@@ -125,25 +208,17 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
           Department same as organisation
         </label>
         {!deptSameAsOrg && (
-          <div className="min-w-0">
-            <Label className="text-xs">Department</Label>
-            {isEditing ? (
-              <Input
-                className="h-8 text-sm"
-                value={values.mainContactDepartment || ''}
-                onChange={(e) => onChange('mainContactDepartment', e.target.value)}
-                placeholder="Department name"
-                aria-label="Department"
-              />
-            ) : (
-              <ReadOnly value={values.mainContactDepartment} />
-            )}
-          </div>
+          <CompactTextField
+            value={values.mainContactDepartment || ''}
+            onChange={(v) => onChange('mainContactDepartment', v)}
+            placeholder="Department*"
+            isEditing={isEditing}
+          />
         )}
       </div>
 
       {/* Address */}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={useOrgAddress}
@@ -153,58 +228,41 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
           Same as organisation address
         </label>
         {!useOrgAddress && (
-          <div className="flex flex-wrap items-start gap-2">
+          <div className="flex flex-wrap items-center gap-1">
             <div className="min-w-0 flex-1 basis-full">
-              <Label className="text-xs">Street address</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  value={values.mainContactStreet || ''}
-                  onChange={(e) => onChange('mainContactStreet', e.target.value)}
-                  placeholder="Street address"
-                  aria-label="Street address"
-                />
-              ) : (
-                <ReadOnly value={values.mainContactStreet} />
-              )}
+              <CompactTextField
+                value={values.mainContactStreet || ''}
+                onChange={(v) => onChange('mainContactStreet', v)}
+                placeholder="Street address*"
+                isEditing={isEditing}
+              />
             </div>
             <div className="min-w-0 flex-1 basis-40">
-              <Label className="text-xs">Town/City</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  value={values.mainContactTown || ''}
-                  onChange={(e) => onChange('mainContactTown', e.target.value)}
-                  placeholder="Town/City"
-                  aria-label="Town/City"
-                />
-              ) : (
-                <ReadOnly value={values.mainContactTown} />
-              )}
+              <CompactTextField
+                value={values.mainContactTown || ''}
+                onChange={(v) => onChange('mainContactTown', v)}
+                placeholder="Town/City*"
+                isEditing={isEditing}
+              />
             </div>
-            <div className="w-32 shrink-0">
-              <Label className="text-xs">Postcode</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  value={values.mainContactPostcode || ''}
-                  onChange={(e) => onChange('mainContactPostcode', e.target.value)}
-                  placeholder="Postcode"
-                  aria-label="Postcode"
-                />
-              ) : (
-                <ReadOnly value={values.mainContactPostcode} />
-              )}
+            <div className="w-36 shrink-0">
+              <CompactTextField
+                value={values.mainContactPostcode || ''}
+                onChange={(v) => onChange('mainContactPostcode', v)}
+                placeholder="Postcode*"
+                isEditing={isEditing}
+              />
             </div>
             <div className="min-w-0 flex-1 basis-48">
-              <Label className="text-xs">Country</Label>
               {isEditing ? (
                 <CountrySelect
                   value={values.mainContactCountry || ''}
                   onValueChange={(v) => onChange('mainContactCountry', v)}
                 />
               ) : (
-                <ReadOnly value={values.mainContactCountry} />
+                <div className="flex items-center">
+                  <ReadValue value={values.mainContactCountry} placeholder="Country*" />
+                </div>
               )}
             </div>
           </div>
