@@ -232,8 +232,10 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
             onChange={(v) => onChange('mainContactDepartment', v)}
             placeholder="Department*"
             isEditing={isEditing}
+            showDivider={false}
           />
         )}
+
       </div>
 
       {/* Address */}
