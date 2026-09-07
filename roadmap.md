@@ -5,3 +5,5 @@
 
 - [x] Prompt 119: "All participants" badge derived from current selection (editor field, B3.1 mirror, Typst PDF).
 - [ ] Prompt 120: diagnose and fix false "another user is editing" warnings on task title/description.
+
+- [ ] Prompt 136 — Contact card rework: remove avatar, placeholder labels, MCP/access pills, copy buttons, pale blue cards, denser padding (ContactPersonsSection.tsx, MCPDetailFields.tsx)
