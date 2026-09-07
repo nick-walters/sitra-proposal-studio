@@ -191,7 +191,7 @@ export function PageFindReplacePanel() {
     setBusy(true);
     const outcome: ReplaceOutcome = { fieldsWritten: 0, matchesWritten: 0, conflicts: [], errors: [] };
     try {
-      for (const fieldResult of result.results) {
+      for (const fieldResult of result.results.filter((r) => r.field.save && !r.field.readOnly)) {
         const next = replaceInField(fieldResult, fieldResult.matches, query, replacement, options);
         await writeField(fieldResult, next, fieldResult.matches.length, outcome);
       }
