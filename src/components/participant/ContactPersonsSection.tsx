@@ -640,79 +640,8 @@ export function ContactPersonsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Contact Form */}
-        {showAddForm && (
-          <Card className="border-dashed">
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>First name *</Label>
-                  <Input
-                    value={newContact.firstName}
-                    onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                    placeholder="First name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Last name *</Label>
-                  <Input
-                    value={newContact.lastName}
-                    onChange={(e) => setNewContact({ ...newContact, lastName: e.target.value })}
-                    placeholder="Last name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    placeholder="contact@organisation.eu"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input
-                    type="tel"
-                    value={newContact.phone}
-                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    onBlur={() => setNewContact((c) => ({ ...c, phone: stripPhoneSpaces(c.phone) }))}
-                    placeholder="+358..."
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Should this person have access to the proposal on Sitra Proposal Studio? *</Label>
-                  <Select
-                    value={newContact.wantsPlatformAccess}
-                    onValueChange={(v) => setNewContact({ ...newContact, wantsPlatformAccess: v as 'yes' | 'no' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no">No</SelectItem>
-                      <SelectItem value="yes">Yes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddContact}
-                  disabled={!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.email.trim()}
-                >
-                  Add Contact
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Contact List */}
-        {members.length === 0 && !showAddForm ? (
+        {members.length === 0 && !addingContact ? (
           <div className="text-center py-6 text-muted-foreground">
             <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No contact persons added yet</p>
@@ -743,10 +672,19 @@ export function ContactPersonsSection({
                     onUpdateParticipant={onUpdateParticipant}
                   />
                 ))}
+                {/* A brand-new contact: the same card, last in the list, already
+                    in edit mode. Nothing is written until Save. */}
+                {addingContact && (
+                  <NewContactCard
+                    onSave={handleAddContact}
+                    onDiscard={() => setAddingContact(false)}
+                  />
+                )}
               </div>
             </SortableContext>
           </DndContext>
         )}
+
 
         {/* Delete CP Confirmation */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
