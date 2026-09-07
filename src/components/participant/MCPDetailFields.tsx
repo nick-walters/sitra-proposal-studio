@@ -102,6 +102,14 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 /**
+ * A hairline between one field and the next, so a copy button reads as
+ * belonging to the field on its left. Purely visual: no extra spacing.
+ */
+export function FieldDivider() {
+  return <span aria-hidden className="self-stretch w-px bg-border shrink-0" />;
+}
+
+/**
  * One text field: placeholder instead of a heading, with a copy button beside
  * it. Dropdowns deliberately have no copy button.
  */
@@ -112,6 +120,7 @@ export function CompactTextField({
   placeholder,
   isEditing,
   type = 'text',
+  showDivider = true,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -119,10 +128,11 @@ export function CompactTextField({
   placeholder: string;
   isEditing: boolean;
   type?: string;
+  showDivider?: boolean;
 }) {
   const label = placeholder.replace('*', '');
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-stretch gap-0.5">
       {isEditing ? (
         <Input
           className={FIELD_CLASS}
@@ -136,10 +146,14 @@ export function CompactTextField({
       ) : (
         <ReadValue value={value} placeholder={placeholder} />
       )}
-      <CopyButton text={value} label={label} />
+      <span className="flex items-center">
+        <CopyButton text={value} label={label} />
+      </span>
+      {showDivider && <FieldDivider />}
     </div>
   );
 }
+
 
 interface MCPDetailFieldsProps {
   /** Draft values while editing; the stored values when read-only. */
@@ -157,8 +171,9 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
   return (
     <div className="mt-1 space-y-1 border-t pt-1">
       {/* Gender, Position in organisation, Website */}
-      <div className="flex flex-wrap items-center gap-1">
-        <div className="w-32 shrink-0">
+      <div className="flex flex-wrap items-stretch gap-1">
+        <div className="w-32 shrink-0 flex items-stretch gap-0.5">
+          <div className="min-w-0 flex-1">
           {isEditing ? (
             <Select
               value={values.mainContactGender || ''}
@@ -178,6 +193,8 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
               <ReadValue value={genderLabel} placeholder="Gender*" />
             </div>
           )}
+          </div>
+          <FieldDivider />
         </div>
         <div className="min-w-0 flex-1 basis-56">
           <CompactTextField
@@ -193,9 +210,11 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
             onChange={(v) => onChange('mainContactWebsite', v)}
             placeholder="Website"
             isEditing={isEditing}
+            showDivider={false}
           />
         </div>
       </div>
+
 
       {/* Department */}
       <div className="space-y-1">
@@ -213,8 +232,10 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
             onChange={(v) => onChange('mainContactDepartment', v)}
             placeholder="Department*"
             isEditing={isEditing}
+            showDivider={false}
           />
         )}
+
       </div>
 
       {/* Address */}
@@ -228,13 +249,14 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
           Same as organisation address
         </label>
         {!useOrgAddress && (
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-stretch gap-1">
             <div className="min-w-0 flex-1 basis-full">
               <CompactTextField
                 value={values.mainContactStreet || ''}
                 onChange={(v) => onChange('mainContactStreet', v)}
                 placeholder="Street address*"
                 isEditing={isEditing}
+                showDivider={false}
               />
             </div>
             <div className="min-w-0 flex-1 basis-40">
@@ -266,6 +288,7 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
               )}
             </div>
           </div>
+
         )}
       </div>
     </div>

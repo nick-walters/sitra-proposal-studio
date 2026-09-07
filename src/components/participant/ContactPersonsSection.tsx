@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,7 +7,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -46,12 +45,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface SelectedPerson {
-  id: string;
-  full_name: string;
-  email: string | null;
-  default_role: string | null;
-}
 
 /** The editable fields of a contact card, as held while editing. */
 interface ContactEditValues {
@@ -108,8 +101,10 @@ export function ContactPersonsSection({
   researchers,
   onAddResearcher,
 }: ContactPersonsSectionProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
+  // A brand-new contact card is a local draft until it is saved; no empty row
+  // is ever written to the database.
+  const [addingContact, setAddingContact] = useState(false);
+
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [orderedMembers, setOrderedMembers] = useState<ParticipantMember[]>(members);
@@ -122,13 +117,8 @@ export function ContactPersonsSection({
     values: ContactEditValues;
     resolve: (confirmed: boolean) => void;
   } | null>(null);
-  const [newContact, setNewContact] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    wantsPlatformAccess: 'no' as 'yes' | 'no',
-  });
+
+
 
   // Sync access status: reconcile the stored flag with the real roles, in BOTH
   // directions. A contact who still holds a role must show as having access even
@@ -342,92 +332,54 @@ export function ContactPersonsSection({
     return true;
   };
 
-
-  const handlePersonSelect = (person: SelectedPerson | null) => {
-    setSelectedPerson(person);
-    if (person) {
-      const parts = person.full_name.split(' ');
-      setNewContact({
-        ...newContact,
-        firstName: parts[0] || '',
-        lastName: parts.slice(1).join(' ') || '',
-        email: person.email || '',
-      });
-    }
-  };
-
-  const handleAddContact = async () => {
-    if (!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.email.trim()) {
+  /**
+   * Saves a brand-new contact card. The row is only inserted here, on Save, so
+   * a discarded card leaves nothing behind. The insert helper assigns the next
+   * order_index, keeping the new contact last in the list.
+   */
+  const handleAddContact = async (values: ContactEditValues) => {
+    const firstName = values.firstName.trim();
+    const lastName = values.lastName.trim();
+    const email = values.email.trim();
+    if (!firstName || !lastName || !email) {
       toast.error('First name, last name and email are required');
-      return;
+      return false;
     }
 
-    const fullName = `${newContact.firstName.trim()} ${newContact.lastName.trim()}`;
-    let personId = selectedPerson?.id || null;
+    const fullName = `${firstName} ${lastName}`;
+    let personId: string | null = null;
 
-    if (!personId) {
-      const { data: newPerson, error } = await supabase
-        .from('people')
-        .insert({
-          full_name: fullName,
-          email: newContact.email.trim() || null,
-          default_role: null,
-        })
-        .select()
-        .single();
+    const { data: newPerson, error } = await supabase
+      .from('people')
+      .insert({
+        full_name: fullName,
+        email: email || null,
+        default_role: null,
+      })
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating person:', error);
-      } else {
-        personId = newPerson.id;
-      }
+    if (error) {
+      console.error('Error creating person:', error);
+    } else {
+      personId = newPerson.id;
     }
 
-    const newMember = {
+    onAddMember({
       participantId: participant.id,
       fullName,
-      email: newContact.email.trim(),
-      phone: newContact.phone.trim(),
+      email,
+      phone: stripPhoneSpaces(values.phone.trim()),
       personMonths: 0,
       isPrimaryContact: false,
-      wantsPlatformAccess: newContact.wantsPlatformAccess === 'yes',
+      wantsPlatformAccess: false,
       personId: personId || undefined,
-    };
+    } as Omit<ParticipantMember, 'id'>);
 
-    onAddMember(newMember);
-
-    // Auto-invite if coordinator/owner adds with access=yes
-    if (canGrant && newContact.wantsPlatformAccess === 'yes' && proposalId && proposalAcronym) {
-      // Wait briefly for the member to be persisted, then find and grant
-      setTimeout(async () => {
-        try {
-          // Look up the newly added member by email
-          const { data: newMembers } = await supabase
-            .from('participant_members')
-            .select('id')
-            .eq('participant_id', participant.id)
-            .eq('email', newContact.email.trim().toLowerCase())
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (newMembers && newMembers.length > 0) {
-            const fakeMember = {
-              id: newMembers[0].id,
-              email: newContact.email.trim(),
-              fullName,
-            } as ParticipantMember;
-            await handleGrantAccess(fakeMember);
-          }
-        } catch (err) {
-          console.error('Auto-invite failed:', err);
-        }
-      }, 500);
-    }
-
-    setNewContact({ firstName: '', lastName: '', email: '', phone: '', wantsPlatformAccess: 'no' });
-    setSelectedPerson(null);
-    setShowAddForm(false);
+    setAddingContact(false);
+    return true;
   };
+
 
   const handleSetMCP = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
@@ -630,7 +582,9 @@ export function ContactPersonsSection({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => setAddingContact(true)}
+              disabled={addingContact}
+
               className="gap-1"
             >
               <Plus className="w-4 h-4" />
@@ -640,79 +594,8 @@ export function ContactPersonsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Contact Form */}
-        {showAddForm && (
-          <Card className="border-dashed">
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>First name *</Label>
-                  <Input
-                    value={newContact.firstName}
-                    onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                    placeholder="First name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Last name *</Label>
-                  <Input
-                    value={newContact.lastName}
-                    onChange={(e) => setNewContact({ ...newContact, lastName: e.target.value })}
-                    placeholder="Last name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    placeholder="contact@organisation.eu"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input
-                    type="tel"
-                    value={newContact.phone}
-                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    onBlur={() => setNewContact((c) => ({ ...c, phone: stripPhoneSpaces(c.phone) }))}
-                    placeholder="+358..."
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Should this person have access to the proposal on Sitra Proposal Studio? *</Label>
-                  <Select
-                    value={newContact.wantsPlatformAccess}
-                    onValueChange={(v) => setNewContact({ ...newContact, wantsPlatformAccess: v as 'yes' | 'no' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no">No</SelectItem>
-                      <SelectItem value="yes">Yes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddContact}
-                  disabled={!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.email.trim()}
-                >
-                  Add Contact
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Contact List */}
-        {members.length === 0 && !showAddForm ? (
+        {members.length === 0 && !addingContact ? (
           <div className="text-center py-6 text-muted-foreground">
             <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No contact persons added yet</p>
@@ -743,10 +626,19 @@ export function ContactPersonsSection({
                     onUpdateParticipant={onUpdateParticipant}
                   />
                 ))}
+                {/* A brand-new contact: the same card, last in the list, already
+                    in edit mode. Nothing is written until Save. */}
+                {addingContact && (
+                  <NewContactCard
+                    onSave={handleAddContact}
+                    onDiscard={() => setAddingContact(false)}
+                  />
+                )}
               </div>
             </SortableContext>
           </DndContext>
         )}
+
 
         {/* Delete CP Confirmation */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
@@ -976,8 +868,25 @@ function SortableContactCard({
         </button>
 
         <div className="flex-1 min-w-0 space-y-1">
-          {/* Row 1: Title (main contact only), First name, Last name */}
-          <div className="flex flex-wrap items-center gap-1">
+          {/* Row 1: First name, Last name, Title (main contact only) */}
+          <div className="flex flex-wrap items-stretch gap-1">
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.firstName : firstName}
+                onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+                placeholder="First name*"
+                isEditing={isEditing}
+              />
+            </div>
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.lastName : lastName}
+                onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+                placeholder="Last name*"
+                isEditing={isEditing}
+                showDivider={isMCP}
+              />
+            </div>
             {isMCP && (
               <div className="w-[78px] shrink-0">
                 {isEditing ? (
@@ -1001,44 +910,43 @@ function SortableContactCard({
                 )}
               </div>
             )}
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
-              <CompactTextField
-                value={isEditing ? form.firstName : firstName}
-                onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
-                placeholder="First name*"
-                isEditing={isEditing}
-              />
-            </div>
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
-              <CompactTextField
-                value={isEditing ? form.lastName : lastName}
-                onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
-                placeholder="Last name*"
-                isEditing={isEditing}
-              />
-            </div>
           </div>
 
 
-          {/* Row 2: Email, Phone */}
-          <div className="grid gap-1 sm:grid-cols-2">
-            <CompactTextField
-              value={isEditing ? form.email : (member.email || '')}
-              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
-              placeholder="Email*"
-              type="email"
-              isEditing={isEditing}
-            />
-            <CompactTextField
-              value={isEditing ? form.phone : phoneValue}
-              onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
-              onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
-              placeholder="Phone*"
-              type="tel"
-              isEditing={isEditing}
-            />
+          {/* Row 2: Email, Phone, and the research checkbox aligned with them */}
+          <div className="flex flex-wrap items-stretch gap-1">
+            <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+              <CompactTextField
+                value={isEditing ? form.email : (member.email || '')}
+                onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                placeholder="Email*"
+                type="email"
+                isEditing={isEditing}
+              />
+            </div>
+            <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+              <CompactTextField
+                value={isEditing ? form.phone : phoneValue}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
+                placeholder="Phone*"
+                type="tel"
+                isEditing={isEditing}
+              />
+            </div>
+            <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              <Checkbox
+                checked={isResearcher}
+                disabled={!canEdit}
+                onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+                aria-label="Conducts research in the project"
+              />
+              <Users className="w-3.5 h-3.5" />
+              Conducts research in the project
+            </label>
           </div>
         </div>
+
 
 
 
@@ -1164,16 +1072,7 @@ function SortableContactCard({
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-            <Checkbox
-              checked={isResearcher}
-              disabled={!canEdit}
-              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-              aria-label="Will conduct research in the project"
-            />
-            <Users className="w-3.5 h-3.5" />
-            Will conduct research in the project
-          </label>
+
 
         </div>
         </div>
@@ -1192,6 +1091,132 @@ function SortableContactCard({
       </div>
 
 
+    </div>
+  );
+}
+
+/**
+ * A brand-new contact: the same card as every other, last in the list and
+ * already in edit mode. Nothing exists in the database until Save is pressed,
+ * so Discard simply removes the card.
+ */
+function NewContactCard({
+  onSave,
+  onDiscard,
+}: {
+  onSave: (values: ContactEditValues) => Promise<boolean>;
+  onDiscard: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<ContactEditValues>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div ref={ref}>
+      <div className="p-2 rounded-lg bg-primary/5 border border-transparent">
+        <div className="flex items-start gap-1">
+          <span className="mt-1 text-blue-600 opacity-40" aria-hidden>
+            <GripVertical className="w-4 h-4" />
+          </span>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+                <CompactTextField
+                  value={form.firstName}
+                  onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+                  placeholder="First name*"
+                  isEditing
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+                <CompactTextField
+                  value={form.lastName}
+                  onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+                  placeholder="Last name*"
+                  isEditing
+                  showDivider={false}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+                <CompactTextField
+                  value={form.email}
+                  onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                  placeholder="Email*"
+                  type="email"
+                  isEditing
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+                <CompactTextField
+                  value={form.phone}
+                  onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                  onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
+                  placeholder="Phone*"
+                  type="tel"
+                  isEditing
+                />
+              </div>
+              <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0 opacity-60">
+                <Checkbox checked={false} disabled aria-label="Conducts research in the project" />
+                <Users className="w-3.5 h-3.5" />
+                Conducts research in the project
+              </label>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
+              <Badge className="text-[10px] h-4 px-1.5 bg-muted text-muted-foreground border border-border hover:bg-muted">
+                Contact
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-primary"
+                onClick={() => { void save(); }}
+                disabled={saving}
+                aria-label="Save contact"
+                title="Save"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={onDiscard}
+                disabled={saving}
+                aria-label="Discard new contact"
+                title="Discard"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
