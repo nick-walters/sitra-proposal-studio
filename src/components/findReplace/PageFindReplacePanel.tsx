@@ -341,13 +341,13 @@ export function PageFindReplacePanel() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  disabled={total === 0 || busy}
+                  disabled={writableMatches === 0 || busy}
                   onClick={() => setConfirmOpen(true)}
                 >
                   <ReplaceAll className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Replace all</TooltipContent>
+              <TooltipContent>Replace all on this page</TooltipContent>
             </Tooltip>
           </div>
 
