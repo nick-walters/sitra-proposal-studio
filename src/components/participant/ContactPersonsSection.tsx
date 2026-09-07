@@ -24,7 +24,15 @@ import {
 import { User, Plus, Trash2, Crown, ShieldCheck, ShieldOff, Loader2, Users, GripVertical, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher, CONTACT_TITLES } from '@/types/participantDetails';
-import { MCPDetailFields, MCP_FIELD_KEYS, type MCPFields } from './MCPDetailFields';
+import {
+  MCPDetailFields,
+  MCP_FIELD_KEYS,
+  CompactTextField,
+  ReadValue,
+  SelectPlaceholder,
+  FIELD_CLASS,
+  type MCPFields,
+} from './MCPDetailFields';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
