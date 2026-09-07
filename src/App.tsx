@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { FeatureTourHost } from "@/components/tour/FeatureTourHost";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -88,6 +89,9 @@ const App = () => {
           <AuthProvider>
             <BrowserRouter>
               <ScrollToTop />
+              {/* Mounted once for every authenticated route so the profile
+                  menu can open the tour anywhere. */}
+              <FeatureTourHost />
               <AppRoutes />
             </BrowserRouter>
           </AuthProvider>
