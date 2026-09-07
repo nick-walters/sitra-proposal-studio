@@ -1,12 +1,16 @@
 /**
- * Page-wide find and replace.
+ * Find and replace across the proposal.
  *
- * Searches the STORED content of every field the page registered, so
- * collapsed blocks and unmounted editors are included. Navigation reveals a
- * match (expand, mount, scroll); replacement goes through each field's own
+ * SEARCH covers the STORED content of every field the open page registered
+ * PLUS the stored Part B content of every other section, so collapsed blocks,
+ * unmounted editors and sections that are not open are all included.
+ * Navigation reveals a match (open its section, expand, mount, scroll).
+ *
+ * REPLACE stays on the open page: it goes through each field's own
  * conflict-checked save path, and a rejected write is reported rather than
- * forced.
+ * forced. Matches from other sections are listed as read-only.
  */
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -40,6 +44,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageSearch } from '@/lib/findReplace/PageSearchProvider';
+import { useProposalWideFields } from '@/lib/findReplace/useProposalWideFields';
 import { replaceInField, searchFields, type FieldResult } from '@/lib/findReplace/search';
 import type { SearchOptions } from '@/lib/findReplace/types';
 
@@ -68,13 +73,21 @@ export function PageFindReplacePanel() {
 
   const open = ctx?.open ?? false;
 
+  /** Stored Part B content of every section, loaded only while the panel is open. */
+  const proposalWideFields = useProposalWideFields(open);
+
   const result = useMemo(() => {
     if (!ctx || !open || !query) return null;
     // refreshNonce is a deliberate dependency: re-read stored values after writes.
     void refreshNonce;
-    return searchFields(ctx.getFields(), query, options);
+    // The open page wins on any field it also holds: its copy is live and
+    // writable, the proposal-wide copy is a read-only snapshot of the store.
+    const pageFields = ctx.getFields();
+    const seen = new Set(pageFields.map((f) => f.id));
+    const merged = [...pageFields, ...proposalWideFields.filter((f) => !seen.has(f.id))];
+    return searchFields(merged, query, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, open, query, options, refreshNonce]);
+  }, [ctx, open, query, options, refreshNonce, proposalWideFields]);
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -87,6 +100,12 @@ export function PageFindReplacePanel() {
   const flat = result?.flat ?? [];
   const total = flat.length;
   const current = total > 0 ? flat[Math.min(currentIndex, total - 1)] : null;
+
+  /** Replace only ever touches the open page's own writable fields. */
+  const writableResults = (result?.results ?? []).filter((r) => r.field.save && !r.field.readOnly);
+  const writableMatches = writableResults.reduce((n, r) => n + r.matches.length, 0);
+  const otherSectionMatches = flat.filter((e) => !e.field.save || e.field.readOnly).length;
+  const currentIsWritable = !!current?.field.save && !current?.field.readOnly;
 
   const reveal = useCallback(async (index: number) => {
     const entry = flat[index];
@@ -172,7 +191,7 @@ export function PageFindReplacePanel() {
     setBusy(true);
     const outcome: ReplaceOutcome = { fieldsWritten: 0, matchesWritten: 0, conflicts: [], errors: [] };
     try {
-      for (const fieldResult of result.results) {
+      for (const fieldResult of result.results.filter((r) => r.field.save && !r.field.readOnly)) {
         const next = replaceInField(fieldResult, fieldResult.matches, query, replacement, options);
         await writeField(fieldResult, next, fieldResult.matches.length, outcome);
       }
@@ -260,7 +279,7 @@ export function PageFindReplacePanel() {
         >
           <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
           <Search className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium">Find &amp; replace on this page</span>
+          <span className="text-sm font-medium">Find across the proposal</span>
           <Button
             variant="ghost"
             size="icon"
@@ -276,7 +295,7 @@ export function PageFindReplacePanel() {
             <Input
               ref={inputRef}
               value={query}
-              placeholder="Find in every field on this page"
+              placeholder="Find in every Part B section"
               className="h-8"
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -304,13 +323,17 @@ export function PageFindReplacePanel() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  disabled={!current || busy}
+                  disabled={!currentIsWritable || busy}
                   onClick={() => void replaceCurrent()}
                 >
                   <Replace className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Replace this match</TooltipContent>
+              <TooltipContent>
+                {current && !currentIsWritable
+                  ? 'Open this section to replace here'
+                  : 'Replace this match'}
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -318,13 +341,13 @@ export function PageFindReplacePanel() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  disabled={total === 0 || busy}
+                  disabled={writableMatches === 0 || busy}
                   onClick={() => setConfirmOpen(true)}
                 >
                   <ReplaceAll className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Replace all</TooltipContent>
+              <TooltipContent>Replace all on this page</TooltipContent>
             </Tooltip>
           </div>
 
@@ -344,6 +367,11 @@ export function PageFindReplacePanel() {
               <Badge variant="outline" className="gap-1 text-[11px] font-normal">
                 <EyeOff className="h-3 w-3" />
                 {result?.hiddenMatches} in hidden blocks
+              </Badge>
+            )}
+            {otherSectionMatches > 0 && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                {otherSectionMatches} in other sections
               </Badge>
             )}
             <div className="ml-auto flex items-center gap-1">
@@ -410,11 +438,19 @@ export function PageFindReplacePanel() {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm">
                 <p>
-                  This replaces <strong>{total}</strong> {total === 1 ? 'match' : 'matches'} across{' '}
-                  <strong>{result?.fieldsWithMatches ?? 0}</strong>{' '}
-                  {result?.fieldsWithMatches === 1 ? 'field' : 'fields'}, including fields you have
-                  not opened.
+                  This replaces <strong>{writableMatches}</strong>{' '}
+                  {writableMatches === 1 ? 'match' : 'matches'} across{' '}
+                  <strong>{writableResults.length}</strong>{' '}
+                  {writableResults.length === 1 ? 'field' : 'fields'} on this page, including fields
+                  you have not opened.
                 </p>
+                {otherSectionMatches > 0 && (
+                  <p>
+                    <strong>{otherSectionMatches}</strong>{' '}
+                    {otherSectionMatches === 1 ? 'match' : 'matches'} in other sections are left
+                    untouched. Open the section to replace there.
+                  </p>
+                )}
                 {(result?.hiddenMatches ?? 0) > 0 && (
                   <p>
                     <strong>{result?.hiddenMatches}</strong>{' '}
