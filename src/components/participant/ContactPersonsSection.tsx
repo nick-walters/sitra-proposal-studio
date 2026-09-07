@@ -915,7 +915,8 @@ function SortableContactCard({
 
           {/* Row 2: Email, Phone, and the research checkbox aligned with them */}
           <div className="flex flex-wrap items-stretch gap-1">
-            <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+            <div className="min-w-0 flex-[2] basis-0 min-w-[320px]">
+
               <CompactTextField
                 value={isEditing ? form.email : (member.email || '')}
                 onChange={(v) => setForm((f) => ({ ...f, email: v }))}
@@ -1159,7 +1160,7 @@ function NewContactCard({
             </div>
 
             <div className="flex flex-wrap items-stretch gap-1">
-              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+              <div className="min-w-0 flex-[2] basis-0 min-w-[320px]">
                 <CompactTextField
                   value={form.email}
                   onChange={(v) => setForm((f) => ({ ...f, email: v }))}
