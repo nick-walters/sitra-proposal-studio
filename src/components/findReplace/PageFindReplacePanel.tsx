@@ -101,6 +101,12 @@ export function PageFindReplacePanel() {
   const total = flat.length;
   const current = total > 0 ? flat[Math.min(currentIndex, total - 1)] : null;
 
+  /** Replace only ever touches the open page's own writable fields. */
+  const writableResults = (result?.results ?? []).filter((r) => r.field.save && !r.field.readOnly);
+  const writableMatches = writableResults.reduce((n, r) => n + r.matches.length, 0);
+  const otherSectionMatches = flat.filter((e) => !e.field.save || e.field.readOnly).length;
+  const currentIsWritable = !!current?.field.save && !current?.field.readOnly;
+
   const reveal = useCallback(async (index: number) => {
     const entry = flat[index];
     if (!entry) return;
