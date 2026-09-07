@@ -63,7 +63,7 @@ const PHONE_PLACEHOLDER = 'Please add a phone number';
 const CW = {
   name: 'flex-1 basis-0 min-w-[106px]',
   title: 'w-[68px]',
-  email: 'flex-[2] basis-0 min-w-[300px]',
+  email: 'flex-[2] basis-0 min-w-[170px]',
   phone: 'flex-1 basis-0 min-w-[130px]',
 } as const;
 
