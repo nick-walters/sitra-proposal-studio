@@ -780,7 +780,7 @@ export function ContactPersonsSection({
             <AlertDialogHeader>
               <AlertDialogTitle>Remove Main Contact Person role?</AlertDialogTitle>
               <AlertDialogDescription>
-                The additional MCP details (phone, position, department) will be cleared and won't be stored. Are you sure you want to proceed?
+                The additional main contact details for this organisation — gender, position in organisation, website, department and address — will be cleared. Everything else on this contact card is kept.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
