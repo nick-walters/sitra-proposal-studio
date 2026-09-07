@@ -323,13 +323,17 @@ export function PageFindReplacePanel() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  disabled={!current || busy}
+                  disabled={!currentIsWritable || busy}
                   onClick={() => void replaceCurrent()}
                 >
                   <Replace className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Replace this match</TooltipContent>
+              <TooltipContent>
+                {current && !currentIsWritable
+                  ? 'Open this section to replace here'
+                  : 'Replace this match'}
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
