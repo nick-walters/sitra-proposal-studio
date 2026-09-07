@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePageSearch } from '@/lib/findReplace/PageSearchProvider';
+import { useProposalWideFields } from '@/lib/findReplace/useProposalWideFields';
 import { replaceInField, searchFields, type FieldResult } from '@/lib/findReplace/search';
 import type { SearchOptions } from '@/lib/findReplace/types';
 
