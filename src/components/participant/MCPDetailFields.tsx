@@ -171,8 +171,9 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
   return (
     <div className="mt-1 space-y-1 border-t pt-1">
       {/* Gender, Position in organisation, Website */}
-      <div className="flex flex-wrap items-center gap-1">
-        <div className="w-32 shrink-0">
+      <div className="flex flex-wrap items-stretch gap-1">
+        <div className="w-32 shrink-0 flex items-stretch gap-0.5">
+          <div className="min-w-0 flex-1">
           {isEditing ? (
             <Select
               value={values.mainContactGender || ''}
@@ -192,6 +193,8 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
               <ReadValue value={genderLabel} placeholder="Gender*" />
             </div>
           )}
+          </div>
+          <FieldDivider />
         </div>
         <div className="min-w-0 flex-1 basis-56">
           <CompactTextField
@@ -207,9 +210,11 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
             onChange={(v) => onChange('mainContactWebsite', v)}
             placeholder="Website"
             isEditing={isEditing}
+            showDivider={false}
           />
         </div>
       </div>
+
 
       {/* Department */}
       <div className="space-y-1">
