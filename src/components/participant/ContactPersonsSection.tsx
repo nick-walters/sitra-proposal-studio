@@ -61,10 +61,10 @@ const PHONE_PLACEHOLDER = 'Please add a phone number';
 
 /** Contact card field widths, defined once and shared by saved and new cards. */
 const CW = {
-  name: 'min-w-0 flex-1 basis-0 min-w-[106px]',
+  name: 'flex-1 basis-0 min-w-[106px]',
   title: 'w-[68px]',
-  email: 'min-w-0 flex-[2] basis-0 min-w-[300px]',
-  phone: 'min-w-0 flex-1 basis-0 min-w-[130px]',
+  email: 'flex-[2] basis-0 min-w-[300px]',
+  phone: 'flex-1 basis-0 min-w-[130px]',
 } as const;
 
 /**
