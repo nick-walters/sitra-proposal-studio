@@ -438,11 +438,19 @@ export function PageFindReplacePanel() {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm">
                 <p>
-                  This replaces <strong>{total}</strong> {total === 1 ? 'match' : 'matches'} across{' '}
-                  <strong>{result?.fieldsWithMatches ?? 0}</strong>{' '}
-                  {result?.fieldsWithMatches === 1 ? 'field' : 'fields'}, including fields you have
-                  not opened.
+                  This replaces <strong>{writableMatches}</strong>{' '}
+                  {writableMatches === 1 ? 'match' : 'matches'} across{' '}
+                  <strong>{writableResults.length}</strong>{' '}
+                  {writableResults.length === 1 ? 'field' : 'fields'} on this page, including fields
+                  you have not opened.
                 </p>
+                {otherSectionMatches > 0 && (
+                  <p>
+                    <strong>{otherSectionMatches}</strong>{' '}
+                    {otherSectionMatches === 1 ? 'match' : 'matches'} in other sections are left
+                    untouched. Open the section to replace there.
+                  </p>
+                )}
                 {(result?.hiddenMatches ?? 0) > 0 && (
                   <p>
                     <strong>{result?.hiddenMatches}</strong>{' '}
