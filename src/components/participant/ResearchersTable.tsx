@@ -283,6 +283,8 @@ function SortableResearcherCard({
   // owned by the contact card and stay read-only here.
   const linked = !!researcher.memberId;
   const editable = canEdit;
+  const careerStageLabel =
+    CAREER_STAGES.find((stage) => stage.value === researcher.careerStage)?.label || '';
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -546,7 +548,7 @@ function NewResearcherCard({
               <div className={`${W.title} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.title} onValueChange={(v) => commit('title', v)}>
-                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Title" title={researcher.title || 'Title'}>
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Title" title={draft.title || 'Title'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -586,7 +588,7 @@ function NewResearcherCard({
               <div className={`${W.gender} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.gender} onValueChange={(v) => commit('gender', v)}>
-                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Gender" title={researcher.gender || 'Gender'}>
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Gender" title={draft.gender || 'Gender'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -612,7 +614,7 @@ function NewResearcherCard({
               <div className={`${W.careerStage} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.careerStage} onValueChange={(v) => commit('careerStage', v)}>
-                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Career stage" title={careerStageLabel || 'Career stage'}>
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Career stage" title={CAREER_STAGES.find((stage) => stage.value === draft.careerStage)?.label || 'Career stage'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Career stage*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -627,7 +629,7 @@ function NewResearcherCard({
               <div className={`${W.role} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
                   <Select value={draft.roleInProject} onValueChange={(v) => commit('roleInProject', v)}>
-                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Role" title={researcher.roleInProject || 'Role of researcher'}>
+                    <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Role" title={draft.roleInProject || 'Role of researcher'}>
                       <SelectValue placeholder={<SelectPlaceholder text="Role*" />} />
                     </SelectTrigger>
                     <SelectContent>
@@ -649,7 +651,7 @@ function NewResearcherCard({
               </div>
               <div className={`${W.identifierType} shrink-0`}>
                 <Select value={draft.identifierType} onValueChange={(v) => commit('identifierType', v)}>
-                  <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Identifier type" title={researcher.identifierType || 'Type of identifier'}>
+                  <SelectTrigger className={PLAIN_SELECT_CLASS} hideArrow aria-label="Identifier type" title={draft.identifierType || 'Type of identifier'}>
                     <SelectValue placeholder={<SelectPlaceholder text="Identifier type" />} />
                   </SelectTrigger>
                   <SelectContent>
