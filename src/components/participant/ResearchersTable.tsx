@@ -49,14 +49,14 @@ const RESEARCHER_ROLES = ['Leading', 'Team member'] as const;
  */
 const W = {
   title: 'w-[68px]',
-  name: 'min-w-0 flex-1 basis-0 min-w-[88px]',
-  email: 'min-w-0 flex-1 basis-0 min-w-[126px]',
+  name: 'flex-1 basis-0 min-w-[88px]',
+  email: 'flex-1 basis-0 min-w-[126px]',
   gender: 'w-[104px]',
   nationality: 'w-[150px]',
   careerStage: 'w-[250px]',
   role: 'w-[131px]',
   /** Fills whatever is left on row two, so the row has no trailing gap. */
-  identifier: 'min-w-0 flex-1 basis-0 min-w-[188px]',
+  identifier: 'flex-1 basis-0 min-w-[188px]',
   identifierType: 'w-[125px]',
 } as const;
 
