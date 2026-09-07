@@ -9,3 +9,5 @@
 - [ ] Prompt 136 — Contact card rework: remove avatar, placeholder labels, MCP/access pills, copy buttons, pale blue cards, denser padding (ContactPersonsSection.tsx, MCPDetailFields.tsx)
 
 - Prompt 142: researcher cards rebuilt to contact-card conventions; contact Email widened; explicit insert trigger for new researcher drafts.
+
+- Prompt 143: card dropdown chevrons removed, width deltas applied from single shared width constants, overflow indent fix for selected values.
