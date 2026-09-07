@@ -976,8 +976,25 @@ function SortableContactCard({
         </button>
 
         <div className="flex-1 min-w-0 space-y-1">
-          {/* Row 1: Title (main contact only), First name, Last name */}
-          <div className="flex flex-wrap items-center gap-1">
+          {/* Row 1: First name, Last name, Title (main contact only) */}
+          <div className="flex flex-wrap items-stretch gap-1">
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.firstName : firstName}
+                onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+                placeholder="First name*"
+                isEditing={isEditing}
+              />
+            </div>
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.lastName : lastName}
+                onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+                placeholder="Last name*"
+                isEditing={isEditing}
+                showDivider={isMCP}
+              />
+            </div>
             {isMCP && (
               <div className="w-[78px] shrink-0">
                 {isEditing ? (
@@ -1001,44 +1018,43 @@ function SortableContactCard({
                 )}
               </div>
             )}
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
-              <CompactTextField
-                value={isEditing ? form.firstName : firstName}
-                onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
-                placeholder="First name*"
-                isEditing={isEditing}
-              />
-            </div>
-            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
-              <CompactTextField
-                value={isEditing ? form.lastName : lastName}
-                onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
-                placeholder="Last name*"
-                isEditing={isEditing}
-              />
-            </div>
           </div>
 
 
-          {/* Row 2: Email, Phone */}
-          <div className="grid gap-1 sm:grid-cols-2">
-            <CompactTextField
-              value={isEditing ? form.email : (member.email || '')}
-              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
-              placeholder="Email*"
-              type="email"
-              isEditing={isEditing}
-            />
-            <CompactTextField
-              value={isEditing ? form.phone : phoneValue}
-              onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
-              onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
-              placeholder="Phone*"
-              type="tel"
-              isEditing={isEditing}
-            />
+          {/* Row 2: Email, Phone, and the research checkbox aligned with them */}
+          <div className="flex flex-wrap items-stretch gap-1">
+            <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+              <CompactTextField
+                value={isEditing ? form.email : (member.email || '')}
+                onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                placeholder="Email*"
+                type="email"
+                isEditing={isEditing}
+              />
+            </div>
+            <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+              <CompactTextField
+                value={isEditing ? form.phone : phoneValue}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
+                placeholder="Phone*"
+                type="tel"
+                isEditing={isEditing}
+              />
+            </div>
+            <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              <Checkbox
+                checked={isResearcher}
+                disabled={!canEdit}
+                onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+                aria-label="Conducts research in the project"
+              />
+              <Users className="w-3.5 h-3.5" />
+              Conducts research in the project
+            </label>
           </div>
         </div>
+
 
 
 
