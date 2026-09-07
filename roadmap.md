@@ -7,3 +7,5 @@
 - [ ] Prompt 120: diagnose and fix false "another user is editing" warnings on task title/description.
 
 - [ ] Prompt 136 — Contact card rework: remove avatar, placeholder labels, MCP/access pills, copy buttons, pale blue cards, denser padding (ContactPersonsSection.tsx, MCPDetailFields.tsx)
+
+- Prompt 142: researcher cards rebuilt to contact-card conventions; contact Email widened; explicit insert trigger for new researcher drafts.

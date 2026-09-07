@@ -7,7 +7,6 @@ import { reorderParticipantResearchers } from '@/hooks/useParticipantDetails';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,14 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Users, HelpCircle, BookOpen, GripVertical } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Plus, Trash2, Users, GripVertical, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +26,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  CopyButton,
+  FieldDivider,
+  ReadValue,
+  SelectPlaceholder,
+  FIELD_CLASS,
+} from './MCPDetailFields';
+import {
   ParticipantResearcher,
   CAREER_STAGES,
   CONTACT_TITLES,
@@ -43,6 +42,37 @@ import {
 import { CountrySelect } from '@/components/CountrySelect';
 
 const RESEARCHER_ROLES = ['Leading', 'Team member'] as const;
+
+/** The country picker forced to the shared field height and font. */
+const COUNTRY_FIELD_CLASS =
+  'h-7 text-sm px-2 font-normal [&>svg]:h-3 [&>svg]:w-3';
+
+/** The editable shape of a researcher card, used for drafts and for edits. */
+type ResearcherDraft = {
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  gender: string;
+  nationality: string;
+  careerStage: string;
+  roleInProject: string;
+  referenceIdentifier: string;
+  identifierType: string;
+};
+
+const emptyDraft = (): ResearcherDraft => ({
+  title: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  gender: '',
+  nationality: '',
+  careerStage: '',
+  roleInProject: '',
+  referenceIdentifier: '',
+  identifierType: '',
+});
 
 interface ResearchersTableProps {
   researchers: ParticipantResearcher[];
@@ -59,23 +89,13 @@ export function ResearchersTable({
   onDelete,
   canEdit,
 }: ResearchersTableProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
+  // A brand-new researcher is a local draft. Nothing is written until the first
+  // real value is committed, so an added-then-discarded card leaves no row.
+  const [addingResearcher, setAddingResearcher] = useState(false);
   const [orderedResearchers, setOrderedResearchers] = useState(researchers);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  
+
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
-  const [newResearcher, setNewResearcher] = useState({
-    title: '',
-    firstName: '',
-    lastName: '',
-    gender: '',
-    nationality: '',
-    email: '',
-    careerStage: '',
-    roleInProject: '',
-    referenceIdentifier: '',
-    identifierType: '',
-  });
 
   useEffect(() => {
     setOrderedResearchers((current) => {
@@ -110,30 +130,18 @@ export function ResearchersTable({
     if (!persisted) setOrderedResearchers(previous);
   };
 
-  const handleAdd = () => {
-    if (!newResearcher.firstName.trim() || !newResearcher.lastName.trim()) {
-      return;
-    }
-
+  /**
+   * The insert for a brand-new researcher. Called by the draft card the moment
+   * its first real value is committed, so the typed card survives a reload
+   * without any save button, while an untouched card writes nothing.
+   */
+  const handleCreate = (draft: ResearcherDraft) => {
     onAdd({
-      ...newResearcher,
+      ...draft,
       participantId: '',
       orderIndex: researchers.length,
-    });
-
-    setNewResearcher({
-      title: '',
-      firstName: '',
-      lastName: '',
-      gender: '',
-      nationality: '',
-      email: '',
-      careerStage: '',
-      roleInProject: '',
-      referenceIdentifier: '',
-      identifierType: '',
-    });
-    setShowAddForm(false);
+    } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
+    setAddingResearcher(false);
   };
 
   return (
@@ -153,7 +161,8 @@ export function ResearchersTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => setAddingResearcher(true)}
+              disabled={addingResearcher}
               className="gap-1"
             >
               <Plus className="w-4 h-4" />
@@ -163,301 +172,31 @@ export function ResearchersTable({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Form */}
-        {showAddForm && (
-          <Card className="border-dashed">
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid min-w-0 grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
-                <div className="space-y-1">
-                  <Label>Title</Label>
-                  <Select
-                    value={newResearcher.title}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, title: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONTACT_TITLES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>First Name *</Label>
-                  <Input
-                    value={newResearcher.firstName}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, firstName: e.target.value })}
-                    placeholder="First name"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Last Name *</Label>
-                  <Input
-                    value={newResearcher.lastName}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, lastName: e.target.value })}
-                    placeholder="Last name"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Gender</Label>
-                  <Select
-                    value={newResearcher.gender}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, gender: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GENDER_OPTIONS.map((g) => (
-                        <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Nationality</Label>
-                  <CountrySelect
-                    value={newResearcher.nationality}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, nationality: v })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>E-mail</Label>
-                  <Input
-                    type="email"
-                    value={newResearcher.email}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, email: e.target.value })}
-                    placeholder="researcher@university.eu"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1">
-                    Career Stage
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <button type="button" className="text-destructive hover:text-destructive/80">
-                          <HelpCircle className="w-3.5 h-3.5" />
-                        </button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <BookOpen className="w-5 h-5" />
-                            Career stage Definitions
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 text-sm">
-                          <p className="text-muted-foreground">Career stages as defined in Frascati 2015 manual:</p>
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-semibold">Category A – Top grade researcher</p>
-                              <p className="text-muted-foreground">The single highest grade/post at which research is normally conducted. Example: 'Full professor' or 'Director of research'.</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold">Category B – Senior researcher</p>
-                              <p className="text-muted-foreground">Researchers working in positions not as senior as top position but more senior than newly qualified doctoral graduates (ISCED level 8). Examples: 'associate professor' or 'senior researcher' or 'principal investigator'.</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold">Category C – Recognised researcher</p>
-                              <p className="text-muted-foreground">The first grade/post into which a newly qualified doctoral graduate would normally be recruited. Examples: 'assistant professor', 'investigator' or 'postdoctoral fellow'.</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold">Category D – First stage researcher</p>
-                              <p className="text-muted-foreground">Either doctoral students at the ISCED level 8 who are engaged as researchers, or researchers working in posts that do not normally require a doctorate degree. Examples: 'PhD students' or 'junior researchers' (without a PhD).</p>
-                            </div>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </Label>
-                  <Select
-                    value={newResearcher.careerStage}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, careerStage: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CAREER_STAGES.map((stage) => (
-                        <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Role of researcher</Label>
-                  <Select
-                    value={newResearcher.roleInProject}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, roleInProject: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RESEARCHER_ROLES.map((role) => (
-                        <SelectItem key={role} value={role}>{role}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Reference Identifier</Label>
-                  <Input
-                    value={newResearcher.referenceIdentifier}
-                    onChange={(e) => setNewResearcher({ ...newResearcher, referenceIdentifier: e.target.value })}
-                    placeholder="e.g., 0000-0001-2345-6789"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Type of identifier</Label>
-                  <Select
-                    value={newResearcher.identifierType}
-                    onValueChange={(v) => setNewResearcher({ ...newResearcher, identifierType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {IDENTIFIER_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAdd} disabled={!newResearcher.firstName.trim() || !newResearcher.lastName.trim()}>
-                  Add Researcher
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Researchers */}
-        {researchers.length === 0 && !showAddForm ? (
+        {researchers.length === 0 && !addingResearcher ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No researchers added yet</p>
             <p className="text-xs mt-1">Add researchers who will be involved in the project</p>
           </div>
-        ) : researchers.length > 0 && (
+        ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={orderedResearchers.map((researcher) => researcher.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-3">
                 {orderedResearchers.map((researcher) => (
-                  <SortableResearcher key={researcher.id} id={researcher.id} disabled={!canEdit}>
-                    {(attributes, listeners) => <>
-                <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
-                  {canEdit ? (
-                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-blue-600" {...attributes} {...listeners} aria-label="Drag to reorder researcher" title="Drag to reorder researcher">
-                      <GripVertical className="h-4 w-4" />
-                    </Button>
-                  ) : <span />}
-                  {canEdit && !researcher.memberId && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
-                      aria-label="Delete researcher"
-                      title="Delete researcher"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="min-w-0 space-y-3">
-                  {/* Row 1: Title, First Name, Last Name, E-mail, Gender, Nationality */}
-                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
-                  <ResearcherField label="Title" value={researcher.title} className="w-[88px] shrink-0">
-                    {canEdit && !researcher.memberId && (
-                      <Select value={researcher.title || undefined} onValueChange={(v) => onUpdate(researcher.id, { title: v })}>
-                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {CONTACT_TITLES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </ResearcherField>
-                  {/* researcher.memberId set => mirrored from a contact person:
-                      title, name and email are owned by the contact card and read-only here. */}
-                  <ResearcherField label="First Name" value={researcher.firstName} className="min-w-0 flex-1 basis-24">
-                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.firstName} placeholder="First Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }} />}
-                  </ResearcherField>
-                  <ResearcherField label="Last Name" value={researcher.lastName} className="min-w-0 flex-1 basis-24">
-                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.lastName} placeholder="Last Name" onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }} />}
-                  </ResearcherField>
-                  <ResearcherField label="E-mail" value={researcher.email} className="min-w-0 flex-1 basis-40">
-                    {canEdit && !researcher.memberId && <DebouncedCell value={researcher.email || ''} placeholder="E-mail" type="email" onCommit={(v) => onUpdate(researcher.id, { email: v })} />}
-                  </ResearcherField>
-                  <ResearcherField label="Gender" value={researcher.gender} className="w-[112px] shrink-0">
-                    {canEdit && (
-                      <Select value={researcher.gender || undefined} onValueChange={(v) => onUpdate(researcher.id, { gender: v })}>
-                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {GENDER_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </ResearcherField>
-                  <ResearcherField label="Nationality" value={researcher.nationality} className="w-[152px] shrink-0">
-                    {canEdit && <CountrySelect value={researcher.nationality || ''} onValueChange={(v) => onUpdate(researcher.id, { nationality: v })} />}
-                  </ResearcherField>
-                  </div>
-
-                  {/* Row 2: Career Stage, Role of researcher, Reference Identifier, Type of identifier */}
-                  <div className="flex min-w-0 flex-wrap items-start gap-x-3 gap-y-3">
-                  <ResearcherField label="Career Stage" value={researcher.careerStage} className="w-[240px] shrink-0">
-                    {canEdit && (
-                      <Select value={researcher.careerStage || undefined} onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}>
-                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {CAREER_STAGES.map((stage) => <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </ResearcherField>
-                  <ResearcherField label="Role of researcher" value={researcher.roleInProject} className="w-36 shrink-0">
-                    {canEdit && (
-                      <Select
-                        value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : undefined}
-                        onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
-                      >
-                        <SelectTrigger className="h-8 w-full text-xs">
-                          <SelectValue placeholder={researcher.roleInProject || 'Select role'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RESEARCHER_ROLES.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </ResearcherField>
-                  <ResearcherField label="Reference Identifier" value={researcher.referenceIdentifier} className="w-[168px] shrink-0">
-                    {canEdit && <DebouncedCell value={researcher.referenceIdentifier || ''} placeholder="Reference Identifier" onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })} />}
-                  </ResearcherField>
-                  <ResearcherField label="Type of identifier" value={researcher.identifierType} className="w-[136px] shrink-0">
-                    {canEdit && (
-                      <Select value={researcher.identifierType || undefined} onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}>
-                        <SelectTrigger className="h-8 w-full text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {IDENTIFIER_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </ResearcherField>
-                  </div>
-                </div>
-
-                    </>}
-                  </SortableResearcher>
+                  <SortableResearcherCard
+                    key={researcher.id}
+                    researcher={researcher}
+                    canEdit={canEdit}
+                    onUpdate={onUpdate}
+                    onRequestDelete={(id, name) => setDeleteConfirm({ id, name })}
+                  />
                 ))}
+                {addingResearcher && (
+                  <NewResearcherCard
+                    onCreate={handleCreate}
+                    onDiscard={() => setAddingResearcher(false)}
+                  />
+                )}
               </div>
             </SortableContext>
           </DndContext>
@@ -493,70 +232,450 @@ export function ResearchersTable({
   );
 }
 
-function ResearcherField({
-  label,
-  value,
-  children,
-  className,
+/**
+ * One saved researcher card: the contact card's shell, always editable, with
+ * the fields sitting between the grip and the delete control.
+ */
+function SortableResearcherCard({
+  researcher,
+  canEdit,
+  onUpdate,
+  onRequestDelete,
 }: {
-  label: string;
-  value?: string;
-  children?: React.ReactNode;
-  className?: string;
+  researcher: ParticipantResearcher;
+  canEdit: boolean;
+  onUpdate: (id: string, updates: Partial<ParticipantResearcher>) => void;
+  onRequestDelete: (id: string, name: string) => void;
 }) {
-  return (
-    <div className={`min-w-0 space-y-1 ${className ?? ''}`}>
-      <Label className="block text-xs leading-4">{label}</Label>
-      {children ? children : <p className="flex min-h-8 items-center break-words text-xs">{value || '—'}</p>}
-    </div>
-  );
-}
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: researcher.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 };
 
-function SortableResearcher({
-  id,
-  disabled,
-  children,
-}: {
-  id: string;
-  disabled: boolean;
-  children: (
-    attributes: ReturnType<typeof useSortable>['attributes'],
-    listeners: ReturnType<typeof useSortable>['listeners'],
-  ) => React.ReactNode;
-}) {
-  const sortable = useSortable({ id, disabled });
-  const style = {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.55 : 1,
-  };
+  // A linked researcher mirrors a contact person: title, name and email are
+  // owned by the contact card and stay read-only here.
+  const linked = !!researcher.memberId;
+  const editable = canEdit;
+
   return (
-    <div ref={sortable.setNodeRef} style={style} className="min-w-0 rounded-lg bg-muted/50 p-3">
-      {children(sortable.attributes, sortable.listeners)}
+    <div ref={setNodeRef} style={style}>
+      <div className="p-2 rounded-lg bg-primary/5 border border-transparent">
+        <div className="flex items-start gap-1">
+          <button
+            type="button"
+            className="mt-1 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
+            aria-label="Reorder researcher"
+            title="Drag to reorder"
+            disabled={!canEdit}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            {/* Row 1: Title, First name, Last name, Email, Gender, Nationality */}
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="w-[78px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  {editable && !linked ? (
+                    <Select
+                      value={researcher.title || ''}
+                      onValueChange={(v) => onUpdate(researcher.id, { title: v })}
+                    >
+                      <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                        <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTACT_TITLES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center">
+                      <ReadValue value={researcher.title} placeholder="Title*" />
+                    </div>
+                  )}
+                </div>
+                <FieldDivider />
+              </div>
+
+              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+                <DebouncedTextField
+                  value={researcher.firstName || ''}
+                  placeholder="First name*"
+                  editable={editable && !linked}
+                  onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+                <DebouncedTextField
+                  value={researcher.lastName || ''}
+                  placeholder="Last name*"
+                  editable={editable && !linked}
+                  onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+                <DebouncedTextField
+                  value={researcher.email || ''}
+                  placeholder="Email*"
+                  type="email"
+                  editable={editable && !linked}
+                  onCommit={(v) => onUpdate(researcher.id, { email: v })}
+                />
+              </div>
+
+              <div className="w-[123px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  {editable ? (
+                    <Select
+                      value={researcher.gender || ''}
+                      onValueChange={(v) => onUpdate(researcher.id, { gender: v })}
+                    >
+                      <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
+                        <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENDER_OPTIONS.map((g) => (
+                          <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center">
+                      <ReadValue value={researcher.gender} placeholder="Gender*" />
+                    </div>
+                  )}
+                </div>
+                <FieldDivider />
+              </div>
+
+              <div className="w-[197px] shrink-0">
+                {editable ? (
+                  <CountrySelect
+                    value={researcher.nationality || ''}
+                    onValueChange={(v) => onUpdate(researcher.id, { nationality: v })}
+                    placeholder="Nationality*"
+                    className={COUNTRY_FIELD_CLASS}
+                  />
+                ) : (
+                  <div className="flex items-center">
+                    <ReadValue value={researcher.nationality} placeholder="Nationality*" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Career stage, Role, Reference identifier, Type of identifier */}
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="w-[240px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  {editable ? (
+                    <Select
+                      value={researcher.careerStage || ''}
+                      onValueChange={(v) => onUpdate(researcher.id, { careerStage: v })}
+                    >
+                      <SelectTrigger className={FIELD_CLASS} aria-label="Career stage">
+                        <SelectValue placeholder={<SelectPlaceholder text="Career stage*" />} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CAREER_STAGES.map((stage) => (
+                          <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center">
+                      <ReadValue value={researcher.careerStage} placeholder="Career stage*" />
+                    </div>
+                  )}
+                </div>
+                <FieldDivider />
+              </div>
+
+              <div className="w-[136px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  {editable ? (
+                    <Select
+                      value={RESEARCHER_ROLES.includes(researcher.roleInProject as typeof RESEARCHER_ROLES[number]) ? researcher.roleInProject : ''}
+                      onValueChange={(v) => onUpdate(researcher.id, { roleInProject: v })}
+                    >
+                      <SelectTrigger className={FIELD_CLASS} aria-label="Role">
+                        <SelectValue placeholder={<SelectPlaceholder text="Role*" />} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RESEARCHER_ROLES.map((role) => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center">
+                      <ReadValue value={researcher.roleInProject} placeholder="Role*" />
+                    </div>
+                  )}
+                </div>
+                <FieldDivider />
+              </div>
+
+              <div className="w-[188px] shrink-0">
+                <DebouncedTextField
+                  value={researcher.referenceIdentifier || ''}
+                  placeholder="Identifier"
+                  editable={editable}
+                  onCommit={(v) => onUpdate(researcher.id, { referenceIdentifier: v })}
+                />
+              </div>
+
+              <div className="w-[131px] shrink-0">
+                {editable ? (
+                  <Select
+                    value={researcher.identifierType || ''}
+                    onValueChange={(v) => onUpdate(researcher.id, { identifierType: v })}
+                  >
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Identifier type">
+                      <SelectValue placeholder={<SelectPlaceholder text="Identifier type" />} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {IDENTIFIER_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center">
+                    <ReadValue value={researcher.identifierType} placeholder="Identifier type" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
+              {canEdit && !linked && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive h-7 w-7"
+                  onClick={() => onRequestDelete(researcher.id, `${researcher.firstName} ${researcher.lastName}`.trim())}
+                  aria-label="Delete"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 /**
- * Editable child-row cell: local state while typing, a 350 ms trailing commit
- * plus a commit on blur. The server value is only reseeded when the field is
- * unfocused and has nothing pending, so a slow write can never yank text out
- * from under the cursor.
+ * A brand-new researcher: the same card, last in the list and immediately
+ * editable. Researcher cards have no save button, so the row is inserted the
+ * moment the FIRST value is committed in ANY field — a debounced keystroke,
+ * a blur, or a dropdown choice. Everything typed before that moment is held
+ * locally and written with that first insert, so nothing is lost. A card that
+ * is added and then discarded, or added and left untouched, writes nothing.
  */
-function DebouncedCell({
+function NewResearcherCard({
+  onCreate,
+  onDiscard,
+}: {
+  onCreate: (draft: ResearcherDraft) => void;
+  onDiscard: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [draft, setDraft] = useState<ResearcherDraft>(emptyDraft);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  /** Records a value and, as soon as anything real is entered, inserts the row. */
+  const commit = (field: keyof ResearcherDraft, value: string) => {
+    const next = { ...draftRef.current, [field]: value };
+    setDraft(next);
+    if (value.trim()) onCreate(next);
+  };
+
+  return (
+    <div ref={ref}>
+      <div className="p-2 rounded-lg bg-primary/5 border border-transparent">
+        <div className="flex items-start gap-1">
+          <span className="mt-1 text-blue-600 opacity-40" aria-hidden>
+            <GripVertical className="w-4 h-4" />
+          </span>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="w-[78px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  <Select value={draft.title} onValueChange={(v) => commit('title', v)}>
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                      <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTACT_TITLES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <FieldDivider />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+                <DebouncedTextField
+                  value={draft.firstName}
+                  placeholder="First name*"
+                  editable
+                  onCommit={(v) => commit('firstName', v)}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+                <DebouncedTextField
+                  value={draft.lastName}
+                  placeholder="Last name*"
+                  editable
+                  onCommit={(v) => commit('lastName', v)}
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+                <DebouncedTextField
+                  value={draft.email}
+                  placeholder="Email*"
+                  type="email"
+                  editable
+                  onCommit={(v) => commit('email', v)}
+                />
+              </div>
+              <div className="w-[123px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  <Select value={draft.gender} onValueChange={(v) => commit('gender', v)}>
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Gender">
+                      <SelectValue placeholder={<SelectPlaceholder text="Gender*" />} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENDER_OPTIONS.map((g) => (
+                        <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <FieldDivider />
+              </div>
+              <div className="w-[197px] shrink-0">
+                <CountrySelect
+                  value={draft.nationality}
+                  onValueChange={(v) => commit('nationality', v)}
+                  placeholder="Nationality*"
+                  className={COUNTRY_FIELD_CLASS}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="w-[240px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  <Select value={draft.careerStage} onValueChange={(v) => commit('careerStage', v)}>
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Career stage">
+                      <SelectValue placeholder={<SelectPlaceholder text="Career stage*" />} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CAREER_STAGES.map((stage) => (
+                        <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <FieldDivider />
+              </div>
+              <div className="w-[136px] shrink-0 flex items-stretch gap-0.5">
+                <div className="min-w-0 flex-1">
+                  <Select value={draft.roleInProject} onValueChange={(v) => commit('roleInProject', v)}>
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Role">
+                      <SelectValue placeholder={<SelectPlaceholder text="Role*" />} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESEARCHER_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <FieldDivider />
+              </div>
+              <div className="w-[188px] shrink-0">
+                <DebouncedTextField
+                  value={draft.referenceIdentifier}
+                  placeholder="Identifier"
+                  editable
+                  onCommit={(v) => commit('referenceIdentifier', v)}
+                />
+              </div>
+              <div className="w-[131px] shrink-0">
+                <Select value={draft.identifierType} onValueChange={(v) => commit('identifierType', v)}>
+                  <SelectTrigger className={FIELD_CLASS} aria-label="Identifier type">
+                    <SelectValue placeholder={<SelectPlaceholder text="Identifier type" />} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IDENTIFIER_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={onDiscard}
+                aria-label="Discard new researcher"
+                title="Discard"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One always-editable text field: the contact cards' compact input, with the
+ * same copy button and hairline divider, saved on a 350 ms trailing commit and
+ * flushed on blur. The server value is only reseeded when the field is
+ * unfocused with nothing pending, so a slow write never yanks text away.
+ */
+function DebouncedTextField({
   value,
   onCommit,
   placeholder,
+  editable,
   type = 'text',
 }: {
   value: string;
   onCommit: (value: string) => void;
-  placeholder?: string;
+  placeholder: string;
+  editable: boolean;
   type?: string;
 }) {
   const [local, setLocal] = useState(value ?? '');
   const focusedRef = useRef(false);
   const pendingRef = useRef(false);
+  const label = placeholder.replace('*', '');
 
   const { push, flush } = useDebouncedSave<string>((v) => {
     pendingRef.current = false;
@@ -570,21 +689,32 @@ function DebouncedCell({
   }, [value]);
 
   return (
-    <Input
-      className="h-8 text-xs"
-      type={type}
-      placeholder={placeholder}
-      value={local}
-      onFocus={() => { focusedRef.current = true; }}
-      onChange={(e) => {
-        setLocal(e.target.value);
-        pendingRef.current = true;
-        push(e.target.value);
-      }}
-      onBlur={() => {
-        focusedRef.current = false;
-        flush();
-      }}
-    />
+    <div className="flex items-stretch gap-0.5">
+      {editable ? (
+        <Input
+          className={FIELD_CLASS}
+          type={type}
+          placeholder={placeholder}
+          aria-label={label}
+          value={local}
+          onFocus={() => { focusedRef.current = true; }}
+          onChange={(e) => {
+            setLocal(e.target.value);
+            pendingRef.current = true;
+            push(e.target.value);
+          }}
+          onBlur={() => {
+            focusedRef.current = false;
+            flush();
+          }}
+        />
+      ) : (
+        <ReadValue value={local} placeholder={placeholder} />
+      )}
+      <span className="flex items-center">
+        <CopyButton text={local} label={label} />
+      </span>
+      <FieldDivider />
+    </div>
   );
 }
