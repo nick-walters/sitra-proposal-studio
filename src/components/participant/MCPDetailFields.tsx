@@ -249,13 +249,14 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
           Same as organisation address
         </label>
         {!useOrgAddress && (
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-stretch gap-1">
             <div className="min-w-0 flex-1 basis-full">
               <CompactTextField
                 value={values.mainContactStreet || ''}
                 onChange={(v) => onChange('mainContactStreet', v)}
                 placeholder="Street address*"
                 isEditing={isEditing}
+                showDivider={false}
               />
             </div>
             <div className="min-w-0 flex-1 basis-40">
@@ -287,6 +288,7 @@ export function MCPDetailFields({ values, onChange, isEditing }: MCPDetailFields
               )}
             </div>
           </div>
+
         )}
       </div>
     </div>
