@@ -108,8 +108,10 @@ export function ContactPersonsSection({
   researchers,
   onAddResearcher,
 }: ContactPersonsSectionProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
+  // A brand-new contact card is a local draft until it is saved; no empty row
+  // is ever written to the database.
+  const [addingContact, setAddingContact] = useState(false);
+
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [orderedMembers, setOrderedMembers] = useState<ParticipantMember[]>(members);
@@ -122,13 +124,8 @@ export function ContactPersonsSection({
     values: ContactEditValues;
     resolve: (confirmed: boolean) => void;
   } | null>(null);
-  const [newContact, setNewContact] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    wantsPlatformAccess: 'no' as 'yes' | 'no',
-  });
+
+
 
   // Sync access status: reconcile the stored flag with the real roles, in BOTH
   // directions. A contact who still holds a role must show as having access even
