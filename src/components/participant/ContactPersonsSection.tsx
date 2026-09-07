@@ -942,13 +942,22 @@ function SortableContactCard({
 
   const phoneValue = memberPhone;
 
+  const accessTooltip = hasAccess
+    ? 'Revoke access to Sitra Proposal Studio'
+    : 'Grant access to Sitra Proposal Studio';
+  const mcpTooltip = isMCP
+    ? 'Remove as main contact person'
+    : hasMCP
+      ? 'Make main contact person (replaces current MCP)'
+      : 'Make main contact person';
+
   return (
     <div ref={setNodeRef} style={style}>
-      <div className={`p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
-        <div className="flex items-start gap-3">
+      <div className={`p-2 rounded-lg bg-primary/5 border ${isMCP ? 'border-primary/20' : 'border-transparent'}`}>
+        <div className="flex items-start gap-1">
         <button
           type="button"
-          className="mt-2 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
+          className="mt-1 text-blue-600 cursor-grab active:cursor-grabbing disabled:opacity-40"
           aria-label="Reorder contact"
           title="Drag to reorder"
           disabled={!canEdit}
@@ -958,23 +967,18 @@ function SortableContactCard({
           <GripVertical className="w-4 h-4" />
         </button>
 
-        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${isMCP ? 'bg-primary/20' : 'bg-primary/10'}`}>
-          <span className="text-sm font-medium text-primary">{initials}</span>
-        </div>
-
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 space-y-1">
           {/* Row 1: Title (main contact only), First name, Last name */}
-          <div className="flex flex-wrap items-start gap-2">
+          <div className="flex flex-wrap items-center gap-1">
             {isMCP && (
-              <div className="w-[88px] shrink-0">
-                <Label className="text-xs">Title</Label>
+              <div className="w-[78px] shrink-0">
                 {isEditing ? (
                   <Select
                     value={form.title || ''}
                     onValueChange={(v) => setForm((f) => ({ ...f, title: v }))}
                   >
-                    <SelectTrigger className="h-8 text-sm" aria-label="Title">
-                      <SelectValue placeholder="Select" />
+                    <SelectTrigger className={FIELD_CLASS} aria-label="Title">
+                      <SelectValue placeholder={<SelectPlaceholder text="Title*" />} />
                     </SelectTrigger>
                     <SelectContent>
                       {CONTACT_TITLES.map((t) => (
@@ -983,83 +987,78 @@ function SortableContactCard({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="h-8 flex items-center text-sm truncate">{memberTitle}</p>
+                  <div className="flex items-center">
+                    <ReadValue value={memberTitle} placeholder="Title*" />
+                  </div>
                 )}
               </div>
             )}
-            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
-              <Label className="text-xs">First name *</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  value={form.firstName}
-                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                  aria-label="First name"
-                />
-              ) : (
-                <p className="h-8 flex items-center text-sm truncate">{firstName}</p>
-              )}
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.firstName : firstName}
+                onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+                placeholder="First name*"
+                isEditing={isEditing}
+              />
             </div>
-            <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
-              <Label className="text-xs">Last name *</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  value={form.lastName}
-                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                  aria-label="Last name"
-                />
-              ) : (
-                <p className="h-8 flex items-center text-sm truncate">{lastName}</p>
-              )}
+            <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+              <CompactTextField
+                value={isEditing ? form.lastName : lastName}
+                onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+                placeholder="Last name*"
+                isEditing={isEditing}
+              />
             </div>
           </div>
 
 
           {/* Row 2: Email, Phone */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs">Email *</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  aria-label="Email"
-                />
-              ) : (
-                <p className="h-8 flex items-center text-sm truncate">{member.email || ''}</p>
-              )}
-            </div>
-            <div>
-              <Label className="text-xs">Phone</Label>
-              {isEditing ? (
-                <Input
-                  className="h-8 text-sm"
-                  type="tel"
-                  value={form.phone}
-                  placeholder={PHONE_PLACEHOLDER}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
-                  aria-label="Phone"
-                />
-              ) : phoneValue ? (
-                <p className="h-8 flex items-center text-sm truncate">{phoneValue}</p>
-              ) : (
-                <p className="h-8 flex items-center text-sm italic text-muted-foreground/70 truncate">
-                  {PHONE_PLACEHOLDER}
-                </p>
-              )}
-            </div>
+          <div className="grid gap-1 sm:grid-cols-2">
+            <CompactTextField
+              value={isEditing ? form.email : (member.email || '')}
+              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+              placeholder="Email*"
+              type="email"
+              isEditing={isEditing}
+            />
+            <CompactTextField
+              value={isEditing ? form.phone : phoneValue}
+              onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+              onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
+              placeholder="Phone*"
+              type="tel"
+              isEditing={isEditing}
+            />
           </div>
         </div>
 
 
 
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <div className="flex flex-col items-end gap-1 shrink-0">
           <div className="flex items-center gap-1">
-            {isMCP && <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>}
+            {/* Main contact person: one pill, no crown. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  disabled={!canEdit}
+                  onClick={() => onSetMCP(member.id)}
+                  aria-label={mcpTooltip}
+                  className="disabled:cursor-default"
+                >
+                  <Badge
+                    className={`text-[10px] h-4 px-1.5 ${
+                      isMCP
+                        ? 'bg-primary text-primary-foreground hover:bg-primary'
+                        : 'bg-muted text-muted-foreground border border-border hover:bg-muted'
+                    }`}
+                  >
+                    {isMCP ? 'MCP' : 'Contact'}
+                  </Badge>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{mcpTooltip}</TooltipContent>
+            </Tooltip>
 
             {canEdit && (isEditing ? (
               <>
@@ -1090,7 +1089,7 @@ function SortableContactCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground"
+                className="h-7 w-7 text-blue-600 hover:text-blue-600"
                 onClick={startEdit}
                 aria-label="Edit contact"
                 title="Edit"
@@ -1099,70 +1098,48 @@ function SortableContactCard({
               </Button>
             ))}
 
-
-            {canEdit && (isMCP || !hasMCP) && (
+            {/* Access: one pill, granting or revoking on click. */}
+            {canGrant && proposalId && proposalAcronym && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
-                    onClick={() => onSetMCP(member.id)}
-                    aria-label="Toggle main contact"
-                    title="Toggle main contact"
+                  <button
+                    type="button"
+                    disabled={isGranting || isRevoking || !member.email}
+                    onClick={() => (hasAccess ? onRevokeAccess(member) : onGrantAccess(member))}
+                    aria-label={accessTooltip}
+                    className="disabled:opacity-60"
                   >
-                    <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
-              </Tooltip>
-            )}
-
-            {canGrant && wantsAccess && proposalId && proposalAcronym && (
-              <>
-                {hasAccess ? (
-                  <>
-                    {['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '') ? (
-                      <Badge className="gap-1 text-xs bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
-                        <ShieldCheck className="w-3 h-3" />
-                        Has access
+                    {hasAccess ? (
+                      <Badge
+                        className={`gap-1 text-xs ${
+                          ['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '')
+                            ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-100'
+                            : 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100'
+                        }`}
+                      >
+                        {isRevoking ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <ShieldOff className="w-3 h-3" />
+                        )}
+                        {['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '')
+                          ? 'Has access'
+                          : 'Invite sent'}
                       </Badge>
                     ) : (
-                      <Badge className="gap-1 text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
-                        <ShieldCheck className="w-3 h-3" />
-                        Invite sent
+                      <Badge className="gap-1 text-xs bg-muted text-muted-foreground border border-border hover:bg-muted">
+                        {isGranting ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="w-3 h-3" />
+                        )}
+                        No access
                       </Badge>
                     )}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => onRevokeAccess(member)}
-                          disabled={isRevoking}
-                          aria-label="Revoke access"
-                          title="Revoke access"
-                        >
-                          {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Revoke access</TooltipContent>
-                    </Tooltip>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 text-xs"
-                    onClick={() => onGrantAccess(member)}
-                    disabled={isGranting || !member.email}
-                  >
-                    {isGranting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-                    Give access
-                  </Button>
-                )}
-              </>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{accessTooltip}</TooltipContent>
+              </Tooltip>
             )}
 
             {canEdit && (
@@ -1179,7 +1156,7 @@ function SortableContactCard({
             )}
           </div>
 
-          <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
             <Checkbox
               checked={isResearcher}
               disabled={!canEdit}
@@ -1193,9 +1170,10 @@ function SortableContactCard({
         </div>
         </div>
 
-        {/* The main contact's extra fields live inside the same card. */}
+        {/* The main contact's extra fields live inside the same card, aligned
+            with the fields above now the avatar has gone. */}
         {isMCP && (
-          <div className="pl-[68px]">
+          <div className="pl-5">
             <MCPDetailFields
               values={isEditing ? mcpForm : storedMcp}
               onChange={(field, value) => setMcpForm((f) => ({ ...f, [field]: value }))}
