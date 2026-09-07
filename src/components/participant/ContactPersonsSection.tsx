@@ -63,7 +63,7 @@ const PHONE_PLACEHOLDER = 'Please add a phone number';
 const CW = {
   name: 'flex-1 basis-0 min-w-[106px]',
   title: 'w-[68px]',
-  email: 'flex-[2] basis-0 min-w-[170px]',
+  email: 'flex-[2] basis-0 min-w-[340px]',
   phone: 'flex-1 basis-0 min-w-[130px]',
 } as const;
 
@@ -235,7 +235,7 @@ export function ContactPersonsSection({
   };
 
   /** Mirrors a contact's title/name/email onto its linked researcher row, if any. */
-  const syncLinkedResearcher = (
+  const syncLinkedResearcher = async (
     member: ParticipantMember,
     fullName: string,
     email: string,
@@ -244,7 +244,7 @@ export function ContactPersonsSection({
     const linked = researchers.find((r) => r.memberId === member.id);
     if (!linked) return;
     const parts = fullName.trim().split(' ');
-    onAddResearcher({
+    await Promise.resolve(onAddResearcher({
       participantId: participant.id,
       memberId: member.id,
       firstName: parts[0] || '',
@@ -252,7 +252,7 @@ export function ContactPersonsSection({
       email,
       title: title ?? (member as MemberWithPhone).title ?? '',
       orderIndex: linked.orderIndex,
-    } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
+    } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>));
   };
 
   /** Ticking the box shows the linked researcher; unticking hides the row. */
@@ -326,7 +326,11 @@ export function ContactPersonsSection({
       }
     }
 
-    onUpdateMember(member.id, updates);
+    // Awaited: the write is asynchronous, and the linked researcher card
+    // re-reads the contact row as soon as the save signal fires. Firing that
+    // signal before the row has actually changed is why the researcher card
+    // only refreshed on the next page load.
+    await Promise.resolve(onUpdateMember(member.id, updates));
 
     if (member.isPrimaryContact) {
       onUpdateParticipant('mainContactFirstName', firstName);
@@ -337,7 +341,7 @@ export function ContactPersonsSection({
     }
 
     // A linked researcher inherits the contact's title along with name and email.
-    syncLinkedResearcher(member, fullName, email, member.isPrimaryContact ? (title ?? '') : '');
+    await syncLinkedResearcher(member, fullName, email, member.isPrimaryContact ? (title ?? '') : '');
   };
 
   /**
