@@ -617,8 +617,8 @@ export function ContactPersonsSection({
             </CardDescription>
             <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <Crown className="w-3.5 h-3.5" />
-                = MCP (main contact person) for this organisation.
+                <Badge className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground hover:bg-primary">MCP</Badge>
+                = main contact person for this organisation.
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
