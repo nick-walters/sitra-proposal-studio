@@ -19,6 +19,18 @@ import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LA
 import { ORGANISATION_CATEGORY_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
 import { PartAPageLayout } from './PartAPageLayout';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 import { CountrySelect } from './CountrySelect';
 import { StorageImage } from './StorageImage';
@@ -72,6 +84,183 @@ function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string;
     />
   );
 }
+
+
+// ---------------------------------------------------------------------------
+// Removing a participant is irreversible and cascades widely. It sits behind a
+// collapsed control, well away from the row-level contact/researcher controls,
+// and requires the short name to be typed out before it can be confirmed.
+// ---------------------------------------------------------------------------
+type RemovalCounts = Record<string, number>;
+
+function RemoveParticipantSection({
+  participant,
+  contactCount,
+  researcherCount,
+  onConfirmed,
+}: {
+  participant: Participant;
+  contactCount: number;
+  researcherCount: number;
+  onConfirmed: () => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [counts, setCounts] = useState<RemovalCounts | null>(null);
+  const [loadingCounts, setLoadingCounts] = useState(false);
+
+  const shortName = (participant.organisationShortName || participant.organisationName || '').trim();
+  const matches = typed.trim() === shortName && shortName.length > 0;
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const load = async () => {
+      setLoadingCounts(true);
+      const pid = participant.id;
+      const countOf = async (table: string, column: string) => {
+        const { count } = await (supabase.from(table as never) as never as {
+          select: (c: string, o: { count: 'exact'; head: true }) => {
+            eq: (c: string, v: string) => Promise<{ count: number | null }>;
+          };
+        })
+          .select('id', { count: 'exact', head: true })
+          .eq(column, pid);
+        return count ?? 0;
+      };
+      const [
+        achievements, projects, departments, infrastructure, descriptions,
+        personnelRoles, costItems, wpBudget, wpEffort, taskEffort,
+        wpLeads, taskLeads, taskParticipations, deliverables, caseLeads,
+      ] = await Promise.all([
+        countOf('participant_achievements', 'participant_id'),
+        countOf('participant_previous_projects', 'participant_id'),
+        countOf('participant_departments', 'participant_id'),
+        countOf('participant_infrastructure', 'participant_id'),
+        countOf('participant_descriptions', 'participant_id'),
+        countOf('ls_personnel_roles', 'participant_id'),
+        countOf('ls_cost_items', 'participant_id'),
+        countOf('ls_wp_budget', 'participant_id'),
+        countOf('wp_draft_effort', 'participant_id'),
+        countOf('wp_draft_task_effort', 'participant_id'),
+        countOf('wp_drafts', 'lead_participant_id'),
+        countOf('wp_draft_tasks', 'lead_participant_id'),
+        countOf('wp_draft_task_participants', 'participant_id'),
+        countOf('wp_draft_deliverables', 'responsible_participant_id'),
+        countOf('case_drafts', 'lead_participant_id'),
+      ]);
+      if (cancelled) return;
+      setCounts({
+        'Contact persons': contactCount,
+        'Researchers': researcherCount,
+        'Achievements': achievements,
+        'Previous projects': projects,
+        'Departments': departments,
+        'Infrastructure entries': infrastructure,
+        'Description fields': descriptions,
+        'Budget personnel roles': personnelRoles,
+        'Budget cost items': costItems,
+        'Work-package budget rows': wpBudget,
+        'Effort entries': wpEffort + taskEffort,
+        'Work packages led': wpLeads,
+        'Tasks led': taskLeads,
+        'Task participations': taskParticipations,
+        'Deliverables owned': deliverables,
+        'Case studies led': caseLeads,
+      });
+      setLoadingCounts(false);
+    };
+    load().catch(() => { if (!cancelled) setLoadingCounts(false); });
+    return () => { cancelled = true; };
+  }, [open, participant.id, contactCount, researcherCount]);
+
+  return (
+    <Card className="border-destructive/40">
+      <CardContent className="pt-6">
+        <div className="flex flex-col items-start gap-3">
+          <div>
+            <h4 className="font-medium text-destructive">Remove participant</h4>
+            <p className="text-sm text-muted-foreground">
+              Removing {shortName || 'this organisation'} permanently destroys its contacts,
+              researchers, achievements, previous projects, budget and effort, and removes it from
+              every work package, task, deliverable and case study it is attached to. This cannot be
+              undone.
+            </p>
+          </div>
+          {!revealed ? (
+            <Button variant="outline" size="sm" onClick={() => setRevealed(true)}>
+              Show removal controls
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { setTyped(''); setOpen(true); }}
+            >
+              Remove {shortName || 'participant'} from the proposal
+            </Button>
+          )}
+        </div>
+
+        <AlertDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTyped(''); }}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove {shortName} from the proposal?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    This permanently deletes everything held against this organisation and cannot be
+                    undone. The following will be lost:
+                  </p>
+                  <div className="rounded-md border bg-muted/40 p-3">
+                    {loadingCounts || !counts ? (
+                      <span className="text-muted-foreground">Counting what would be lost…</span>
+                    ) : (
+                      <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {Object.entries(counts).map(([label, n]) => (
+                          <li key={label} className="flex justify-between gap-2">
+                            <span className={n > 0 ? '' : 'text-muted-foreground'}>{label}</span>
+                            <span className={n > 0 ? 'font-semibold' : 'text-muted-foreground'}>{n}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <p>
+                    To confirm, type the participant’s short name <strong>{shortName}</strong> below.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder={shortName}
+              aria-label="Type the participant short name to confirm"
+              autoComplete="off"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!matches}
+                onClick={(e) => {
+                  if (!matches) { e.preventDefault(); return; }
+                  setOpen(false);
+                  onConfirmed();
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remove participant
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 interface SelectedPerson {
   id: string;
@@ -533,27 +722,19 @@ export function ParticipantDetailForm({
 
 
 
-        {/* Delete Participant */}
+        {/* Remove participant — collapsed, typed-confirmation, left-aligned and
+            deliberately far from the contact/researcher row controls */}
         {canDelete && (
-          <Card className="border-destructive/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-destructive">Remove participant</h4>
-                  <p className="text-sm text-muted-foreground">
-                    This will permanently remove this organisation from the proposal.
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={() => onDeleteParticipant(participant.id)}
-                >
-                  Remove
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="pt-10 max-w-xl">
+            <RemoveParticipantSection
+              participant={participant}
+              contactCount={members.length}
+              researcherCount={researchers.length}
+              onConfirmed={() => onDeleteParticipant(participant.id)}
+            />
+          </div>
       )}
+
       </div>
     </PartAPageLayout>
 
