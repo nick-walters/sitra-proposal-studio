@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -1098,6 +1098,132 @@ function SortableContactCard({
       </div>
 
 
+    </div>
+  );
+}
+
+/**
+ * A brand-new contact: the same card as every other, last in the list and
+ * already in edit mode. Nothing exists in the database until Save is pressed,
+ * so Discard simply removes the card.
+ */
+function NewContactCard({
+  onSave,
+  onDiscard,
+}: {
+  onSave: (values: ContactEditValues) => Promise<boolean>;
+  onDiscard: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<ContactEditValues>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div ref={ref}>
+      <div className="p-2 rounded-lg bg-primary/5 border border-transparent">
+        <div className="flex items-start gap-1">
+          <span className="mt-1 text-blue-600 opacity-40" aria-hidden>
+            <GripVertical className="w-4 h-4" />
+          </span>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+                <CompactTextField
+                  value={form.firstName}
+                  onChange={(v) => setForm((f) => ({ ...f, firstName: v }))}
+                  placeholder="First name*"
+                  isEditing
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[106px]">
+                <CompactTextField
+                  value={form.lastName}
+                  onChange={(v) => setForm((f) => ({ ...f, lastName: v }))}
+                  placeholder="Last name*"
+                  isEditing
+                  showDivider={false}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-stretch gap-1">
+              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+                <CompactTextField
+                  value={form.email}
+                  onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                  placeholder="Email*"
+                  type="email"
+                  isEditing
+                />
+              </div>
+              <div className="min-w-0 flex-1 basis-0 min-w-[130px]">
+                <CompactTextField
+                  value={form.phone}
+                  onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                  onBlur={() => setForm((f) => ({ ...f, phone: stripPhoneSpaces(f.phone) }))}
+                  placeholder="Phone*"
+                  type="tel"
+                  isEditing
+                />
+              </div>
+              <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0 opacity-60">
+                <Checkbox checked={false} disabled aria-label="Conducts research in the project" />
+                <Users className="w-3.5 h-3.5" />
+                Conducts research in the project
+              </label>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
+              <Badge className="text-[10px] h-4 px-1.5 bg-muted text-muted-foreground border border-border hover:bg-muted">
+                Contact
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-primary"
+                onClick={() => { void save(); }}
+                disabled={saving}
+                aria-label="Save contact"
+                title="Save"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={onDiscard}
+                disabled={saving}
+                aria-label="Discard new contact"
+                title="Discard"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
