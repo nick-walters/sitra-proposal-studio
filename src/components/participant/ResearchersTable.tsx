@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -76,6 +77,74 @@ const PLAIN_SELECT_CLASS =
 const COUNTRY_FIELD_CLASS =
   'h-7 text-sm px-2 font-normal [&>svg]:h-3 [&>svg]:w-3';
 
+/**
+ * The live contact behind a linked researcher. Title, name and email belong to
+ * the contact card, so they are read here at render time rather than trusted
+ * to whatever was copied when the checkbox was first ticked. Gender only
+ * exists for a main contact, so it is inherited only when it has a value.
+ */
+type LinkedContact = {
+  title: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  gender: string;
+};
+
+function useLinkedContacts(researchers: ParticipantResearcher[]) {
+  const memberIds = useMemo(
+    () => Array.from(new Set(researchers.map((r) => r.memberId).filter(Boolean) as string[])).sort(),
+    [researchers],
+  );
+  const key = memberIds.join(',');
+  const [contacts, setContacts] = useState<Record<string, LinkedContact>>({});
+  // Bumped when a contact card is saved, so inherited values refresh at once.
+  const [refresh, setRefresh] = useState(0);
+
+  useEffect(() => {
+    const onUpdated = () => setRefresh((n) => n + 1);
+    window.addEventListener('participant-contacts-updated', onUpdated);
+    return () => window.removeEventListener('participant-contacts-updated', onUpdated);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!key) { setContacts({}); return; }
+    (async () => {
+      const { data: members } = await supabase
+        .from('participant_members')
+        .select('id, participant_id, full_name, email, title, is_primary_contact')
+        .in('id', key.split(','));
+      if (!members) return;
+      const participantIds = Array.from(new Set(members.map((m) => m.participant_id)));
+      const { data: participants } = await supabase
+        .from('participants')
+        .select('id, main_contact_gender')
+        .in('id', participantIds);
+      const genderByParticipant = new Map(
+        (participants || []).map((p) => [p.id, (p as { main_contact_gender?: string | null }).main_contact_gender || '']),
+      );
+      if (cancelled) return;
+      const next: Record<string, LinkedContact> = {};
+      for (const member of members) {
+        const parts = (member.full_name || '').trim().split(' ').filter(Boolean);
+        next[member.id] = {
+          title: member.title || '',
+          firstName: parts[0] || '',
+          lastName: parts.slice(1).join(' '),
+          email: member.email || '',
+          gender: member.is_primary_contact ? (genderByParticipant.get(member.participant_id) || '') : '',
+        };
+      }
+      setContacts(next);
+    })();
+    return () => { cancelled = true; };
+  }, [key, refresh]);
+
+  return contacts;
+}
+
+
 /** The editable shape of a researcher card, used for drafts and for edits. */
 type ResearcherDraft = {
   title: string;
@@ -125,6 +194,7 @@ export function ResearchersTable({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const linkedContacts = useLinkedContacts(researchers);
 
   useEffect(() => {
     setOrderedResearchers((current) => {
@@ -215,6 +285,7 @@ export function ResearchersTable({
                   <SortableResearcherCard
                     key={researcher.id}
                     researcher={researcher}
+                    contact={researcher.memberId ? linkedContacts[researcher.memberId] : undefined}
                     canEdit={canEdit}
                     onUpdate={onUpdate}
                     onRequestDelete={(id, name) => setDeleteConfirm({ id, name })}
@@ -267,11 +338,13 @@ export function ResearchersTable({
  */
 function SortableResearcherCard({
   researcher,
+  contact,
   canEdit,
   onUpdate,
   onRequestDelete,
 }: {
   researcher: ParticipantResearcher;
+  contact?: LinkedContact;
   canEdit: boolean;
   onUpdate: (id: string, updates: Partial<ParticipantResearcher>) => void;
   onRequestDelete: (id: string, name: string) => void;
@@ -279,10 +352,22 @@ function SortableResearcherCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: researcher.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 };
 
-  // A linked researcher mirrors a contact person: title, name and email are
-  // owned by the contact card and stay read-only here.
+  // A linked researcher mirrors a contact person: name and email are owned by
+  // the contact card and stay read-only here, read live from the contact so
+  // later edits on that card flow straight through.
   const linked = !!researcher.memberId;
   const editable = canEdit;
+  const shownFirstName = contact ? contact.firstName : (researcher.firstName || '');
+  const shownLastName = contact ? contact.lastName : (researcher.lastName || '');
+  const shownEmail = contact ? contact.email : (researcher.email || '');
+  // Title is a researcher field: it is read-only only where the contact
+  // actually carries one (in practice the main contact), editable otherwise.
+  const inheritedTitle = contact?.title || '';
+  const titleLocked = !!inheritedTitle;
+  // Gender is only collected for a main contact, so it is inherited and
+  // read-only there and stays editable on every other researcher card.
+  const inheritedGender = contact?.gender || '';
+  const genderLocked = !!inheritedGender;
   const careerStageLabel =
     CAREER_STAGES.find((stage) => stage.value === researcher.careerStage)?.label || '';
 
@@ -307,7 +392,7 @@ function SortableResearcherCard({
             <div className="flex flex-wrap items-stretch gap-1">
               <div className={`${W.title} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
-                  {editable && !linked ? (
+                  {editable && !titleLocked ? (
                     <Select
                       value={researcher.title || ''}
                       onValueChange={(v) => onUpdate(researcher.id, { title: v })}
@@ -323,7 +408,7 @@ function SortableResearcherCard({
                     </Select>
                   ) : (
                     <div className="flex items-center">
-                      <ReadValue value={researcher.title} placeholder="Title*" />
+                      <ReadValue value={inheritedTitle || researcher.title} placeholder="Title*" />
                     </div>
                   )}
                 </div>
@@ -332,7 +417,7 @@ function SortableResearcherCard({
 
               <div className={W.name}>
                 <DebouncedTextField
-                  value={researcher.firstName || ''}
+                  value={shownFirstName}
                   placeholder="First name*"
                   editable={editable && !linked}
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
@@ -340,7 +425,7 @@ function SortableResearcherCard({
               </div>
               <div className={W.name}>
                 <DebouncedTextField
-                  value={researcher.lastName || ''}
+                  value={shownLastName}
                   placeholder="Last name*"
                   editable={editable && !linked}
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
@@ -348,7 +433,7 @@ function SortableResearcherCard({
               </div>
               <div className={W.email}>
                 <DebouncedTextField
-                  value={researcher.email || ''}
+                  value={shownEmail}
                   placeholder="Email*"
                   type="email"
                   editable={editable && !linked}
@@ -358,7 +443,7 @@ function SortableResearcherCard({
 
               <div className={`${W.gender} shrink-0 flex items-stretch gap-0.5`}>
                 <div className="min-w-0 flex-1">
-                  {editable ? (
+                  {editable && !genderLocked ? (
                     <Select
                       value={researcher.gender || ''}
                       onValueChange={(v) => onUpdate(researcher.id, { gender: v })}
@@ -374,7 +459,7 @@ function SortableResearcherCard({
                     </Select>
                   ) : (
                     <div className="flex items-center">
-                      <ReadValue value={researcher.gender} placeholder="Gender*" />
+                      <ReadValue value={inheritedGender || researcher.gender} placeholder="Gender*" />
                     </div>
                   )}
                 </div>
