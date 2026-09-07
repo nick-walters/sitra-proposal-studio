@@ -722,27 +722,19 @@ export function ParticipantDetailForm({
 
 
 
-        {/* Delete Participant */}
+        {/* Remove participant — collapsed, typed-confirmation, left-aligned and
+            deliberately far from the contact/researcher row controls */}
         {canDelete && (
-          <Card className="border-destructive/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-destructive">Remove participant</h4>
-                  <p className="text-sm text-muted-foreground">
-                    This will permanently remove this organisation from the proposal.
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={() => onDeleteParticipant(participant.id)}
-                >
-                  Remove
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="pt-10 max-w-xl">
+            <RemoveParticipantSection
+              participant={participant}
+              contactCount={members.length}
+              researcherCount={researchers.length}
+              onConfirmed={() => onDeleteParticipant(participant.id)}
+            />
+          </div>
       )}
+
       </div>
     </PartAPageLayout>
 
