@@ -71,6 +71,8 @@ function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string;
       required
     />
   );
+}
+
 
 // ---------------------------------------------------------------------------
 // Removing a participant is irreversible and cascades widely. It sits behind a
