@@ -339,92 +339,54 @@ export function ContactPersonsSection({
     return true;
   };
 
-
-  const handlePersonSelect = (person: SelectedPerson | null) => {
-    setSelectedPerson(person);
-    if (person) {
-      const parts = person.full_name.split(' ');
-      setNewContact({
-        ...newContact,
-        firstName: parts[0] || '',
-        lastName: parts.slice(1).join(' ') || '',
-        email: person.email || '',
-      });
-    }
-  };
-
-  const handleAddContact = async () => {
-    if (!newContact.firstName.trim() || !newContact.lastName.trim() || !newContact.email.trim()) {
+  /**
+   * Saves a brand-new contact card. The row is only inserted here, on Save, so
+   * a discarded card leaves nothing behind. The insert helper assigns the next
+   * order_index, keeping the new contact last in the list.
+   */
+  const handleAddContact = async (values: ContactEditValues) => {
+    const firstName = values.firstName.trim();
+    const lastName = values.lastName.trim();
+    const email = values.email.trim();
+    if (!firstName || !lastName || !email) {
       toast.error('First name, last name and email are required');
-      return;
+      return false;
     }
 
-    const fullName = `${newContact.firstName.trim()} ${newContact.lastName.trim()}`;
-    let personId = selectedPerson?.id || null;
+    const fullName = `${firstName} ${lastName}`;
+    let personId: string | null = null;
 
-    if (!personId) {
-      const { data: newPerson, error } = await supabase
-        .from('people')
-        .insert({
-          full_name: fullName,
-          email: newContact.email.trim() || null,
-          default_role: null,
-        })
-        .select()
-        .single();
+    const { data: newPerson, error } = await supabase
+      .from('people')
+      .insert({
+        full_name: fullName,
+        email: email || null,
+        default_role: null,
+      })
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating person:', error);
-      } else {
-        personId = newPerson.id;
-      }
+    if (error) {
+      console.error('Error creating person:', error);
+    } else {
+      personId = newPerson.id;
     }
 
-    const newMember = {
+    onAddMember({
       participantId: participant.id,
       fullName,
-      email: newContact.email.trim(),
-      phone: newContact.phone.trim(),
+      email,
+      phone: stripPhoneSpaces(values.phone.trim()),
       personMonths: 0,
       isPrimaryContact: false,
-      wantsPlatformAccess: newContact.wantsPlatformAccess === 'yes',
+      wantsPlatformAccess: false,
       personId: personId || undefined,
-    };
+    } as Omit<ParticipantMember, 'id'>);
 
-    onAddMember(newMember);
-
-    // Auto-invite if coordinator/owner adds with access=yes
-    if (canGrant && newContact.wantsPlatformAccess === 'yes' && proposalId && proposalAcronym) {
-      // Wait briefly for the member to be persisted, then find and grant
-      setTimeout(async () => {
-        try {
-          // Look up the newly added member by email
-          const { data: newMembers } = await supabase
-            .from('participant_members')
-            .select('id')
-            .eq('participant_id', participant.id)
-            .eq('email', newContact.email.trim().toLowerCase())
-            .order('created_at', { ascending: false })
-            .limit(1);
-
-          if (newMembers && newMembers.length > 0) {
-            const fakeMember = {
-              id: newMembers[0].id,
-              email: newContact.email.trim(),
-              fullName,
-            } as ParticipantMember;
-            await handleGrantAccess(fakeMember);
-          }
-        } catch (err) {
-          console.error('Auto-invite failed:', err);
-        }
-      }, 500);
-    }
-
-    setNewContact({ firstName: '', lastName: '', email: '', phone: '', wantsPlatformAccess: 'no' });
-    setSelectedPerson(null);
-    setShowAddForm(false);
+    setAddingContact(false);
+    return true;
   };
+
 
   const handleSetMCP = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
