@@ -279,7 +279,7 @@ export function PageFindReplacePanel() {
         >
           <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
           <Search className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium">Find &amp; replace on this page</span>
+          <span className="text-sm font-medium">Find across the proposal</span>
           <Button
             variant="ghost"
             size="icon"
