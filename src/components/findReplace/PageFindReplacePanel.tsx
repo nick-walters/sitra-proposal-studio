@@ -295,7 +295,7 @@ export function PageFindReplacePanel() {
             <Input
               ref={inputRef}
               value={query}
-              placeholder="Find in every field on this page"
+              placeholder="Find in every Part B section"
               className="h-8"
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
