@@ -1180,16 +1180,7 @@ function SortableContactCard({
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-            <Checkbox
-              checked={isResearcher}
-              disabled={!canEdit}
-              onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-              aria-label="Will conduct research in the project"
-            />
-            <Users className="w-3.5 h-3.5" />
-            Will conduct research in the project
-          </label>
+
 
         </div>
         </div>
