@@ -950,10 +950,20 @@ function SortableContactCard({
                 )}
               </div>
             )}
+            <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              <Checkbox
+                checked={isResearcher}
+                disabled={!canEdit}
+                onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
+                aria-label="Conducts research in the project"
+              />
+              <Users className="w-3.5 h-3.5" />
+              Conducts research in the project
+            </label>
           </div>
 
 
-          {/* Row 2: Email, Phone, and the research checkbox aligned with them */}
+          {/* Row 2: Email and Phone */}
           <div className="flex flex-wrap items-stretch gap-1">
             <div className={CW.email}>
 
@@ -975,17 +985,8 @@ function SortableContactCard({
                 isEditing={isEditing}
               />
             </div>
-            <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
-              <Checkbox
-                checked={isResearcher}
-                disabled={!canEdit}
-                onCheckedChange={(checked) => onToggleResearch(member, checked === true)}
-                aria-label="Conducts research in the project"
-              />
-              <Users className="w-3.5 h-3.5" />
-              Conducts research in the project
-            </label>
           </div>
+
         </div>
 
 
@@ -1197,6 +1198,11 @@ function NewContactCard({
                   showDivider={false}
                 />
               </div>
+              <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0 opacity-60">
+                <Checkbox checked={false} disabled aria-label="Conducts research in the project" />
+                <Users className="w-3.5 h-3.5" />
+                Conducts research in the project
+              </label>
             </div>
 
             <div className="flex flex-wrap items-stretch gap-1">
@@ -1219,12 +1225,8 @@ function NewContactCard({
                   isEditing
                 />
               </div>
-              <label className="flex h-7 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0 opacity-60">
-                <Checkbox checked={false} disabled aria-label="Conducts research in the project" />
-                <Users className="w-3.5 h-3.5" />
-                Conducts research in the project
-              </label>
             </div>
+
           </div>
 
           <div className="flex flex-col items-end gap-1 shrink-0">
