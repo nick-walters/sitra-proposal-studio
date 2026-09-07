@@ -299,7 +299,7 @@ function SortableResearcherCard({
                 <FieldDivider />
               </div>
 
-              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
                 <DebouncedTextField
                   value={researcher.firstName || ''}
                   placeholder="First name*"
@@ -307,7 +307,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { firstName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
                 <DebouncedTextField
                   value={researcher.lastName || ''}
                   placeholder="Last name*"
@@ -315,7 +315,7 @@ function SortableResearcherCard({
                   onCommit={(v) => { if (v.trim()) onUpdate(researcher.id, { lastName: v.trim() }); }}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[120px]">
                 <DebouncedTextField
                   value={researcher.email || ''}
                   placeholder="Email*"
@@ -529,7 +529,7 @@ function NewResearcherCard({
                 </div>
                 <FieldDivider />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
                 <DebouncedTextField
                   value={draft.firstName}
                   placeholder="First name*"
@@ -537,7 +537,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('firstName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[111px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[96px]">
                 <DebouncedTextField
                   value={draft.lastName}
                   placeholder="Last name*"
@@ -545,7 +545,7 @@ function NewResearcherCard({
                   onCommit={(v) => commit('lastName', v)}
                 />
               </div>
-              <div className="min-w-0 flex-1 basis-0 min-w-[160px]">
+              <div className="min-w-0 flex-1 basis-0 min-w-[120px]">
                 <DebouncedTextField
                   value={draft.email}
                   placeholder="Email*"
