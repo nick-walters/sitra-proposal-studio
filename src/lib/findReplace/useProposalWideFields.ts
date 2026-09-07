@@ -36,12 +36,23 @@ interface FieldRow {
   order_index: number;
 }
 
+/**
+ * The navigation tree keys its pages by slug ("b1-2"), while a card stores the
+ * template section's uuid, so the section number is the bridge between them.
+ */
+function navIdFor(sectionNumber: string | null): string | null {
+  if (!sectionNumber) return null;
+  return sectionNumber.trim().toLowerCase().replace(/\./g, '-');
+}
+
 /** Opens the section that holds the match, then scrolls to it. */
-function revealElsewhere(sectionId: string, domId: string) {
+function revealElsewhere(navId: string | null, domId: string) {
   return async () => {
-    window.dispatchEvent(
-      new CustomEvent('open-proposal-section', { detail: { sectionId } }),
-    );
+    if (navId) {
+      window.dispatchEvent(
+        new CustomEvent('open-proposal-section', { detail: { sectionId: navId } }),
+      );
+    }
     await jumpToElementId(domId);
   };
 }
@@ -72,12 +83,14 @@ export function useProposalWideFields(enabled: boolean): SearchableField[] {
       if (cards.length === 0) return [];
 
       const sectionLabels = new Map<string, string>();
+      const sectionNavIds = new Map<string, string | null>();
       for (const s of (sectionsRes.data ?? []) as {
         id: string;
         section_number: string | null;
         title: string | null;
       }[]) {
         sectionLabels.set(s.id, [s.section_number, s.title].filter(Boolean).join(' '));
+        sectionNavIds.set(s.id, navIdFor(s.section_number));
       }
 
       const { data: fieldRows, error: fErr } = await supabase
@@ -98,6 +111,7 @@ export function useProposalWideFields(enabled: boolean): SearchableField[] {
       const out: SearchableField[] = [];
       for (const card of cards) {
         const sectionLabel = sectionLabels.get(card.section_id) ?? 'Part B';
+        const navId = sectionNavIds.get(card.section_id) ?? null;
         const cardLabel = htmlToPlainText(card.title ?? '').trim() || 'Untitled block';
         const cardHidden = !card.is_visible;
 
@@ -111,13 +125,13 @@ export function useProposalWideFields(enabled: boolean): SearchableField[] {
             format: 'html',
             value: card.title,
             readOnly: true,
-            reveal: revealElsewhere(card.section_id, `card-block-${card.id}`),
+            reveal: revealElsewhere(navId, `card-block-${card.id}`),
           });
         }
 
         for (const field of byCard.get(card.id) ?? []) {
           const hidden = cardHidden || !field.is_visible;
-          const reveal = revealElsewhere(card.section_id, `card-module-${field.id}`);
+          const reveal = revealElsewhere(navId, `card-module-${field.id}`);
           if (field.heading) {
             out.push({
               id: `field:${field.id}:header`,
