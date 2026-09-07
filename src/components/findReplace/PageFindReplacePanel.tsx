@@ -369,6 +369,11 @@ export function PageFindReplacePanel() {
                 {result?.hiddenMatches} in hidden blocks
               </Badge>
             )}
+            {otherSectionMatches > 0 && (
+              <Badge variant="outline" className="text-[11px] font-normal">
+                {otherSectionMatches} in other sections
+              </Badge>
+            )}
             <div className="ml-auto flex items-center gap-1">
               <Button
                 variant="ghost"
