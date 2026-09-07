@@ -589,7 +589,9 @@ export function ContactPersonsSection({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => setAddingContact(true)}
+              disabled={addingContact}
+
               className="gap-1"
             >
               <Plus className="w-4 h-4" />
