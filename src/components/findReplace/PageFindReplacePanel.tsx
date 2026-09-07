@@ -1,12 +1,16 @@
 /**
- * Page-wide find and replace.
+ * Find and replace across the proposal.
  *
- * Searches the STORED content of every field the page registered, so
- * collapsed blocks and unmounted editors are included. Navigation reveals a
- * match (expand, mount, scroll); replacement goes through each field's own
+ * SEARCH covers the STORED content of every field the open page registered
+ * PLUS the stored Part B content of every other section, so collapsed blocks,
+ * unmounted editors and sections that are not open are all included.
+ * Navigation reveals a match (open its section, expand, mount, scroll).
+ *
+ * REPLACE stays on the open page: it goes through each field's own
  * conflict-checked save path, and a rejected write is reported rather than
- * forced.
+ * forced. Matches from other sections are listed as read-only.
  */
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
