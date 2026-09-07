@@ -111,7 +111,7 @@ export function useProposalWideFields(enabled: boolean): SearchableField[] {
             format: 'html',
             value: card.title,
             readOnly: true,
-            reveal: revealElsewhere(card.section_id, `card-${card.id}`),
+            reveal: revealElsewhere(card.section_id, `card-block-${card.id}`),
           });
         }
 
