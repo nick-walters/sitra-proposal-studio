@@ -265,8 +265,11 @@ export function ContactPersonsSection({
       firstName: parts[0] || '',
       lastName: parts.slice(1).join(' ') || '',
       email: member.email || '',
-      // Only the main contact carries a title, and it is inherited here.
+      // Only the main contact carries a title and a gender; both are inherited.
       title: member.isPrimaryContact ? ((member as MemberWithPhone).title || '') : '',
+      ...(member.isPrimaryContact && participant.mainContactGender
+        ? { gender: participant.mainContactGender }
+        : {}),
       orderIndex: researchers.length,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
   };
@@ -359,6 +362,9 @@ export function ContactPersonsSection({
     }
 
     await applyMemberEdits(member, values);
+    // Linked researcher cards read their name, email and title from the contact
+    // row, so tell them to re-read it now rather than on the next page load.
+    window.dispatchEvent(new CustomEvent('participant-contacts-updated'));
     return true;
   };
 
