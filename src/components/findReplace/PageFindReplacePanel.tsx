@@ -73,13 +73,21 @@ export function PageFindReplacePanel() {
 
   const open = ctx?.open ?? false;
 
+  /** Stored Part B content of every section, loaded only while the panel is open. */
+  const proposalWideFields = useProposalWideFields(open);
+
   const result = useMemo(() => {
     if (!ctx || !open || !query) return null;
     // refreshNonce is a deliberate dependency: re-read stored values after writes.
     void refreshNonce;
-    return searchFields(ctx.getFields(), query, options);
+    // The open page wins on any field it also holds: its copy is live and
+    // writable, the proposal-wide copy is a read-only snapshot of the store.
+    const pageFields = ctx.getFields();
+    const seen = new Set(pageFields.map((f) => f.id));
+    const merged = [...pageFields, ...proposalWideFields.filter((f) => !seen.has(f.id))];
+    return searchFields(merged, query, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, open, query, options, refreshNonce]);
+  }, [ctx, open, query, options, refreshNonce, proposalWideFields]);
 
   useEffect(() => {
     setCurrentIndex(0);
