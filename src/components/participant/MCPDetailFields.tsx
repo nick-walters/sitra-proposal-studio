@@ -102,6 +102,14 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 /**
+ * A hairline between one field and the next, so a copy button reads as
+ * belonging to the field on its left. Purely visual: no extra spacing.
+ */
+export function FieldDivider() {
+  return <span aria-hidden className="self-stretch w-px bg-border shrink-0" />;
+}
+
+/**
  * One text field: placeholder instead of a heading, with a copy button beside
  * it. Dropdowns deliberately have no copy button.
  */
@@ -112,6 +120,7 @@ export function CompactTextField({
   placeholder,
   isEditing,
   type = 'text',
+  showDivider = true,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -119,10 +128,11 @@ export function CompactTextField({
   placeholder: string;
   isEditing: boolean;
   type?: string;
+  showDivider?: boolean;
 }) {
   const label = placeholder.replace('*', '');
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-stretch gap-0.5">
       {isEditing ? (
         <Input
           className={FIELD_CLASS}
@@ -136,10 +146,14 @@ export function CompactTextField({
       ) : (
         <ReadValue value={value} placeholder={placeholder} />
       )}
-      <CopyButton text={value} label={label} />
+      <span className="flex items-center">
+        <CopyButton text={value} label={label} />
+      </span>
+      {showDivider && <FieldDivider />}
     </div>
   );
 }
+
 
 interface MCPDetailFieldsProps {
   /** Draft values while editing; the stored values when read-only. */
