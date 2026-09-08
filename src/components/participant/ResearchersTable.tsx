@@ -250,6 +250,7 @@ export function ResearchersTable({
       orderIndex: researchers.length,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
     const id = (created as { id?: string } | null | undefined)?.id ?? null;
+    console.debug('[researcher-draft] created', created, 'id', id);
     // The card stays mounted and simply takes on the new id; the saved row is
     // hidden from the list until the card closes, so nothing remounts.
     if (id) setAdoptedId(id);
