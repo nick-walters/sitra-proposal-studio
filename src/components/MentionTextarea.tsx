@@ -275,6 +275,7 @@ export function MentionTextarea({
       const query = textBeforeCursor.slice(atIndex + 1);
       if (!query.includes(' ') && !query.includes('\n')) {
         setMentionQuery(query);
+        setHighlightedIndex(0);
         chooseDirection();
         setShowMentions(true);
         onChange(newRaw);
