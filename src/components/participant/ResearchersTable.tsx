@@ -306,9 +306,9 @@ export function ResearchersTable({
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={orderedResearchers.map((researcher) => researcher.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={visibleResearchers.map((researcher) => researcher.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-3">
-                {orderedResearchers.map((researcher) => (
+                {visibleResearchers.map((researcher) => (
                   <SortableResearcherCard
                     key={researcher.id}
                     researcher={researcher}
@@ -320,8 +320,13 @@ export function ResearchersTable({
                 ))}
                 {addingResearcher && (
                   <NewResearcherCard
+                    key={draftKey}
                     onCreate={handleCreate}
-                    onDiscard={() => setAddingResearcher(false)}
+                    onUpdate={onUpdate}
+                    onDiscard={(createdId) => {
+                      if (createdId) onDelete(createdId);
+                      closeDraft();
+                    }}
                   />
                 )}
               </div>
