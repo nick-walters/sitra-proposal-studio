@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
@@ -429,7 +430,47 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
     if (stored === 'number' || stored === 'wp') return 'number';
     return 'due';
   });
-  const [showToggle, setShowToggle] = React.useState(false);
+  // The order control belongs in the block's own header rail, immediately left
+  // of the visibility (eye) control, exactly where the milestone reorder button
+  // sits. That header is rendered by the cards board, so the control is
+  // PORTALLED into the rail rather than duplicated there: a host span is
+  // inserted just before the eye button of the card this table is inside.
+  // Outside the board (document editor / mirrors) there is no rail, and the
+  // control simply is not shown — the export order never depends on it.
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const [railHost, setRailHost] = React.useState<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (forExport) return;
+    let host: HTMLSpanElement | null = null;
+    let raf = 0;
+    const attach = () => {
+      const node = rootRef.current;
+      if (!node) return;
+      const header = node.closest('[data-source-fed-block]')?.closest('.rounded-lg, [data-card]')
+        ?? node.closest('.rounded-lg');
+      const rail = header?.querySelector<HTMLElement>('[data-rail-row]') ?? null;
+      const eye = rail?.querySelector<HTMLElement>(
+        'button[aria-label="Hide block in Part B"], button[aria-label="Show block in Part B"]',
+      );
+      if (!rail || !eye) {
+        raf = window.requestAnimationFrame(attach);
+        return;
+      }
+      if (host && host.parentElement === rail && host.nextElementSibling === eye) return;
+      host = document.createElement('span');
+      host.setAttribute('data-b31-order-control', '');
+      host.className = 'flex items-center';
+      rail.insertBefore(host, eye);
+      setRailHost(host);
+    };
+    attach();
+    return () => {
+      window.cancelAnimationFrame(raf);
+      host?.remove();
+      setRailHost(null);
+    };
+  }, [forExport]);
 
   const setMode = (mode: DeliverableOrderMode) => {
     setOrderMode(mode);
@@ -524,17 +565,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
   const last = columns.length - 1;
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShowToggle(true)}
-      onMouseLeave={() => setShowToggle(false)}
-      onFocusCapture={() => setShowToggle(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          setShowToggle(false);
-        }
-      }}
-    >
+    <div className="relative" ref={rootRef}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
@@ -543,43 +574,34 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         className="mb-0"
       />
 
-      {!forExport && showToggle && (
-        // Rendered AFTER the caption so it paints above it, and pinned to the
-        // right of the caption line. The block wrapper disables every button
-        // inside it (`.source-fed-readonly button { pointer-events: none
-        // !important }`), which is why the old control never received a click;
-        // this one re-enables its own pointer events at the same weight.
-        <div
-          className="absolute -top-1 right-0 z-30 print:hidden"
-          contentEditable={false}
-          suppressContentEditableWarning
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                ref={(el) => el?.style.setProperty('pointer-events', 'auto', 'important')}
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-md border bg-background shadow-sm"
-                aria-label={
-                  orderMode === 'due'
-                    ? 'Order deliverables by deliverable number'
-                    : 'Order deliverables by due date'
-                }
-                onClick={() => setMode(orderMode === 'due' ? 'number' : 'due')}
-              >
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              {orderMode === 'due'
-                ? 'Ordered by due date — click to order by deliverable number'
-                : 'Ordered by deliverable number — click to order by due date'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
+      {/* The order control lives in the block header rail; see `railHost`. */}
+      {!forExport && railHost
+        ? createPortal(
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={
+                    orderMode === 'due'
+                      ? 'Order deliverables by deliverable number'
+                      : 'Order deliverables by due date'
+                  }
+                  onClick={() => setMode(orderMode === 'due' ? 'number' : 'due')}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {orderMode === 'due'
+                  ? 'Ordered by due date — click to order by deliverable number'
+                  : 'Ordered by deliverable number — click to order by due date'}
+              </TooltipContent>
+            </Tooltip>,
+            railHost,
+          )
+        : null}
 
       <MirrorTable
         proposalId={proposalId}
