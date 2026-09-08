@@ -364,7 +364,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     if (mentionedIds.length > 0 && result) {
       const targetIds = mentionedIds;
       if (targetIds.length > 0) {
-        await supabase.from('notifications').insert(
+        const { error } = await supabase.from('notifications').insert(
           targetIds.map((userId) => ({
             user_id: userId,
             proposal_id: proposalId,
@@ -374,6 +374,10 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             metadata: { source: 'message_board', message_id: result.id, parent_id: parentId },
           }))
         );
+        if (error) {
+          console.error('Error creating reply mention notifications:', error);
+          toast.error('The reply was posted, but the people you tagged were not notified.');
+        }
       }
     }
     setReplyContent('');
