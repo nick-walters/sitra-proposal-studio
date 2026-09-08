@@ -548,7 +548,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         // positioned too, so while the control came first in the DOM the caption
         // painted over it and swallowed every click.
         <div
-          className="absolute -top-2 right-0 z-30 print:hidden"
+          className="absolute -top-1 left-full ml-1 z-30 print:hidden"
           contentEditable={false}
           suppressContentEditableWarning
           onMouseDown={(e) => e.preventDefault()}
