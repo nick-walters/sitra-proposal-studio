@@ -625,31 +625,58 @@ function SortableResearcherCard({
  * A brand-new researcher: the same card, last in the list and immediately
  * editable. Researcher cards have no save button, so the row is inserted the
  * moment the FIRST value is committed in ANY field — a debounced keystroke,
- * a blur, or a dropdown choice. Everything typed before that moment is held
- * locally and written with that first insert, so nothing is lost. A card that
- * is added and then discarded, or added and left untouched, writes nothing.
+ * a blur, or a dropdown choice.
+ *
+ * Crucially, this card is never replaced by the saved one. It keeps its own
+ * local state and simply ADOPTS the new row's id: later commits become
+ * updates on that id, and the parent hides the saved row from the list for as
+ * long as this card is open. Nothing remounts, so focus and keystrokes are
+ * never lost mid-edit. A card added and left untouched, or added and then
+ * discarded, leaves nothing behind.
  */
 function NewResearcherCard({
   onCreate,
+  onUpdate,
   onDiscard,
 }: {
-  onCreate: (draft: ResearcherDraft) => void;
-  onDiscard: () => void;
+  onCreate: (draft: ResearcherDraft) => Promise<string | null>;
+  onUpdate: (id: string, updates: Partial<ParticipantResearcher>) => void;
+  onDiscard: (createdId: string | null) => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<ResearcherDraft>(emptyDraft);
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  /** The id of the row this card adopted, once the first value was written. */
+  const createdIdRef = useRef<string | null>(null);
+  /** In-flight insert, so two quick commits can never insert twice. */
+  const creatingRef = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
-  /** Records a value and, as soon as anything real is entered, inserts the row. */
+  /** Records a value, then inserts the row or updates the adopted one. */
   const commit = (field: keyof ResearcherDraft, value: string) => {
     const next = { ...draftRef.current, [field]: value };
     setDraft(next);
-    if (value.trim()) onCreate(next);
+
+    if (createdIdRef.current) {
+      onUpdate(createdIdRef.current, { [field]: value } as Partial<ParticipantResearcher>);
+      return;
+    }
+    if (creatingRef.current) {
+      creatingRef.current.then((id) => {
+        if (id) onUpdate(id, { [field]: value } as Partial<ParticipantResearcher>);
+      });
+      return;
+    }
+    if (!value.trim()) return;
+
+    creatingRef.current = onCreate(next).then((id) => {
+      createdIdRef.current = id;
+      return id;
+    });
   };
 
   return (
