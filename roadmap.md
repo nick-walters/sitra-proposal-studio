@@ -12,4 +12,4 @@
 
 - Prompt 143: card dropdown chevrons removed, width deltas applied from single shared width constants, overflow indent fix for selected values.
 
-- [ ] Prompt 160: capture B1.1 slow-autosave writer timing/version evidence; fix only after evidence; verify Background and TRL; restore SUSIE-Q field; delete nothing.
+- [x] Prompt 160: capture B1.1 slow-autosave writer timing/version evidence; fix only after evidence; verify Background and TRL; restore SUSIE-Q field; delete nothing.
