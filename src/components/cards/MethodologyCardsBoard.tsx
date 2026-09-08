@@ -2003,6 +2003,17 @@ function BoardInner({
   const [isDirty, setIsDirty] = useState(false);
   const dirtyRef = useRef<Record<string, { cardId: string; html: string }>>({});
   const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  type QueuedTextSave = {
+    fieldId: string;
+    cardId: string;
+    textBox: CardTextBox;
+    value: string;
+    isAutoSave: boolean;
+    resolve: Array<(saved: boolean) => void>;
+  };
+  const textSaveQueuesRef = useRef<
+    Record<string, { running: boolean; pending?: QueuedTextSave }>
+  >({});
   // Read synchronously by the keepalive unload writer.
   const { session } = useAuth();
   const accessTokenRef = useRef<string | null>(null);
@@ -2133,40 +2144,95 @@ function BoardInner({
       // Defence in depth: never write a text box held by another user.
       if (heldByOther(fieldTargetId(fieldId, textBox))) {
         delete dirtyRef.current[fieldId];
-        return false;
+        return Promise.resolve(false);
       }
-      setSaving(true);
-      try {
-        const { data, error } = await supabase.rpc('save_card_text', {
-          p_field_id: fieldId,
-          p_text_box: textBox,
-          p_value: value,
-          p_expected_version: versionsRef.current[key] ?? null,
-          p_is_auto_save: isAutoSave,
-        });
-        if (error) {
-          toast.error(error.message || 'Could not save');
-          return false;
+      return new Promise<boolean>((resolve) => {
+        const queued: QueuedTextSave = {
+          fieldId,
+          cardId,
+          textBox,
+          value,
+          isAutoSave,
+          resolve: [resolve],
+        };
+        const existing = textSaveQueuesRef.current[key];
+        if (existing?.running) {
+          if (existing.pending) {
+            existing.pending.value = value;
+            existing.pending.isAutoSave = existing.pending.isAutoSave && isAutoSave;
+            existing.pending.resolve.push(resolve);
+          } else {
+            existing.pending = queued;
+          }
+          return;
         }
-        const res = (data ?? {}) as { ok?: boolean; conflict?: boolean; version?: number };
-        if (res.version) versionsRef.current[key] = res.version;
-        if (!res.ok) {
-          // Somebody else wrote this text box first — offer a backup copy and
-          // reload the authoritative content. Nothing typed ⇒ no dialog.
-          if (!isHtmlBlank(value)) setLostText({ text: value, reason: 'conflict' });
-          delete dirtyRef.current[fieldId];
-          invalidateCardFieldsBatches(queryClient, [cardId]);
-          setReloadNonce((n) => n + 1);
-          return false;
-        }
-        delete dirtyRef.current[fieldId];
-        setLastSaved(new Date());
-        if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
-        invalidateCardFieldsBatches(queryClient, [cardId]);
-        return true;
-      } finally {
-        setSaving(false);
-      }
+
+        const queue = { running: true, pending: undefined as QueuedTextSave | undefined };
+        textSaveQueuesRef.current[key] = queue;
+        setSaving(true);
+
+        void (async () => {
+          let current: QueuedTextSave | undefined = queued;
+          try {
+            while (current) {
+              if (heldByOther(fieldTargetId(current.fieldId, current.textBox))) {
+                current.resolve.forEach((done) => done(false));
+                queue.pending?.resolve.forEach((done) => done(false));
+                queue.pending = undefined;
+                delete dirtyRef.current[current.fieldId];
+                break;
+              }
+
+              // Read the expected version only when this queued write starts.
+              // A prior save for this text box may have advanced it meanwhile.
+              const { data, error } = await supabase.rpc('save_card_text', {
+                p_field_id: current.fieldId,
+                p_text_box: current.textBox,
+                p_value: current.value,
+                p_expected_version: versionsRef.current[key] ?? null,
+                p_is_auto_save: current.isAutoSave,
+              });
+              if (error) {
+                toast.error(error.message || 'Could not save');
+                current.resolve.forEach((done) => done(false));
+                queue.pending?.resolve.forEach((done) => done(false));
+                queue.pending = undefined;
+                break;
+              }
+
+              const res = (data ?? {}) as { ok?: boolean; conflict?: boolean; version?: number };
+              if (res.version) versionsRef.current[key] = res.version;
+              if (!res.ok) {
+                // Preserve the newest local text, not merely the older request
+                // that happened to discover the genuine external conflict.
+                const lostValue = queue.pending?.value ?? current.value;
+                if (!isHtmlBlank(lostValue)) setLostText({ text: lostValue, reason: 'conflict' });
+                current.resolve.forEach((done) => done(false));
+                queue.pending?.resolve.forEach((done) => done(false));
+                queue.pending = undefined;
+                delete dirtyRef.current[current.fieldId];
+                invalidateCardFieldsBatches(queryClient, [current.cardId]);
+                setReloadNonce((n) => n + 1);
+                break;
+              }
+
+              current.resolve.forEach((done) => done(true));
+              setLastSaved(new Date());
+              invalidateCardFieldsBatches(queryClient, [current.cardId]);
+              const next = queue.pending;
+              queue.pending = undefined;
+              current = next;
+            }
+
+            delete dirtyRef.current[fieldId];
+            if (Object.keys(dirtyRef.current).length === 0) setIsDirty(false);
+          } finally {
+            queue.running = false;
+            delete textSaveQueuesRef.current[key];
+            setSaving(false);
+          }
+        })();
+      });
     },
     [heldByOther, queryClient],
   );
@@ -2582,19 +2648,8 @@ function BoardInner({
       textBox: CardTextBox,
       cardId: string,
     ) => async (next: string): Promise<FieldSaveOutcome> => {
-      const key = `${fieldId}:${textBox}`;
-      const { data, error } = await supabase.rpc('save_card_text', {
-        p_field_id: fieldId,
-        p_text_box: textBox,
-        p_value: next,
-        p_expected_version: versionsRef.current[key] ?? null,
-        p_is_auto_save: false,
-      });
-      if (error) return { ok: false, conflict: false, error: error.message };
-      const res = (data ?? {}) as { ok?: boolean; version?: number };
-      if (res.version) versionsRef.current[key] = res.version;
-      if (!res.ok) return { ok: false, conflict: true };
-      invalidateCardFieldsBatches(queryClient, [cardId]);
+      const saved = await saveTextBox(fieldId, cardId, textBox, next, false);
+      if (!saved) return { ok: false, conflict: true };
       if (textBox === 'content') {
         scheduleCitationInstanceReconcile({ proposalId, fieldId, cardId, html: next });
       }
