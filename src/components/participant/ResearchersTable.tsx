@@ -283,8 +283,12 @@ export function ResearchersTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setAddingResearcher(true)}
-              disabled={addingResearcher}
+              onClick={() => {
+                setAdoptedId(null);
+                setDraftKey((n) => n + 1);
+                setAddingResearcher(true);
+              }}
+              disabled={addingResearcher && !adoptedId}
               className="gap-1"
             >
               <Plus className="w-4 h-4" />
