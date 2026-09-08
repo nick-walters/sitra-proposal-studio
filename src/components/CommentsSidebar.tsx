@@ -374,7 +374,7 @@ export function CommentsSidebar({
     if (mentionedIds.length > 0 && replyData) {
       const targetIds = mentionedIds;
       if (targetIds.length > 0) {
-        await supabase.from('notifications').insert(
+        const { error } = await supabase.from('notifications').insert(
           targetIds.map((userId) => ({
             user_id: userId,
             proposal_id: proposalId,
@@ -385,6 +385,10 @@ export function CommentsSidebar({
             metadata: { source: 'comment', comment_id: replyData.id },
           }))
         );
+        if (error) {
+          console.error('Error creating reply mention notifications:', error);
+          toast.error('The reply was saved, but the people you tagged were not notified.');
+        }
       }
     }
 
