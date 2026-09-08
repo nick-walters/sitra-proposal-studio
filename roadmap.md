@@ -11,3 +11,5 @@
 - Prompt 142: researcher cards rebuilt to contact-card conventions; contact Email widened; explicit insert trigger for new researcher drafts.
 
 - Prompt 143: card dropdown chevrons removed, width deltas applied from single shared width constants, overflow indent fix for selected values.
+
+- [x] Prompt 160: capture B1.1 slow-autosave writer timing/version evidence; fix only after evidence; verify Background and TRL; restore SUSIE-Q field; delete nothing.
