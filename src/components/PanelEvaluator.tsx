@@ -752,6 +752,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
           computedBudget,
+          evaluationInstructions: panelInstructions.trim() || null,
           document: {
             words: livePayload.words,
             estimatedPages: livePayload.estimatedPages,
@@ -904,6 +905,7 @@ export function PanelEvaluator({ proposalId }: Props) {
 
           haikuUsage,
           haikuModel,
+          evaluationInstructions: panelInstructions.trim() || null,
         },
       });
 
