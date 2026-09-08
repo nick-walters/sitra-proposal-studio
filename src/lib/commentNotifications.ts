@@ -12,6 +12,7 @@
  * centre to open the proposal at the commented module rather than at a task or
  * the message board.
  */
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 /** Marks a notification as coming from the comments panel. */
