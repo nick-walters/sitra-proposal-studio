@@ -143,6 +143,21 @@ export function PanelEvaluator({ proposalId }: Props) {
     priceOutputPerMTok: number;
   } | null>(null);
   const [modelCheckOpen, setModelCheckOpen] = useState(false);
+  // Free-text scoping instructions given to the whole panel. Persisted on the
+  // proposal row and snapshotted onto each run.
+  const [panelInstructions, setPanelInstructions] = useState<string>("");
+  const [savingInstructions, setSavingInstructions] = useState(false);
+
+  async function savePanelInstructions() {
+    const trimmed = panelInstructions.trim().slice(0, 2000);
+    setSavingInstructions(true);
+    const { error } = await supabase
+      .from("proposals")
+      .update({ evaluation_instructions: trimmed || null })
+      .eq("id", proposalId);
+    setSavingInstructions(false);
+    if (error) toast.error(`Could not save panel instructions: ${error.message}`);
+  }
 
   useEffect(() => {
     if (!modelChoice && modelOptions.length) setModelChoice(modelOptions[0].model_id);
