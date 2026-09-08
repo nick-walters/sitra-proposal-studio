@@ -202,7 +202,10 @@ export function MentionTextarea({
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [dropUp, setDropUp] = useState(false);
+  /** Which row the keyboard is on; the list had no such notion before. */
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const lastDisplayRef = useRef('');
 
   const { display } = rawToDisplay(value);
@@ -222,6 +225,40 @@ export function MentionTextarea({
       m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
       m.email?.toLowerCase().includes(mentionQuery.toLowerCase())
   );
+
+  /** Keep the highlighted row inside the scrolling list. */
+  const scrollHighlightedIntoView = (index: number) => {
+    requestAnimationFrame(() => {
+      const row = listRef.current?.children[index] as HTMLElement | undefined;
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showMentions || filteredMembers.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = (highlightedIndex + 1) % filteredMembers.length;
+      setHighlightedIndex(next);
+      scrollHighlightedIntoView(next);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = (highlightedIndex - 1 + filteredMembers.length) % filteredMembers.length;
+      setHighlightedIndex(next);
+      scrollHighlightedIntoView(next);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      const member = filteredMembers[Math.min(highlightedIndex, filteredMembers.length - 1)];
+      if (member) {
+        e.preventDefault();
+        insertMention(member);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowMentions(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newDisplay = e.target.value;
