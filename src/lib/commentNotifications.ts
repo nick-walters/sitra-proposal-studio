@@ -55,10 +55,19 @@ function baseMetadata(t: CommentNotificationTarget) {
   };
 }
 
-async function insert(rows: Row[]) {
+/**
+ * Writes the notification rows. A failure here used to reach the console only,
+ * so the sender believed people had been told when they had not — the same
+ * fault the comment and message paths already warn about, so the wording
+ * matches theirs.
+ */
+async function insert(rows: Row[], failureMessage: string) {
   if (rows.length === 0) return;
   const { error } = await supabase.from('notifications').insert(rows);
-  if (error) console.error('Failed to write comment notifications:', error);
+  if (error) {
+    console.error('Failed to write comment notifications:', error);
+    toast.error(failureMessage);
+  }
 }
 
 /** One notification per tagged user, minus the author. */
