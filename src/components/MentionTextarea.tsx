@@ -328,6 +328,7 @@ export function MentionTextarea({
         ref={textareaRef}
         value={display}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
           "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none",
@@ -338,16 +339,23 @@ export function MentionTextarea({
 
       {showMentions && filteredMembers.length > 0 && (
         <div
+          ref={listRef}
           className={cn(
             'absolute left-0 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto',
             dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
           )}
         >
-          {filteredMembers.map((member) => (
+          {filteredMembers.map((member, index) => (
             <button
               key={member.id}
               type="button"
-              className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left transition-colors"
+              aria-selected={index === highlightedIndex}
+              className={cn(
+                'w-full flex items-center gap-2 p-2 hover:bg-muted text-left transition-colors',
+                index === highlightedIndex && 'bg-muted',
+              )}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertMention(member)}
             >
               <Avatar className="h-6 w-6">
