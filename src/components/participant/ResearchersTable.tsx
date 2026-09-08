@@ -243,14 +243,28 @@ export function ResearchersTable({
    * its first real value is committed, so the typed card survives a reload
    * without any save button, while an untouched card writes nothing.
    */
-  const handleCreate = (draft: ResearcherDraft) => {
-    onAdd({
+  const handleCreate = async (draft: ResearcherDraft): Promise<string | null> => {
+    const created = await onAdd({
       ...draft,
       participantId: '',
       orderIndex: researchers.length,
     } as Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>);
-    setAddingResearcher(false);
+    const id = (created as { id?: string } | void | undefined)?.id ?? null;
+    // The card stays mounted and simply takes on the new id; the saved row is
+    // hidden from the list until the card closes, so nothing remounts.
+    if (id) setAdoptedId(id);
+    return id;
   };
+
+  /** Closes the open draft card, revealing the row it created (if any). */
+  const closeDraft = () => {
+    setAddingResearcher(false);
+    setAdoptedId(null);
+  };
+
+  const visibleResearchers = orderedResearchers.filter(
+    (researcher) => !(addingResearcher && researcher.id === adoptedId),
+  );
 
   return (
     <Card>
