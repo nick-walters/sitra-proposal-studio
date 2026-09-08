@@ -564,17 +564,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
   const last = columns.length - 1;
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShowToggle(true)}
-      onMouseLeave={() => setShowToggle(false)}
-      onFocusCapture={() => setShowToggle(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          setShowToggle(false);
-        }
-      }}
-    >
+    <div className="relative" ref={rootRef}>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
@@ -583,43 +573,34 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         className="mb-0"
       />
 
-      {!forExport && showToggle && (
-        // Rendered AFTER the caption so it paints above it, and pinned to the
-        // right of the caption line. The block wrapper disables every button
-        // inside it (`.source-fed-readonly button { pointer-events: none
-        // !important }`), which is why the old control never received a click;
-        // this one re-enables its own pointer events at the same weight.
-        <div
-          className="absolute -top-1 right-0 z-30 print:hidden"
-          contentEditable={false}
-          suppressContentEditableWarning
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                ref={(el) => el?.style.setProperty('pointer-events', 'auto', 'important')}
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-md border bg-background shadow-sm"
-                aria-label={
-                  orderMode === 'due'
-                    ? 'Order deliverables by deliverable number'
-                    : 'Order deliverables by due date'
-                }
-                onClick={() => setMode(orderMode === 'due' ? 'number' : 'due')}
-              >
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              {orderMode === 'due'
-                ? 'Ordered by due date — click to order by deliverable number'
-                : 'Ordered by deliverable number — click to order by due date'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      )}
+      {/* The order control lives in the block header rail; see `railHost`. */}
+      {!forExport && railHost
+        ? createPortal(
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  aria-label={
+                    orderMode === 'due'
+                      ? 'Order deliverables by deliverable number'
+                      : 'Order deliverables by due date'
+                  }
+                  onClick={() => setMode(orderMode === 'due' ? 'number' : 'due')}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {orderMode === 'due'
+                  ? 'Ordered by due date — click to order by deliverable number'
+                  : 'Ordered by deliverable number — click to order by due date'}
+              </TooltipContent>
+            </Tooltip>,
+            railHost,
+          )
+        : null}
 
       <MirrorTable
         proposalId={proposalId}
