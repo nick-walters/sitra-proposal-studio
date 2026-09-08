@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
