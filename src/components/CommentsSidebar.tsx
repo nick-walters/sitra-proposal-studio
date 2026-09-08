@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useSectionComments, Comment, AnchorType } from '@/hooks/useSectionComments';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
@@ -345,6 +346,7 @@ export function CommentsSidebar({
         
         if (error) {
           console.error('Error creating mention notifications:', error);
+          toast.error('The comment was saved, but the people you tagged were not notified.');
         }
       }
     }
