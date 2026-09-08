@@ -174,7 +174,9 @@ const emptyDraft = (): ResearcherDraft => ({
 
 interface ResearchersTableProps {
   researchers: ParticipantResearcher[];
-  onAdd: (researcher: Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAdd: (
+    researcher: Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>,
+  ) => void | Promise<{ id: string } | void | undefined>;
   onUpdate: (id: string, updates: Partial<ParticipantResearcher>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
@@ -190,6 +192,13 @@ export function ResearchersTable({
   // A brand-new researcher is a local draft. Nothing is written until the first
   // real value is committed, so an added-then-discarded card leaves no row.
   const [addingResearcher, setAddingResearcher] = useState(false);
+  // Once the row exists, the draft card ADOPTS its id and stays mounted: the
+  // saved row is hidden from the list below while that card is open, so the
+  // insert never remounts anything and typing is never interrupted.
+  const [adoptedId, setAdoptedId] = useState<string | null>(null);
+  // Bumped for each new card, so "Add Researcher" twice in a row starts a
+  // genuinely fresh draft while the previous one settles into the list.
+  const [draftKey, setDraftKey] = useState(0);
   const [orderedResearchers, setOrderedResearchers] = useState(researchers);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
