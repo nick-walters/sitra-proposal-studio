@@ -54,10 +54,12 @@ export interface LockHolder {
 const HEARTBEAT_MS = 15_000;
 
 
-/** How often a viewer re-reads the lock table from the server. Viewers must
- *  never decide on their own that a lock has gone: realtime events can be
- *  missed, so the displayed state is re-derived from server rows. */
-const LOCK_POLL_MS = 8_000;
+/** Slow safety refetch of the lock table. The realtime channel on the same
+ *  table is the primary source of changes and delivers them immediately; this
+ *  interval only exists so a missed event cannot leave a field stuck
+ *  read-only. Focus and visibility changes also trigger an immediate refetch,
+ *  so the practical worst case is far shorter than this. */
+const LOCK_POLL_MS = 60_000;
 
 /** Tolerance for clock skew between this browser and the database when
  *  judging `expires_at`. Well under the 300s server window. */

@@ -50,10 +50,11 @@ export function useLumpSumBudgetAccess(proposalId: string) {
   const query = useQuery({
     queryKey: ACCESS_KEY(proposalId),
     enabled: Boolean(proposalId),
-    // Lock state is shared between coordinators, so keep it fresh rather than serving a stale cache.
-    staleTime: 0,
+    // Lock and permission state changes rarely and every mutation here
+    // invalidates this key, so a one-minute cache plus a refetch when the
+    // window regains focus replaces the previous 30-second poll.
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
     queryFn: async () => {
 
       const [participantsRes, budgetsRes, rolesRes, overridesRes] = await Promise.all([
