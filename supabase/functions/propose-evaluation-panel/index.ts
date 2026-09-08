@@ -218,7 +218,7 @@ CHECKS:
 IMPORTANT: Only include checks that are applicable to this proposal configuration.
 - Check 3 (BLIND EVALUATION): Only include if proposalStage = 'stage1'. Omit entirely for full proposals.
 - Check 5 (BUDGET COMPLETENESS): Always include, but base it on the BUDGET SUMMARY — never assume €0.
-
+${instructionsBlock}
 Output ONLY valid JSON. No preamble.`;
 
     const topicBlock = [
