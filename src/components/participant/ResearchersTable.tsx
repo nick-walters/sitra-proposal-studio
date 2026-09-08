@@ -814,7 +814,14 @@ function NewResearcherCard({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-muted-foreground"
-                onClick={onDiscard}
+                onClick={() => {
+                  // If the row was already written, discarding removes it too.
+                  if (creatingRef.current) {
+                    creatingRef.current.then((id) => onDiscard(id));
+                    return;
+                  }
+                  onDiscard(createdIdRef.current);
+                }}
                 aria-label="Discard new researcher"
                 title="Discard"
               >
