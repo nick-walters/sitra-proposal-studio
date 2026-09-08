@@ -429,7 +429,47 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
     if (stored === 'number' || stored === 'wp') return 'number';
     return 'due';
   });
-  const [showToggle, setShowToggle] = React.useState(false);
+  // The order control belongs in the block's own header rail, immediately left
+  // of the visibility (eye) control, exactly where the milestone reorder button
+  // sits. That header is rendered by the cards board, so the control is
+  // PORTALLED into the rail rather than duplicated there: a host span is
+  // inserted just before the eye button of the card this table is inside.
+  // Outside the board (document editor / mirrors) there is no rail, and the
+  // control simply is not shown — the export order never depends on it.
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const [railHost, setRailHost] = React.useState<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (forExport) return;
+    let host: HTMLSpanElement | null = null;
+    let raf = 0;
+    const attach = () => {
+      const node = rootRef.current;
+      if (!node) return;
+      const header = node.closest('[data-source-fed-block]')?.closest('.rounded-lg, [data-card]')
+        ?? node.closest('.rounded-lg');
+      const rail = header?.querySelector<HTMLElement>('[data-rail-row]') ?? null;
+      const eye = rail?.querySelector<HTMLElement>(
+        'button[aria-label="Hide block in Part B"], button[aria-label="Show block in Part B"]',
+      );
+      if (!rail || !eye) {
+        raf = window.requestAnimationFrame(attach);
+        return;
+      }
+      if (host && host.parentElement === rail && host.nextElementSibling === eye) return;
+      host = document.createElement('span');
+      host.setAttribute('data-b31-order-control', '');
+      host.className = 'flex items-center';
+      rail.insertBefore(host, eye);
+      setRailHost(host);
+    };
+    attach();
+    return () => {
+      window.cancelAnimationFrame(raf);
+      host?.remove();
+      setRailHost(null);
+    };
+  }, [forExport]);
 
   const setMode = (mode: DeliverableOrderMode) => {
     setOrderMode(mode);
