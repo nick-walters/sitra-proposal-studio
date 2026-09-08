@@ -87,6 +87,7 @@ export async function notifyCommentTags(
       section_title: t.sectionTitle ?? null,
       metadata: baseMetadata(t),
     })),
+    'The comment was saved, but the people you tagged were not notified.',
   );
 }
 
