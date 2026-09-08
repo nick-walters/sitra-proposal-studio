@@ -13,30 +13,20 @@ export function useCanEditParticipantBudget(proposalId: string) {
   const query = useQuery({
     queryKey: QUERY_KEY(proposalId),
     enabled: Boolean(proposalId && user?.id && !roleLoading),
-    // A coordinator can grant, remove or lock rights from another browser; pick that up without a reload.
-    staleTime: 0,
+    // Permissions change rarely, and the permissions dialog invalidates this
+    // key directly whenever a coordinator changes an override, so a short
+    // cache plus a focus refetch is enough — no polling.
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
     queryFn: async () => {
-
-      const { data: participants, error } = await supabase
-        .from('participants')
-        .select('id')
-        .eq('proposal_id', proposalId)
-        .order('participant_number');
+      // One call for the whole proposal. The database function applies exactly
+      // the same rules as can_edit_participant_budget, evaluated set-wise.
+      const { data, error } = await supabase.rpc('editable_participant_ids', {
+        _proposal_id: proposalId,
+      });
       if (error) throw error;
-
-      const editable = await Promise.all(
-        (participants ?? []).map(async (participant) => {
-          const { data, error: rpcError } = await supabase.rpc('can_edit_participant_budget', {
-            _user_id: user?.id ?? '',
-            _participant_id: participant.id,
-          });
-          if (rpcError) throw rpcError;
-          return data ? participant.id : null;
-        }),
-      );
-      return new Set(editable.filter((id): id is string => Boolean(id)));
+      const ids = (data ?? []) as unknown as string[];
+      return new Set(ids);
     },
   });
 
