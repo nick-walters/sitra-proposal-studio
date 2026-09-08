@@ -530,6 +530,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .maybeSingle(),
       ]);
       setProposal(prop);
+      setPanelInstructions((prop as any)?.evaluation_instructions || "");
       setInstruments((insts || []) as InstrumentType[]);
       setHistory((hist || []) as AnalysisRow[]);
 
