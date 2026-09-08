@@ -108,5 +108,5 @@ export async function notifyCommentAssignment(
       section_title: t.sectionTitle ?? null,
       metadata: baseMetadata(t),
     },
-  ]);
+  ], 'The comment was assigned, but the person you assigned it to was not notified.');
 }
