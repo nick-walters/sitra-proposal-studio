@@ -508,7 +508,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       const [{ data: prop }, { data: insts }, { data: hist }, { data: runningEval }] = await Promise.all([
         supabase
           .from("proposals")
-          .select("id, type, budget_type, submission_stage, is_two_stage_second_stage, acronym, title")
+          .select("id, type, budget_type, submission_stage, is_two_stage_second_stage, acronym, title, evaluation_instructions")
           .eq("id", proposalId)
           .single(),
         supabase.from("instrument_types").select("*").eq("active", true).order("name"),
