@@ -1108,7 +1108,7 @@ SYNTHESIS RULES:
 - Strengths and weaknesses must be specific. Generic statements are not acceptable.
 - Tone: direct, professional — matching official EC ESR style. Avoid hedging language.
 - Flag minority opinion inline for any criterion where any evaluator scored more than 1.0 away from the mean.
-- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}`;
+- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}${panelInstructionsBlock}`;
 
   const synthesisUser = `PROPOSAL: ${proposal.title} (${proposal.acronym})
 CALL: ${proposal.work_programme || "n/a"} | TOPIC: ${proposal.topic_id || "n/a"}
@@ -1203,6 +1203,24 @@ Produce the full ESR markdown using the four-section structure defined in your s
       `## Overall panel assessment`,
       ``,
       `Automatic synthesis failed for this evaluation.`,
+    ].join("\n");
+  }
+
+  // Deterministic header — applies to both the model-written ESR and the fallback.
+  if (panelInstructions) {
+    const instructionLines = panelInstructions
+      .split("\n")
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0)
+      .join("\n\n");
+    esrMarkdown = [
+      "# Instructions to the panel",
+      "",
+      "*The proposal team supplied the following instructions before this evaluation. The panel was instructed to follow them when deciding what to evaluate, but not to relax its scoring standards.*",
+      "",
+      instructionLines,
+      "",
+      esrMarkdown,
     ].join("\n");
   }
 
