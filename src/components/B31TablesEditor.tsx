@@ -11,6 +11,9 @@ import { RefDataProvider, useRefSnapshot } from '@/lib/refDataContext';
 import { WPBubble, ParticipantBubble, RiskBadge, AllWPsBubble, isAllWPsSelected } from './B31Pill';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowUpDown } from 'lucide-react';
 
 /**
  * B31TablesEditor — Stage 1 read-only mirrors.
@@ -401,7 +404,7 @@ function parseWPList(s: string | null | undefined): number[] {
 // ============================================================
 // Table 3.1.c — Deliverables (read-only mirror)
 // ============================================================
-type DeliverableOrderMode = 'wp' | 'due';
+type DeliverableOrderMode = 'number' | 'due';
 
 const orderModeKey = (proposalId: string) => `b31-3-1-c-order:${proposalId}`;
 
@@ -418,8 +421,13 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
   const { data: partInfo } = useParticipantLookup(proposalId);
 
   const [orderMode, setOrderMode] = React.useState<DeliverableOrderMode>(() => {
-    if (typeof window === 'undefined') return 'wp';
-    return window.localStorage.getItem(orderModeKey(proposalId)) === 'due' ? 'due' : 'wp';
+    if (typeof window === 'undefined') return 'due';
+    // Legacy 'wp' preferences fall back to the number mode, whose order is the
+    // same reading (work package, then deliverable number). Anything else, and
+    // a first visit, takes the due-date default the exports use.
+    const stored = window.localStorage.getItem(orderModeKey(proposalId));
+    if (stored === 'number' || stored === 'wp') return 'number';
+    return 'due';
   });
   const [showToggle, setShowToggle] = React.useState(false);
 
@@ -480,32 +488,24 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
 
   const deliverables = useMemo(() => {
     const rows = deliverableData?.rows ?? [];
-    const taskRank = deliverableData?.taskRank ?? new Map<string, number>();
     const month = (d: any) => d.due_month ?? Number.POSITIVE_INFINITY;
-    const wpNum = (d: any) => d.wp?.number ?? 999;
+    // A deliverable's number reads "D<wp>.<n>", so ordering "by number" means
+    // work-package number first, then the number within it. The same pair is
+    // the tie-break inside a shared due month, and matches the Typst export.
+    const byNumber = (a: any, b: any) => {
+      const wa = a.wp?.number ?? 999;
+      const wb = b.wp?.number ?? 999;
+      if (wa !== wb) return wa - wb;
+      return (a.number ?? 0) - (b.number ?? 0);
+    };
     return [...rows].sort((a: any, b: any) => {
       if (effectiveMode === 'due') {
         const da = month(a);
         const db = month(b);
         if (da !== db) return da - db;
-        const wa = wpNum(a);
-        const wb = wpNum(b);
-        if (wa !== wb) return wa - wb;
-        return (a.number ?? 0) - (b.number ?? 0);
+        return byNumber(a, b);
       }
-      const wa = wpNum(a);
-      const wb = wpNum(b);
-      if (wa !== wb) return wa - wb;
-      const da = month(a);
-      const db = month(b);
-      if (da !== db) return da - db;
-      const ta = taskRank.get(a.id) ?? Number.POSITIVE_INFINITY;
-      const tb = taskRank.get(b.id) ?? Number.POSITIVE_INFINITY;
-      if (ta !== tb) return ta - tb;
-      const oa = a.order_index ?? a.number ?? 0;
-      const ob = b.order_index ?? b.number ?? 0;
-      if (oa !== ob) return oa - ob;
-      return (a.number ?? 0) - (b.number ?? 0);
+      return byNumber(a, b);
     });
   }, [deliverableData, effectiveMode]);
 
@@ -535,31 +535,6 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         }
       }}
     >
-      {!forExport && showToggle && (
-        <div
-          className="absolute -top-2 left-0 z-20 flex items-center gap-1 rounded-md border bg-background px-1 py-0.5 shadow-sm print:hidden"
-          contentEditable={false}
-          suppressContentEditableWarning
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <span className="text-[10px] text-muted-foreground">Order</span>
-          {(['wp', 'due'] as DeliverableOrderMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setMode(mode)}
-              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-                orderMode === mode
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              {mode === 'wp' ? 'Work package' : 'Due date'}
-            </button>
-          ))}
-        </div>
-      )}
-
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.c"
@@ -567,6 +542,44 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         defaultCaption="List of deliverables"
         className="mb-0"
       />
+
+      {!forExport && showToggle && (
+        // Rendered AFTER the caption so it paints above it, and pinned to the
+        // right of the caption line. The block wrapper disables every button
+        // inside it (`.source-fed-readonly button { pointer-events: none
+        // !important }`), which is why the old control never received a click;
+        // this one re-enables its own pointer events at the same weight.
+        <div
+          className="absolute -top-1 right-0 z-30 print:hidden"
+          contentEditable={false}
+          suppressContentEditableWarning
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                ref={(el) => el?.style.setProperty('pointer-events', 'auto', 'important')}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md border bg-background shadow-sm"
+                aria-label={
+                  orderMode === 'due'
+                    ? 'Order deliverables by deliverable number'
+                    : 'Order deliverables by due date'
+                }
+                onClick={() => setMode(orderMode === 'due' ? 'number' : 'due')}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {orderMode === 'due'
+                ? 'Ordered by due date — click to order by deliverable number'
+                : 'Ordered by deliverable number — click to order by due date'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
 
       <MirrorTable
         proposalId={proposalId}
