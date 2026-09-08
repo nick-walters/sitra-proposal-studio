@@ -544,11 +544,13 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
       />
 
       {!forExport && showToggle && (
-        // Rendered AFTER the caption and on the right: the caption paragraph is
-        // positioned too, so while the control came first in the DOM the caption
-        // painted over it and swallowed every click.
+        // Rendered AFTER the caption so it paints above it, and pinned to the
+        // right of the caption line. The block wrapper disables every button
+        // inside it (`.source-fed-readonly button { pointer-events: none
+        // !important }`), which is why the old control never received a click;
+        // this one re-enables its own pointer events at the same weight.
         <div
-          className="absolute -top-1 left-full ml-1 z-30 print:hidden"
+          className="absolute -top-1 right-0 z-30 print:hidden"
           contentEditable={false}
           suppressContentEditableWarning
           onMouseDown={(e) => e.preventDefault()}
@@ -556,6 +558,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                ref={(el) => el?.style.setProperty('pointer-events', 'auto', 'important')}
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 rounded-md border bg-background shadow-sm"
