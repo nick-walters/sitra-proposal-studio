@@ -56,6 +56,112 @@ export interface ReorderResult<T = any> {
   error?: string;
 }
 
+/* ------------------------------------------------------------------ */
+/* Serialised per-record saves (shared)                                */
+/*                                                                     */
+/* `save_versioned_row` compares only the row version — it has no idea */
+/* WHO wrote last. Two overlapping saves from the SAME user therefore  */
+/* both carry the version read before the first one landed, and the    */
+/* second is rejected as "changed elsewhere": the user conflicts with  */
+/* themselves. WPTableSection fixed this for tasks only; the queue     */
+/* below moves the same treatment into the shared save path, so EVERY  */
+/* caller of these RPCs gets it.                                       */
+/*                                                                     */
+/* At most one save per record is in flight; anything issued meanwhile */
+/* is merged into a single follow-up patch. A follow-up uses the       */
+/* version OUR OWN previous write returned when that is newer than the */
+/* version the caller read, so we never fight our own writes. Genuine  */
+/* conflicts are still detected: if another user writes, the stored    */
+/* version moves past ours and the RPC still refuses.                  */
+/* ------------------------------------------------------------------ */
+
+interface QueueEntry {
+  kind: string;
+  patch: Record<string, any>;
+  expectedVersion: number | null;
+  resolvers: Array<(res: VersionedSaveResult<any>) => void>;
+}
+
+const rowQueues = new Map<string, QueueEntry>();
+const rowRunning = new Set<string>();
+/** Version last returned by a write WE issued, per record. */
+const ourVersion = new Map<string, number>();
+
+async function runRowRpc(
+  kind: string,
+  table: VersionedTable | null,
+  id: string,
+  patch: Record<string, any>,
+  expectedVersion: number | null,
+): Promise<VersionedSaveResult<any>> {
+  const args =
+    kind === 'resequence'
+      ? { p_id: id, p_patch: patch, p_expected_version: expectedVersion }
+      : { p_table: table, p_id: id, p_patch: patch, p_expected_version: expectedVersion };
+  const rpc = kind === 'resequence' ? 'save_milestone_and_resequence' : 'save_versioned_row';
+  const { data, error } = await (supabase as any).rpc(rpc, args);
+  if (error) {
+    surfaceRejection(patch);
+    return { ok: false, conflict: false, error: error.message };
+  }
+  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<any>;
+  if (!res.ok) surfaceRejection(patch);
+  return res;
+}
+
+function enqueueRowSave(
+  kind: string,
+  table: VersionedTable | null,
+  id: string,
+  patch: Record<string, any>,
+  expectedVersion: number | null,
+): Promise<VersionedSaveResult<any>> {
+  const key = `${table ?? 'proposal_milestones'}:${id}`;
+  return new Promise((resolve) => {
+    const existing = rowQueues.get(key);
+    if (existing && existing.kind === kind) {
+      // Merge into the patch already waiting: later values win, nothing is dropped.
+      existing.patch = { ...existing.patch, ...patch };
+      existing.expectedVersion = expectedVersion ?? existing.expectedVersion;
+      existing.resolvers.push(resolve);
+    } else if (existing) {
+      // Different RPC shape: keep it strictly after the queued one.
+      const prev = existing.resolvers;
+      existing.resolvers = prev;
+      rowQueues.set(key, existing);
+      // Chain by re-enqueuing once the pending entry has been taken.
+      setTimeout(() => enqueueRowSave(kind, table, id, patch, expectedVersion).then(resolve), 0);
+      return;
+    } else {
+      rowQueues.set(key, { kind, patch: { ...patch }, expectedVersion, resolvers: [resolve] });
+    }
+    void drainRowQueue(key, table, id);
+  });
+}
+
+async function drainRowQueue(key: string, table: VersionedTable | null, id: string) {
+  if (rowRunning.has(key)) return;
+  rowRunning.add(key);
+  try {
+    while (rowQueues.has(key)) {
+      const entry = rowQueues.get(key)!;
+      rowQueues.delete(key);
+      const mine = ourVersion.get(key);
+      // Our own newer write wins over the version the caller had read.
+      const expected =
+        mine != null && (entry.expectedVersion == null || mine > entry.expectedVersion)
+          ? mine
+          : entry.expectedVersion;
+      const res = await runRowRpc(entry.kind, table, id, entry.patch, expected);
+      if (res.ok && typeof res.version === 'number') ourVersion.set(key, res.version);
+      if (res.conflict) ourVersion.delete(key);
+      entry.resolvers.forEach((r) => r(res));
+    }
+  } finally {
+    rowRunning.delete(key);
+  }
+}
+
 /** Guarded single-row save. `expectedVersion` null skips the check. */
 export async function saveVersionedRow<T = any>(
   table: VersionedTable,
@@ -63,20 +169,9 @@ export async function saveVersionedRow<T = any>(
   patch: Record<string, any>,
   expectedVersion: number | null,
 ): Promise<VersionedSaveResult<T>> {
-  const { data, error } = await (supabase as any).rpc('save_versioned_row', {
-    p_table: table,
-    p_id: id,
-    p_patch: patch,
-    p_expected_version: expectedVersion,
-  });
-  if (error) {
-    surfaceRejection(patch);
-    return { ok: false, conflict: false, error: error.message };
-  }
-  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
-  if (!res.ok) surfaceRejection(patch);
-  return res;
+  return enqueueRowSave('row', table, id, patch, expectedVersion) as Promise<VersionedSaveResult<T>>;
 }
+
 
 /**
  * All-or-nothing reorder. Every row carries the version the client loaded; if
@@ -119,20 +214,73 @@ export async function saveCaseDraftSubsection(
   heading: string | null,
   expectedBody: string | null,
 ): Promise<SubsectionSaveResult> {
-  const { data, error } = await (supabase as any).rpc('save_case_draft_subsection', {
-    p_id: caseId,
-    p_key: key,
-    p_body: body,
-    p_heading: heading,
-    p_expected_body: expectedBody,
+  return enqueueSubsectionSave(caseId, key, body, heading, expectedBody);
+}
+
+/* Serialised per-subsection saves. This RPC guards on the stored BODY rather
+ * than a version, so two overlapping saves of the same subsection both send
+ * the body read before the first landed and the second is refused. The queue
+ * keeps one save per subsection in flight and lets a follow-up expect the body
+ * OUR previous write stored. Another user's edit still moves the stored body
+ * away from ours, so a genuine conflict is still refused. */
+const subQueues = new Map<string, { body: string; heading: string | null; expected: string | null; resolvers: Array<(r: SubsectionSaveResult) => void> }>();
+const subRunning = new Set<string>();
+/** Body last written by US, per subsection. */
+const ourBody = new Map<string, string>();
+
+function enqueueSubsectionSave(
+  caseId: string,
+  key: string,
+  body: string,
+  heading: string | null,
+  expectedBody: string | null,
+): Promise<SubsectionSaveResult> {
+  const qk = `${caseId}:${key}`;
+  return new Promise((resolve) => {
+    const existing = subQueues.get(qk);
+    if (existing) {
+      // Latest text wins; nothing typed meanwhile is dropped.
+      existing.body = body;
+      existing.heading = heading;
+      existing.resolvers.push(resolve);
+    } else {
+      subQueues.set(qk, { body, heading, expected: expectedBody, resolvers: [resolve] });
+    }
+    void drainSubQueue(qk, caseId, key);
   });
-  if (error) {
-    surfaceRejection(body);
-    return { ok: false, conflict: false, error: error.message };
+}
+
+async function drainSubQueue(qk: string, caseId: string, key: string) {
+  if (subRunning.has(qk)) return;
+  subRunning.add(qk);
+  try {
+    while (subQueues.has(qk)) {
+      const entry = subQueues.get(qk)!;
+      subQueues.delete(qk);
+      const mine = ourBody.get(qk);
+      const expected = mine != null ? mine : entry.expected;
+      const { data, error } = await (supabase as any).rpc('save_case_draft_subsection', {
+        p_id: caseId,
+        p_key: key,
+        p_body: entry.body,
+        p_heading: entry.heading,
+        p_expected_body: expected,
+      });
+      let res: SubsectionSaveResult;
+      if (error) {
+        surfaceRejection(entry.body);
+        res = { ok: false, conflict: false, error: error.message };
+      } else {
+        res = (data ?? { ok: false, conflict: false, error: 'no response' }) as SubsectionSaveResult;
+        if (!res.ok) surfaceRejection(entry.body);
+      }
+      if (res.ok) ourBody.set(qk, entry.body);
+      if (res.conflict) ourBody.delete(qk);
+      entry.resolvers.forEach((r) => r(res));
+    }
+  } finally {
+    subRunning.delete(qk);
   }
-  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as SubsectionSaveResult;
-  if (!res.ok) surfaceRejection(body);
-  return res;
 }
 
 /** True when the value carries no user text worth offering back for copying. */
@@ -237,16 +385,9 @@ export async function saveMilestoneAndResequence<T = any>(
   patch: Record<string, any>,
   expectedVersion: number | null,
 ): Promise<VersionedSaveResult<T>> {
-  const { data, error } = await (supabase as any).rpc('save_milestone_and_resequence', {
-    p_id: id,
-    p_patch: patch,
-    p_expected_version: expectedVersion,
-  });
-  if (error) {
-    surfaceRejection(patch);
-    return { ok: false, conflict: false, error: error.message };
-  }
-  const res = (data ?? { ok: false, conflict: false, error: 'no response' }) as VersionedSaveResult<T>;
-  if (!res.ok) surfaceRejection(patch);
-  return res;
+  // Same per-record queue as saveVersionedRow: a resequencing save and an
+  // ordinary save of the same milestone must never overlap.
+  return enqueueRowSave('resequence', 'proposal_milestones', id, patch, expectedVersion) as Promise<
+    VersionedSaveResult<T>
+  >;
 }
