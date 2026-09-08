@@ -5549,6 +5549,7 @@ export type Database = {
           destination_footnotes: Json | null
           duration: number | null
           evaluation_criteria_notes: string | null
+          evaluation_instructions: string | null
           expected_projects: string | null
           expertise_matrix_enabled: boolean
           expertise_matrix_header_height: number | null
@@ -5635,6 +5636,7 @@ export type Database = {
           destination_footnotes?: Json | null
           duration?: number | null
           evaluation_criteria_notes?: string | null
+          evaluation_instructions?: string | null
           expected_projects?: string | null
           expertise_matrix_enabled?: boolean
           expertise_matrix_header_height?: number | null
@@ -5721,6 +5723,7 @@ export type Database = {
           destination_footnotes?: Json | null
           duration?: number | null
           evaluation_criteria_notes?: string | null
+          evaluation_instructions?: string | null
           expected_projects?: string | null
           expertise_matrix_enabled?: boolean
           expertise_matrix_header_height?: number | null
