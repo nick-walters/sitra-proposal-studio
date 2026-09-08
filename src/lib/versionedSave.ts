@@ -56,7 +56,6 @@ export interface ReorderResult<T = any> {
   error?: string;
 }
 
-/** Guarded single-row save. `expectedVersion` null skips the check. */
 /* ------------------------------------------------------------------ */
 /* Serialised per-record saves (shared)                                */
 /*                                                                     */
