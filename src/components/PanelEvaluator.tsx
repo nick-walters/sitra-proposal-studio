@@ -143,6 +143,21 @@ export function PanelEvaluator({ proposalId }: Props) {
     priceOutputPerMTok: number;
   } | null>(null);
   const [modelCheckOpen, setModelCheckOpen] = useState(false);
+  // Free-text scoping instructions given to the whole panel. Persisted on the
+  // proposal row and snapshotted onto each run.
+  const [panelInstructions, setPanelInstructions] = useState<string>("");
+  const [savingInstructions, setSavingInstructions] = useState(false);
+
+  async function savePanelInstructions() {
+    const trimmed = panelInstructions.trim().slice(0, 2000);
+    setSavingInstructions(true);
+    const { error } = await supabase
+      .from("proposals")
+      .update({ evaluation_instructions: trimmed || null })
+      .eq("id", proposalId);
+    setSavingInstructions(false);
+    if (error) toast.error(`Could not save panel instructions: ${error.message}`);
+  }
 
   useEffect(() => {
     if (!modelChoice && modelOptions.length) setModelChoice(modelOptions[0].model_id);
@@ -493,7 +508,7 @@ export function PanelEvaluator({ proposalId }: Props) {
       const [{ data: prop }, { data: insts }, { data: hist }, { data: runningEval }] = await Promise.all([
         supabase
           .from("proposals")
-          .select("id, type, budget_type, submission_stage, is_two_stage_second_stage, acronym, title")
+          .select("id, type, budget_type, submission_stage, is_two_stage_second_stage, acronym, title, evaluation_instructions")
           .eq("id", proposalId)
           .single(),
         supabase.from("instrument_types").select("*").eq("active", true).order("name"),
@@ -515,6 +530,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .maybeSingle(),
       ]);
       setProposal(prop);
+      setPanelInstructions((prop as any)?.evaluation_instructions || "");
       setInstruments((insts || []) as InstrumentType[]);
       setHistory((hist || []) as AnalysisRow[]);
 
@@ -736,6 +752,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
           computedBudget,
+          evaluationInstructions: panelInstructions.trim() || null,
           document: {
             words: livePayload.words,
             estimatedPages: livePayload.estimatedPages,
@@ -888,6 +905,7 @@ export function PanelEvaluator({ proposalId }: Props) {
 
           haikuUsage,
           haikuModel,
+          evaluationInstructions: panelInstructions.trim() || null,
         },
       });
 
@@ -1118,6 +1136,51 @@ export function PanelEvaluator({ proposalId }: Props) {
               toast.info(`${choice.label} will be used for the next run only.`);
             }}
           />
+
+          <div className="space-y-1.5 max-w-3xl mx-auto">
+            <Label htmlFor="panel-instructions" className="text-sm font-medium text-foreground">
+              Instructions to the panel (optional)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Anything you enter here is given to the compliance check, every evaluator and the
+              rapporteur, and is printed at the top of the ESR. Use it to scope the evaluation —
+              e.g. sections still under development, or a focus on consistency rather than merit.
+              It is saved with the proposal and reused until you change or clear it.
+            </p>
+            <Textarea
+              id="panel-instructions"
+              value={panelInstructions}
+              onChange={(e) => setPanelInstructions(e.target.value.slice(0, 2000))}
+              onBlur={() => { void savePanelInstructions(); }}
+              disabled={stage !== "idle"}
+              rows={3}
+              maxLength={2000}
+              placeholder="e.g. Do not evaluate B2 or B3.2 — they are still under development. Concentrate on internal consistency between work packages, deliverables and the budget rather than on scientific merit."
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{savingInstructions ? "Saving…" : `${panelInstructions.length}/2000`}</span>
+              {panelInstructions.length > 0 && stage === "idle" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={async () => {
+                    setPanelInstructions("");
+                    setSavingInstructions(true);
+                    const { error } = await supabase
+                      .from("proposals")
+                      .update({ evaluation_instructions: null })
+                      .eq("id", proposalId);
+                    setSavingInstructions(false);
+                    if (error) toast.error(`Could not clear panel instructions: ${error.message}`);
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
 
 
           {/* Per-run model toggle switch. Both choices — ids, labels and prices —
