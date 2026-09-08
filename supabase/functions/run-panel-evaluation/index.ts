@@ -1360,7 +1360,13 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel, evaluationInstructions } = body || {};
+      // Snapshotted onto the run so the record stays faithful even if the
+      // proposal's stored instructions change later.
+      const normalizedInstructions =
+        typeof evaluationInstructions === "string" && evaluationInstructions.trim()
+          ? evaluationInstructions.trim().slice(0, 2000)
+          : null;
       // Validate the per-run model override FIRST, so a bad model id is rejected
       // before any expensive work happens. A model that is not a configured
       // option may still be used for a single run, but only if the caller
