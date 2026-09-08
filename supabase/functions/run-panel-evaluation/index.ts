@@ -711,7 +711,7 @@ EVALUATION RULES
 - Be specific and reference actual content or omissions.
 - Identify at least two distinct weaknesses per criterion.
 - Use the full scoring scale realistically; scores above 4 are rare.
-- Evaluate this proposal against ITS SPECIFIC topic — its stated scope and expected outcomes (included in the proposal content) — not against generic RIA/IA/CSA expectations. Unusual instruments (e.g. FSTP-heavy or cascade-funding RIAs) must be judged on the topic's own terms.${specialExceptions}${topicSpecificContext}
+- Evaluate this proposal against ITS SPECIFIC topic — its stated scope and expected outcomes (included in the proposal content) — not against generic RIA/IA/CSA expectations. Unusual instruments (e.g. FSTP-heavy or cascade-funding RIAs) must be judged on the topic's own terms.${specialExceptions}${topicSpecificContext}${panelInstructionsBlock}
 
 EVALUATION CRITERIA:
 ${criteriaText}
@@ -1448,6 +1448,7 @@ serve(async (req) => {
 
             haiku_usage: haikuUsage && typeof haikuUsage === "object" ? haikuUsage : null,
             haiku_model: typeof haikuModel === "string" ? haikuModel : null,
+            evaluation_instructions: normalizedInstructions,
             progress_message: "Queued for evaluator run",
           },
 
