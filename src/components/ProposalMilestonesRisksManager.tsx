@@ -661,20 +661,25 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
-  /* Document table geometry. Four content columns are resizable; the
-     editor-only delete cell is excluded via data-noresize, so the saved array
-     always has exactly four entries. The two long-text columns (name and
-     means of verification) take the bulk of the 18 cm column; the WP and due
-     month columns are sized to their controls. */
+  /* Document table geometry. The MS badge sits in a column of its own, sized
+     to the badge, and the milestone name follows in the next column; the two
+     share ONE merged "Milestone" header. The editor-only delete cell is
+     excluded via data-noresize. The two long-text columns (name and means of
+     verification) take the bulk of the 18 cm column; the WP and due month
+     columns are sized to their controls. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
-  const MS_COL_PCT = ['32%', '34%', '22%', '12%'];
+  /** Physical columns: badge, name, verification, WP(s), due month. */
+  const MS_COL_PCT = ['46px', '29%', '33%', '21%', '11%'];
+  /** The badge column may never fall below the MS hexagon (38 px + padding). */
+  const MS_MIN_WIDTHS = [46, 60, 60, 56, 50];
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
       // Key bumped: widths saved before the column set changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v2',
+      tableKey: 'b31-milestones-v3',
       canResize: canEdit,
+      minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
