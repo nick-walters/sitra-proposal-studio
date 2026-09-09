@@ -6,9 +6,11 @@ import {
 } from '@/lib/referenceLabels';
 import {
   getRefDisplayEntry,
+  hasPublishedRefDisplay,
   subscribeRefDisplay,
   type RefDisplayType,
 } from '@/lib/refDisplay';
+
 
 
 export interface InlineReferenceOptions {
