@@ -801,7 +801,7 @@ export function MilestonesEditor({
                   <tr key={m.id} id={`milestone-row-${m.id}`}>
                     {/* The MS badge has a column of its own; the merged header
                         above keeps badge and name reading as one field. */}
-                    <td className={`${docFirstCellStyles} whitespace-nowrap align-top`}>
+                    <td className={`${msFirstCellStyles} whitespace-nowrap align-middle`}>
                       <MilestoneBadge number={m.number} />
                     </td>
                     <td className={`${docCellStyles} break-words`}>
