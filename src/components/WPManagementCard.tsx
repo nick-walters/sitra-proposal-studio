@@ -44,6 +44,7 @@ import {
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 import { saveVersionedRow, reorderVersionedRows, type ReorderItem } from '@/lib/versionedSave';
+import { refreshReferenceData } from '@/lib/referenceData';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 
@@ -572,6 +573,12 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.reorder' } }));
+      // The event above only reaches MOUNTED listeners, and no reference-data
+      // consumer is mounted on this screen — so it lands nowhere and the
+      // cached snapshot keeps serving pre-reorder WP numbers to the editors
+      // the user opens next. Refetch and republish directly instead.
+      void refreshReferenceData(queryClient, proposalId);
+
 
       onSaveEvent?.();
     },

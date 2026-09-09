@@ -10,7 +10,7 @@
  */
 
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { buildCitationNumberMap } from '@/lib/citationSources';
@@ -322,6 +322,136 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
 }
 
 
+const REFERENCE_DATA_KEY = (proposalId: string) => ['reference-data', proposalId] as const;
+
+/**
+ * Publishes every live display map derived from one snapshot.
+ *
+ * Editors render badges through node views, which cannot read React context,
+ * so the maps are the only channel that reaches them. Extracted from the hook
+ * effects so a surface WITHOUT a mounted `useReferenceData` — the work-package
+ * manager, for instance — can still refresh the badges after it renumbers
+ * something.
+ */
+export function publishRefSnapshot(d: RefSnapshot): void {
+  publishCitationDisplayMap(d.citationNumbers);
+
+  // Case badges: their number/abbreviation switches were baked in when the
+  // badge was inserted, and the case type's switches change afterwards. Cases
+  // whose type row did not resolve are OMITTED, so those badges keep their
+  // stored attributes instead of being defaulted to "on".
+  const cases = new Map<string, CaseDisplayEntry>();
+  for (const [id, c] of d.caseById) {
+    if (!c.typeResolved) continue;
+    cases.set(id, {
+      number: c.number,
+      shortName: c.short_name ?? null,
+      color: c.color,
+      caseType: c.case_type ?? null,
+      includeNumber: c.include_number,
+      includeAbbreviation: c.include_abbreviation,
+    });
+  }
+  publishCaseDisplayMap(cases);
+
+  // Same problem for the other six badge types. Labels are composed with the
+  // shared formatters so an on-screen badge is character-identical to the
+  // mirrors and the PDF. A row missing from the snapshot is OMITTED, so its
+  // badge keeps its stored attributes.
+  const tasks = new Map<string, RefDisplayEntry>();
+  for (const [id, t] of d.taskById) {
+    tasks.set(id, {
+      label: formatTaskLabel({ wp_number: t.wp_number, number: t.number }),
+      shortName: null,
+      color: t.wp_color || null,
+    });
+  }
+  publishRefDisplayMap('task', tasks);
+
+  const deliverables = new Map<string, RefDisplayEntry>();
+  for (const [id, dl] of d.deliverableById) {
+    deliverables.set(id, {
+      // The pre-composed "D{wp}.{n}" string built from the live parent WP.
+      label: formatDeliverableLabel({ number: dl.number }),
+      shortName: null,
+      color: dl.wp_color || null,
+    });
+  }
+  publishRefDisplayMap('deliverable', deliverables);
+
+  const milestones = new Map<string, RefDisplayEntry>();
+  for (const [id, m] of d.milestoneById) {
+    milestones.set(id, {
+      label: formatMilestoneLabel({ number: m.number }),
+      shortName: null,
+      color: null,
+    });
+  }
+  publishRefDisplayMap('milestone', milestones);
+
+  const wps = new Map<string, RefDisplayEntry>();
+  for (const [id, wp] of d.wpById) {
+    wps.set(id, {
+      // Bare form only. Whether the short name is shown is the user's
+      // per-tag choice, stored on the badge, and is applied by the node view.
+      label: formatWPChipLabel({ number: wp.number, short_name: wp.short_name }, 'false'),
+      shortName: wp.short_name ?? null,
+      color: wp.color || null,
+      number: wp.number,
+    });
+  }
+  publishRefDisplayMap('wp', wps);
+
+  const participants = new Map<string, RefDisplayEntry>();
+  for (const [id, p] of d.participantById) {
+    participants.set(id, {
+      label: formatParticipantLabel({ organisation_short_name: p.organisation_short_name }),
+      shortName: p.organisation_short_name ?? null,
+      color: null,
+    });
+  }
+  publishRefDisplayMap('participant', participants);
+
+  const acronyms = new Map<string, RefDisplayEntry>();
+  if (d.acronymSegments.length > 0) {
+    acronyms.set(ACRONYM_DISPLAY_KEY, {
+      label: d.acronymSegments.map((s) => s.text).join(''),
+      shortName: null,
+      color: null,
+      segments: d.acronymSegments.map((s) => s.text),
+      segmentColors: d.acronymSegments.map((s) => s.color),
+    });
+  }
+  publishRefDisplayMap('acronym', acronyms);
+}
+
+/**
+ * Refetches the snapshot and republishes the display maps, whether or not any
+ * component is currently observing the query.
+ *
+ * The 'cross-ref-data-changed' event only reaches MOUNTED listeners, and the
+ * work-package manager is a surface where no `useReferenceData` consumer is
+ * mounted: renumbering WPs there dispatched the event into nothing, so the
+ * cached snapshot (staleTime 30s) kept serving pre-reorder numbers to the
+ * editors the user switched to next. Calling this on the renumbering path
+ * removes the cached snapshot AND pushes the new labels to every badge that is
+ * already on screen elsewhere.
+ */
+export async function refreshReferenceData(
+  queryClient: QueryClient,
+  proposalId: string | undefined,
+): Promise<void> {
+  if (!proposalId) return;
+  const key = REFERENCE_DATA_KEY(proposalId);
+  await queryClient.invalidateQueries({ queryKey: key });
+  const data = await queryClient.fetchQuery({
+    queryKey: key,
+    queryFn: () => fetchReferenceData(proposalId),
+    staleTime: 0,
+  });
+  if (data) publishRefSnapshot(data);
+}
+
 /**
  * React Query hook wrapping fetchReferenceData. Invalidated by the
  * 'cross-ref-data-changed' window event, matching how DocumentEditor
@@ -370,108 +500,11 @@ export function useReferenceData(proposalId: string | undefined) {
     };
   }, [proposalId, queryClient]);
 
-  // Editors render citations through a node view, which cannot read React
-  // context. Publishing the derived map here is what lets every citation in
-  // every editor show the same number the mirrors and exports show.
+  // Editors render badges through node views, which cannot read React context.
+  // Publishing the derived maps here is what lets every badge in every editor
+  // show the same label the mirrors and exports show.
   useEffect(() => {
-    if (query.data) publishCitationDisplayMap(query.data.citationNumbers);
-  }, [query.data]);
-
-  // Case badges have the same problem: their number/abbreviation switches were
-  // baked in when the badge was inserted, and the case type's switches change
-  // afterwards. Cases whose type row did not resolve are OMITTED, so those
-  // badges keep their stored attributes instead of being defaulted to "on".
-  useEffect(() => {
-    if (!query.data) return;
-    const map = new Map<string, CaseDisplayEntry>();
-    for (const [id, c] of query.data.caseById) {
-      if (!c.typeResolved) continue;
-      map.set(id, {
-        number: c.number,
-        shortName: c.short_name ?? null,
-        color: c.color,
-        caseType: c.case_type ?? null,
-        includeNumber: c.include_number,
-        includeAbbreviation: c.include_abbreviation,
-      });
-    }
-    publishCaseDisplayMap(map);
-  }, [query.data]);
-
-  // Same problem for the other six badge types: their numbers, short names and
-  // colours were baked in at insertion and the underlying rows have moved on.
-  // Labels are composed with the shared formatters so an on-screen badge is
-  // character-identical to the mirrors and the PDF. A row that is missing from
-  // the snapshot is OMITTED, so its badge keeps its stored attributes.
-  useEffect(() => {
-    const d = query.data;
-    if (!d) return;
-
-    const tasks = new Map<string, RefDisplayEntry>();
-    for (const [id, t] of d.taskById) {
-      tasks.set(id, {
-        label: formatTaskLabel({ wp_number: t.wp_number, number: t.number }),
-        shortName: null,
-        color: t.wp_color || null,
-      });
-    }
-    publishRefDisplayMap('task', tasks);
-
-    const deliverables = new Map<string, RefDisplayEntry>();
-    for (const [id, dl] of d.deliverableById) {
-      deliverables.set(id, {
-        // The pre-composed "D{wp}.{n}" string built from the live parent WP.
-        label: formatDeliverableLabel({ number: dl.number }),
-        shortName: null,
-        color: dl.wp_color || null,
-      });
-    }
-    publishRefDisplayMap('deliverable', deliverables);
-
-    const milestones = new Map<string, RefDisplayEntry>();
-    for (const [id, m] of d.milestoneById) {
-      milestones.set(id, {
-        label: formatMilestoneLabel({ number: m.number }),
-        shortName: null,
-        color: null,
-      });
-    }
-    publishRefDisplayMap('milestone', milestones);
-
-    const wps = new Map<string, RefDisplayEntry>();
-    for (const [id, wp] of d.wpById) {
-      wps.set(id, {
-        // Bare form only. Whether the short name is shown is the user's
-        // per-tag choice, stored on the badge, and is applied by the node view.
-        label: formatWPChipLabel({ number: wp.number, short_name: wp.short_name }, 'false'),
-        shortName: wp.short_name ?? null,
-        color: wp.color || null,
-        number: wp.number,
-      });
-    }
-    publishRefDisplayMap('wp', wps);
-
-    const participants = new Map<string, RefDisplayEntry>();
-    for (const [id, p] of d.participantById) {
-      participants.set(id, {
-        label: formatParticipantLabel({ organisation_short_name: p.organisation_short_name }),
-        shortName: p.organisation_short_name ?? null,
-        color: null,
-      });
-    }
-    publishRefDisplayMap('participant', participants);
-
-    const acronyms = new Map<string, RefDisplayEntry>();
-    if (d.acronymSegments.length > 0) {
-      acronyms.set(ACRONYM_DISPLAY_KEY, {
-        label: d.acronymSegments.map((s) => s.text).join(''),
-        shortName: null,
-        color: null,
-        segments: d.acronymSegments.map((s) => s.text),
-        segmentColors: d.acronymSegments.map((s) => s.color),
-      });
-    }
-    publishRefDisplayMap('acronym', acronyms);
+    if (query.data) publishRefSnapshot(query.data);
   }, [query.data]);
 
   return query;
