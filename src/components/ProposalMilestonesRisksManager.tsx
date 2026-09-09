@@ -166,6 +166,15 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/* Table 3.1.d only: the badge, WP and due columns are sized to their content,
+   so the shared 3pt/0.75pt cell inset is reduced to a 1px hairline gutter and
+   the vertical inset removed altogether. Rows then stand exactly as tall as
+   the badges they carry. */
+const msCellStyles =
+  "px-[1px] py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const msFirstCellStyles = `${msCellStyles} !pl-0`;
+/** The due month column is the last one: its right edge is flush. */
+const msLastCellStyles = `${msCellStyles} !pr-0`;
 /* Controls read as cell text until hovered or focused. Editable surfaces must
    name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
 const SUBTLE_CONTROL =
