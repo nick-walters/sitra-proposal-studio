@@ -716,13 +716,17 @@ function B31MilestonesTableInner({ proposalId }: Props) {
     });
   }, [milestones, wpInfo]);
 
+  // Treated exactly as table 3.1.c treats the equivalent columns: the badge,
+  // WP and due columns measure themselves to their widest badge (`fit`), and
+  // the text columns absorb what is left.
   const columns: Col[] = [
-    { label: 'No.', fit: true, defaultWidth: 48, cellClass: 'cell-pl-0' },
-    { label: 'Milestone', defaultWidth: 220 },
-    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'No.', fit: true, defaultWidth: 48 },
+    { label: 'Milestone', flex: true },
+    { label: 'WP(s)', fit: true, defaultWidth: 44 },
     { label: 'Due', fit: true, defaultWidth: 40 },
-    { label: 'Means of verification', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
+    { label: 'Means of verification', flex: true },
   ];
+
 
   const last = columns.length - 1;
 
