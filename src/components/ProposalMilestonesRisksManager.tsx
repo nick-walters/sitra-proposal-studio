@@ -170,8 +170,10 @@ const docFirstCellStyles = `${docCellStyles} !pl-0`;
    so the shared 3pt/0.75pt cell inset is reduced to a 1px hairline gutter and
    the vertical inset removed altogether. Rows then stand exactly as tall as
    the badges they carry. */
+// `!` markers: a global `table[data-table-key] td` rule in table-card.css sets
+// the shared 1px/4px padding at a higher specificity than a plain utility.
 const msCellStyles =
-  "px-[1px] py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+  "!px-[1px] !py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const msFirstCellStyles = `${msCellStyles} !pl-0`;
 /** The due month column is the last one: its right edge is flush. */
 const msLastCellStyles = `${msCellStyles} !pr-0`;
