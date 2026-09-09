@@ -166,17 +166,23 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
-/* Table 3.1.d only: the badge, WP and due columns are sized to their content,
-   so the shared 3pt/0.75pt cell inset is reduced to a 1px hairline gutter and
-   the vertical inset removed altogether. Rows then stand exactly as tall as
-   the badges they carry. */
+/* Table 3.1.d only — treated exactly as Table 3.1.c treats its equivalent
+   columns: the badge, WP(s) and due columns measure themselves to their widest
+   content (`fit`), while the two text columns absorb what is left. Fit columns
+   carry a 4px gutter (0 on the table's left edge); text columns carry 8px. */
 // `!` markers: a global `table[data-table-key] td` rule in table-card.css sets
-// the shared 1px/4px padding at a higher specificity than a plain utility.
-const msCellStyles =
-  "!px-[1px] !py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
-const msFirstCellStyles = `${msCellStyles} !pl-0`;
+// the shared padding at a higher specificity than a plain utility.
+const msCellBase =
+  "!py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+/** Long-text columns (milestone name, means of verification). */
+const msCellStyles = `${msCellBase} !px-2`;
+/** Content-fitted columns (WP(s), due month). */
+const msFitCellStyles = `${msCellBase} !px-1`;
+/** The MS badge column: first in the table, so its left edge is flush. */
+const msFirstCellStyles = `${msFitCellStyles} !pl-0`;
 /** The due month column is the last one: its right edge is flush. */
-const msLastCellStyles = `${msCellStyles} !pr-0`;
+const msLastCellStyles = `${msFitCellStyles} !pr-0`;
+
 /* Controls read as cell text until hovered or focused. Editable surfaces must
    name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
 const SUBTLE_CONTROL =
@@ -672,46 +678,80 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
-  /* Document table geometry. The MS badge sits in a column of its own, sized
-     to the badge, and the milestone name follows in the next column; the two
-     share ONE merged "Milestone" header. The editor-only delete cell is
-     excluded via data-noresize. The two long-text columns (name and means of
-     verification) take the bulk of the 18 cm column; the WP and due month
-     columns are sized to their controls. */
+  /* Document table geometry, mirroring Table 3.1.c: the badge, WP(s) and due
+     columns are `fit` — measured from their widest content so a badge is never
+     clipped — and the milestone name and means of verification columns absorb
+     the remaining width. The badge and name share ONE merged header. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['42px', '31%', '35%', '22%', '35px'];
-  /** Widest single WP badge in the WP column, measured from the live DOM, so
-      the column can never be dragged narrower than one badge. */
-  const [msWpMin, setMsWpMin] = useState(56);
-  /** Badge column: the MS hexagon plus the 1px hairline gutter. The due column
-      fits "M12"/"Select" and never grows. */
-  const MS_MIN_WIDTHS = useMemo(() => [42, 60, 60, msWpMin, 35], [msWpMin]);
+  const MS_COL_PCT = ['42px', '38%', '42%', '52px', '40px'];
+  /** Content-fitted columns, by physical index: the MS badge and the WP(s)
+      badges. The due column holds a full-width picker control, so it keeps a
+      fixed content-sized width rather than being measured. */
+  const MS_FIT_COLS = [0, 3];
+  /** Natural widths of the fitted columns, measured from the live DOM. */
+  const [msFit, setMsFit] = useState<Record<number, number>>({});
+  /** Fitted columns may be dragged a couple of pixels tighter than measured
+      (the measurement includes padding plus a safety pixel); text columns keep
+      a usable floor. */
+  const MS_MIN_WIDTHS = useMemo(
+    () => MS_COL_PCT.map((_, i) =>
+      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 42) - 6) : i === 4 ? 40 : 60),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [msFit],
+  );
+
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
-      // Key bumped: widths saved before the column set changed described a
+      // Key bumped: widths saved before the column sizing changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v4',
+      tableKey: 'b31-milestones-v5',
       canResize: canEdit,
       minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
-  // Measure the widest WP badge so the WP column's floor tracks the content.
+  // Measure the natural width of each fitted column (widest cell content plus
+  // that cell's own padding), exactly as the 3.1.c mirror does.
   useLayoutEffect(() => {
     const table = msTableRef.current;
     if (!table) return;
-    const badges = table.querySelectorAll<HTMLElement>('td[data-ms-wp] [data-wp-badge-measure] > *');
-    if (!badges.length) return;
-    const widest = Math.max(...Array.from(badges, (b) => b.getBoundingClientRect().width));
-    if (Number.isFinite(widest) && widest > 0) {
-      setMsWpMin(Math.max(40, Math.ceil(widest) + 4));
+    const next: Record<number, number> = {};
+    for (const i of MS_FIT_COLS) {
+      const cells = table.querySelectorAll<HTMLElement>(
+        `tbody > tr > td:nth-child(${i + 1})`,
+      );
+      let widest = 0;
+      cells.forEach((cell) => {
+        // Controls stretch to the cell, so an explicitly marked inner element
+        // (the WP badge strip) is measured in preference to the cell's child.
+        const marker = cell.querySelector<HTMLElement>('[data-fit-measure]');
+        let content = marker ? marker.getBoundingClientRect().width : 0;
+        if (!marker) {
+          cell.childNodes.forEach((n) => {
+            if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
+          });
+        }
+        if (content === 0) content = cell.scrollWidth;
+        const cs = getComputedStyle(cell);
+        widest = Math.max(widest, content + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
+      });
+
+      if (widest > 0) next[i] = Math.ceil(widest) + 2;
     }
+    setMsFit((prev) => {
+      // Tolerance guard: applying a measured width nudges the next measurement,
+      // which would otherwise loop forever.
+      const same = Object.keys(next).length === Object.keys(prev).length
+        && Object.entries(next).every(([k, v]) => Math.abs((prev[Number(k)] ?? -999) - v) <= 2);
+      return same ? prev : next;
+    });
   });
 
   const msColWidths = useMemo(() => fitToTextColumn(msRawWidths), [msRawWidths]);
   const msSized = msColWidths.length === MS_COL_PCT.length;
+
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
     proposalId,
     'b31-milestones',
@@ -765,7 +805,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v4"
+            data-table-key="b31-milestones-v5"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
@@ -780,7 +820,16 @@ export function MilestonesEditor({
           >
             <colgroup>
               {MS_COL_PCT.map((pct, i) => (
-                <col key={i} style={{ width: msSized ? `${msColWidths[i]}px` : pct }} />
+                <col
+                  key={i}
+                  style={{
+                    width: msSized
+                      ? `${msColWidths[i]}px`
+                      : msFit[i]
+                        ? `${msFit[i]}px`
+                        : pct,
+                  }}
+                />
               ))}
             </colgroup>
             <thead>
@@ -792,8 +841,9 @@ export function MilestonesEditor({
                   <th
                     key={i}
                     colSpan={i === 0 ? 2 : undefined}
-                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : msCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 2 ? msFitCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
+
                     <EditableColumnHeader
                       value={h}
                       canEdit={canEdit}
@@ -847,7 +897,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                       />
                     </td>
-                    <td className={msCellStyles} data-ms-wp>
+                    <td className={`${msFitCellStyles} whitespace-nowrap`} data-ms-wp>
                       <MilestoneWpDialog
                         wps={wps}
                         selectedWpIds={m.wp_ids}
@@ -859,7 +909,8 @@ export function MilestonesEditor({
                             {selectedWps.length === 0 ? (
                               <span className="text-muted-foreground italic">Select WP(s)…</span>
                             ) : (
-                              <span className="flex flex-wrap gap-0.5 items-center" data-wp-badge-measure>
+                              <span className="inline-flex flex-wrap gap-0.5 items-center align-middle" data-wp-badge-measure data-fit-measure>
+
 
                                 {isAllWPsSelected(selectedWps.length, wps.length) ? (
                                   <>

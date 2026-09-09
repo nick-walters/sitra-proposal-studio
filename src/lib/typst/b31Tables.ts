@@ -501,10 +501,11 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
       // the two long-text columns and the WP column share the remainder.
       storedCols(
         data,
-        ['b31-milestones-v4'],
+        ['b31-milestones-v5'],
         5,
-        '(31.5pt, 31fr, 35fr, 22fr, 26.25pt)',
-        [42, 60, 60, 56, 35],
+        '(31.5pt, 38fr, 42fr, 39pt, 30pt)',
+        [42, 60, 60, 40, 40],
+
 
       ),
       headers.map((h) => lit(h)),
