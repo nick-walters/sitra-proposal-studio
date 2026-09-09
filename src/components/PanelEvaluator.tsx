@@ -1329,10 +1329,10 @@ export function PanelEvaluator({ proposalId }: Props) {
                     Recommended through development
                   </div>
                   <div className="shrink-0 flex justify-center">
-                    {stage === "idle" && !failedRun ? (
+                    {stage === "idle" && !failedRun && !interruptedRun ? (
                       <Button
                         onClick={startEvaluation}
-                        disabled={!instrumentCode}
+                        disabled={!instrumentCode || !!runningEvaluationId || !!interruptedRun}
                         size="sm"
                         className="gap-2 h-8 px-3"
                       >
@@ -1446,7 +1446,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                         dismissFailedRun();
                         void startEvaluation();
                       }}
-                      disabled={!instrumentCode || resumingFailedRun}
+                      disabled={!instrumentCode || resumingFailedRun || !!runningEvaluationId || !!interruptedRun}
                     >
                       Start new evaluation
                     </Button>
@@ -1511,7 +1511,20 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
       {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
-      {history.length > 0 && stage !== "panelReview" && (
+      {history.length === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">
+              No Evaluation Summary Reports yet for this proposal.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {history.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
