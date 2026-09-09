@@ -724,14 +724,20 @@ export function MilestonesEditor({
       );
       let widest = 0;
       cells.forEach((cell) => {
-        let content = 0;
-        cell.childNodes.forEach((n) => {
-          if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
-        });
+        // Controls stretch to the cell, so an explicitly marked inner element
+        // (the WP badge strip) is measured in preference to the cell's child.
+        const marker = cell.querySelector<HTMLElement>('[data-fit-measure]');
+        let content = marker ? marker.getBoundingClientRect().width : 0;
+        if (!marker) {
+          cell.childNodes.forEach((n) => {
+            if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
+          });
+        }
         if (content === 0) content = cell.scrollWidth;
         const cs = getComputedStyle(cell);
         widest = Math.max(widest, content + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
       });
+
       if (widest > 0) next[i] = Math.ceil(widest) + 2;
     }
     setMsFit((prev) => {
