@@ -682,7 +682,7 @@ export function MilestonesEditor({
      columns are `fit` — measured from their widest content so a badge is never
      clipped — and the milestone name and means of verification columns absorb
      the remaining width. The badge and name share ONE merged header. */
-  const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
+  const MS_HEADERS = ['№', 'Milestone title', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
   const MS_COL_PCT = ['35px', '38%', '42%', '52px', '35px'];
   /** Content-fitted columns, by physical index: the MS badge, the WP(s) badges
@@ -744,11 +744,11 @@ export function MilestonesEditor({
       if (widest > 0) {
         if (i === 0) {
           const base = Math.ceil(widest) + 2;
-          next[i] = Math.max(35, base - 7);              // MS badge: 7 px tighter
+          next[i] = Math.max(28, base - 11);             // MS badge: 11 px tighter
         } else if (i === 4) {
           // The due month text is short; add a minimal safety gutter and cap it
           // so the column stays compact while still fitting the content.
-          next[i] = Math.max(30, Math.min(35, Math.ceil(widest) + 3));
+          next[i] = Math.max(28, Math.min(33, Math.ceil(widest) + 1));
         } else {
           next[i] = Math.ceil(widest) + 2;
         }
@@ -763,20 +763,23 @@ export function MilestonesEditor({
     });
   });
 
-  /* Saved widths used to win outright, which is why measured badge/due sizes
-     never showed up once the table had been dragged once. The fitted columns
-     (badge, WP(s), due) are ALWAYS their measured width; a saved geometry only
+  /* The badge and due columns are ALWAYS their measured width. The WP(s)
+     column stays draggable: a saved width wins there, but never below the
+     measured width of its widest badge strip. A saved geometry otherwise only
      decides how the leftover width is split between the two text columns. */
+  const MS_WIDTH_COLS = [0, 4];
   const msColWidths = useMemo(() => {
     const saved = fitToTextColumn(msRawWidths);
     const hasSaved = saved.length === MS_COL_PCT.length;
-    const textCols = MS_COL_PCT.map((_, i) => i).filter((i) => !MS_FIT_COLS.includes(i));
-    const fitTotal = MS_FIT_COLS.reduce((s, i) => s + (msFit[i] ?? 0), 0);
     if (!MS_FIT_COLS.every((i) => msFit[i])) return hasSaved ? saved : [];
-    const remaining = Math.max(120, DOC_BLOCK_WIDTH - fitTotal);
+    const wpWidth = hasSaved ? Math.max(saved[3], msFit[3]) : msFit[3];
+    const fixed = MS_WIDTH_COLS.reduce((s, i) => s + msFit[i], 0) + wpWidth;
+    const textCols = [1, 2];
+    const remaining = Math.max(120, DOC_BLOCK_WIDTH - fixed);
     const savedTextTotal = hasSaved ? textCols.reduce((s, i) => s + saved[i], 0) : 0;
     return MS_COL_PCT.map((_, i) => {
-      if (MS_FIT_COLS.includes(i)) return msFit[i];
+      if (MS_WIDTH_COLS.includes(i)) return msFit[i];
+      if (i === 3) return wpWidth;
       if (hasSaved && savedTextTotal > 0) return (saved[i] / savedTextTotal) * remaining;
       return remaining / textCols.length;
     });
@@ -787,7 +790,7 @@ export function MilestonesEditor({
 
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
     proposalId,
-    'b31-milestones',
+    'b31-milestones-v2',
     MS_HEADERS,
   );
 
@@ -867,14 +870,12 @@ export function MilestonesEditor({
             </colgroup>
             <thead>
               <tr>
-                {/* Four header cells over five columns: "Milestone" spans the
-                    badge column and the name column, so the badge keeps a
-                    column of its own without gaining a heading. */}
+                {/* One header cell per column: the numero sign sits over the
+                    badge column, the title over the milestone name column. */}
                 {msHeaders.map((h, i) => (
                   <th
                     key={i}
-                    colSpan={i === 0 ? 2 : undefined}
-                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 2 ? msFitCellStyles : msCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 3 ? msFitCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
 
                     <EditableColumnHeader
@@ -883,9 +884,9 @@ export function MilestonesEditor({
                       onCommit={(next) => setMsHeader(i, next)}
                     />
                     {/* The handle under a header cell moves the boundary at its
-                        RIGHT edge, which for the merged cell is column 1. */}
+                        RIGHT edge. */}
                     {canEdit && i < msHeaders.length - 1 && (
-                      <ColumnResizer onMouseDown={msResizeStart(i === 0 ? 1 : i + 1)} />
+                      <ColumnResizer onMouseDown={msResizeStart(i)} />
                     )}
                   </th>
                 ))}
