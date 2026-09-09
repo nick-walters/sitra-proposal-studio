@@ -169,6 +169,9 @@ const docFirstCellStyles = `${docCellStyles} !pl-0`;
 /** Table 3.1.e only — the i./ii. columns hold a single 19 px L/M/H badge, so
     they carry no horizontal padding at all. */
 const riskLevelCellStyles = `${docCellStyles} !px-0`;
+/** The mitigation column is the last one: its left edge sits flush against the
+    WP column, with no internal padding on that side. */
+const riskMitigationCellStyles = `${docCellStyles} !pl-0`;
 /* Table 3.1.d only — treated exactly as Table 3.1.c treats its equivalent
    columns: the badge, WP(s) and due columns measure themselves to their widest
    content (`fit`), while the two text columns absorb what is left. Fit columns
