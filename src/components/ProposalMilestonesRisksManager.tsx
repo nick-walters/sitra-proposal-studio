@@ -1097,13 +1097,20 @@ export function RisksEditor({
      real column starts flush at the text column's inner edge. The two long
      text columns (description and mitigation) take the bulk of the width. */
   const RISK_HEADERS = ['Risk description', 'i.', 'ii.', 'WP(s)', 'Mitigation & adaptation measures'];
-  const RISK_COL_PCT = ['28%', '7%', '7%', '22%', '36%'];
+  /* The likelihood and severity columns hold nothing but an L/M/H badge, so
+     they are exactly as wide as that badge and never wider. The WP column can
+     never be dragged narrower than a single WP badge. */
+  const RISK_COL_PCT = ['32%', '34px', '34px', '22%', '40%'];
+  const RISK_MIN_WIDTHS = [60, 34, 34, 56, 60];
 
   const { colWidths: riskRawWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
       proposalId,
-      tableKey: 'b31-risks',
+      // Key bumped: the widths saved against the old 7 % badge columns are far
+      // wider than the badges and cannot be reconciled with the new geometry.
+      tableKey: 'b31-risks-v2',
       canResize: canEdit,
+      minWidths: RISK_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: RISK_COL_PCT.length,
     });
