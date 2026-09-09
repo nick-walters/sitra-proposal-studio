@@ -166,6 +166,9 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/** Table 3.1.e only — the i./ii. columns hold a single 19 px L/M/H badge, so
+    they carry no horizontal padding at all. */
+const riskLevelCellStyles = `${docCellStyles} !px-0`;
 /* Table 3.1.d only — treated exactly as Table 3.1.c treats its equivalent
    columns: the badge, WP(s) and due columns measure themselves to their widest
    content (`fit`), while the two text columns absorb what is left. Fit columns
