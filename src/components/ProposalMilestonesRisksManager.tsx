@@ -789,15 +789,12 @@ export function MilestonesEditor({
                   .sort((a, b) => a.number - b.number);
                 return (
                   <tr key={m.id} id={`milestone-row-${m.id}`}>
-                    {/* The MS badge lives at the start of the name cell, so the
-                        badge and the name share one column. */}
-                    {/* The badge is floated into the start of the name text
-                        rather than sitting in a column of its own, so badge
-                        and name read as a single field. */}
-                    <td className={`${docFirstCellStyles} break-words`}>
-                      <span className="float-left mr-1 select-none whitespace-nowrap leading-tight">
-                        <MilestoneBadge number={m.number} />
-                      </span>
+                    {/* The MS badge has a column of its own; the merged header
+                        above keeps badge and name reading as one field. */}
+                    <td className={`${docFirstCellStyles} whitespace-nowrap align-top`}>
+                      <MilestoneBadge number={m.number} />
+                    </td>
+                    <td className={`${docCellStyles} break-words`}>
                       <DebouncedRichField
                         value={m.title || ''}
                         className={LEFT_ALIGNED_CELL_CLASS}
@@ -807,10 +804,6 @@ export function MilestonesEditor({
                         proposalId={proposalId}
                         staticExtensions={WP_TITLE_FIELD_EXTENSIONS}
                         placeholder="Milestone name"
-                        // The badge floats at the start of the line; the hint
-                        // is absolutely positioned, so it must be pushed past
-                        // the badge by hand to read as following text.
-                        placeholderIndent="calc(38px + 0.25rem)"
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                       />
                     </td>
