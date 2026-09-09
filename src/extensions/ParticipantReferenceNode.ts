@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { formatParticipantLabel } from '@/lib/referenceLabels';
+import { getRefDisplayEntry, subscribeRefDisplay } from '@/lib/refDisplay';
 
 
 export interface ParticipantReferenceOptions {
@@ -135,6 +136,70 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         label,
       ],
     ];
+  },
+
+  /**
+   * On screen the badge shows the participant's CURRENT short name, so a
+   * corrected or renamed organisation updates everywhere without touching the
+   * document. When the participant is not in the live map (not yet loaded, or
+   * removed from the consortium) the stored short name is used, so the badge
+   * is never blank.
+   */
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      const inner = document.createElement('span');
+      dom.appendChild(inner);
+
+      let lastKey: string | null = null;
+
+      const render = () => {
+        const a = node.attrs as Record<string, any>;
+        const live = getRefDisplayEntry('participant', a.participantId);
+        const shortName = live ? live.shortName : a.shortName;
+        const label = formatParticipantLabel({ organisation_short_name: shortName });
+
+        if (label === lastKey) return;
+        lastKey = label;
+
+        dom.setAttribute('data-participant-reference', '');
+        dom.setAttribute('class', 'participant-reference-badge');
+        dom.setAttribute('contenteditable', 'false');
+        if (a.participantId) dom.setAttribute('data-participant-id', a.participantId);
+        if (a.participantNumber !== null && a.participantNumber !== undefined) {
+          dom.setAttribute('data-participant-number', String(a.participantNumber));
+        }
+        if (a.shortName) dom.setAttribute('data-participant-short-name', a.shortName);
+        dom.setAttribute(
+          'style',
+          'display: inline-flex; align-items: center; background-color: #000000; border: 1.5px solid #000000; padding: 0px 5px; border-radius: 9999px; white-space: nowrap; vertical-align: baseline; cursor: pointer;',
+        );
+        inner.setAttribute(
+          'style',
+          "color: #ffffff; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; font-style: normal; line-height: 1;",
+        );
+        inner.textContent = label;
+      };
+
+      render();
+      const unsubscribe = subscribeRefDisplay('participant', render);
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== 'participantReference') return false;
+          node = updatedNode;
+          render();
+          return true;
+        },
+        destroy() {
+          unsubscribe();
+        },
+        ignoreMutation() {
+          return true;
+        },
+      };
+    };
   },
 
   addCommands() {
