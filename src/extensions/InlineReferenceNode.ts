@@ -77,6 +77,31 @@ function computeLabel(attrs: Record<string, any>): string {
   }
 }
 
+/**
+ * The broken-reference marker.
+ *
+ * A tag whose target row no longer exists keeps rendering its stored label —
+ * "D3.4" for a deliverable that was deleted months ago — which is
+ * indistinguishable from a healthy badge and prints plausibly into the
+ * submitted PDF. On screen it is instead replaced by loud inline text so the
+ * author cannot miss it.
+ *
+ * DERIVED ONLY: this lives in the node view. `renderHTML` is untouched, so the
+ * saved document still holds the original tag and the marker disappears by
+ * itself if the item is ever restored.
+ */
+export const BROKEN_REF_STYLE =
+  'background-color: #fff59d; color: #c00000; font-weight: 700; font-style: normal; ' +
+  'font-family: inherit; font-size: inherit; line-height: inherit; padding: 0 2px; ' +
+  'border-radius: 2px; border: 0; display: inline;';
+
+/** "cross-reference broken: formerly D3.4", or the type name when unlabelled. */
+export function brokenRefText(storedLabel: string | null | undefined, typeName: string): string {
+  const shown = (storedLabel || '').trim();
+  return `cross-reference broken: formerly ${shown || `a deleted ${typeName}`}`;
+}
+
+
 
 /**
  * InlineReferenceNode (Stage 3 migration)
