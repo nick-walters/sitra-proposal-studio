@@ -775,7 +775,7 @@ export function MilestonesEditor({
                   <th
                     key={i}
                     colSpan={i === 0 ? 2 : undefined}
-                    className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
                     <EditableColumnHeader
                       value={h}
