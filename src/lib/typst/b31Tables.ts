@@ -580,10 +580,20 @@ export function emitEffortMatrix(data: B31TypstData, ctx: ConvertContext): strin
   const n = data.wps.length;
   const count = n + 2;
   const stored = data.columnWidths['effort-matrix'];
-  // The editor's own default when a table has never been resized: 22 % for the
-  // participant column, 8 % for Total, the rest shared equally between the WP
-  // columns — expressed here in the same 768 px board pixels it stores.
-  const defaultPx = [22, ...data.wps.map(() => 70 / n), 8].map((pct) => pct * 7.68);
+  // The editor's own geometry when the table has never been resized: the
+  // participant column is exactly as wide as the WIDEST participant badge
+  // (never a fixed 22 % slab), and every remaining column — the WP columns and
+  // Total — shares one width. The badge is 11 pt Times inside a pill, so its
+  // width is estimated from the label: pill padding plus ~6.2 px a character,
+  // then the same +3 px the board adds.
+  const badgePx = (p: TypstParticipant) => {
+    const name = p.organisation_short_name || p.organisation_name || '';
+    const label = `${p.participant_number ?? ''}${p.participant_number != null ? '. ' : ''}${name}`;
+    return Math.ceil(12 + label.length * 6.2) + 3;
+  };
+  const firstPx = Math.max(60, ...data.participants.map(badgePx));
+  const restPx = Math.max(28, (768 - firstPx) / (n + 1));
+  const defaultPx = [firstPx, ...data.wps.map(() => restPx), restPx];
   // The editor caps the table at 18 cm but may leave it NARROWER; scaling the
   // stored pixels to their own total (capped at 18 cm) mirrors it exactly.
   const px = stored && stored.length === count && stored.every((w) => w > 0) ? stored : defaultPx;
