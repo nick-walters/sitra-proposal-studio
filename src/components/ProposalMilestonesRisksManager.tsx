@@ -678,46 +678,71 @@ export function MilestonesEditor({
 
   usePageSearchSource('milestones', 'Milestones', searchFields);
 
-  /* Document table geometry. The MS badge sits in a column of its own, sized
-     to the badge, and the milestone name follows in the next column; the two
-     share ONE merged "Milestone" header. The editor-only delete cell is
-     excluded via data-noresize. The two long-text columns (name and means of
-     verification) take the bulk of the 18 cm column; the WP and due month
-     columns are sized to their controls. */
+  /* Document table geometry, mirroring Table 3.1.c: the badge, WP(s) and due
+     columns are `fit` — measured from their widest content so a badge is never
+     clipped — and the milestone name and means of verification columns absorb
+     the remaining width. The badge and name share ONE merged header. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['42px', '31%', '35%', '22%', '35px'];
-  /** Widest single WP badge in the WP column, measured from the live DOM, so
-      the column can never be dragged narrower than one badge. */
-  const [msWpMin, setMsWpMin] = useState(56);
-  /** Badge column: the MS hexagon plus the 1px hairline gutter. The due column
-      fits "M12"/"Select" and never grows. */
-  const MS_MIN_WIDTHS = useMemo(() => [42, 60, 60, msWpMin, 35], [msWpMin]);
+  const MS_COL_PCT = ['42px', '38%', '42%', '52px', '40px'];
+  /** Content-fitted columns, by physical index. */
+  const MS_FIT_COLS = [0, 3, 4];
+  /** Natural widths of the fitted columns, measured from the live DOM. */
+  const [msFit, setMsFit] = useState<Record<number, number>>({});
+  /** Fitted columns may be dragged a couple of pixels tighter than measured
+      (the measurement includes padding plus a safety pixel); text columns keep
+      a usable floor. */
+  const MS_MIN_WIDTHS = useMemo(
+    () => MS_COL_PCT.map((_, i) =>
+      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 40) - 6) : 60),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [msFit],
+  );
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
-      // Key bumped: widths saved before the column set changed described a
+      // Key bumped: widths saved before the column sizing changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v4',
+      tableKey: 'b31-milestones-v5',
       canResize: canEdit,
       minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
-  // Measure the widest WP badge so the WP column's floor tracks the content.
+  // Measure the natural width of each fitted column (widest cell content plus
+  // that cell's own padding), exactly as the 3.1.c mirror does.
   useLayoutEffect(() => {
     const table = msTableRef.current;
     if (!table) return;
-    const badges = table.querySelectorAll<HTMLElement>('td[data-ms-wp] [data-wp-badge-measure] > *');
-    if (!badges.length) return;
-    const widest = Math.max(...Array.from(badges, (b) => b.getBoundingClientRect().width));
-    if (Number.isFinite(widest) && widest > 0) {
-      setMsWpMin(Math.max(40, Math.ceil(widest) + 4));
+    const next: Record<number, number> = {};
+    for (const i of MS_FIT_COLS) {
+      const cells = table.querySelectorAll<HTMLElement>(
+        `tbody > tr > td:nth-child(${i + 1})`,
+      );
+      let widest = 0;
+      cells.forEach((cell) => {
+        let content = 0;
+        cell.childNodes.forEach((n) => {
+          if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
+        });
+        if (content === 0) content = cell.scrollWidth;
+        const cs = getComputedStyle(cell);
+        widest = Math.max(widest, content + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
+      });
+      if (widest > 0) next[i] = Math.ceil(widest) + 2;
     }
+    setMsFit((prev) => {
+      // Tolerance guard: applying a measured width nudges the next measurement,
+      // which would otherwise loop forever.
+      const same = Object.keys(next).length === Object.keys(prev).length
+        && Object.entries(next).every(([k, v]) => Math.abs((prev[Number(k)] ?? -999) - v) <= 2);
+      return same ? prev : next;
+    });
   });
 
   const msColWidths = useMemo(() => fitToTextColumn(msRawWidths), [msRawWidths]);
   const msSized = msColWidths.length === MS_COL_PCT.length;
+
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
     proposalId,
     'b31-milestones',
