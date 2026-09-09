@@ -503,8 +503,9 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
         data,
         ['b31-milestones-v4'],
         5,
-        '(30pt, 31fr, 35fr, 22fr, 30pt)',
-        [40, 60, 60, 56, 40],
+        '(31.5pt, 31fr, 35fr, 22fr, 26.25pt)',
+        [42, 60, 60, 56, 35],
+
       ),
       headers.map((h) => lit(h)),
       rows,
