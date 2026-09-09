@@ -494,17 +494,17 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
     `he-caption(${typstString(tableLabel(ctx, 'Table 3.1.d.'))}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
       // Widths and headers must come from the SAME editor: the live milestones
-      // manager stores five widths under `b31-milestones-v3` and four headers
+      // manager stores five widths under `b31-milestones-v6` and four headers
       // under `b31-milestones`. Older stored rows describe the retired
       // four-column geometry and can no longer be applied.
-      // Badge and due-month columns are fixed to their content (40 px each);
+      // Badge and due-month columns are fixed to their content (41 px and 35 px);
       // the two long-text columns and the WP column share the remainder.
       storedCols(
         data,
-        ['b31-milestones-v5'],
+        ['b31-milestones-v6'],
         5,
-        '(31.5pt, 38fr, 42fr, 39pt, 30pt)',
-        [42, 60, 60, 40, 40],
+        '(31.5pt, 38fr, 42fr, 55.5pt, 26.25pt)',
+        [41, 60, 60, 74, 35],
 
 
       ),

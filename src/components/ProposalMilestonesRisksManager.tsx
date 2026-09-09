@@ -684,19 +684,20 @@ export function MilestonesEditor({
      the remaining width. The badge and name share ONE merged header. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['42px', '38%', '42%', '52px', '40px'];
-  /** Content-fitted columns, by physical index: the MS badge and the WP(s)
-      badges. The due column holds a full-width picker control, so it keeps a
-      fixed content-sized width rather than being measured. */
-  const MS_FIT_COLS = [0, 3];
+  const MS_COL_PCT = ['35px', '38%', '42%', '52px', '35px'];
+  /** Content-fitted columns, by physical index: the MS badge, the WP(s) badges
+      and the due month. The due column is fitted to its short "MXX" text so
+      it does not carry the full-width picker's excess space. */
+  const MS_FIT_COLS = [0, 3, 4];
   /** Natural widths of the fitted columns, measured from the live DOM. */
   const [msFit, setMsFit] = useState<Record<number, number>>({});
   /** Fitted columns may be dragged a couple of pixels tighter than measured
       (the measurement includes padding plus a safety pixel); text columns keep
-      a usable floor. */
+      a usable floor. The badge column is narrowed by 7 px from its measured
+      size; the due month column is capped at 35 px. */
   const MS_MIN_WIDTHS = useMemo(
     () => MS_COL_PCT.map((_, i) =>
-      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 42) - 6) : i === 4 ? 40 : 60),
+      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 35) - 6) : 60),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [msFit],
   );
@@ -706,14 +707,15 @@ export function MilestonesEditor({
       proposalId,
       // Key bumped: widths saved before the column sizing changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v5',
+      tableKey: 'b31-milestones-v6',
       canResize: canEdit,
       minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
   // Measure the natural width of each fitted column (widest cell content plus
-  // that cell's own padding), exactly as the 3.1.c mirror does.
+  // that cell's own padding), exactly as the 3.1.c mirror does. The badge and
+  // due columns are intentionally trimmed from their measured widths.
   useLayoutEffect(() => {
     const table = msTableRef.current;
     if (!table) return;
@@ -725,7 +727,8 @@ export function MilestonesEditor({
       let widest = 0;
       cells.forEach((cell) => {
         // Controls stretch to the cell, so an explicitly marked inner element
-        // (the WP badge strip) is measured in preference to the cell's child.
+        // (the WP badge strip or the due month text) is measured in preference
+        // to the cell's child.
         const marker = cell.querySelector<HTMLElement>('[data-fit-measure]');
         let content = marker ? marker.getBoundingClientRect().width : 0;
         if (!marker) {
@@ -738,7 +741,18 @@ export function MilestonesEditor({
         widest = Math.max(widest, content + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight));
       });
 
-      if (widest > 0) next[i] = Math.ceil(widest) + 2;
+      if (widest > 0) {
+        if (i === 0) {
+          const base = Math.ceil(widest) + 2;
+          next[i] = Math.max(35, base - 7);              // MS badge: 7 px tighter
+        } else if (i === 4) {
+          // The due month text is short; add a minimal safety gutter and cap it
+          // so the column stays compact while still fitting the content.
+          next[i] = Math.max(30, Math.min(35, Math.ceil(widest) + 3));
+        } else {
+          next[i] = Math.ceil(widest) + 2;
+        }
+      }
     }
     setMsFit((prev) => {
       // Tolerance guard: applying a measured width nudges the next measurement,
@@ -805,7 +819,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v5"
+            data-table-key="b31-milestones-v6"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',

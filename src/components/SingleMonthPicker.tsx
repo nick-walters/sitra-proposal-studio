@@ -45,9 +45,9 @@ export function SingleMonthPicker({
             disabled={readOnly}
           >
             {value != null ? (
-              fmt(value)
+              <span data-fit-measure>{fmt(value)}</span>
             ) : (
-              <span className="text-muted-foreground italic font-normal">Select</span>
+              <span data-fit-measure className="text-muted-foreground italic font-normal">Select</span>
             )}
           </button>
         </PopoverTrigger>
