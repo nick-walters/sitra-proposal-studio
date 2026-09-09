@@ -1448,7 +1448,7 @@ function SortableRiskRow({
       </td>
       {/* Delete sits in the page's right margin, mirroring the grip on the
           left, so the document table keeps exactly its five columns. */}
-      <td className={`${docCellStyles} relative break-words`}>
+      <td className={`${riskMitigationCellStyles} relative break-words`}>
         {canEdit && (
           <MarginRailAbsolute>
             <Button
