@@ -680,10 +680,13 @@ export function MilestonesEditor({
      columns are sized to their controls. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['40px', '31%', '35%', '22%', '40px'];
-  /** Badge column: the MS hexagon (38 px) plus the 1px hairline gutter. The
-      due column fits "M12"/"Select" and never grows. */
-  const MS_MIN_WIDTHS = [40, 60, 60, 56, 40];
+  const MS_COL_PCT = ['42px', '31%', '35%', '22%', '35px'];
+  /** Widest single WP badge in the WP column, measured from the live DOM, so
+      the column can never be dragged narrower than one badge. */
+  const [msWpMin, setMsWpMin] = useState(56);
+  /** Badge column: the MS hexagon plus the 1px hairline gutter. The due column
+      fits "M12"/"Select" and never grows. */
+  const MS_MIN_WIDTHS = useMemo(() => [42, 60, 60, msWpMin, 35], [msWpMin]);
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
@@ -695,6 +698,18 @@ export function MilestonesEditor({
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: MS_COL_PCT.length,
     });
+  // Measure the widest WP badge so the WP column's floor tracks the content.
+  useLayoutEffect(() => {
+    const table = msTableRef.current;
+    if (!table) return;
+    const badges = table.querySelectorAll<HTMLElement>('td[data-ms-wp] [data-wp-badge-measure] > *');
+    if (!badges.length) return;
+    const widest = Math.max(...Array.from(badges, (b) => b.getBoundingClientRect().width));
+    if (Number.isFinite(widest) && widest > 0) {
+      setMsWpMin(Math.max(40, Math.ceil(widest) + 4));
+    }
+  });
+
   const msColWidths = useMemo(() => fitToTextColumn(msRawWidths), [msRawWidths]);
   const msSized = msColWidths.length === MS_COL_PCT.length;
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
