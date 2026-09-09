@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { buildCitationNumberMap } from '@/lib/citationSources';
 import { publishCitationDisplayMap } from '@/lib/citationDisplay';
+import { publishCaseDisplayMap, type CaseDisplayEntry } from '@/lib/caseDisplay';
 
 export interface WPData {
   id: string;
@@ -52,6 +53,8 @@ export interface CaseData {
   color: string;
   include_number: boolean;
   include_abbreviation: boolean;
+  /** True when the case's type row was found. Flags are meaningless when false. */
+  typeResolved: boolean;
 }
 
 export interface ParticipantData {
@@ -261,6 +264,10 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       color: t?.outline_color || c.color || '#000000',
       include_number: t?.include_number !== false,
       include_abbreviation: t?.include_abbreviation !== false,
+      // A missing type row must stay distinguishable from a row whose flags
+      // are false: the `!== false` defaults above are only meaningful when a
+      // row was actually found.
+      typeResolved: !!t,
     } as CaseData;
   });
 
@@ -356,6 +363,27 @@ export function useReferenceData(proposalId: string | undefined) {
   // every editor show the same number the mirrors and exports show.
   useEffect(() => {
     if (query.data) publishCitationDisplayMap(query.data.citationNumbers);
+  }, [query.data]);
+
+  // Case badges have the same problem: their number/abbreviation switches were
+  // baked in when the badge was inserted, and the case type's switches change
+  // afterwards. Cases whose type row did not resolve are OMITTED, so those
+  // badges keep their stored attributes instead of being defaulted to "on".
+  useEffect(() => {
+    if (!query.data) return;
+    const map = new Map<string, CaseDisplayEntry>();
+    for (const [id, c] of query.data.caseById) {
+      if (!c.typeResolved) continue;
+      map.set(id, {
+        number: c.number,
+        shortName: c.short_name ?? null,
+        color: c.color,
+        caseType: c.case_type ?? null,
+        includeNumber: c.include_number,
+        includeAbbreviation: c.include_abbreviation,
+      });
+    }
+    publishCaseDisplayMap(map);
   }, [query.data]);
 
   return query;
