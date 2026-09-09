@@ -497,6 +497,16 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
           return;
         }
 
+        if (broken) {
+          dom.setAttribute('class', `inline-ref-broken inline-ref-broken-${refType}`);
+          dom.setAttribute('style', BROKEN_REF_STYLE);
+          inner.setAttribute('style', BROKEN_REF_STYLE);
+          inner.textContent = brokenRefText(computeLabel(a), refType);
+          return;
+        }
+
+
+
         const outerStyleParts: string[] = [
           'color: inherit',
           'font-family: inherit',
