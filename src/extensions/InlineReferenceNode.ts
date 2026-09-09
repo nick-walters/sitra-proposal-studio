@@ -6,9 +6,11 @@ import {
 } from '@/lib/referenceLabels';
 import {
   getRefDisplayEntry,
+  hasPublishedRefDisplay,
   subscribeRefDisplay,
   type RefDisplayType,
 } from '@/lib/refDisplay';
+
 
 
 export interface InlineReferenceOptions {
@@ -74,6 +76,31 @@ function computeLabel(attrs: Record<string, any>): string {
       return '';
   }
 }
+
+/**
+ * The broken-reference marker.
+ *
+ * A tag whose target row no longer exists keeps rendering its stored label —
+ * "D3.4" for a deliverable that was deleted months ago — which is
+ * indistinguishable from a healthy badge and prints plausibly into the
+ * submitted PDF. On screen it is instead replaced by loud inline text so the
+ * author cannot miss it.
+ *
+ * DERIVED ONLY: this lives in the node view. `renderHTML` is untouched, so the
+ * saved document still holds the original tag and the marker disappears by
+ * itself if the item is ever restored.
+ */
+export const BROKEN_REF_STYLE =
+  'background-color: #fff59d; color: #c00000; font-weight: 700; font-style: normal; ' +
+  'font-family: inherit; font-size: inherit; line-height: inherit; padding: 0 2px; ' +
+  'border-radius: 2px; border: 0; display: inline;';
+
+/** "cross-reference broken: formerly D3.4", or the type name when unlabelled. */
+export function brokenRefText(storedLabel: string | null | undefined, typeName: string): string {
+  const shown = (storedLabel || '').trim();
+  return `cross-reference broken: formerly ${shown || `a deleted ${typeName}`}`;
+}
+
 
 
 /**
@@ -427,13 +454,20 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
         const wpColor: string | null =
           (live && live.color) || (a.wpColor as string | null) || null;
 
-        const key = `${refType}|${label}|${wpColor ?? ''}`;
+        // Broken only when the data HAS arrived, the tag names a target, and
+        // that target is not in the live map. A tag with no id can never be
+        // resolved and is left alone.
+        const broken =
+          !!liveType && !!idAttr && !live && hasPublishedRefDisplay(liveType);
+
+        const key = `${refType}|${label}|${wpColor ?? ''}|${broken ? 'broken' : ''}`;
         if (key === lastKey) return;
         lastKey = key;
 
         dom.setAttribute('data-inline-reference', '');
         dom.setAttribute('contenteditable', 'false');
         dom.setAttribute('data-ref-type', refType);
+
         if (a.wpNumber !== null && a.wpNumber !== undefined) {
           dom.setAttribute('data-wp-number', String(a.wpNumber));
         }
@@ -462,6 +496,16 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
           inner.textContent = label;
           return;
         }
+
+        if (broken) {
+          dom.setAttribute('class', `inline-ref-broken inline-ref-broken-${refType}`);
+          dom.setAttribute('style', BROKEN_REF_STYLE);
+          inner.setAttribute('style', BROKEN_REF_STYLE);
+          inner.textContent = brokenRefText(computeLabel(a), refType);
+          return;
+        }
+
+
 
         const outerStyleParts: string[] = [
           'color: inherit',

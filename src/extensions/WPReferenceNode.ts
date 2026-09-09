@@ -1,6 +1,12 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { formatWPChipLabel } from '@/lib/referenceLabels';
-import { getRefDisplayEntry, subscribeRefDisplay } from '@/lib/refDisplay';
+import {
+  getRefDisplayEntry,
+  hasPublishedRefDisplay,
+  subscribeRefDisplay,
+} from '@/lib/refDisplay';
+import { BROKEN_REF_STYLE, brokenRefText } from '@/extensions/InlineReferenceNode';
+
 
 
 export interface WPReferenceOptions {
@@ -211,7 +217,11 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
           a.showShortName ? 'true' : 'false',
         );
 
-        const key = `${label}|${color}`;
+        // Broken only once WP data has arrived, the tag names a work package,
+        // and that work package is absent from the live map.
+        const broken = !!a.wpId && !live && hasPublishedRefDisplay('wp');
+
+        const key = `${label}|${color}|${broken ? 'broken' : ''}`;
         if (key === lastKey) return;
         lastKey = key;
 
@@ -225,6 +235,20 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
         if (a.wpShortName) dom.setAttribute('data-wp-short-name', a.wpShortName);
         dom.setAttribute('data-wp-color', a.wpColor || '#2563EB');
         dom.setAttribute('data-wp-show-short-name', a.showShortName ? 'true' : 'false');
+
+        if (broken) {
+          const stored = formatWPChipLabel(
+            { number: a.wpNumber, short_name: a.wpShortName },
+            a.showShortName ? 'true' : 'false',
+          );
+          dom.setAttribute('class', 'inline-ref-broken inline-ref-broken-wp');
+          dom.setAttribute('style', BROKEN_REF_STYLE);
+          inner.setAttribute('style', BROKEN_REF_STYLE);
+          inner.textContent = brokenRefText(stored, 'work package');
+          return;
+        }
+
+
         dom.setAttribute(
           'style',
           `display: inline-flex; align-items: center; background-color: ${color}; border: 1.5px solid ${color}; padding: 0px 5px; border-radius: 9999px; white-space: nowrap; vertical-align: baseline; cursor: pointer;`,

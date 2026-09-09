@@ -79,6 +79,28 @@ const listeners: Record<RefDisplayType, Set<() => void>> = {
   acronym: new Set(),
 };
 
+/**
+ * Whether a map has EVER been published for a type.
+ *
+ * A badge whose id is absent from its map means one of two very different
+ * things: the reference data has not arrived yet (first paint, or a slow
+ * fetch), or the target row genuinely no longer exists. Only the second is a
+ * broken cross-reference. Without this flag every badge would flash the broken
+ * marker for the moment before the fetch resolves.
+ *
+ * Deliberately per type, matching the notification scoping: milestone data may
+ * be loaded while participant data is still in flight.
+ */
+const published: Record<RefDisplayType, boolean> = {
+  task: false,
+  deliverable: false,
+  milestone: false,
+  wp: false,
+  participant: false,
+  acronym: false,
+};
+
+
 function sameStringList(a?: string[], b?: string[]): boolean {
   if (a === b) return true;
   if (!a || !b) return !a?.length && !b?.length;
@@ -104,8 +126,13 @@ export function publishRefDisplayMap(
 ): void {
   const next = map ?? (new Map() as Registry);
   const current = maps[type];
-  if (next === current) return;
-  if (next.size === current.size) {
+  // The very first publish flips the type from "not loaded" to "loaded", which
+  // changes what an unresolved badge means, so it must notify even when the
+  // map itself is unchanged.
+  const firstPublish = !published[type];
+  published[type] = true;
+  if (next === current && !firstPublish) return;
+  if (next.size === current.size && !firstPublish) {
     let identical = true;
     for (const [k, v] of next) {
       const cur = current.get(k);
@@ -120,6 +147,14 @@ export function publishRefDisplayMap(
   listeners[type].forEach((fn) => fn());
 }
 
+/**
+ * Whether reference data for this type has been published at least once.
+ * Until it has, an unresolved badge means "not loaded yet", not "broken".
+ */
+export function hasPublishedRefDisplay(type: RefDisplayType): boolean {
+  return published[type];
+}
+
 /** Live display data for one id of one type, or undefined when unresolved. */
 export function getRefDisplayEntry(
   type: RefDisplayType,
@@ -128,6 +163,7 @@ export function getRefDisplayEntry(
   if (!id) return undefined;
   return maps[type].get(id);
 }
+
 
 /** Subscribes to one type's changes. Returns the unsubscribe function. */
 export function subscribeRefDisplay(type: RefDisplayType, fn: () => void): () => void {
