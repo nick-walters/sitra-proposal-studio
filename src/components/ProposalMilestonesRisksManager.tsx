@@ -1302,7 +1302,7 @@ export function RisksEditor({
                   measure the wrong row. */}
               <table
                 ref={riskTableRef}
-                data-table-key="b31-risks-v2"
+                data-table-key="b31-risks-v3"
                 className={`${docTableStyles} ${docTableRules} w-full`}
                 style={{
                   tableLayout: 'fixed',
@@ -1323,7 +1323,7 @@ export function RisksEditor({
                     {riskHeaders.map((h, i) => (
                       <th
                         key={i}
-                        className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                        className={`${i === 0 ? docFirstCellStyles : i === 1 || i === 2 ? riskLevelCellStyles : docCellStyles} relative align-bottom font-bold`}
                       >
                         <EditableColumnHeader
                           value={h}
@@ -1415,7 +1415,7 @@ function SortableRiskRow({
           onChange={(html) => onUpdate({ title: html })}
         />
       </td>
-      <td className={docCellStyles}>
+      <td className={riskLevelCellStyles}>
         <RiskLevelSelect
           value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
           disabled={!canEdit}
@@ -1423,7 +1423,7 @@ function SortableRiskRow({
           onChange={(v) => onUpdate({ likelihood: v })}
         />
       </td>
-      <td className={docCellStyles}>
+      <td className={riskLevelCellStyles}>
         <RiskLevelSelect
           value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
           disabled={!canEdit}
