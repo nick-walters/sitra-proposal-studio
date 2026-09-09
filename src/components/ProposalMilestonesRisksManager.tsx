@@ -1327,9 +1327,9 @@ export function RisksEditor({
                 <thead>
                   <tr>
                     {riskHeaders.map((h, i) => (
-                      <th
+                    <th
                         key={i}
-                        className={`${i === 0 ? docFirstCellStyles : i === 1 || i === 2 ? riskLevelCellStyles : docCellStyles} relative align-bottom font-bold`}
+                        className={`${i === 0 ? docFirstCellStyles : i === 1 || i === 2 ? riskLevelCellStyles : i === 4 ? riskMitigationCellStyles : docCellStyles} relative align-bottom font-bold`}
                       >
                         <EditableColumnHeader
                           value={h}
