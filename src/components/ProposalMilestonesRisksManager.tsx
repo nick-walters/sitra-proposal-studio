@@ -817,7 +817,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                       />
                     </td>
-                    <td className={`${docCellStyles} break-words`}>
+                    <td className={`${msCellStyles} break-words`}>
                       <DebouncedRichField
                         value={m.means_of_verification || ''}
                         className={LEFT_ALIGNED_CELL_CLASS}
