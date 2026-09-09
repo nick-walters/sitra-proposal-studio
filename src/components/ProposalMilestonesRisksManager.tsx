@@ -796,7 +796,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v4"
+            data-table-key="b31-milestones-v5"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
@@ -811,7 +811,16 @@ export function MilestonesEditor({
           >
             <colgroup>
               {MS_COL_PCT.map((pct, i) => (
-                <col key={i} style={{ width: msSized ? `${msColWidths[i]}px` : pct }} />
+                <col
+                  key={i}
+                  style={{
+                    width: msSized
+                      ? `${msColWidths[i]}px`
+                      : msFit[i]
+                        ? `${msFit[i]}px`
+                        : pct,
+                  }}
+                />
               ))}
             </colgroup>
             <thead>
@@ -823,8 +832,9 @@ export function MilestonesEditor({
                   <th
                     key={i}
                     colSpan={i === 0 ? 2 : undefined}
-                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : msCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 2 ? msFitCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
+
                     <EditableColumnHeader
                       value={h}
                       canEdit={canEdit}
