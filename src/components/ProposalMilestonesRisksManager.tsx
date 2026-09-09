@@ -804,7 +804,7 @@ export function MilestonesEditor({
                     <td className={`${msFirstCellStyles} whitespace-nowrap align-middle`}>
                       <MilestoneBadge number={m.number} />
                     </td>
-                    <td className={`${docCellStyles} break-words`}>
+                    <td className={`${msCellStyles} break-words`}>
                       <DebouncedRichField
                         value={m.title || ''}
                         className={LEFT_ALIGNED_CELL_CLASS}
