@@ -1242,13 +1242,26 @@ export function RisksEditor({
       proposalId,
       // Key bumped: the widths saved against the old 7 % badge columns are far
       // wider than the badges and cannot be reconciled with the new geometry.
-      tableKey: 'b31-risks-v2',
+      tableKey: 'b31-risks-v3',
       canResize: canEdit,
       minWidths: RISK_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: RISK_COL_PCT.length,
     });
-  const riskColWidths = useMemo(() => fitToTextColumn(riskRawWidths), [riskRawWidths]);
+  /* The i./ii. columns are always exactly one badge wide; a saved geometry only
+     decides how the remaining width is split between the other three. */
+  const riskColWidths = useMemo(() => {
+    const saved = fitToTextColumn(riskRawWidths);
+    if (saved.length !== RISK_COL_PCT.length) return saved;
+    const others = [0, 3, 4];
+    const remaining = Math.max(180, DOC_BLOCK_WIDTH - 2 * RISK_LEVEL_W);
+    const savedTotal = others.reduce((s, i) => s + saved[i], 0);
+    return saved.map((w, i) => {
+      if (i === 1 || i === 2) return RISK_LEVEL_W;
+      return savedTotal > 0 ? (w / savedTotal) * remaining : remaining / others.length;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [riskRawWidths]);
   const riskSized = riskColWidths.length === RISK_COL_PCT.length;
   const { headers: riskHeaders, setHeader: setRiskHeader } = useColumnHeaders(
     proposalId,
