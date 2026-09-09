@@ -495,7 +495,12 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
     ),
     // A real \`table.header\`: Typst repeats it at the top of every
     // continuation page and never leaves it alone at the foot of a page.
-    table.header(..header.map(cell => text(weight: "bold", cell))),
+    // \`header-spans\` gives a colspan per header cell, so one heading may sit
+    // over two columns (table 3.1.d's "Milestone", over badge and name).
+    table.header(..header.enumerate().map(pair => {
+      let span = if header-spans == none { 1 } else { header-spans.at(pair.at(0), default: 1) }
+      table.cell(colspan: span, text(weight: "bold", pair.at(1)))
+    })),
     ..rows.flatten(),
   ),
 )
