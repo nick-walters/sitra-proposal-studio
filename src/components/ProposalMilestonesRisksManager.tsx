@@ -748,7 +748,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v3"
+            data-table-key="b31-milestones-v4"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
