@@ -763,8 +763,27 @@ export function MilestonesEditor({
     });
   });
 
-  const msColWidths = useMemo(() => fitToTextColumn(msRawWidths), [msRawWidths]);
+  /* Saved widths used to win outright, which is why measured badge/due sizes
+     never showed up once the table had been dragged once. The fitted columns
+     (badge, WP(s), due) are ALWAYS their measured width; a saved geometry only
+     decides how the leftover width is split between the two text columns. */
+  const msColWidths = useMemo(() => {
+    const saved = fitToTextColumn(msRawWidths);
+    const hasSaved = saved.length === MS_COL_PCT.length;
+    const textCols = MS_COL_PCT.map((_, i) => i).filter((i) => !MS_FIT_COLS.includes(i));
+    const fitTotal = MS_FIT_COLS.reduce((s, i) => s + (msFit[i] ?? 0), 0);
+    if (!MS_FIT_COLS.every((i) => msFit[i])) return hasSaved ? saved : [];
+    const remaining = Math.max(120, DOC_BLOCK_WIDTH - fitTotal);
+    const savedTextTotal = hasSaved ? textCols.reduce((s, i) => s + saved[i], 0) : 0;
+    return MS_COL_PCT.map((_, i) => {
+      if (MS_FIT_COLS.includes(i)) return msFit[i];
+      if (hasSaved && savedTextTotal > 0) return (saved[i] / savedTextTotal) * remaining;
+      return remaining / textCols.length;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [msRawWidths, msFit]);
   const msSized = msColWidths.length === MS_COL_PCT.length;
+
 
   const { headers: msHeaders, setHeader: setMsHeader } = useColumnHeaders(
     proposalId,
