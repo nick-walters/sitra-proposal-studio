@@ -756,7 +756,11 @@ export function MilestonesEditor({
       if (widest > 0) {
         if (i === 0) {
           const base = Math.ceil(widest) + 2;
-          next[i] = Math.max(28, base - 11);             // MS badge: 11 px tighter
+          next[i] = Math.max(28, base - 7);              // MS badge: 7 px tighter
+        } else if (i === 3) {
+          // Floor for the WP column: the widest single badge, less 5 px so it
+          // can be dragged a touch tighter than the badge's own box.
+          next[i] = Math.max(20, Math.ceil(widest) - 3);
         } else if (i === 4) {
           // The due month text is short; add a minimal safety gutter and cap it
           // so the column stays compact while still fitting the content.
