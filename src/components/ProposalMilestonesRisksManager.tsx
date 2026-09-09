@@ -830,7 +830,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                       />
                     </td>
-                    <td className={docCellStyles}>
+                    <td className={msCellStyles}>
                       <MilestoneWpDialog
                         wps={wps}
                         selectedWpIds={m.wp_ids}
