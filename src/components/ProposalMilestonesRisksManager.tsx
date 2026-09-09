@@ -687,7 +687,7 @@ export function MilestonesEditor({
       proposalId,
       // Key bumped: widths saved before the column set changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v3',
+      tableKey: 'b31-milestones-v4',
       canResize: canEdit,
       minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
