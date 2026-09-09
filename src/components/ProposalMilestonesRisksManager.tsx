@@ -738,7 +738,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v2"
+            data-table-key="b31-milestones-v3"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
@@ -1155,7 +1155,7 @@ export function RisksEditor({
                   measure the wrong row. */}
               <table
                 ref={riskTableRef}
-                data-table-key="b31-risks"
+                data-table-key="b31-risks-v2"
                 className={`${docTableStyles} ${docTableRules} w-full`}
                 style={{
                   tableLayout: 'fixed',
