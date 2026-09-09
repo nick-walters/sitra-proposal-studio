@@ -458,7 +458,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// \`hairlines: false\` removes EVERY row rule except the header rule.
 /// \`rule-above\` is a grid row index that carries the same 1.5pt black rule
 /// as the header (table 3.1.f's Total row).
-#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false, hairlines: true, rule-above: none, row-pad: 0pt) = {
+#let he-table(cols, header, rows, aligns: none, first-flush: false, tight: false, hairlines: true, rule-above: none, row-pad: 0pt, header-spans: none) = {
   // Table content is LEFT ALIGNED: the document sets justify globally,
   // which stretches short cell lines. Tables opt out locally.
   set text(hyphenate: false)
