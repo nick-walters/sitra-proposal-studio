@@ -175,7 +175,7 @@ const docFirstCellStyles = `${docCellStyles} !pl-0`;
 const msCellBase =
   "!py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 /** Long-text columns (milestone name, means of verification). */
-const msCellStyles = `${msCellBase} !px-2`;
+const msCellStyles = `${msCellBase} !px-1`;
 /** Content-fitted columns (WP(s), due month). */
 const msFitCellStyles = `${msCellBase} !px-1`;
 /** The MS badge column: first in the table, so its left edge is flush. */
@@ -731,6 +731,18 @@ export function MilestonesEditor({
         // to the cell's child.
         const marker = cell.querySelector<HTMLElement>('[data-fit-measure]');
         let content = marker ? marker.getBoundingClientRect().width : 0;
+        // The WP(s) column may hold several badges side by side; they wrap when
+        // the column narrows, so its floor is the WIDEST SINGLE badge, not the
+        // whole strip.
+        if (i === 3 && marker) {
+          let widestBadge = 0;
+          marker.childNodes.forEach((n) => {
+            if (n instanceof HTMLElement) {
+              widestBadge = Math.max(widestBadge, n.getBoundingClientRect().width);
+            }
+          });
+          if (widestBadge > 0) content = widestBadge;
+        }
         if (!marker) {
           cell.childNodes.forEach((n) => {
             if (n instanceof HTMLElement) content = Math.max(content, n.getBoundingClientRect().width);
