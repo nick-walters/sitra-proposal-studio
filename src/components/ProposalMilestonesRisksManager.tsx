@@ -847,7 +847,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                       />
                     </td>
-                    <td className={msCellStyles}>
+                    <td className={msCellStyles} data-ms-wp>
                       <MilestoneWpDialog
                         wps={wps}
                         selectedWpIds={m.wp_ids}
@@ -859,7 +859,8 @@ export function MilestonesEditor({
                             {selectedWps.length === 0 ? (
                               <span className="text-muted-foreground italic">Select WP(s)…</span>
                             ) : (
-                              <span className="flex flex-wrap gap-0.5 items-center">
+                              <span className="flex flex-wrap gap-0.5 items-center" data-wp-badge-measure>
+
                                 {isAllWPsSelected(selectedWps.length, wps.length) ? (
                                   <>
                                     <AllWPsBubble />
