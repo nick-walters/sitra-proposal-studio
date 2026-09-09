@@ -185,6 +185,9 @@ const msFitCellStyles = `${msCellBase} !px-1`;
 const msFirstCellStyles = `${msFitCellStyles} !pl-0`;
 /** The due month column is the last one: its right edge is flush. */
 const msLastCellStyles = `${msFitCellStyles} !pr-0`;
+/** The WP(s) column has a small left inset but no right inset, so the due
+    month column can sit tight against the widest badge. */
+const msWpCellStyles = `${msCellBase} !pl-1 !pr-0`;
 
 /* Controls read as cell text until hovered or focused. Editable surfaces must
    name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
@@ -892,9 +895,9 @@ export function MilestonesEditor({
                 {/* One header cell per column: the numero sign sits over the
                     badge column, the title over the milestone name column. */}
                 {msHeaders.map((h, i) => (
-                  <th
+                    <th
                     key={i}
-                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 3 ? msFitCellStyles : msCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : i === 3 ? msWpCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
 
                     <EditableColumnHeader
@@ -950,7 +953,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                       />
                     </td>
-                    <td className={`${msFitCellStyles} whitespace-nowrap`} data-ms-wp>
+                    <td className={`${msWpCellStyles} whitespace-nowrap`} data-ms-wp>
                       <MilestoneWpDialog
                         wps={wps}
                         selectedWpIds={m.wp_ids}
@@ -1233,7 +1236,7 @@ export function RisksEditor({
      they are exactly as wide as that badge and never wider. The WP column can
      never be dragged narrower than a single WP badge. */
   /** Exact width of a RiskBadge; the i./ii. columns are never wider. */
-  const RISK_LEVEL_W = 19;
+  const RISK_LEVEL_W = 21;
   const RISK_COL_PCT = ['32%', `${RISK_LEVEL_W}px`, `${RISK_LEVEL_W}px`, '22%', '40%'];
   const RISK_MIN_WIDTHS = [60, RISK_LEVEL_W, RISK_LEVEL_W, 56, 60];
 
@@ -1242,7 +1245,7 @@ export function RisksEditor({
       proposalId,
       // Key bumped: the widths saved against the old 7 % badge columns are far
       // wider than the badges and cannot be reconciled with the new geometry.
-      tableKey: 'b31-risks-v3',
+      tableKey: 'b31-risks-v4',
       canResize: canEdit,
       minWidths: RISK_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
@@ -1302,7 +1305,7 @@ export function RisksEditor({
                   measure the wrong row. */}
               <table
                 ref={riskTableRef}
-                data-table-key="b31-risks-v3"
+                data-table-key="b31-risks-v4"
                 className={`${docTableStyles} ${docTableRules} w-full`}
                 style={{
                   tableLayout: 'fixed',

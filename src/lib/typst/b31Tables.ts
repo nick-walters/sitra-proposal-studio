@@ -543,14 +543,14 @@ export function emitRisks(data: B31TypstData, ctx: ConvertContext): string[] {
     caption(data, 'risks', tableLabel(ctx, 'Table 3.1.e.'), RISKS_CAPTION),
     table(
       // The likelihood and severity columns are exactly as wide as the L/M/H
-      // badge (19 px = 14.25 pt) with no padding either side, never wider; the
+      // badge (21 px = 15.75 pt) with no padding either side, never wider; the
       // WP column can never fall below one WP badge.
       storedCols(
         data,
-        ['b31-risks-v3'],
+        ['b31-risks-v4'],
         5,
-        '(32fr, 14.25pt, 14.25pt, 22fr, 40fr)',
-        [60, 19, 19, 56, 60],
+        '(32fr, 15.75pt, 15.75pt, 22fr, 40fr)',
+        [60, 21, 21, 56, 60],
       ),
       headers.map((h) => lit(h)),
       rows,
