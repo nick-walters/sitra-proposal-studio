@@ -195,6 +195,18 @@ export function PanelEvaluator({ proposalId }: Props) {
     errorMessage: string | null;
   } | null>(null);
   const [resumingFailedRun, setResumingFailedRun] = useState(false);
+  // An evaluation row that is still queued/running/processing/synthesizing but has
+  // nobody driving it, because progress is driven entirely by this open pane.
+  // Re-attaching automatically on mount would resume a PAID run without the user
+  // asking for it, so the row is only described here and waits for an explicit click.
+  const [interruptedRun, setInterruptedRun] = useState<{
+    id: string;
+    status: string;
+    progressMessage: string;
+    done: number;
+    total: number;
+    createdAt: string | null;
+  } | null>(null);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
@@ -456,9 +468,9 @@ export function PanelEvaluator({ proposalId }: Props) {
     }, 10_000);
   };
 
-  async function cancelRun() {
-    if (!runningEvaluationId) return;
-    const id = runningEvaluationId;
+  async function cancelRun(evaluationId?: string) {
+    const id = evaluationId || runningEvaluationId;
+    if (!id) return;
     try {
       const { error } = await supabase.functions.invoke("run-panel-evaluation", {
         body: { action: "cancel", evaluationId: id },
@@ -547,11 +559,23 @@ export function PanelEvaluator({ proposalId }: Props) {
       }
 
       if (runningEval?.id) {
-        setRunningStatus(runningEval.status || "queued");
-        setRunningMessage(
-          ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
-        );
-        startPolling(runningEval.id, (runningEval as any).created_at ?? null);
+        // Do NOT start polling here. The evaluator loop is driven by this pane, so
+        // attaching on mount would silently resume a paid run the moment the page is
+        // opened. Describe the interrupted run instead and wait for an explicit click.
+        const ad = (runningEval.analysis_data ?? {}) as Record<string, any>;
+        const evaluations = Array.isArray(ad.evaluations) ? ad.evaluations : [];
+        const done = evaluations.filter(
+          (e: any) => !(e && e.data && e.data.error),
+        ).length;
+        const selected = (runningEval as any).evaluators_selected;
+        setInterruptedRun({
+          id: runningEval.id,
+          status: runningEval.status || "queued",
+          progressMessage: ad.progress_message || "",
+          done,
+          total: Array.isArray(selected) ? selected.length : evaluations.length,
+          createdAt: (runningEval as any).created_at ?? null,
+        });
       } else {
         // No in-flight run — try to rehydrate a stored panel_proposed row so
         // returning to Part B after Stage A doesn't force a paid Haiku re-run.
@@ -732,6 +756,10 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
   async function startEvaluation() {
+    if (runningEvaluationId || interruptedRun) {
+      toast.info("An evaluation is already in progress on this proposal. Resume or cancel it first.");
+      return;
+    }
 
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
@@ -833,6 +861,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   }
 
   async function runEvaluation() {
+    if (runningEvaluationId || interruptedRun) {
+      toast.info("An evaluation is already in progress on this proposal. Resume or cancel it first.");
+      return;
+    }
     if (!validPanelSize) return;
     const selectedEvaluators = allPersonas
       .filter((p) => selectedPersonaIds.has(p.id))
