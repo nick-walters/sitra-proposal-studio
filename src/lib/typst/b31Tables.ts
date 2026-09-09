@@ -150,7 +150,7 @@ function table(
   aligns?: string[],
   firstFlush = false,
   tight = false,
-  rules?: { hairlines?: boolean; ruleAbove?: number; rowPadPt?: number },
+  rules?: { hairlines?: boolean; ruleAbove?: number; rowPadPt?: number; headerSpans?: number[] },
 ): string {
   const headerSrc = `(${header.map((h) => h).join(', ')}${header.length === 1 ? ',' : ''})`;
   const rowsSrc = `(${rows.map((r) => `(${r.join(', ')},)`).join(', ')}${rows.length === 1 ? ',' : ''})`;
@@ -160,7 +160,8 @@ function table(
   const ruleSrc =
     (rules?.hairlines === false ? ', hairlines: false' : '') +
     (rules?.ruleAbove != null ? `, rule-above: ${rules.ruleAbove}` : '') +
-    (rules?.rowPadPt != null ? `, row-pad: ${rules.rowPadPt}pt` : '');
+    (rules?.rowPadPt != null ? `, row-pad: ${rules.rowPadPt}pt` : '') +
+    (rules?.headerSpans ? `, header-spans: (${rules.headerSpans.join(', ')},)` : '');
   return `he-table(${cols}, ${headerSrc}, ${rowsSrc}${alignSrc}${flushSrc}${tightSrc}${ruleSrc})`;
 }
 
