@@ -443,7 +443,7 @@ export function WPDeliverablesTable({
             >
               <thead>
                 <tr>
-                  <th className={`${docFirstCellStyles} align-bottom font-bold whitespace-nowrap`}>No.</th>
+                  <th className={`${docFirstCellStyles} align-bottom font-bold whitespace-nowrap`}>№</th>
                   <th className={`${docCellStyles} align-bottom font-bold`} style={{ width: '100%' }}>
                     Deliverable title
                   </th>

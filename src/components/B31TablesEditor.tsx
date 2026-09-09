@@ -569,7 +569,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
 
 
   const columns: Col[] = [
-    { label: 'No.', fit: true, defaultWidth: 52 },
+    { label: '№', fit: true, defaultWidth: 52 },
     { label: 'Deliverable title', flex: true },
     { label: 'WP', fit: true, defaultWidth: 44 },
     { label: 'Lead', fit: true, defaultWidth: 60 },
@@ -720,7 +720,7 @@ function B31MilestonesTableInner({ proposalId }: Props) {
   // WP and due columns measure themselves to their widest badge (`fit`), and
   // the text columns absorb what is left.
   const columns: Col[] = [
-    { label: 'No.', fit: true, defaultWidth: 48 },
+    { label: '№', fit: true, defaultWidth: 48 },
     { label: 'Milestone', flex: true },
     { label: 'WP(s)', fit: true, defaultWidth: 44 },
     { label: 'Due', fit: true, defaultWidth: 40 },
