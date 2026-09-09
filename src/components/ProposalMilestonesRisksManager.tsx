@@ -533,7 +533,7 @@ export function MilestonesEditor({
     },
   });
 
-  // Due month asc (nulls last), then intra-month order_index, then id. The
+  // Due asc (nulls last), then intra-month order_index, then id. The
   // MS number itself is maintained by the database resequencing trigger —
   // nothing on the client writes `number`.
   const orderedMs = useMemo(() => {
@@ -683,10 +683,10 @@ export function MilestonesEditor({
      clipped — and the milestone name and means of verification columns absorb
      the remaining width. The badge and name share ONE merged header. */
   const MS_HEADERS = ['№', 'Milestone title', 'Means of verification', 'WP(s)', 'Due'];
-  /** Physical columns: badge, name, verification, WP(s), due month. */
+  /** Physical columns: badge, name, verification, WP(s), due. */
   const MS_COL_PCT = ['35px', '38%', '42%', '52px', '35px'];
   /** Content-fitted columns, by physical index: the MS badge, the WP(s) badges
-      and the due month. The due column is fitted to its short "MXX" text so
+      and the due. The due column is fitted to its short "MXX" text so
       it does not carry the full-width picker's excess space. */
   const MS_FIT_COLS = [0, 3, 4];
   /** Natural widths of the fitted columns, measured from the live DOM. */
