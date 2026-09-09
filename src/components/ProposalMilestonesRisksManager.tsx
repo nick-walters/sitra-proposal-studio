@@ -682,7 +682,7 @@ export function MilestonesEditor({
      columns are `fit` — measured from their widest content so a badge is never
      clipped — and the milestone name and means of verification columns absorb
      the remaining width. The badge and name share ONE merged header. */
-  const MS_HEADERS = ['№', 'Milestone title', 'Means of verification', 'WP(s)', 'Due month'];
+  const MS_HEADERS = ['№', 'Milestone title', 'Means of verification', 'WP(s)', 'Due'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
   const MS_COL_PCT = ['35px', '38%', '42%', '52px', '35px'];
   /** Content-fitted columns, by physical index: the MS badge, the WP(s) badges

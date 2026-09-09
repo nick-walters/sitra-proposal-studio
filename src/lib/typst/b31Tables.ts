@@ -380,7 +380,7 @@ export function emitDeliverables(data: B31TypstData, ctx: ConvertContext): strin
       // protection is gone and the printed columns match the board exactly.
       deliverableCols(data),
 
-      [lit('No.'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
+      [lit('№'), lit('Deliverable title'), lit('WP'), lit('Lead'), lit('Type'), lit('Level'), lit('Due')],
       rows,
       undefined,
       false,
@@ -487,7 +487,7 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
     'Milestone',
     'Means of verification',
     'WP(s)',
-    'Due month',
+    'Due',
   ]);
   const milestoneCaption = data.captions.milestones || MILESTONES_CAPTION;
   return [
