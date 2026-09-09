@@ -827,8 +827,8 @@ function B31RisksTableInner({ proposalId }: Props) {
 
   const columns: Col[] = [
     { label: 'Risk', defaultWidth: 240, cellClass: 'cell-pl-0' },
-    { label: 'i.', defaultWidth: 30, cellClass: 'cell-px-0' },
-    { label: 'ii.', defaultWidth: 30, cellClass: 'cell-px-0' },
+    { label: 'i.', defaultWidth: 32, cellClass: 'cell-px-0' },
+    { label: 'ii.', defaultWidth: 32, cellClass: 'cell-px-0' },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
     { label: 'Mitigation & adaptation measures', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
   ];
