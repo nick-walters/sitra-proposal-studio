@@ -1,4 +1,9 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import {
+  getRefDisplayEntry,
+  subscribeRefDisplay,
+  ACRONYM_DISPLAY_KEY,
+} from '@/lib/refDisplay';
 
 export interface AcronymSegment {
   text: string;
@@ -86,6 +91,70 @@ export const AcronymReference = Node.create<AcronymReferenceOptions>({
       }),
       ...children,
     ];
+  },
+
+  /**
+   * On screen the acronym is drawn from the proposal's CURRENT
+   * `acronym_segments`, so renaming the project or recolouring its letters
+   * updates every badge already in the document. Nothing is written back —
+   * `renderHTML` still serialises the segments stored at insertion. With no
+   * live entry the stored segments are drawn, so the badge is never blank.
+   */
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      let lastKey: string | null = null;
+
+      const render = () => {
+        const stored: AcronymSegment[] = (node.attrs.segments as AcronymSegment[]) || [];
+        const live = getRefDisplayEntry('acronym', ACRONYM_DISPLAY_KEY);
+        const segments: AcronymSegment[] =
+          live && live.segments && live.segments.length
+            ? live.segments.map((text, i) => ({
+                text,
+                color: live.segmentColors?.[i] || stored[i]?.color || '#000000',
+              }))
+            : stored;
+
+        const key = segments.map((s) => `${s.text}~${s.color}`).join('|');
+        if (key === lastKey) return;
+        lastKey = key;
+
+        dom.setAttribute('data-acronym-reference', '');
+        dom.setAttribute('contenteditable', 'false');
+        dom.setAttribute('data-acronym-segments', JSON.stringify(stored));
+        dom.setAttribute(
+          'style',
+          "display: inline; font-family: 'Arial Black', Arial, sans-serif; font-weight: 900; font-size: inherit; white-space: nowrap; cursor: pointer;",
+        );
+        dom.textContent = '';
+        for (const seg of segments) {
+          const part = document.createElement('span');
+          part.setAttribute('style', `color: ${seg.color};`);
+          part.textContent = seg.text;
+          dom.appendChild(part);
+        }
+      };
+
+      render();
+      const unsubscribe = subscribeRefDisplay('acronym', render);
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== 'acronymReference') return false;
+          node = updatedNode;
+          render();
+          return true;
+        },
+        destroy() {
+          unsubscribe();
+        },
+        ignoreMutation() {
+          return true;
+        },
+      };
+    };
   },
 
   addCommands() {

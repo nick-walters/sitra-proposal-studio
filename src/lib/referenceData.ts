@@ -16,6 +16,18 @@ import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { buildCitationNumberMap } from '@/lib/citationSources';
 import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { publishCaseDisplayMap, type CaseDisplayEntry } from '@/lib/caseDisplay';
+import {
+  publishRefDisplayMap,
+  ACRONYM_DISPLAY_KEY,
+  type RefDisplayEntry,
+} from '@/lib/refDisplay';
+import {
+  formatTaskLabel,
+  formatDeliverableLabel,
+  formatMilestoneLabel,
+  formatWPChipLabel,
+  formatParticipantLabel,
+} from '@/lib/referenceLabels';
 
 export interface WPData {
   id: string;
@@ -384,6 +396,82 @@ export function useReferenceData(proposalId: string | undefined) {
       });
     }
     publishCaseDisplayMap(map);
+  }, [query.data]);
+
+  // Same problem for the other six badge types: their numbers, short names and
+  // colours were baked in at insertion and the underlying rows have moved on.
+  // Labels are composed with the shared formatters so an on-screen badge is
+  // character-identical to the mirrors and the PDF. A row that is missing from
+  // the snapshot is OMITTED, so its badge keeps its stored attributes.
+  useEffect(() => {
+    const d = query.data;
+    if (!d) return;
+
+    const tasks = new Map<string, RefDisplayEntry>();
+    for (const [id, t] of d.taskById) {
+      tasks.set(id, {
+        label: formatTaskLabel({ wp_number: t.wp_number, number: t.number }),
+        shortName: null,
+        color: t.wp_color || null,
+      });
+    }
+    publishRefDisplayMap('task', tasks);
+
+    const deliverables = new Map<string, RefDisplayEntry>();
+    for (const [id, dl] of d.deliverableById) {
+      deliverables.set(id, {
+        // The pre-composed "D{wp}.{n}" string built from the live parent WP.
+        label: formatDeliverableLabel({ number: dl.number }),
+        shortName: null,
+        color: dl.wp_color || null,
+      });
+    }
+    publishRefDisplayMap('deliverable', deliverables);
+
+    const milestones = new Map<string, RefDisplayEntry>();
+    for (const [id, m] of d.milestoneById) {
+      milestones.set(id, {
+        label: formatMilestoneLabel({ number: m.number }),
+        shortName: null,
+        color: null,
+      });
+    }
+    publishRefDisplayMap('milestone', milestones);
+
+    const wps = new Map<string, RefDisplayEntry>();
+    for (const [id, wp] of d.wpById) {
+      wps.set(id, {
+        // Bare form only. Whether the short name is shown is the user's
+        // per-tag choice, stored on the badge, and is applied by the node view.
+        label: formatWPChipLabel({ number: wp.number, short_name: wp.short_name }, 'false'),
+        shortName: wp.short_name ?? null,
+        color: wp.color || null,
+        number: wp.number,
+      });
+    }
+    publishRefDisplayMap('wp', wps);
+
+    const participants = new Map<string, RefDisplayEntry>();
+    for (const [id, p] of d.participantById) {
+      participants.set(id, {
+        label: formatParticipantLabel({ organisation_short_name: p.organisation_short_name }),
+        shortName: p.organisation_short_name ?? null,
+        color: null,
+      });
+    }
+    publishRefDisplayMap('participant', participants);
+
+    const acronyms = new Map<string, RefDisplayEntry>();
+    if (d.acronymSegments.length > 0) {
+      acronyms.set(ACRONYM_DISPLAY_KEY, {
+        label: d.acronymSegments.map((s) => s.text).join(''),
+        shortName: null,
+        color: null,
+        segments: d.acronymSegments.map((s) => s.text),
+        segmentColors: d.acronymSegments.map((s) => s.color),
+      });
+    }
+    publishRefDisplayMap('acronym', acronyms);
   }, [query.data]);
 
   return query;

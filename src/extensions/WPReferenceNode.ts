@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { formatWPChipLabel } from '@/lib/referenceLabels';
+import { getRefDisplayEntry, subscribeRefDisplay } from '@/lib/refDisplay';
 
 
 export interface WPReferenceOptions {
@@ -181,6 +182,79 @@ export const WPReferenceNode = Node.create<WPReferenceOptions>({
         label,
       ],
     ];
+  },
+
+  /**
+   * On screen the chip is drawn from LIVE work-package data when available,
+   * so a renumbered, renamed or recoloured WP shows its current form. The
+   * `showShortName` flag is NOT live: it records the label form the user chose
+   * at insertion and always comes from the stored attribute. Nothing is
+   * written back — `renderHTML` still serialises the stored attributes.
+   */
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      const inner = document.createElement('span');
+      dom.appendChild(inner);
+
+      let lastKey: string | null = null;
+
+      const render = () => {
+        const a = node.attrs as Record<string, any>;
+        const live = getRefDisplayEntry('wp', a.wpId);
+
+        const number = live ? live.number : a.wpNumber;
+        const shortName = live ? live.shortName : a.wpShortName;
+        const color = (live && live.color) || a.wpColor || '#2563EB';
+        const label = formatWPChipLabel(
+          { number, short_name: shortName },
+          a.showShortName ? 'true' : 'false',
+        );
+
+        const key = `${label}|${color}`;
+        if (key === lastKey) return;
+        lastKey = key;
+
+        dom.setAttribute('data-wp-reference', '');
+        dom.setAttribute('class', 'wp-reference-badge');
+        dom.setAttribute('contenteditable', 'false');
+        if (a.wpId) dom.setAttribute('data-wp-id', a.wpId);
+        if (a.wpNumber !== null && a.wpNumber !== undefined) {
+          dom.setAttribute('data-wp-number', String(a.wpNumber));
+        }
+        if (a.wpShortName) dom.setAttribute('data-wp-short-name', a.wpShortName);
+        dom.setAttribute('data-wp-color', a.wpColor || '#2563EB');
+        dom.setAttribute('data-wp-show-short-name', a.showShortName ? 'true' : 'false');
+        dom.setAttribute(
+          'style',
+          `display: inline-flex; align-items: center; background-color: ${color}; border: 1.5px solid ${color}; padding: 0px 5px; border-radius: 9999px; white-space: nowrap; vertical-align: baseline; cursor: pointer;`,
+        );
+        inner.setAttribute(
+          'style',
+          "color: #ffffff; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; line-height: 1;",
+        );
+        inner.textContent = label;
+      };
+
+      render();
+      const unsubscribe = subscribeRefDisplay('wp', render);
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== 'wpReference') return false;
+          node = updatedNode;
+          render();
+          return true;
+        },
+        destroy() {
+          unsubscribe();
+        },
+        ignoreMutation() {
+          return true;
+        },
+      };
+    };
   },
 
   addCommands() {

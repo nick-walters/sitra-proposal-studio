@@ -4,6 +4,11 @@ import {
   formatDeliverableLabel,
   formatMilestoneLabel,
 } from '@/lib/referenceLabels';
+import {
+  getRefDisplayEntry,
+  subscribeRefDisplay,
+  type RefDisplayType,
+} from '@/lib/refDisplay';
 
 
 export interface InlineReferenceOptions {
@@ -379,6 +384,137 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
       }),
       ['span', { style: innerStyle }, label],
     ];
+  },
+
+  /**
+   * On screen the badge is drawn from LIVE data when it is available, so a
+   * task, deliverable or milestone that has since been renumbered, reordered
+   * or moved to another work package shows its current label — matching the
+   * read-only mirrors and the PDF. Nothing is written back: `renderHTML`
+   * above still serialises the stored attributes, so saved content is
+   * untouched. When no live entry exists (map not yet loaded, or a binned
+   * row) the stored attributes are used exactly as before, so a badge is
+   * never blank.
+   */
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      const inner = document.createElement('span');
+      dom.appendChild(inner);
+
+      let lastKey: string | null = null;
+
+      const liveTypeOf = (refType: string): RefDisplayType | null =>
+        refType === 'task' || refType === 'deliverable' || refType === 'milestone'
+          ? refType
+          : null;
+
+      const render = () => {
+        const a = node.attrs as Record<string, any>;
+        const refType = (a.refType as string) || 'task';
+        const idAttr =
+          refType === 'task'
+            ? a.taskId
+            : refType === 'deliverable'
+              ? a.deliverableId
+              : refType === 'milestone'
+                ? a.milestoneId
+                : null;
+        const liveType = liveTypeOf(refType);
+        const live = liveType ? getRefDisplayEntry(liveType, idAttr) : undefined;
+
+        const label = live ? live.label : computeLabel(a);
+        const wpColor: string | null =
+          (live && live.color) || (a.wpColor as string | null) || null;
+
+        const key = `${refType}|${label}|${wpColor ?? ''}`;
+        if (key === lastKey) return;
+        lastKey = key;
+
+        dom.setAttribute('data-inline-reference', '');
+        dom.setAttribute('contenteditable', 'false');
+        dom.setAttribute('data-ref-type', refType);
+        if (a.wpNumber !== null && a.wpNumber !== undefined) {
+          dom.setAttribute('data-wp-number', String(a.wpNumber));
+        }
+        if (a.taskNumber !== null && a.taskNumber !== undefined) {
+          dom.setAttribute('data-task-number', String(a.taskNumber));
+        }
+        if (a.taskId) dom.setAttribute('data-task-id', a.taskId);
+        if (a.deliverableNumber) {
+          dom.setAttribute('data-deliverable-number', String(a.deliverableNumber));
+        }
+        if (a.deliverableId) dom.setAttribute('data-deliverable-id', a.deliverableId);
+        if (a.milestoneNumber !== null && a.milestoneNumber !== undefined) {
+          dom.setAttribute('data-milestone-number', String(a.milestoneNumber));
+        }
+        if (a.milestoneId) dom.setAttribute('data-milestone-id', a.milestoneId);
+        if (a.wpColor) dom.setAttribute('data-wp-color', a.wpColor);
+        if (a.deletedKind) dom.setAttribute('data-deleted-kind', a.deletedKind);
+
+        if (refType === 'deleted') {
+          dom.setAttribute('class', 'inline-ref inline-ref-deleted');
+          dom.setAttribute(
+            'style',
+            'background-color: #fff59d; color: #000; padding: 0 2px; border-radius: 2px; font-style: italic;',
+          );
+          inner.removeAttribute('style');
+          inner.textContent = label;
+          return;
+        }
+
+        const outerStyleParts: string[] = [
+          'color: inherit',
+          'font-family: inherit',
+          'font-size: inherit',
+          'font-weight: inherit',
+          'line-height: inherit',
+        ];
+        if (wpColor && (refType === 'task' || refType === 'deliverable')) {
+          outerStyleParts.push(`border-color: ${wpColor}`);
+          outerStyleParts.push(`--wp-color: ${wpColor}`);
+        }
+
+        dom.setAttribute('class', `inline-ref inline-ref-${refType}`);
+        dom.setAttribute('style', outerStyleParts.join('; '));
+        inner.setAttribute(
+          'style',
+          refType === 'milestone'
+            ? "color: #ffffff; font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; line-height: 1"
+            : "color: var(--wp-color, #000); font-family: 'Times New Roman', Times, serif; font-size: 11pt; font-weight: 700; line-height: 1",
+        );
+        inner.textContent = label;
+      };
+
+      let subscribedType = liveTypeOf((node.attrs.refType as string) || 'task');
+      let unsubscribe = subscribedType
+        ? subscribeRefDisplay(subscribedType, render)
+        : () => {};
+
+      render();
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== 'inlineReference') return false;
+          node = updatedNode;
+          const nextType = liveTypeOf((node.attrs.refType as string) || 'task');
+          if (nextType !== subscribedType) {
+            unsubscribe();
+            subscribedType = nextType;
+            unsubscribe = nextType ? subscribeRefDisplay(nextType, render) : () => {};
+          }
+          render();
+          return true;
+        },
+        destroy() {
+          unsubscribe();
+        },
+        ignoreMutation() {
+          return true;
+        },
+      };
+    };
   },
 
   addCommands() {

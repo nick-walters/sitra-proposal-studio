@@ -73,6 +73,19 @@ function stripWordXml(html: string): string {
 }
 
 
+/**
+ * Cross-reference badges in every editor read their numbers from the shared
+ * reference-data snapshot. This hook owns every task/deliverable insert,
+ * delete, renumber, reorder and move-between-WPs, so it must announce those
+ * the same way WPManagementCard does, or badges keep showing the old numbers
+ * until the page is reloaded.
+ */
+function notifyCrossRefChange(source: string) {
+  window.dispatchEvent(
+    new CustomEvent('cross-ref-data-changed', { detail: { source } }),
+  );
+}
+
 export interface WPDraftTask {
   id: string;
   wp_draft_id: string;
@@ -204,6 +217,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
     setWPDrafts(prev => prev.map(wp =>
       wp.id === wpId ? { ...wp, ...updates, version: res.version ?? wp.version } : wp
     ));
+    notifyCrossRefChange('useWPDrafts.updateWPDraft');
     return true;
   }, [wpDrafts, fetchWPDrafts, onConflict]);
 
@@ -246,6 +260,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
       ]);
 
       await fetchWPDrafts();
+      notifyCrossRefChange('useWPDrafts.addWPDraft');
       return data;
     } catch (err) {
       console.error('Error adding WP draft:', err);
@@ -266,6 +281,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
       return false;
     }
     await fetchWPDrafts();
+    notifyCrossRefChange('useWPDrafts.deleteWPDraft');
     return true;
   }, [wpDrafts, fetchWPDrafts]);
 
@@ -292,6 +308,7 @@ export function useWPDrafts(proposalId: string | null, options?: WPDraftHookOpti
     }
 
     await fetchWPDrafts();
+    notifyCrossRefChange('useWPDrafts.reorderWPDrafts');
     return true;
   }, [wpDrafts, fetchWPDrafts]);
 
@@ -410,6 +427,9 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       if (!res.ok) throw new Error(res.error || 'save failed');
 
       snapshotTargetBoxes('wp_draft', wpId, { [field]: cleanValue });
+      if (field === 'short_name' || field === 'number' || field === 'color') {
+        notifyCrossRefChange('useWPDraftEditor.updateField');
+      }
       setWPDraft(prev => prev ? { ...prev, [field]: value, version: res.version ?? prev.version } : null);
       setLastSaved(new Date());
       return true;
@@ -450,6 +470,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
       return false;
     }
     await fetchWPDraft();
+    notifyCrossRefChange(`useWPDraftEditor.applyOrder.${table}`);
     return true;
   }, [fetchWPDraft]);
 
@@ -483,6 +504,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
         tasks: [...(prev.tasks || []), { ...data, participants: [], effort: [] }],
       } : null);
 
+      notifyCrossRefChange('useWPDraftEditor.addTask');
       return data;
     } catch (err) {
       console.error('Error adding task:', err);
@@ -536,6 +558,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     }
     qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     await fetchWPDraft();
+    notifyCrossRefChange('useWPDraftEditor.deleteTask');
     return true;
   }, [wpDraft?.tasks, fetchWPDraft, qc]);
 
@@ -622,6 +645,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
         deliverables: [...(prev.deliverables || []), data],
       } : null);
 
+      notifyCrossRefChange('useWPDraftEditor.addDeliverable');
       return data;
     } catch (err) {
       console.error('Error adding deliverable:', err);
@@ -671,6 +695,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     }
     qc.invalidateQueries({ queryKey: ['wp-bin-count'] });
     await fetchWPDraft();
+    notifyCrossRefChange('useWPDraftEditor.deleteDeliverable');
     return true;
   }, [wpDraft?.deliverables, fetchWPDraft, qc]);
 
@@ -786,6 +811,7 @@ export function useWPDraftEditor(wpId: string | null, options?: WPDraftHookOptio
     }
 
     await fetchWPDraft();
+    notifyCrossRefChange('useWPDraftEditor.moveChildToWP');
     toast.success(`${label === 'task' ? 'Task' : 'Deliverable'} moved successfully`);
     return true;
   }, [wpDraft, fetchWPDraft]);
