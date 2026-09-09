@@ -7602,6 +7602,7 @@ export type Database = {
         Args: {
           p_body: string
           p_expected_body?: string
+          p_expected_version?: number
           p_heading?: string
           p_id: string
           p_key: string
