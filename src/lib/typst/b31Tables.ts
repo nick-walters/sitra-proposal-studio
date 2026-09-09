@@ -473,10 +473,12 @@ function captionWithVectorStar(text: string): string {
 
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
-  // Same four columns as the editor: badge inline at the head of the
-  // milestone column, then verification, WP(s) and due month.
+  // Same five columns as the editor: the MS badge in a column of its own, the
+  // milestone name beside it, then verification, WP(s) and due month. The
+  // heading over the first two columns is a single merged "Milestone".
   const rows = data.milestones.map((m) => [
-    milestoneChip(m.number) + CHIP_GAP + rich(m.title, ctx),
+    milestoneChip(m.number),
+    rich(m.title, ctx),
     rich(m.means_of_verification, ctx),
     wpChipList(m.wpNumbers, m.wpColors, data.wps.length, m.primaryWpNumber),
     lit(monthLabel(m.due_month)),
@@ -492,19 +494,23 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
     `he-caption(${typstString(tableLabel(ctx, 'Table 3.1.d.'))}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
       // Widths and headers must come from the SAME editor: the live milestones
-      // manager stores widths under `b31-milestones-v2` and headers under
-      // `b31-milestones`. The older keys stay as fallbacks for proposals last
-      // resized in the retired editor.
+      // manager stores five widths under `b31-milestones-v3` and four headers
+      // under `b31-milestones`. Older stored rows describe the retired
+      // four-column geometry and can no longer be applied.
       storedCols(
         data,
-        ['b31-milestones-v2', 'b31-milestones', 'b31-3-1-d-milestones'],
-        4,
-        '(32fr, 34fr, 22fr, 12fr)',
+        ['b31-milestones-v3'],
+        5,
+        '(34.5pt, 29fr, 33fr, 21fr, 11fr)',
+        [46, 60, 60, 56, 50],
       ),
       headers.map((h) => lit(h)),
       rows,
       undefined,
       true,
+      false,
+      // "Milestone" spans the badge column and the name column.
+      { headerSpans: [2, 1, 1, 1] },
     ),
   ];
 
