@@ -758,9 +758,13 @@ export function MilestonesEditor({
             </colgroup>
             <thead>
               <tr>
+                {/* Four header cells over five columns: "Milestone" spans the
+                    badge column and the name column, so the badge keeps a
+                    column of its own without gaining a heading. */}
                 {msHeaders.map((h, i) => (
                   <th
                     key={i}
+                    colSpan={i === 0 ? 2 : undefined}
                     className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
                   >
                     <EditableColumnHeader
@@ -768,8 +772,10 @@ export function MilestonesEditor({
                       canEdit={canEdit}
                       onCommit={(next) => setMsHeader(i, next)}
                     />
-                    {canEdit && i < MS_COL_PCT.length - 1 && (
-                      <ColumnResizer onMouseDown={msResizeStart(i)} />
+                    {/* The handle under a header cell moves the boundary at its
+                        RIGHT edge, which for the merged cell is column 1. */}
+                    {canEdit && i < msHeaders.length - 1 && (
+                      <ColumnResizer onMouseDown={msResizeStart(i === 0 ? 1 : i + 1)} />
                     )}
                   </th>
                 ))}
