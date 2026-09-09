@@ -534,7 +534,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id, status, analysis_data, created_at")
+          .select("id, status, analysis_data, created_at, evaluators_selected")
           .eq("proposal_id", proposalId)
           .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
@@ -1351,6 +1351,61 @@ export function PanelEvaluator({ proposalId }: Props) {
             );
           })()}
 
+          {stage === "idle" && interruptedRun && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">
+                    Evaluation interrupted
+                    {interruptedRun.createdAt
+                      ? ` — started ${new Date(interruptedRun.createdAt).toLocaleString()}`
+                      : ""}
+                  </div>
+                  <div className="text-xs opacity-90">
+                    Evaluator {interruptedRun.done} of {interruptedRun.total} completed.
+                    {interruptedRun.progressMessage ? ` ${interruptedRun.progressMessage}` : ""}
+                  </div>
+                  <div className="text-xs opacity-90">
+                    The evaluators already completed are paid for and will not be re-run.
+                    Resuming continues from where it stopped — this page must stay open
+                    while it finishes.
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() => {
+                        const run = interruptedRun;
+                        setStage("stageB");
+                        setRunningStatus(run.status);
+                        setRunningMessage(run.progressMessage);
+                        startPolling(run.id, run.createdAt);
+                        setInterruptedRun(null);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Resume evaluation
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        await cancelRun(interruptedRun.id);
+                        setInterruptedRun(null);
+                        setStage("idle");
+                      }}
+                    >
+                      Cancel run
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+
           {stage === "idle" && failedRun && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -1440,7 +1495,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={cancelRun}
+                    onClick={() => void cancelRun()}
                     disabled={!runningEvaluationId}
                   >
                     Cancel
