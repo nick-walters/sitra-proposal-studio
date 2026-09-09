@@ -166,6 +166,17 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/* Table 3.1.d only: the badge, WP and due columns are sized to their content,
+   so the shared 3pt/0.75pt cell inset is reduced to a 1px hairline gutter and
+   the vertical inset removed altogether. Rows then stand exactly as tall as
+   the badges they carry. */
+// `!` markers: a global `table[data-table-key] td` rule in table-card.css sets
+// the shared 1px/4px padding at a higher specificity than a plain utility.
+const msCellStyles =
+  "!px-[1px] !py-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
+const msFirstCellStyles = `${msCellStyles} !pl-0`;
+/** The due month column is the last one: its right edge is flush. */
+const msLastCellStyles = `${msCellStyles} !pr-0`;
 /* Controls read as cell text until hovered or focused. Editable surfaces must
    name the font explicitly: a base-layer rule paints [contenteditable] Arial. */
 const SUBTLE_CONTROL =
@@ -669,15 +680,16 @@ export function MilestonesEditor({
      columns are sized to their controls. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['46px', '29%', '33%', '21%', '11%'];
-  /** The badge column may never fall below the MS hexagon (38 px + padding). */
-  const MS_MIN_WIDTHS = [46, 60, 60, 56, 50];
+  const MS_COL_PCT = ['40px', '31%', '35%', '22%', '40px'];
+  /** Badge column: the MS hexagon (38 px) plus the 1px hairline gutter. The
+      due column fits "M12"/"Select" and never grows. */
+  const MS_MIN_WIDTHS = [40, 60, 60, 56, 40];
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
       // Key bumped: widths saved before the column set changed described a
       // different table and could not be reconciled, so they are discarded.
-      tableKey: 'b31-milestones-v3',
+      tableKey: 'b31-milestones-v4',
       canResize: canEdit,
       minWidths: MS_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
@@ -738,7 +750,7 @@ export function MilestonesEditor({
              means of verification included, sits side by side. */
           <table
             ref={msTableRef}
-            data-table-key="b31-milestones-v3"
+            data-table-key="b31-milestones-v4"
             className={`${docTableStyles} ${docTableRules} w-full`}
             style={{
               tableLayout: 'fixed',
@@ -765,7 +777,7 @@ export function MilestonesEditor({
                   <th
                     key={i}
                     colSpan={i === 0 ? 2 : undefined}
-                    className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                    className={`${i === 0 ? msFirstCellStyles : i === msHeaders.length - 1 ? msLastCellStyles : msCellStyles} relative align-bottom font-bold`}
                   >
                     <EditableColumnHeader
                       value={h}
@@ -791,10 +803,10 @@ export function MilestonesEditor({
                   <tr key={m.id} id={`milestone-row-${m.id}`}>
                     {/* The MS badge has a column of its own; the merged header
                         above keeps badge and name reading as one field. */}
-                    <td className={`${docFirstCellStyles} whitespace-nowrap align-top`}>
+                    <td className={`${msFirstCellStyles} whitespace-nowrap align-middle`}>
                       <MilestoneBadge number={m.number} />
                     </td>
-                    <td className={`${docCellStyles} break-words`}>
+                    <td className={`${msCellStyles} break-words`}>
                       <DebouncedRichField
                         value={m.title || ''}
                         className={LEFT_ALIGNED_CELL_CLASS}
@@ -807,7 +819,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { title: html } })}
                       />
                     </td>
-                    <td className={`${docCellStyles} break-words`}>
+                    <td className={`${msCellStyles} break-words`}>
                       <DebouncedRichField
                         value={m.means_of_verification || ''}
                         className={LEFT_ALIGNED_CELL_CLASS}
@@ -820,7 +832,7 @@ export function MilestonesEditor({
                         onChange={(html) => updateMilestone.mutate({ id: m.id, patch: { means_of_verification: html } })}
                       />
                     </td>
-                    <td className={docCellStyles}>
+                    <td className={msCellStyles}>
                       <MilestoneWpDialog
                         wps={wps}
                         selectedWpIds={m.wp_ids}
@@ -864,7 +876,7 @@ export function MilestonesEditor({
                     {/* The delete button lives in the page's right margin,
                         mirroring the drag grips on the left, so no editor-only
                         column intrudes on the 18 cm document table. */}
-                    <td className={`${docCellStyles} relative`}>
+                    <td className={`${msLastCellStyles} relative whitespace-nowrap`}>
                       {canEdit && (
                         <MarginRailAbsolute>
                           <Button

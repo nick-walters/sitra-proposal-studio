@@ -497,12 +497,14 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
       // manager stores five widths under `b31-milestones-v3` and four headers
       // under `b31-milestones`. Older stored rows describe the retired
       // four-column geometry and can no longer be applied.
+      // Badge and due-month columns are fixed to their content (40 px each);
+      // the two long-text columns and the WP column share the remainder.
       storedCols(
         data,
-        ['b31-milestones-v3'],
+        ['b31-milestones-v4'],
         5,
-        '(34.5pt, 29fr, 33fr, 21fr, 11fr)',
-        [46, 60, 60, 56, 50],
+        '(30pt, 31fr, 35fr, 22fr, 30pt)',
+        [40, 60, 60, 56, 40],
       ),
       headers.map((h) => lit(h)),
       rows,
