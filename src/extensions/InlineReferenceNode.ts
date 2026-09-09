@@ -454,13 +454,20 @@ export const InlineReferenceNode = Node.create<InlineReferenceOptions>({
         const wpColor: string | null =
           (live && live.color) || (a.wpColor as string | null) || null;
 
-        const key = `${refType}|${label}|${wpColor ?? ''}`;
+        // Broken only when the data HAS arrived, the tag names a target, and
+        // that target is not in the live map. A tag with no id can never be
+        // resolved and is left alone.
+        const broken =
+          !!liveType && !!idAttr && !live && hasPublishedRefDisplay(liveType);
+
+        const key = `${refType}|${label}|${wpColor ?? ''}|${broken ? 'broken' : ''}`;
         if (key === lastKey) return;
         lastKey = key;
 
         dom.setAttribute('data-inline-reference', '');
         dom.setAttribute('contenteditable', 'false');
         dom.setAttribute('data-ref-type', refType);
+
         if (a.wpNumber !== null && a.wpNumber !== undefined) {
           dom.setAttribute('data-wp-number', String(a.wpNumber));
         }
