@@ -685,8 +685,10 @@ export function MilestonesEditor({
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
   const MS_COL_PCT = ['42px', '38%', '42%', '52px', '40px'];
-  /** Content-fitted columns, by physical index. */
-  const MS_FIT_COLS = [0, 3, 4];
+  /** Content-fitted columns, by physical index: the MS badge and the WP(s)
+      badges. The due column holds a full-width picker control, so it keeps a
+      fixed content-sized width rather than being measured. */
+  const MS_FIT_COLS = [0, 3];
   /** Natural widths of the fitted columns, measured from the live DOM. */
   const [msFit, setMsFit] = useState<Record<number, number>>({});
   /** Fitted columns may be dragged a couple of pixels tighter than measured
@@ -694,10 +696,11 @@ export function MilestonesEditor({
       a usable floor. */
   const MS_MIN_WIDTHS = useMemo(
     () => MS_COL_PCT.map((_, i) =>
-      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 40) - 6) : 60),
+      MS_FIT_COLS.includes(i) ? Math.max(20, (msFit[i] ?? 42) - 6) : i === 4 ? 40 : 60),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [msFit],
   );
+
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
