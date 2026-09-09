@@ -1232,8 +1232,10 @@ export function RisksEditor({
   /* The likelihood and severity columns hold nothing but an L/M/H badge, so
      they are exactly as wide as that badge and never wider. The WP column can
      never be dragged narrower than a single WP badge. */
-  const RISK_COL_PCT = ['32%', '34px', '34px', '22%', '40%'];
-  const RISK_MIN_WIDTHS = [60, 34, 34, 56, 60];
+  /** Exact width of a RiskBadge; the i./ii. columns are never wider. */
+  const RISK_LEVEL_W = 19;
+  const RISK_COL_PCT = ['32%', `${RISK_LEVEL_W}px`, `${RISK_LEVEL_W}px`, '22%', '40%'];
+  const RISK_MIN_WIDTHS = [60, RISK_LEVEL_W, RISK_LEVEL_W, 56, 60];
 
   const { colWidths: riskRawWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
