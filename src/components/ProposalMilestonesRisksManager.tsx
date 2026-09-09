@@ -166,6 +166,9 @@ const docTableRules =
 const docCellStyles =
   "px-[3pt] py-[0.75pt] align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-left";
 const docFirstCellStyles = `${docCellStyles} !pl-0`;
+/** Table 3.1.e only — the i./ii. columns hold a single 19 px L/M/H badge, so
+    they carry no horizontal padding at all. */
+const riskLevelCellStyles = `${docCellStyles} !px-0`;
 /* Table 3.1.d only — treated exactly as Table 3.1.c treats its equivalent
    columns: the badge, WP(s) and due columns measure themselves to their widest
    content (`fit`), while the two text columns absorb what is left. Fit columns
@@ -1229,21 +1232,36 @@ export function RisksEditor({
   /* The likelihood and severity columns hold nothing but an L/M/H badge, so
      they are exactly as wide as that badge and never wider. The WP column can
      never be dragged narrower than a single WP badge. */
-  const RISK_COL_PCT = ['32%', '34px', '34px', '22%', '40%'];
-  const RISK_MIN_WIDTHS = [60, 34, 34, 56, 60];
+  /** Exact width of a RiskBadge; the i./ii. columns are never wider. */
+  const RISK_LEVEL_W = 19;
+  const RISK_COL_PCT = ['32%', `${RISK_LEVEL_W}px`, `${RISK_LEVEL_W}px`, '22%', '40%'];
+  const RISK_MIN_WIDTHS = [60, RISK_LEVEL_W, RISK_LEVEL_W, 56, 60];
 
   const { colWidths: riskRawWidths, tableRef: riskTableRef, handleColResizeStart: riskResizeStart } =
     useColumnResize({
       proposalId,
       // Key bumped: the widths saved against the old 7 % badge columns are far
       // wider than the badges and cannot be reconciled with the new geometry.
-      tableKey: 'b31-risks-v2',
+      tableKey: 'b31-risks-v3',
       canResize: canEdit,
       minWidths: RISK_MIN_WIDTHS,
       maxTotalWidth: DOC_BLOCK_WIDTH,
       expectedColumnCount: RISK_COL_PCT.length,
     });
-  const riskColWidths = useMemo(() => fitToTextColumn(riskRawWidths), [riskRawWidths]);
+  /* The i./ii. columns are always exactly one badge wide; a saved geometry only
+     decides how the remaining width is split between the other three. */
+  const riskColWidths = useMemo(() => {
+    const saved = fitToTextColumn(riskRawWidths);
+    if (saved.length !== RISK_COL_PCT.length) return saved;
+    const others = [0, 3, 4];
+    const remaining = Math.max(180, DOC_BLOCK_WIDTH - 2 * RISK_LEVEL_W);
+    const savedTotal = others.reduce((s, i) => s + saved[i], 0);
+    return saved.map((w, i) => {
+      if (i === 1 || i === 2) return RISK_LEVEL_W;
+      return savedTotal > 0 ? (w / savedTotal) * remaining : remaining / others.length;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [riskRawWidths]);
   const riskSized = riskColWidths.length === RISK_COL_PCT.length;
   const { headers: riskHeaders, setHeader: setRiskHeader } = useColumnHeaders(
     proposalId,
@@ -1284,7 +1302,7 @@ export function RisksEditor({
                   measure the wrong row. */}
               <table
                 ref={riskTableRef}
-                data-table-key="b31-risks-v2"
+                data-table-key="b31-risks-v3"
                 className={`${docTableStyles} ${docTableRules} w-full`}
                 style={{
                   tableLayout: 'fixed',
@@ -1305,7 +1323,7 @@ export function RisksEditor({
                     {riskHeaders.map((h, i) => (
                       <th
                         key={i}
-                        className={`${i === 0 ? docFirstCellStyles : docCellStyles} relative align-bottom font-bold`}
+                        className={`${i === 0 ? docFirstCellStyles : i === 1 || i === 2 ? riskLevelCellStyles : docCellStyles} relative align-bottom font-bold`}
                       >
                         <EditableColumnHeader
                           value={h}
@@ -1397,7 +1415,7 @@ function SortableRiskRow({
           onChange={(html) => onUpdate({ title: html })}
         />
       </td>
-      <td className={docCellStyles}>
+      <td className={riskLevelCellStyles}>
         <RiskLevelSelect
           value={(risk.likelihood as 'L' | 'M' | 'H' | null) || null}
           disabled={!canEdit}
@@ -1405,7 +1423,7 @@ function SortableRiskRow({
           onChange={(v) => onUpdate({ likelihood: v })}
         />
       </td>
-      <td className={docCellStyles}>
+      <td className={riskLevelCellStyles}>
         <RiskLevelSelect
           value={(risk.severity as 'L' | 'M' | 'H' | null) || null}
           disabled={!canEdit}
