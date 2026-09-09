@@ -678,9 +678,10 @@ export function MilestonesEditor({
      columns are sized to their controls. */
   const MS_HEADERS = ['Milestone', 'Means of verification', 'WP(s)', 'Due month'];
   /** Physical columns: badge, name, verification, WP(s), due month. */
-  const MS_COL_PCT = ['46px', '29%', '33%', '21%', '11%'];
-  /** The badge column may never fall below the MS hexagon (38 px + padding). */
-  const MS_MIN_WIDTHS = [46, 60, 60, 56, 50];
+  const MS_COL_PCT = ['40px', '31%', '35%', '22%', '40px'];
+  /** Badge column: the MS hexagon (38 px) plus the 1px hairline gutter. The
+      due column fits "M12"/"Select" and never grows. */
+  const MS_MIN_WIDTHS = [40, 60, 60, 56, 40];
   const { colWidths: msRawWidths, tableRef: msTableRef, handleColResizeStart: msResizeStart } =
     useColumnResize({
       proposalId,
