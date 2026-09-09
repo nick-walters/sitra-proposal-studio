@@ -716,13 +716,17 @@ function B31MilestonesTableInner({ proposalId }: Props) {
     });
   }, [milestones, wpInfo]);
 
+  // Treated exactly as table 3.1.c treats the equivalent columns: the badge,
+  // WP and due columns measure themselves to their widest badge (`fit`), and
+  // the text columns absorb what is left.
   const columns: Col[] = [
-    { label: 'No.', fit: true, defaultWidth: 48, cellClass: 'cell-pl-0' },
-    { label: 'Milestone', defaultWidth: 220 },
-    { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
+    { label: 'No.', fit: true, defaultWidth: 48 },
+    { label: 'Milestone', flex: true },
+    { label: 'WP(s)', fit: true, defaultWidth: 44 },
     { label: 'Due', fit: true, defaultWidth: 40 },
-    { label: 'Means of verification', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
+    { label: 'Means of verification', flex: true },
   ];
+
 
   const last = columns.length - 1;
 
@@ -737,12 +741,11 @@ function B31MilestonesTableInner({ proposalId }: Props) {
       />
       <MirrorTable
         proposalId={proposalId}
-        tableKey="b31-3-1-d-milestones"
+        tableKey="b31-3-1-d-milestones-v2"
         columns={columns}
         emptyColSpan={5}
         emptyLabel="No milestones yet."
         isEmpty={sortedMilestones.length === 0}
-        tableClassName="platform-table--tight"
       >
 
         {sortedMilestones.map((m: any) => {
@@ -752,24 +755,25 @@ function B31MilestonesTableInner({ proposalId }: Props) {
             .sort((a: any, b: any) => a.number - b.number);
           return (
             <tr key={m.id}>
-              <MCell index={0} last={last} cellClass="cell-pl-0"><MilestoneBadge number={m.number} /></MCell>
+              <MCell index={0} last={last} style={{ whiteSpace: 'nowrap' }}><MilestoneBadge number={m.number} /></MCell>
               <MCell index={1} last={last}><ReadOnlyTextCell text={m.title} /></MCell>
-              <MCell index={2} last={last} cellClass="cell-px-0">
-                <div className="flex flex-wrap gap-0.5">
+              <MCell index={2} last={last}>
+                <span className="inline-flex flex-wrap gap-0.5 align-middle">
                   {wps.length === 0 && <span className="text-muted-foreground italic">—</span>}
                   {isAllWPsSelected(wps.length, wpInfo?.list.length ?? 0)
                     ? <AllWPsBubble />
                     : wps.map((wp: any) => (
                         <WPBubble key={wp.id} wpNumber={wp.number} wpColor={wp.color} />
                       ))}
-                </div>
+                </span>
               </MCell>
               <MCell index={3} last={last}><MonthLabel m={m.due_month} /></MCell>
-              <MCell index={4} last={last} padX="pl-1 pr-0" cellClass="cell-pr-0"><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
+              <MCell index={4} last={last}><ReadOnlyHtmlCell html={m.means_of_verification} /></MCell>
 
             </tr>
           );
         })}
+
       </MirrorTable>
     </div>
   );
