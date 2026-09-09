@@ -195,6 +195,18 @@ export function PanelEvaluator({ proposalId }: Props) {
     errorMessage: string | null;
   } | null>(null);
   const [resumingFailedRun, setResumingFailedRun] = useState(false);
+  // An evaluation row that is still queued/running/processing/synthesizing but has
+  // nobody driving it, because progress is driven entirely by this open pane.
+  // Re-attaching automatically on mount would resume a PAID run without the user
+  // asking for it, so the row is only described here and waits for an explicit click.
+  const [interruptedRun, setInterruptedRun] = useState<{
+    id: string;
+    status: string;
+    progressMessage: string;
+    done: number;
+    total: number;
+    createdAt: string | null;
+  } | null>(null);
   // Filter as a Set: empty = "All" mode
   const [activeAreaFilters, setActiveAreaFilters] = useState<Set<string>>(new Set());
 
@@ -456,9 +468,9 @@ export function PanelEvaluator({ proposalId }: Props) {
     }, 10_000);
   };
 
-  async function cancelRun() {
-    if (!runningEvaluationId) return;
-    const id = runningEvaluationId;
+  async function cancelRun(evaluationId?: string) {
+    const id = evaluationId || runningEvaluationId;
+    if (!id) return;
     try {
       const { error } = await supabase.functions.invoke("run-panel-evaluation", {
         body: { action: "cancel", evaluationId: id },
@@ -522,7 +534,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           .order("created_at", { ascending: true }),
         supabase
           .from("proposal_analyses")
-          .select("id, status, analysis_data, created_at")
+          .select("id, status, analysis_data, created_at, evaluators_selected")
           .eq("proposal_id", proposalId)
           .in("status", ["queued", "running", "processing", "synthesizing"])
           .order("created_at", { ascending: false })
@@ -547,11 +559,23 @@ export function PanelEvaluator({ proposalId }: Props) {
       }
 
       if (runningEval?.id) {
-        setRunningStatus(runningEval.status || "queued");
-        setRunningMessage(
-          ((runningEval.analysis_data ?? {}) as Record<string, any>).progress_message || "",
-        );
-        startPolling(runningEval.id, (runningEval as any).created_at ?? null);
+        // Do NOT start polling here. The evaluator loop is driven by this pane, so
+        // attaching on mount would silently resume a paid run the moment the page is
+        // opened. Describe the interrupted run instead and wait for an explicit click.
+        const ad = (runningEval.analysis_data ?? {}) as Record<string, any>;
+        const evaluations = Array.isArray(ad.evaluations) ? ad.evaluations : [];
+        const done = evaluations.filter(
+          (e: any) => !(e && e.data && e.data.error),
+        ).length;
+        const selected = (runningEval as any).evaluators_selected;
+        setInterruptedRun({
+          id: runningEval.id,
+          status: runningEval.status || "queued",
+          progressMessage: ad.progress_message || "",
+          done,
+          total: Array.isArray(selected) ? selected.length : evaluations.length,
+          createdAt: (runningEval as any).created_at ?? null,
+        });
       } else {
         // No in-flight run — try to rehydrate a stored panel_proposed row so
         // returning to Part B after Stage A doesn't force a paid Haiku re-run.
@@ -732,6 +756,10 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
   async function startEvaluation() {
+    if (runningEvaluationId || interruptedRun) {
+      toast.info("An evaluation is already in progress on this proposal. Resume or cancel it first.");
+      return;
+    }
 
     setStage("stageA");
     setStageAStatus("Reading proposal content...");
@@ -833,6 +861,10 @@ export function PanelEvaluator({ proposalId }: Props) {
   }
 
   async function runEvaluation() {
+    if (runningEvaluationId || interruptedRun) {
+      toast.info("An evaluation is already in progress on this proposal. Resume or cancel it first.");
+      return;
+    }
     if (!validPanelSize) return;
     const selectedEvaluators = allPersonas
       .filter((p) => selectedPersonaIds.has(p.id))
@@ -1297,10 +1329,10 @@ export function PanelEvaluator({ proposalId }: Props) {
                     Recommended through development
                   </div>
                   <div className="shrink-0 flex justify-center">
-                    {stage === "idle" && !failedRun ? (
+                    {stage === "idle" && !failedRun && !interruptedRun ? (
                       <Button
                         onClick={startEvaluation}
-                        disabled={!instrumentCode}
+                        disabled={!instrumentCode || !!runningEvaluationId || !!interruptedRun}
                         size="sm"
                         className="gap-2 h-8 px-3"
                       >
@@ -1318,6 +1350,61 @@ export function PanelEvaluator({ proposalId }: Props) {
               </div>
             );
           })()}
+
+          {stage === "idle" && interruptedRun && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">
+                    Evaluation interrupted
+                    {interruptedRun.createdAt
+                      ? ` — started ${new Date(interruptedRun.createdAt).toLocaleString()}`
+                      : ""}
+                  </div>
+                  <div className="text-xs opacity-90">
+                    Evaluator {interruptedRun.done} of {interruptedRun.total} completed.
+                    {interruptedRun.progressMessage ? ` ${interruptedRun.progressMessage}` : ""}
+                  </div>
+                  <div className="text-xs opacity-90">
+                    The evaluators already completed are paid for and will not be re-run.
+                    Resuming continues from where it stopped — this page must stay open
+                    while it finishes.
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() => {
+                        const run = interruptedRun;
+                        setStage("stageB");
+                        setRunningStatus(run.status);
+                        setRunningMessage(run.progressMessage);
+                        startPolling(run.id, run.createdAt);
+                        setInterruptedRun(null);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Resume evaluation
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        await cancelRun(interruptedRun.id);
+                        setInterruptedRun(null);
+                        setStage("idle");
+                      }}
+                    >
+                      Cancel run
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
 
           {stage === "idle" && failedRun && (
             <Alert variant="destructive">
@@ -1359,7 +1446,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                         dismissFailedRun();
                         void startEvaluation();
                       }}
-                      disabled={!instrumentCode || resumingFailedRun}
+                      disabled={!instrumentCode || resumingFailedRun || !!runningEvaluationId || !!interruptedRun}
                     >
                       Start new evaluation
                     </Button>
@@ -1408,7 +1495,7 @@ export function PanelEvaluator({ proposalId }: Props) {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={cancelRun}
+                    onClick={() => void cancelRun()}
                     disabled={!runningEvaluationId}
                   >
                     Cancel
@@ -1424,7 +1511,20 @@ export function PanelEvaluator({ proposalId }: Props) {
 
 
       {/* Evaluation Summary Reports — chart + most recent + previous in one card */}
-      {history.length > 0 && stage !== "panelReview" && (
+      {history.length === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">
+              No Evaluation Summary Reports yet for this proposal.
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {history.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Evaluation Summary Reports</CardTitle>
