@@ -830,7 +830,7 @@ function B31RisksTableInner({ proposalId }: Props) {
     { label: 'i.', defaultWidth: 32, cellClass: 'cell-px-0' },
     { label: 'ii.', defaultWidth: 32, cellClass: 'cell-px-0' },
     { label: 'WP(s)', defaultWidth: 113, cellClass: 'cell-px-0' },
-    { label: 'Mitigation & adaptation measures', flex: true, padX: 'pl-1 pr-0', cellClass: 'cell-pr-0' },
+    { label: 'Mitigation & adaptation measures', flex: true, padX: 'pl-0 pr-0', cellClass: 'cell-pr-0' },
   ];
 
   const last = columns.length - 1;
@@ -893,7 +893,7 @@ function B31RisksTableInner({ proposalId }: Props) {
                       ))}
                 </div>
               </MCell>
-              <MCell index={4} last={last} padX="pl-1 pr-0" cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
+              <MCell index={4} last={last} padX="pl-0 pr-0" cellClass="cell-pr-0"><ReadOnlyHtmlCell html={r.mitigation} /></MCell>
 
             </tr>
           );
