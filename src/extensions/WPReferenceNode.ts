@@ -1,6 +1,12 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { formatWPChipLabel } from '@/lib/referenceLabels';
-import { getRefDisplayEntry, subscribeRefDisplay } from '@/lib/refDisplay';
+import {
+  getRefDisplayEntry,
+  hasPublishedRefDisplay,
+  subscribeRefDisplay,
+} from '@/lib/refDisplay';
+import { BROKEN_REF_STYLE, brokenRefText } from '@/extensions/InlineReferenceNode';
+
 
 
 export interface WPReferenceOptions {
