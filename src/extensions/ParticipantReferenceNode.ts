@@ -165,8 +165,14 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         const shortName = live ? live.shortName : a.shortName;
         const label = formatParticipantLabel({ organisation_short_name: shortName });
 
-        if (label === lastKey) return;
-        lastKey = label;
+        // Broken only once participant data has arrived, the tag names a
+        // participant, and that participant is absent from the live map.
+        const broken =
+          !!a.participantId && !live && hasPublishedRefDisplay('participant');
+
+        const key = `${label}|${broken ? 'broken' : ''}`;
+        if (key === lastKey) return;
+        lastKey = key;
 
         dom.setAttribute('data-participant-reference', '');
         dom.setAttribute('class', 'participant-reference-badge');
@@ -176,6 +182,17 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
           dom.setAttribute('data-participant-number', String(a.participantNumber));
         }
         if (a.shortName) dom.setAttribute('data-participant-short-name', a.shortName);
+
+        if (broken) {
+          const stored = formatParticipantLabel({ organisation_short_name: a.shortName });
+          dom.setAttribute('class', 'inline-ref-broken inline-ref-broken-participant');
+          dom.setAttribute('style', BROKEN_REF_STYLE);
+          inner.setAttribute('style', BROKEN_REF_STYLE);
+          inner.textContent = brokenRefText(stored, 'participant');
+          return;
+        }
+
+
         dom.setAttribute(
           'style',
           'display: inline-flex; align-items: center; background-color: #000000; border: 1.5px solid #000000; padding: 0px 5px; border-radius: 9999px; white-space: nowrap; vertical-align: baseline; cursor: pointer;',
