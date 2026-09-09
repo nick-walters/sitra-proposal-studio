@@ -69,6 +69,7 @@ interface CaseDraft {
 import { CASE_TYPE_DEFS, getCaseTypeLabel, getCaseTypePrefix as getCasePrefix, caseWord } from '@/lib/caseTypeLabels';
 import { useProposalCaseTypesQuery, type ProposalCaseType as CaseTypeRow } from '@/hooks/useProposalCaseTypesQuery';
 import { saveVersionedRow, reorderVersionedRows } from '@/lib/versionedSave';
+import { refreshReferenceData } from '@/lib/referenceData';
 import { useVersionConflict } from '@/hooks/useVersionConflict';
 
 const CASE_TYPES = CASE_TYPE_DEFS.map((d) => ({
@@ -448,7 +449,8 @@ export function CaseManagementCard({
         ? `This ${caseWord(caseTypeRows, { capitalize: false })} was changed elsewhere — your change was not saved.`
         : `Failed to update ${caseWord(caseTypeRows, { capitalize: false })}`);
     },
-    onSettled: () => { invalidateCaseQueries(); onSaveEvent?.(); },
+    // Renaming a case changes its short name, which case badges display.
+    onSettled: () => { invalidateCaseQueries(); void refreshReferenceData(queryClient, proposalId); onSaveEvent?.(); },
 
   });
 
@@ -469,6 +471,7 @@ export function CaseManagementCard({
     onSettled: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
     },
     onError: (e: Error) => toast.error(e?.message === 'conflict'
@@ -543,6 +546,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
       toast.success(`${caseWord(caseTypeRows, { capitalize: true })} deleted`);
     },
@@ -572,6 +576,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
     },
     onError: () => toast.error('Failed to change case type'),
@@ -590,6 +595,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
     },
     onError: () => toast.error('Failed to update case type'),
@@ -625,6 +631,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       invalidateCaseQueries();
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
       toast.success('Case type removed');
     },

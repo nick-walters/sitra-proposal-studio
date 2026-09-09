@@ -644,6 +644,10 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.add' } }));
+      // Same defect as the reorder path: no reference-data consumer is mounted
+      // on this screen, so the event lands nowhere. Adding a WP renumbers the
+      // last two WPs and every task/deliverable label under them.
+      void refreshReferenceData(queryClient, proposalId);
       onSaveEvent?.();
       toast.success('Work package added');
     },
@@ -694,6 +698,9 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.delete' }); /* TEMP-LOG */
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.delete' } }));
+      // Deleting a WP renumbers all survivors and recolours them; refresh
+      // directly because this screen mounts no reference-data consumer.
+      void refreshReferenceData(queryClient, proposalId);
 
       onSaveEvent?.();
       toast.success('Work package deleted');
