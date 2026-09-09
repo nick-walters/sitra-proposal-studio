@@ -7598,28 +7598,17 @@ export type Database = {
         Args: { p_card_id: string; p_expected_version: number; p_title: string }
         Returns: Json
       }
-      save_case_draft_subsection:
-        | {
-            Args: {
-              p_body: string
-              p_expected_body?: string
-              p_heading?: string
-              p_id: string
-              p_key: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_body: string
-              p_expected_body?: string
-              p_expected_version?: number
-              p_heading?: string
-              p_id: string
-              p_key: string
-            }
-            Returns: Json
-          }
+      save_case_draft_subsection: {
+        Args: {
+          p_body: string
+          p_expected_body?: string
+          p_expected_version?: number
+          p_heading?: string
+          p_id: string
+          p_key: string
+        }
+        Returns: Json
+      }
       save_case_subsection_guideline: {
         Args: { p_guideline: string; p_template_id: string }
         Returns: undefined

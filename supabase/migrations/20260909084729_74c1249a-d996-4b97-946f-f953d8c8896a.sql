@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.save_case_draft_subsection(uuid, text, text, text, text);
