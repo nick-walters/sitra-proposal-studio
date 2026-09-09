@@ -620,6 +620,12 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
   // make them collide needlessly, since the narrative subsections are
   // independent pieces of text.
   const subsectionBaseline = useRef<Record<string, string>>({});
+  /* Authoritative per-key row version. Refreshed on EVERY refetch — identity
+     comparison makes that safe, unlike the body baseline below. */
+  const subsectionVersion = useRef<Record<string, number | null>>({});
+  /* Per-key remount ticks. A conflict remounts ONLY the affected field, so
+     unsaved text in the other subsections survives. */
+  const [keyTicks, setKeyTicks] = useState<Record<string, number>>({});
   useEffect(() => {
     const next: Record<string, string> = {};
     for (const [k, v] of Object.entries(subsectionContent)) {
@@ -631,7 +637,14 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     }
   }, [subsectionContent]);
 
-  useEffect(() => { subsectionBaseline.current = {}; }, [caseId]);
+  useEffect(() => {
+    const next: Record<string, number | null> = {};
+    for (const r of subsectionRows ?? []) next[r.subsection_key] = r.version ?? null;
+    subsectionVersion.current = next;
+  }, [subsectionRows]);
+
+  useEffect(() => { subsectionBaseline.current = {}; subsectionVersion.current = {}; }, [caseId]);
+
 
   // Update mutation for the scalar columns — guarded by the row version.
   const updateMutation = useMutation({
@@ -668,21 +681,30 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
     [updateMutation],
   );
 
-  // Write a single subsection's content into the subsection_content jsonb.
-  // Guarded PER KEY against the body this session loaded.
+  // Write a single subsection's content. Guarded PER KEY on the stored row
+  // version, so two people editing DIFFERENT subsections both still succeed.
   const updateSubsectionContent = useCallback(
     async (key: string, value: string, heading?: string) => {
       const safe = typeof value === 'string' ? stripWordHtml(value) : value;
       const nextHeading = heading || entryHeading(subsectionContent[key]) || '';
       const expected = subsectionBaseline.current[key] ?? null;
 
-      const res = await saveCaseDraftSubsection(caseId, key, safe, nextHeading, expected);
+      const res = await saveCaseDraftSubsection(
+        caseId, key, safe, nextHeading, expected, subsectionVersion.current[key] ?? null,
+      );
       if (res.conflict) {
+        /* Do NOT adopt the server's body or version here: that would make the
+           next save match and silently destroy the other person's edit. Drop
+           what we cached, refetch, and remount ONLY this field so their text
+           becomes visible. The user's own text goes to the recovery dialog. */
         reportConflict(safe);
-        setSaveError('This subsection was changed elsewhere — your text was not saved.');
-        subsectionBaseline.current[key] = res.value ?? '';
-        queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
-        queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
+        setSaveError('Someone else changed this subsection. Their version is now shown; your text is in the recovery dialog so you can paste it back in.');
+        delete subsectionBaseline.current[key];
+        delete subsectionVersion.current[key];
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] }),
+          queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] }),
+        ]).then(() => setKeyTicks((t) => ({ ...t, [key]: (t[key] ?? 0) + 1 })));
         return;
       }
       if (!res.ok) {
@@ -690,6 +712,8 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
         return;
       }
       subsectionBaseline.current[key] = safe;
+      if (typeof res.version === 'number') subsectionVersion.current[key] = res.version;
+
       /* Snapshot into the shared version store. PostgREST builders are lazy
          thenables, so the promise must be consumed for the request to go out. */
       void supabase
@@ -774,13 +798,23 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
             ? undefined
             : async (next): Promise<FieldSaveOutcome> => {
                 const expected = subsectionBaseline.current[sub.key] ?? null;
-                const res = await saveCaseDraftSubsection(caseId, sub.key, next, sub.heading, expected);
+                const res = await saveCaseDraftSubsection(
+                  caseId, sub.key, next, sub.heading, expected, subsectionVersion.current[sub.key] ?? null,
+                );
                 if (res.conflict) {
-                  subsectionBaseline.current[sub.key] = res.value ?? '';
+                  /* Never adopt the server value here — see updateSubsectionContent. */
+                  delete subsectionBaseline.current[sub.key];
+                  delete subsectionVersion.current[sub.key];
+                  void Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] }),
+                    queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] }),
+                  ]).then(() => setKeyTicks((t) => ({ ...t, [sub.key]: (t[sub.key] ?? 0) + 1 })));
                   return { ok: false, conflict: true };
                 }
                 if (!res.ok) return { ok: false, conflict: false, error: res.error };
                 subsectionBaseline.current[sub.key] = next;
+                if (typeof res.version === 'number') subsectionVersion.current[sub.key] = res.version;
+
                 queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
         queryClient.invalidateQueries({ queryKey: ['case-draft-subsections', caseId] });
                 return { ok: true };
@@ -1113,7 +1147,7 @@ function CaseDraftEditorInner({ caseId, proposalId, canEdit: canEditProp, isCoor
                   // Keyed by case AND subsection: switching cases must build fresh
                   // fields rather than rebind a live editor to another case's row.
                   <CaseSubsectionModule
-                    key={`${caseId}:${sub.id}:${restoreTick}`}
+                    key={`${caseId}:${sub.id}:${restoreTick}:${keyTicks[sub.key] ?? 0}`}
                     caseId={caseId}
                     proposalId={proposalId}
                     subsectionId={sub.id}

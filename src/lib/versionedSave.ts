@@ -213,20 +213,20 @@ export async function saveCaseDraftSubsection(
   body: string,
   heading: string | null,
   expectedBody: string | null,
+  expectedVersion: number | null = null,
 ): Promise<SubsectionSaveResult> {
-  return enqueueSubsectionSave(caseId, key, body, heading, expectedBody);
+  return enqueueSubsectionSave(caseId, key, body, heading, expectedBody, expectedVersion);
 }
 
-/* Serialised per-subsection saves. This RPC guards on the stored BODY rather
- * than a version, so two overlapping saves of the same subsection both send
- * the body read before the first landed and the second is refused. The queue
- * keeps one save per subsection in flight and lets a follow-up expect the body
- * OUR previous write stored. Another user's edit still moves the stored body
- * away from ours, so a genuine conflict is still refused. */
-const subQueues = new Map<string, { body: string; heading: string | null; expected: string | null; resolvers: Array<(r: SubsectionSaveResult) => void> }>();
+/* Serialised per-subsection saves. The RPC now guards on the stored row
+ * VERSION, so two overlapping saves of the same subsection cannot refuse each
+ * other: the queue keeps one save per subsection in flight and lets a follow-up
+ * expect the version OUR previous write returned. Another user's write bumps
+ * the stored version past ours, so a genuine conflict is still refused. */
+const subQueues = new Map<string, { body: string; heading: string | null; expected: string | null; expectedVersion: number | null; resolvers: Array<(r: SubsectionSaveResult) => void> }>();
 const subRunning = new Set<string>();
-/** Body last written by US, per subsection. */
-const ourBody = new Map<string, string>();
+/** Version last returned by a write WE issued, per subsection. */
+const ourSubVersion = new Map<string, number>();
 
 function enqueueSubsectionSave(
   caseId: string,
@@ -234,17 +234,19 @@ function enqueueSubsectionSave(
   body: string,
   heading: string | null,
   expectedBody: string | null,
+  expectedVersion: number | null,
 ): Promise<SubsectionSaveResult> {
   const qk = `${caseId}:${key}`;
   return new Promise((resolve) => {
     const existing = subQueues.get(qk);
     if (existing) {
-      // Latest text wins; nothing typed meanwhile is dropped.
+      // Latest text wins; nothing typed meanwhile is dropped. The queued
+      // entry keeps its own expected version, as the row queue does.
       existing.body = body;
       existing.heading = heading;
       existing.resolvers.push(resolve);
     } else {
-      subQueues.set(qk, { body, heading, expected: expectedBody, resolvers: [resolve] });
+      subQueues.set(qk, { body, heading, expected: expectedBody, expectedVersion, resolvers: [resolve] });
     }
     void drainSubQueue(qk, caseId, key);
   });
@@ -257,14 +259,18 @@ async function drainSubQueue(qk: string, caseId: string, key: string) {
     while (subQueues.has(qk)) {
       const entry = subQueues.get(qk)!;
       subQueues.delete(qk);
-      const mine = ourBody.get(qk);
-      const expected = mine != null ? mine : entry.expected;
+      const mine = ourSubVersion.get(qk);
+      const expectedVersion =
+        mine != null && (entry.expectedVersion == null || mine > entry.expectedVersion)
+          ? mine
+          : entry.expectedVersion;
       const { data, error } = await (supabase as any).rpc('save_case_draft_subsection', {
         p_id: caseId,
         p_key: key,
         p_body: entry.body,
         p_heading: entry.heading,
-        p_expected_body: expected,
+        p_expected_body: expectedVersion == null ? entry.expected : null,
+        p_expected_version: expectedVersion,
       });
       let res: SubsectionSaveResult;
       if (error) {
@@ -274,14 +280,15 @@ async function drainSubQueue(qk: string, caseId: string, key: string) {
         res = (data ?? { ok: false, conflict: false, error: 'no response' }) as SubsectionSaveResult;
         if (!res.ok) surfaceRejection(entry.body);
       }
-      if (res.ok) ourBody.set(qk, entry.body);
-      if (res.conflict) ourBody.delete(qk);
+      if (res.ok && typeof res.version === 'number') ourSubVersion.set(qk, res.version);
+      if (res.conflict) ourSubVersion.delete(qk);
       entry.resolvers.forEach((r) => r(res));
     }
   } finally {
     subRunning.delete(qk);
   }
 }
+
 
 /** True when the value carries no user text worth offering back for copying. */
 export function isBlankValue(value: unknown): boolean {
