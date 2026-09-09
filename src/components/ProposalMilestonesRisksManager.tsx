@@ -874,7 +874,7 @@ export function MilestonesEditor({
                     {/* The delete button lives in the page's right margin,
                         mirroring the drag grips on the left, so no editor-only
                         column intrudes on the 18 cm document table. */}
-                    <td className={`${docCellStyles} relative`}>
+                    <td className={`${msLastCellStyles} relative whitespace-nowrap`}>
                       {canEdit && (
                         <MarginRailAbsolute>
                           <Button
