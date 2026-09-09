@@ -409,6 +409,11 @@ type DeliverableOrderMode = 'number' | 'due';
 
 const orderModeKey = (proposalId: string) => `b31-3-1-c-order:${proposalId}`;
 
+// The rail either mounts within a few frames of this table or it does not
+// exist on this surface at all (document editor, read-only mirrors, users
+// without the visibility control). Retrying past this point is pure waste.
+const RAIL_ATTACH_MAX_ATTEMPTS = 120; // ~2s at 60fps
+
 export function B31DeliverablesTable(props: Props & { forExport?: boolean }) {
   return (
     <RefDataProvider proposalId={props.proposalId}>
@@ -444,7 +449,10 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
     if (forExport) return;
     let host: HTMLSpanElement | null = null;
     let raf = 0;
+    let attempts = 0;
+    let stopped = false;
     const attach = () => {
+      if (stopped) return;
       const node = rootRef.current;
       if (!node) return;
       const header = node.closest('[data-source-fed-block]')?.closest('.rounded-lg, [data-card]')
@@ -454,6 +462,13 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
         'button[aria-label="Hide block in Part B"], button[aria-label="Show block in Part B"]',
       );
       if (!rail || !eye) {
+        attempts += 1;
+        if (attempts >= RAIL_ATTACH_MAX_ATTEMPTS) {
+          // No rail on this surface. Stop for good; the control is simply not
+          // shown here and the export order never depends on it.
+          stopped = true;
+          return;
+        }
         raf = window.requestAnimationFrame(attach);
         return;
       }
@@ -466,6 +481,7 @@ function B31DeliverablesTableInner({ proposalId, forExport }: Props & { forExpor
     };
     attach();
     return () => {
+      stopped = true;
       window.cancelAnimationFrame(raf);
       host?.remove();
       setRailHost(null);
