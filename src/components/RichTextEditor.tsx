@@ -99,7 +99,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
+import { Fragment, useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { toast } from 'sonner';
 import {
@@ -1135,7 +1135,7 @@ export function FormattingToolbar({
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       {(['top', 'middle', 'bottom'] as RuleTarget[]).map((target, index) => (
-                        <React.Fragment key={target}>
+                        <Fragment key={target}>
                           {index > 0 && <DropdownMenuSeparator />}
                           <DropdownMenuLabel>
                             {target === 'top' ? 'Top' : target === 'middle' ? 'Middle' : 'Bottom'}
@@ -1158,7 +1158,7 @@ export function FormattingToolbar({
                           >
                             Thin grey
                           </DropdownMenuItem>
-                        </React.Fragment>
+                        </Fragment>
                       ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
