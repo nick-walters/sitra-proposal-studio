@@ -61,7 +61,6 @@ import { useSectionLocking } from "@/hooks/useSectionLocking";
 import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useBlockLocking } from "@/hooks/useBlockLocking";
-import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
@@ -569,27 +568,15 @@ function DocumentEditorInner({
     scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [section?.id]);
 
-  // Sync cross-references when editor content loads, section changes, or external data changes
-  const [syncTrigger, setSyncTrigger] = useState(0);
-
   useEffect(() => {
-    const handleCrossRefDataChanged = (e: Event) => {
-      // TEMP-LOG
-      const detail = (e as CustomEvent).detail;
-      console.log('[SYNC-EVENT] received cross-ref-data-changed', { detail });
-      setSyncTrigger(prev => prev + 1);
-    };
     const handleBlockReordered = () => {
       // Renumber H3 headings first (synchronously, same handler invocation),
-      // then captions, then trigger debounced cross-ref sync.
+      // then captions.
       if (editor && section?.number && !editor.view.composing) {
         const cleanNum = section.number.replace(/^[A-Za-z]+/, '');
         renumberH3Headings(editor, cleanNum);
         renumberCaptionsInEditor(editor, section.number, 0);
       }
-      // TEMP-LOG
-      console.log('[SYNC-EVENT] received block-reordered');
-      setSyncTrigger(prev => prev + 1);
     };
     const handleB31TableFocus = (e: Event) => {
       const detail = (e as CustomEvent<{ tableId?: string | null }>).detail;
@@ -601,12 +588,10 @@ function DocumentEditorInner({
         renumberCaptionsInEditor(editor, section.number, 0);
       }
     };
-    window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
     window.addEventListener('b31-table-focus', handleB31TableFocus as EventListener);
     window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
-      window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
       window.removeEventListener('b31-table-focus', handleB31TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
@@ -618,14 +603,6 @@ function DocumentEditorInner({
     setB31TableFocus(null);
   }, [section?.id]);
 
-  useEffect(() => {
-    if (!editor || !proposalId || loading) return;
-
-    const timer = setTimeout(() => {
-      syncCrossReferences(editor, proposalId);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
   // Heal image nodes that lost their figure size preset (cm bounding box) and
   // fell back to free pixel dimensions — e.g. a stray drag on a resize handle.
