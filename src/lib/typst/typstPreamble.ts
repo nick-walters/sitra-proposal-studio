@@ -396,9 +396,17 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// 0.18-0.24pt under the serif face), so the acronym still shares the body
 /// baseline in body text, table cells, footnotes and the running footer alike.
 /// No baseline or edge correction is applied.
-#let chip-acronym(segments) = segments.map(seg =>
+///
+/// The \`strong(delta: -300, ..)\` wrapper is LOAD-BEARING — do not remove it.
+/// When the surrounding prose (or a bold table cell) is inside \`strong()\`,
+/// Typst adds +300 to the requested weight. Archivo Black ships only a 400
+/// face, so weight 700 cannot be resolved and Typst falls back to the serif
+/// Nimbus Roman Bold. The inner \`weight: "regular"\` does NOT cancel an
+/// inherited delta; only a matching -300 delta does. Outside bold contexts
+/// the delta clamps harmlessly, so plain text is unaffected.
+#let chip-acronym(segments) = strong(delta: -300, segments.map(seg =>
   text(font: "${TYPST_DISPLAY}", weight: "regular", fill: rgb(seg.at(1)), seg.at(0))
-).join()
+).join())
 
 
 
