@@ -376,21 +376,25 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   body
 }
 
-/// Acronym: coloured segments, heavy weight, no shape. Serif only — the
-/// document has no sans face loaded, so naming one only triggers a fallback
-/// with different metrics.
+/// Acronym: coloured segments, no shape, drawn in the DISPLAY face so it
+/// matches the editors, which render the acronym chip in Arial Black.
+/// `${TYPST_DISPLAY}` ships a single Regular face at usWeightClass 400 — it is
+/// already a black design — so the weight stays "regular"; asking for "bold"
+/// only triggers synthetic emboldening, which is why every other display call
+/// site in this file does the same.
 ///
 /// It is NOT wrapped in a box. The pill and polygon chips need one (they
 /// carry a shape and a fixed height), but a box around bare text is laid out
 /// against the document's top-edge: cap-height / bottom-edge: descender
 /// settings, so its own bottom edge — not the glyph baseline — lands on the
-/// line, lifting the label about 1.56pt. Measured at 1200 ppi: boxed, the ink
-/// sat 2.52pt above the body cap-height and stopped 1.44pt short of the
-/// baseline; unboxed it sits within 0.12pt of the body ink top and bottom, so
-/// the acronym shares the body baseline exactly, in body text, table cells,
-/// footnotes and the running footer alike.
+/// line, lifting the label about 1.56pt. Unboxed inline text keeps the line's
+/// own baseline whatever face it uses, so the display swap does not move it:
+/// measured at 1200 ppi against the serif rendering, the cap top rises by
+/// 0.10pt (Archivo Black's cap height is marginally taller) and the baseline
+/// is identical to within 0.02pt, in body text, table cells, footnotes and the
+/// running footer alike. No baseline or edge correction is applied.
 #let chip-acronym(segments) = segments.map(seg =>
-  text(font: "${TYPST_SERIF}", weight: "bold", fill: rgb(seg.at(1)), seg.at(0))
+  text(font: "${TYPST_DISPLAY}", weight: "regular", fill: rgb(seg.at(1)), seg.at(0))
 ).join()
 
 
