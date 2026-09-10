@@ -125,7 +125,8 @@ export function emitB32InfraTable(
 
   const cells: string[] = [`table.header(${cell(`strong(${lit(header)})`)})`];
   for (const row of data.rows) {
-    const label = `${row.number ?? ''}${row.number != null ? '. ' : ''}${row.shortName}`;
+    // Badges in this table are the short-name-only variant (no participant number).
+    const label = row.shortName;
     const chip = `chip-pill(${typstString(label)}, black, filled: true)`;
     cells.push(cell(`${lit(joinInfraNotes(row.notes))} + h(4pt) + ${chip}`));
   }

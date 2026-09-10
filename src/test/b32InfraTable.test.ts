@@ -47,7 +47,8 @@ describe('B3.2 infrastructure table', () => {
     const src = out.join('\n');
     expect(src).toContain('Access to critical infrastructure');
     expect(src).toContain('HPC; Storage');
-    expect(src).toContain('12. Advania');
+    expect(src).toContain('Advania');
+    expect(src).not.toContain('12. Advania');
     expect(src).toContain('he-authored-table((1fr,)');
   });
 });
