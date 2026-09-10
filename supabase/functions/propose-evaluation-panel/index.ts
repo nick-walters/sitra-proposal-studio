@@ -205,7 +205,7 @@ serve(async (req) => {
       ? `\n\nB3.1 COST JUSTIFICATION TABLES (authoritative for this proposal):\n${requiredTables
           .map(
             (t: any) =>
-              `- Table ${t.table}: ${t.required ? "REQUIRED" : "NOT REQUIRED"} — ${String(t.note || t.reason || "")}`,
+              `- Table ${t.table}: ${t.required ? "REQUIRED" : "NOT REQUIRED"} — ${String(t.reason || "")}`,
           )
           .join("\n")}\nA table listed as NOT REQUIRED is not part of this proposal's mandatory sections. Do not flag its absence under MANDATORY SECTIONS or BUDGET COMPLETENESS, and do not treat it as missing budget detail.`
       : "";
