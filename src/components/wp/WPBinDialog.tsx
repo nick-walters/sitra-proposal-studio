@@ -93,7 +93,7 @@ export function WPBinDialog({
     queryFn: async (): Promise<BinRow[]> => {
       const { data, error } = await supabase
         .from('card_deletions')
-        .select('id, deleted_at, payload')
+        .select('id, deleted_at, proposal_id, payload')
         .eq('parent_type', parentType)
         .eq('parent_id', wpDraftId)
         .in('target_type', types)
@@ -119,6 +119,10 @@ export function WPBinDialog({
     qc.invalidateQueries({ queryKey: ['wp-drafts'] });
     qc.invalidateQueries({ queryKey: ['case-subsection-templates'] });
     qc.invalidateQueries({ queryKey: ['case-draft-subsections'] });
+    // A restored item's badges keep showing the broken marker until the
+    // reference snapshot is refetched and republished.
+    const proposalId = rows.find((r) => r.id === deletionId)?.proposal_id ?? undefined;
+    void refreshReferenceData(qc, proposalId);
     onRestored?.();
   };
 
