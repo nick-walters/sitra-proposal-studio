@@ -39,6 +39,8 @@ export const RICH_TEXT_CONFIG = {
   ],
   ALLOWED_ATTR: [
     'class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan',
+    // Author-set per-cell horizontal rule in authored tables.
+    'data-rule-bottom',
     // Every preset below is derived from this one, so allowing the track
     // attributes here carries them to every board and every static render.
     ...TRACK_CHANGE_ATTRS,

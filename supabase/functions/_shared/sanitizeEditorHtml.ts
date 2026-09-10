@@ -31,6 +31,8 @@ export const ALLOWED_CLASSES = new Set<string>([
 
 export const ALLOWED_DATA_ATTRS = new Set<string>([
   'data-list-style',
+  // Author-set per-cell horizontal rule in authored tables.
+  'data-rule-bottom',
   'data-inline-reference',
   // Atomic-badge marker (see refBadgeMarkup.markBadgeElement)
   'data-badge',

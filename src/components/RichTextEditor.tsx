@@ -19,8 +19,8 @@ import {
   EDITOR_TABLE_BODY_CELL_CLASS,
 } from '@/lib/tableStyleSpec';
 import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
+import { applyCellRule, ruleTargetAvailable, type RuleTarget } from '@/lib/tableCellRules';
 import { ResizableImage, isBoundingBoxAttrs } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
@@ -82,7 +82,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -95,7 +99,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
+import { Fragment, useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useTrackChangesSetting } from '@/lib/trackChangesContext';
 import { toast } from 'sonner';
 import {
@@ -1124,6 +1128,41 @@ export function FormattingToolbar({
                     Split cell
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Minus className="w-4 h-4 mr-2" />
+                      Cell borders
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {(['top', 'middle', 'bottom'] as RuleTarget[]).map((target, index) => (
+                        <Fragment key={target}>
+                          {index > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuLabel>
+                            {target === 'top' ? 'Top' : target === 'middle' ? 'Middle' : 'Bottom'}
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={!ruleTargetAvailable(editor, target)}
+                            onClick={() => {
+                              applyCellRule(editor, target, 'thick');
+                              editor.chain().focus().run();
+                            }}
+                          >
+                            Thick black
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!ruleTargetAvailable(editor, target)}
+                            onClick={() => {
+                              applyCellRule(editor, target, 'thin');
+                              editor.chain().focus().run();
+                            }}
+                          >
+                            Thin grey
+                          </DropdownMenuItem>
+                        </Fragment>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
                     <Calculator className="w-4 h-4 mr-2" />
                     Insert Formula
@@ -1392,12 +1431,12 @@ StarterKit.configure({
       }),
       WordTableResizing,
       TableRow,
-      TableHeader.configure({
+      TableHeaderWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
-      TableCell.configure({
+      TableCellWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_BODY_CELL_CLASS,
         },
@@ -1694,12 +1733,12 @@ StarterKit.configure({
         },
       }),
       TableRow,
-      TableHeader.configure({
+      TableHeaderWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
-      TableCell.configure({
+      TableCellWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_BODY_CELL_CLASS,
         },

@@ -454,6 +454,15 @@ function convertCell(cell: Element, ctx: ConvertContext, header: boolean): strin
   if (rowspan > 1) args.push(`rowspan: ${rowspan}`);
   const align = cellAlign(cell);
   if (align) args.push(`align: ${align}`);
+  // Author-set rule under this cell. All four sides are spelled out so the
+  // other three reproduce the table default exactly, independent of Typst's
+  // stroke-folding rules.
+  const rule = cell.getAttribute('data-rule-bottom');
+  if (rule === 'thick') {
+    args.push('stroke: (left: none, right: none, top: none, bottom: 1.125pt + black)');
+  } else if (rule === 'thin') {
+    args.push('stroke: (left: none, right: none, top: none, bottom: 0.75pt + rgb("#e5e7eb"))');
+  }
   return `table.cell(${args.length ? `${args.join(', ')}, ` : ''}${inner})`;
 }
 

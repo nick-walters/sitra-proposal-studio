@@ -5,8 +5,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
 import type { Extensions } from '@tiptap/core';
 
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
@@ -43,8 +42,8 @@ export const A1_STATEMENT_FIELD_EXTENSIONS: Extensions = [
   ParagraphSpacing,
   Table.configure({ resizable: false }),
   TableRow,
-  TableHeader,
-  TableCell,
+  TableHeaderWithRule,
+  TableCellWithRule,
   WPReferenceNode,
   CaseReferenceNode,
   ParticipantReferenceNode,
