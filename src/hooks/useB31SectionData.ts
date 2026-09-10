@@ -115,6 +115,7 @@ export function useB31SectionData(proposalId: string) {
 
   const participantsQuery = useQuery({
     queryKey: ['b31-participants', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('participants')
@@ -128,6 +129,7 @@ export function useB31SectionData(proposalId: string) {
 
   const figuresQuery = useQuery({
     queryKey: ['b31-figures', proposalId],
+    enabled: !!proposalId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('figures')
