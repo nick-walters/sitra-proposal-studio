@@ -74,6 +74,51 @@ export function parseIndicativeMaximum(text: string | null | undefined): number 
 }
 
 
+/** One equipment item (C.2 purchase or C.2-included depreciation) for the 15% test. */
+export interface EquipmentItemForCheck {
+  amount: number;
+  justified: boolean;
+}
+
+export interface EquipmentJustificationResult {
+  threshold: number;
+  requiresJustification: number;
+  justified: number;
+  shortfall: number;
+  compliant: boolean;
+  ratio: number;
+}
+
+/**
+ * Per participant: equipment above 15% of that participant's own personnel costs
+ * must be justified — largest item first — until the remaining unjustified
+ * equipment falls below the threshold. A participant with equipment but no
+ * personnel costs must justify the full amount.
+ */
+export function evaluateEquipmentJustification(
+  equipment: number,
+  personnel: number,
+  itemsForParticipant: EquipmentItemForCheck[],
+): EquipmentJustificationResult {
+  const threshold = roundCents(Math.max(0, personnel) * 0.15);
+  const requiresJustification = roundCents(Math.max(0, equipment - threshold));
+  const justified = roundCents(
+    [...itemsForParticipant]
+      .sort((a, b) => b.amount - a.amount)
+      .filter(item => item.justified)
+      .reduce((sum, item) => sum + item.amount, 0),
+  );
+  const shortfall = roundCents(Math.max(0, requiresJustification - justified));
+  return {
+    threshold,
+    requiresJustification,
+    justified,
+    shortfall,
+    compliant: justified >= requiresJustification,
+    ratio: personnel > 0 ? equipment / personnel : 0,
+  };
+}
+
 async function validateLumpSumBudget(
   proposalId: string,
   parts: any[],
