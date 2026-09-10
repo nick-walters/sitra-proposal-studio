@@ -696,7 +696,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      console.log('[SYNC-EVENT] dispatching cross-ref-data-changed', { source: 'WPManagementCard.delete' }); /* TEMP-LOG */
+      // (log removed)
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed', { detail: { source: 'WPManagementCard.delete' } }));
       // Deleting a WP renumbers all survivors and recolours them; refresh
       // directly because this screen mounts no reference-data consumer.
