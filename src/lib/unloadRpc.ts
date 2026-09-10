@@ -35,9 +35,18 @@ export function unloadRpc(
         Authorization: `Bearer ${token}`,
       },
       body: payload,
-    }).catch(() => {
-      /* unload — nothing to recover */
-    });
+    })
+      .then(async (res) => {
+        if (!onResult) return;
+        try {
+          onResult(await res.json());
+        } catch {
+          /* no readable body — nothing to report */
+        }
+      })
+      .catch(() => {
+        /* unload — nothing to recover */
+      });
   } catch {
     // Fallback: beacons cannot carry auth headers, so this only helps where
     // the anon role is sufficient. Better than dropping the request entirely.
