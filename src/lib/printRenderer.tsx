@@ -412,12 +412,18 @@ export async function buildPrintContainer(
       .select('banner_topic_line_override, banner_title_override')
       .eq('id', proposal.id)
       .maybeSingle();
+    // An override only controls where the lines break; once the A1 value has
+    // changed the override no longer matches it (ignoring whitespace) and is
+    // stale, so the live A1 value wins.
+    const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
     if (bannerData) {
-      if (bannerData.banner_topic_line_override != null) {
-        bannerTopicLine = bannerData.banner_topic_line_override;
+      const topicOv = bannerData.banner_topic_line_override;
+      const titleOv = bannerData.banner_title_override;
+      if (topicOv != null && flat(topicOv) === flat(computedTopicLine)) {
+        bannerTopicLine = topicOv;
       }
-      if (bannerData.banner_title_override != null) {
-        bannerTitle = bannerData.banner_title_override;
+      if (titleOv != null && flat(titleOv) === flat(bannerTitle)) {
+        bannerTitle = titleOv;
       }
     }
   } catch { /* fall back to computed values */ }
