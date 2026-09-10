@@ -26,6 +26,7 @@ import {
   type SectionCitationSources,
 } from '@/lib/sectionCitations';
 import { legacySectionKey } from '@/lib/citationSources';
+import { proposalTitleLines } from '@/lib/proposalTitle';
 
 
 /** Escape user-provided strings before interpolating into raw HTML templates. */
@@ -402,29 +403,23 @@ export async function buildPrintContainer(
     ? `${proposal.topicId || ''}${proposal.topicId && proposal.topicTitle ? ': ' : ''}${proposal.topicTitle || ''}${proposal.type ? ` (${proposal.type})` : ''}`
     : '';
 
-  // Fetch user's banner overrides — these contain the exact edited text
-  // (with manual line breaks preserved as \n) shown in the online editor.
+  // The banner title comes straight from the A1 title, whose own newlines
+  // decide where it breaks — there is no separate stored copy to go stale.
   let bannerTopicLine = computedTopicLine;
-  let bannerTitle = proposal.title || '';
+  const bannerTitle = proposalTitleLines(proposal.title).join('\n');
   try {
     const { data: bannerData } = await supabase
       .from('proposals')
-      .select('banner_topic_line_override, banner_title_override')
+      .select('banner_topic_line_override')
       .eq('id', proposal.id)
       .maybeSingle();
-    // An override only controls where the lines break; once the A1 value has
-    // changed the override no longer matches it (ignoring whitespace) and is
-    // stale, so the live A1 value wins.
+    // The topic override only controls where the lines break; once the A1
+    // value has changed the override no longer matches it (ignoring
+    // whitespace) and is stale, so the live A1 value wins.
     const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
-    if (bannerData) {
-      const topicOv = bannerData.banner_topic_line_override;
-      const titleOv = bannerData.banner_title_override;
-      if (topicOv != null && flat(topicOv) === flat(computedTopicLine)) {
-        bannerTopicLine = topicOv;
-      }
-      if (titleOv != null && flat(titleOv) === flat(bannerTitle)) {
-        bannerTitle = titleOv;
-      }
+    const topicOv = bannerData?.banner_topic_line_override;
+    if (topicOv != null && flat(topicOv) === flat(computedTopicLine)) {
+      bannerTopicLine = topicOv;
     }
   } catch { /* fall back to computed values */ }
   

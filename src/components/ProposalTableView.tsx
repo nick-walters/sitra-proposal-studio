@@ -7,6 +7,7 @@ import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink,
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { safeOpenUrl } from "@/lib/safeUrl";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 interface ProposalTableViewProps {
   proposals: Proposal[];
@@ -250,7 +251,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
           {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
         </TableCell>
         <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground px-2">
-          {proposal.title}
+          {flattenProposalTitle(proposal.title)}
         </TableCell>
         <TableCell className="px-2">
           <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px] whitespace-nowrap`}>

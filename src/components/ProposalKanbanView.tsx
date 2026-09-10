@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, Calendar } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
 import { safeOpenUrl } from "@/lib/safeUrl";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 // Calculate estimated decision date based on submission stage
 // Full proposals: ~5 months after deadline
@@ -155,7 +156,7 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
                         {proposal.acronym}
                         {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
                       </h4>
-                      <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{flattenProposalTitle(proposal.title)}</p>
                     </div>
                   </div>
                 </td>

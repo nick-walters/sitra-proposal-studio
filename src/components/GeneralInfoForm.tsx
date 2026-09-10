@@ -38,6 +38,7 @@ import { LazyRichField } from "@/components/participant/LazyRichField";
 import { LAZY_RICH_FIELD_EXTENSIONS } from "@/components/participant/lazyRichFieldExtensions";
 import { A1_STATEMENT_FIELD_EXTENSIONS } from "@/components/participant/a1StatementFieldExtensions";
 import { ParticipantCrossRefDropdown } from "@/components/participant/ParticipantCrossRefDropdown";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 
 
@@ -567,10 +568,12 @@ export function GeneralInfoForm({
                     </div>
                   </>
                 ) : (
-                  <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
+                  <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{flattenProposalTitle(proposal?.title)}</h2>
                 )}
                 <InlineGuideline className="mt-1">
                   Max 200 characters (including spaces). Must be understandable for non-specialists.
+                  Press Return to choose where the title breaks onto a new line in the B1.1 banner;
+                  everywhere else it is shown on a single line.
                 </InlineGuideline>
               </div>
 
@@ -1008,7 +1011,7 @@ export function GeneralInfoForm({
 
       {/* Delete Proposal - Admins/Owners Only */}
       {isCoordinator && (
-        <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
+        <DeleteProposalSection proposalId={proposalId} proposalTitle={flattenProposalTitle(proposal?.title) || 'this proposal'} />
       )}
       </div>
     </PartAPageLayout>

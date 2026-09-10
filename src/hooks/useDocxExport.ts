@@ -11,6 +11,7 @@ import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { swapImpactCanvasForWord } from '@/lib/exportImpactCanvasToWord';
 import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { buildDocxFromHtml } from '@/lib/wordPackage';
+import { flattenProposalTitle, proposalTitleLines } from '@/lib/proposalTitle';
 
 
 function buildBannerHtml(acronym: string, title: string): string {
@@ -20,7 +21,7 @@ function buildBannerHtml(acronym: string, title: string): string {
 <table data-proposal-banner="true" cellpadding="0" cellspacing="0" style="width:100%;background:#000;color:#fff;margin-bottom:12pt;">
   <tr>
     <td style="padding:1.5cm 1.5cm calc(1.5cm + 12pt) 1.5cm;background:#000;color:#fff;vertical-align:middle;font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:16pt;line-height:1.2;text-align:left;">
-      ${esc(acronym)}<br/>${esc(title)}
+      ${esc(acronym)}<br/>${title.split('\n').map(esc).join('<br/>')}
     </td>
     <td style="padding:1.5cm 1.5cm calc(1.5cm + 12pt) 0;background:#000;text-align:right;vertical-align:middle;">
       <img src="${SITRA_LOGO_BASE64}" alt="Sitra" style="height:1.5cm;width:auto;" />
@@ -263,7 +264,7 @@ export function useDocxExport() {
         const bannerEl = container.querySelector('[data-proposal-banner]');
         if (bannerEl) {
           const wrapper = document.createElement('div');
-          wrapper.innerHTML = buildBannerHtml(proposal.acronym || '', proposal.title || '');
+          wrapper.innerHTML = buildBannerHtml(proposal.acronym || '', proposalTitleLines(proposal.title).join('\n'));
           const replacement = wrapper.firstElementChild;
           if (replacement) bannerEl.replaceWith(replacement);
         }
@@ -273,7 +274,7 @@ export function useDocxExport() {
         cleanup();
 
         // Wrap in Word-compatible HTML, then package it as a real OOXML file.
-        const docTitle = `${proposal.acronym}: ${proposal.title}`;
+        const docTitle = `${proposal.acronym}: ${flattenProposalTitle(proposal.title)}`;
         const wordHtml = wrapInWordHtml(bodyHtml, docTitle);
 
         toast.info('Generating Word document – packaging…');

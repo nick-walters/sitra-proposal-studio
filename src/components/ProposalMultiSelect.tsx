@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 type Proposal = { id: string; acronym: string; title: string };
 
@@ -148,7 +149,7 @@ export function ProposalMultiSelect({
                         <div className="flex flex-col flex-1 min-w-0">
                           <span className="font-medium">{proposal.acronym}</span>
                           <span className="text-xs text-muted-foreground truncate">
-                            {proposal.title}
+                            {flattenProposalTitle(proposal.title)}
                           </span>
                         </div>
                       </div>

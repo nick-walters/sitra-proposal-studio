@@ -48,6 +48,7 @@ import { emitCasesTable, type CasesTypstData } from './casesData';
 import type { AuthoredFigureBlock } from './authoredFigures';
 
 import { countCaptionSlots, captionKind, captionLetter } from '@/lib/cards/captionSlots';
+import { proposalTitleLines } from '@/lib/proposalTitle';
 import {
   citationHtml,
   fetchSectionCitationSources,
@@ -674,7 +675,7 @@ async function fetchSectionHeadings(
  * a chip rather than as plain text.
  */
 /**
- * A banner override exists ONLY to control where the lines break. Once the A1
+ * A topic-line override exists ONLY to control where the lines break. Once the A1
  * value it was made from changes, the override no longer matches it (ignoring
  * whitespace) and is stale — the live A1 value then wins.
  */
@@ -691,7 +692,7 @@ export async function fetchTypstDocMeta(
   const [{ data }, section] = await Promise.all([
     supabase
       .from('proposals')
-      .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override, banner_title_override')
+      .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override')
       .eq('id', proposalId)
       .maybeSingle(),
     sectionId
@@ -743,7 +744,9 @@ export async function fetchTypstDocMeta(
           topicLine: liveOrOverride(computedTopic, row.banner_topic_line_override),
           acronym: row.acronym || '',
 
-          title: liveOrOverride(row.title || '', row.banner_title_override),
+          // The banner title is the A1 title verbatim: its own newlines are
+          // the line breaks, split by `lineArray` for t-lines.
+          title: proposalTitleLines(row.title).join('\n'),
         }
       : null,
   };
