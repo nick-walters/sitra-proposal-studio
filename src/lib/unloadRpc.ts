@@ -13,6 +13,9 @@ export function unloadRpc(
   fnName: string,
   body: Record<string, unknown>,
   accessToken: string | null,
+  /** Optional: inspect the RPC result when the page is still alive (tab
+   *  hidden rather than closing). Silently skipped on a genuine unload. */
+  onResult?: (data: unknown) => void,
 ): void {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
@@ -32,9 +35,18 @@ export function unloadRpc(
         Authorization: `Bearer ${token}`,
       },
       body: payload,
-    }).catch(() => {
-      /* unload — nothing to recover */
-    });
+    })
+      .then(async (res) => {
+        if (!onResult) return;
+        try {
+          onResult(await res.json());
+        } catch {
+          /* no readable body — nothing to report */
+        }
+      })
+      .catch(() => {
+        /* unload — nothing to recover */
+      });
   } catch {
     // Fallback: beacons cannot carry auth headers, so this only helps where
     // the anon role is sufficient. Better than dropping the request entirely.

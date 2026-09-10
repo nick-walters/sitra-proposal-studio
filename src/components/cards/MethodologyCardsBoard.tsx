@@ -109,7 +109,7 @@ import { LockBoundary, lockStateOf } from '@/components/cards/LockBoundary';
 
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { type LostTextPayload } from '@/components/cards/LostTextDialog';
-import { reportLostTextPayload } from '@/lib/lostTextBus';
+import { reportLostText, reportLostTextPayload } from '@/lib/lostTextBus';
 
 /**
  * Rejections are surfaced through the app-level bus rather than board-local
@@ -2094,23 +2094,47 @@ function BoardInner({
       for (const [fieldId, entry] of dirty) {
         if (!entry) continue;
         if (keepalive) {
+          const key = `${fieldId}:content`;
+          const expected = versionsRef.current[key];
+          const target = fieldTargetId(fieldId, 'content');
+          // Never write over a box somebody else holds — the ordinary save
+          // paths refuse this, and the unload path must too.
+          if (heldByOther(target)) {
+            reportLostText(entry.html, 'blocked', locksRef.current[target]?.userName ?? null);
+            continue;
+          }
+          // No known version means this session cannot tell what it would be
+          // overwriting, and a NULL expected version bypasses the server's
+          // check entirely. Refuse and surface the text instead.
+          if (expected === null || expected === undefined) {
+            reportLostText(entry.html, 'conflict');
+            continue;
+          }
           unloadRpc(
             'save_card_text',
             {
               p_field_id: fieldId,
               p_text_box: 'content',
               p_value: entry.html,
-              p_expected_version: versionsRef.current[`${fieldId}:content`] ?? null,
+              p_expected_version: expected,
               p_is_auto_save: true,
             },
             accessTokenRef.current,
+            (data) => {
+              const res = (data ?? {}) as { ok?: boolean; version?: number };
+              if (res.ok === false) {
+                reportLostText(entry.html, 'conflict');
+                return;
+              }
+              if (res.version) versionsRef.current[key] = res.version;
+            },
           );
         } else {
           void persistFieldRef.current(fieldId, entry.cardId, entry.html);
         }
       }
     },
-    [],
+    [heldByOther],
 
   );
 
