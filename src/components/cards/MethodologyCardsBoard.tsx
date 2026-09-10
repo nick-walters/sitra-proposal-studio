@@ -2134,7 +2134,7 @@ function BoardInner({
         }
       }
     },
-    [],
+    [heldByOther],
 
   );
 
