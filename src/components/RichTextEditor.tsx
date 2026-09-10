@@ -20,6 +20,7 @@ import {
 } from '@/lib/tableStyleSpec';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
+import { applyCellRule, ruleTargetAvailable, type RuleTarget } from '@/lib/tableCellRules';
 import { ResizableImage, isBoundingBoxAttrs } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
@@ -81,7 +82,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1122,6 +1127,41 @@ export function FormattingToolbar({
                     <SplitSquareHorizontal className="w-4 h-4 mr-2" />
                     Split cell
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Minus className="w-4 h-4 mr-2" />
+                      Cell borders
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {(['top', 'middle', 'bottom'] as RuleTarget[]).map((target, index) => (
+                        <React.Fragment key={target}>
+                          {index > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuLabel>
+                            {target === 'top' ? 'Top' : target === 'middle' ? 'Middle' : 'Bottom'}
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={!ruleTargetAvailable(editor, target)}
+                            onClick={() => {
+                              applyCellRule(editor, target, 'thick');
+                              editor.chain().focus().run();
+                            }}
+                          >
+                            Thick black
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!ruleTargetAvailable(editor, target)}
+                            onClick={() => {
+                              applyCellRule(editor, target, 'thin');
+                              editor.chain().focus().run();
+                            }}
+                          >
+                            Thin grey
+                          </DropdownMenuItem>
+                        </React.Fragment>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
                     <Calculator className="w-4 h-4 mr-2" />
