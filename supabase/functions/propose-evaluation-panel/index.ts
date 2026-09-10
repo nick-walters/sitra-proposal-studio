@@ -195,6 +195,21 @@ serve(async (req) => {
       ? computedBudget.perParticipant
       : [];
     const budgetPopulated = totalRequestedEu > 0 || totalDirectCosts > 0;
+    // Which B3.1 cost justification tables the template requires for THIS
+    // budget (client-computed by budgetSourceAdapter). Absent on historical
+    // callers — then no extra prompt text is emitted at all.
+    const requiredTables = Array.isArray(computedBudget?.requiredJustificationTables)
+      ? computedBudget.requiredJustificationTables
+      : [];
+    const justificationTablesBlock = requiredTables.length
+      ? `\n\nB3.1 COST JUSTIFICATION TABLES (authoritative for this proposal):\n${requiredTables
+          .map(
+            (t: any) =>
+              `- Table ${t.table}: ${t.required ? "REQUIRED" : "NOT REQUIRED"} — ${String(t.note || t.reason || "")}`,
+          )
+          .join("\n")}\nA table listed as NOT REQUIRED is not part of this proposal's mandatory sections. Do not flag its absence under MANDATORY SECTIONS or BUDGET COMPLETENESS, and do not treat it as missing budget detail.`
+      : "";
+
     const budgetSummary = budgetPopulated
       ? `Requested EU contribution: €${Math.round(totalRequestedEu).toLocaleString()} (across ${perParticipantBudget.length} participant row(s)); total direct costs entered: €${Math.round(totalDirectCosts).toLocaleString()}.`
       : "No budget figures have been entered in the A3 budget portal yet.";
@@ -217,7 +232,7 @@ CHECKS:
 
 IMPORTANT: Only include checks that are applicable to this proposal configuration.
 - Check 3 (BLIND EVALUATION): Only include if proposalStage = 'stage1'. Omit entirely for full proposals.
-- Check 5 (BUDGET COMPLETENESS): Always include, but base it on the BUDGET SUMMARY — never assume €0.
+- Check 5 (BUDGET COMPLETENESS): Always include, but base it on the BUDGET SUMMARY — never assume €0.${justificationTablesBlock}
 ${instructionsBlock}
 Output ONLY valid JSON. No preamble.`;
 
