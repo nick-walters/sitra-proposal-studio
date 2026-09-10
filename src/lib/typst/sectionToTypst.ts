@@ -673,6 +673,16 @@ async function fetchSectionHeadings(
  * belongs to ("Part B3.1. Work plan & resources") and carries the acronym as
  * a chip rather than as plain text.
  */
+/**
+ * A banner override exists ONLY to control where the lines break. Once the A1
+ * value it was made from changes, the override no longer matches it (ignoring
+ * whitespace) and is stale — the live A1 value then wins.
+ */
+function liveOrOverride(live: string, override?: string | null): string {
+  const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
+  return override && flat(override) === flat(live) ? override : live;
+}
+
 export async function fetchTypstDocMeta(
   proposalId: string,
   sectionId?: string,
@@ -730,10 +740,10 @@ export async function fetchTypstDocMeta(
       : '',
     banner: isFirstSection
       ? {
-          topicLine: row.banner_topic_line_override ?? computedTopic,
+          topicLine: liveOrOverride(computedTopic, row.banner_topic_line_override),
           acronym: row.acronym || '',
 
-          title: row.banner_title_override ?? row.title ?? '',
+          title: liveOrOverride(row.title || '', row.banner_title_override),
         }
       : null,
   };
