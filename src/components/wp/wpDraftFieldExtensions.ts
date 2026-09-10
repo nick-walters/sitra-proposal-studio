@@ -7,8 +7,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
 import type { Extensions } from '@tiptap/core';
 
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
@@ -88,8 +87,8 @@ export const WP_DRAFT_FIELD_EXTENSIONS: Extensions = [
   // Horizon Europe styling in the static (unfocused) render.
   Table.configure({ resizable: false, HTMLAttributes: { class: EDITOR_TABLE_CLASS } }),
   TableRow,
-  TableHeader.configure({ HTMLAttributes: { class: EDITOR_TABLE_HEADER_CELL_CLASS } }),
-  TableCell.configure({ HTMLAttributes: { class: EDITOR_TABLE_BODY_CELL_CLASS } }),
+  TableHeaderWithRule.configure({ HTMLAttributes: { class: EDITOR_TABLE_HEADER_CELL_CLASS } }),
+  TableCellWithRule.configure({ HTMLAttributes: { class: EDITOR_TABLE_BODY_CELL_CLASS } }),
   ...REFERENCE_NODES,
   CitationNode,
   CitationMark,

@@ -19,8 +19,7 @@ import {
   EDITOR_TABLE_BODY_CELL_CLASS,
 } from '@/lib/tableStyleSpec';
 import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
 import { ResizableImage, isBoundingBoxAttrs } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
@@ -1392,12 +1391,12 @@ StarterKit.configure({
       }),
       WordTableResizing,
       TableRow,
-      TableHeader.configure({
+      TableHeaderWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
-      TableCell.configure({
+      TableCellWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_BODY_CELL_CLASS,
         },
@@ -1694,12 +1693,12 @@ StarterKit.configure({
         },
       }),
       TableRow,
-      TableHeader.configure({
+      TableHeaderWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_HEADER_CELL_CLASS,
         },
       }),
-      TableCell.configure({
+      TableCellWithRule.configure({
         HTMLAttributes: {
           class: EDITOR_TABLE_BODY_CELL_CLASS,
         },

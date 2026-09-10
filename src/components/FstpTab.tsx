@@ -26,8 +26,7 @@ import {
 } from 'lucide-react';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCellWithRule, TableHeaderWithRule } from '@/extensions/TableCellRule';
 import { ResizableImage } from './ResizableImage';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
@@ -70,8 +69,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       Link.configure({ openOnClick: false }),
       Table.configure({ resizable: true }),
       TableRow,
-      TableCell,
-      TableHeader,
+      TableCellWithRule,
+      TableHeaderWithRule,
       ResizableImage,
       HeadingExitOnEnter,
       HeadingNumberLabel,
