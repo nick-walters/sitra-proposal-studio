@@ -153,6 +153,7 @@ async function validateLumpSumBudget(
   let personnelTotal = 0;
   let requestedTotal = 0;
   let equipmentTotal = 0;
+  const equipmentItems = new Map<string, EquipmentItemForCheck[]>();
 
   for (const participant of parts) {
     const participantRoles = roles.filter(role => role.participant_id === participant.id);
