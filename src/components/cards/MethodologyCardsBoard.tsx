@@ -109,7 +109,7 @@ import { LockBoundary, lockStateOf } from '@/components/cards/LockBoundary';
 
 import { LockTimeoutWarning } from '@/components/cards/LockTimeoutWarning';
 import { type LostTextPayload } from '@/components/cards/LostTextDialog';
-import { reportLostTextPayload } from '@/lib/lostTextBus';
+import { reportLostText, reportLostTextPayload } from '@/lib/lostTextBus';
 
 /**
  * Rejections are surfaced through the app-level bus rather than board-local
