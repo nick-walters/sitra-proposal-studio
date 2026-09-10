@@ -19,6 +19,7 @@ import { ArrowLeft, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useUserRole } from "@/hooks/useUserRole";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 interface BinnedProposal {
   id: string;
@@ -165,7 +166,7 @@ export default function ProposalBinAdmin() {
                         </Badge>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground truncate">{row.title || "Untitled proposal"}</div>
+                    <div className="text-sm text-muted-foreground truncate">{flattenProposalTitle(row.title) || "Untitled proposal"}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Deleted {formatDate(row.deleted_at)} by {row.deleted_by ? names[row.deleted_by] ?? "unknown user" : "unknown user"}
                       {" · "}
@@ -188,7 +189,7 @@ export default function ProposalBinAdmin() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Restore this proposal?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          <strong>{row.acronym || row.title}</strong> will reappear for everyone who had access to it, with
+                          <strong>{row.acronym || flattenProposalTitle(row.title)}</strong> will reappear for everyone who had access to it, with
                           all of its content intact.
                         </AlertDialogDescription>
                       </AlertDialogHeader>

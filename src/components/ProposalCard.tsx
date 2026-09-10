@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { StorageImage } from "@/components/StorageImage";
 import { ColoredAcronym } from "@/components/AcronymColorEditor";
 import { safeOpenUrl } from "@/lib/safeUrl";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -153,7 +154,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                 )}
                 {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
               </div>
-              <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
+              <div className="text-xs text-muted-foreground truncate">{flattenProposalTitle(proposal.title)}</div>
             </div>
             {/* Badges - start from consistent alignment */}
             <div className="flex items-center gap-1 flex-wrap">
@@ -301,7 +302,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
               {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
             </h3>
             <p className="text-muted-foreground text-[11px] line-clamp-2">
-              {proposal.title}
+              {flattenProposalTitle(proposal.title)}
             </p>
           </div>
 

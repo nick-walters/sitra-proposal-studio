@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Save, Play, ChevronsUpDown, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { flattenProposalTitle } from "@/lib/proposalTitle";
 
 interface Cfg {
   id: string;
@@ -258,7 +259,7 @@ export default function BackupsAdmin() {
                         >
                           <Checkbox checked={checked} onCheckedChange={() => toggleProposal(p.id)} />
                           <span className="text-sm font-medium">{p.acronym ?? "(no acronym)"}</span>
-                          <span className="text-xs text-muted-foreground truncate flex-1">{p.title}</span>
+                          <span className="text-xs text-muted-foreground truncate flex-1">{flattenProposalTitle(p.title)}</span>
                           {checked && <Check className="w-3 h-3 text-primary shrink-0" />}
                         </button>
                       );

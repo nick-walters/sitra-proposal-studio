@@ -4,6 +4,7 @@ import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { handlePlainTextPaste } from '@/lib/pasteWordHtmlHandler';
+import { proposalTitleLines } from '@/lib/proposalTitle';
 
 interface ProposalBannerProps {
   acronym: string;
@@ -18,9 +19,10 @@ interface ProposalBannerProps {
 /**
  * Non-editable proposal banner shown at the top of section B1.1 in the editor
  * and at the top of PDF/Word exports. Topic line & title are auto-composed
- * from A1 data, but a coordinator+ can edit the rendered text in the banner
- * to manually control line breaks. Edits are stored as banner-only overrides
- * (banner_topic_line_override, banner_title_override) and do not affect A1.
+ * from A1 data. The TITLE is read-only here: its line breaks come from the
+ * newlines the author typed in the A1 title field itself, so it can never
+ * hold wording older than A1. The topic line still supports a banner-only
+ * override (banner_topic_line_override), which does not affect A1.
  */
 export function ProposalBanner({
   acronym,
@@ -47,11 +49,11 @@ export function ProposalBanner({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('banner_topic_line_override, banner_title_override')
+        .select('banner_topic_line_override')
         .eq('id', proposalId!)
         .maybeSingle();
       if (error) throw error;
-      return data as { banner_topic_line_override: string | null; banner_title_override: string | null } | null;
+      return data as { banner_topic_line_override: string | null } | null;
     },
   });
 
@@ -63,14 +65,14 @@ export function ProposalBanner({
     a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
 
   const topicOverride = overrides?.banner_topic_line_override;
-  const titleOverride = overrides?.banner_title_override;
 
   const topicLine =
     topicOverride && sameWords(topicOverride, computedTopicLine) ? topicOverride : computedTopicLine;
-  const titleLine = titleOverride && sameWords(titleOverride, title) ? titleOverride : title;
+  // The title is drawn straight from A1, newlines and all.
+  const titleLine = proposalTitleLines(title).join('\n');
 
   const saveOverride = async (
-    field: 'banner_topic_line_override' | 'banner_title_override',
+    field: 'banner_topic_line_override',
     value: string,
     fallback: string,
   ) => {
@@ -160,8 +162,8 @@ export function ProposalBanner({
       />
       <EditableLine
         value={titleLine}
-        canEdit={canEdit}
-        onSave={(v) => saveOverride('banner_title_override', v, title)}
+        canEdit={false}
+        onSave={() => {}}
         style={{
           fontFamily: "'Arial Black', Arial, sans-serif",
           fontWeight: 900,
