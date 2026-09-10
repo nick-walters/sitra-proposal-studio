@@ -2,7 +2,7 @@ import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import { registerTrackEditor } from '@/lib/trackChangeEditorRegistry';
 
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
-import { Slice, Fragment } from '@tiptap/pm/model';
+import { Slice, Fragment as PMFragment } from '@tiptap/pm/model';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -320,7 +320,7 @@ function normalizePartBPastedAlignment(html: string) {
  * their alignment.
  */
 function stripPastedAlignment(slice: Slice): Slice {
-  const stripFragment = (fragment: Fragment, insideTable: boolean): Fragment => {
+  const stripFragment = (fragment: PMFragment, insideTable: boolean): PMFragment => {
     const children: any[] = [];
     fragment.forEach((node) => {
       let nextNode = node;
@@ -345,7 +345,7 @@ function stripPastedAlignment(slice: Slice): Slice {
       }
       children.push(nextNode);
     });
-    return Fragment.fromArray(children);
+    return PMFragment.fromArray(children);
   };
 
   return new Slice(stripFragment(slice.content, false), slice.openStart, slice.openEnd);
@@ -1147,6 +1147,11 @@ export function FormattingToolbar({
                               editor.chain().focus().run();
                             }}
                           >
+                            <span
+                              aria-hidden="true"
+                              className="inline-block w-10 shrink-0 mr-2.5"
+                              style={{ borderTop: 'var(--card-table-header-border, 1.5px solid #000000)' }}
+                            />
                             Thick black
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -1156,6 +1161,11 @@ export function FormattingToolbar({
                               editor.chain().focus().run();
                             }}
                           >
+                            <span
+                              aria-hidden="true"
+                              className="inline-block w-10 shrink-0 mr-2.5"
+                              style={{ borderTop: 'var(--card-table-body-border, 1px solid #e5e7eb)' }}
+                            />
                             Thin grey
                           </DropdownMenuItem>
                         </Fragment>
