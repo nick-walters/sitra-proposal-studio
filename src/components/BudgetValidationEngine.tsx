@@ -240,16 +240,40 @@ async function validateLumpSumBudget(
 
   results.push({ id: 'no-personnel', name: 'Personnel costs', criterion: 'Personnel costs are entered alongside other direct costs', severity: 'warning', message: totalDirect === 0 ? 'No direct costs entered yet' : personnelTotal === 0 ? 'No personnel costs have been entered' : `Personnel costs total ${formatCurrency(personnelTotal)}`, status: totalDirect === 0 ? 'skipped' : personnelTotal === 0 ? 'failed' : 'passed' });
 
-  if (personnelTotal > 0) {
-    const ratio = equipmentTotal / personnelTotal;
-    if (ratio > 0.15) {
-      const justified = items.some(item => item.cost_line === 'C.2.equipment' && item.justification?.trim()) || depreciation.some(item => item.resource_type === 'equipment' && item.include_in_c2 && item.comments?.trim());
-      results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: `Equipment is ${formatPercent(ratio * 100)} of personnel costs (>15% requires justification)${justified ? ' — justification provided' : ''}`, status: justified ? 'passed' : 'failed' });
-    } else {
-      results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: `Equipment is ${formatPercent(ratio * 100)} of personnel costs`, status: 'passed' });
-    }
+  // Equipment justification is assessed per participant: each partner's own
+  // equipment (C.2, incl. depreciation in C.2) against its own personnel costs.
+  const equipmentCriterion = 'Each participant’s equipment above 15% of their own personnel costs carries a justification';
+  const partnerName = (participant: any) => participant?.organisation_short_name || participant?.organisation_name || 'Participant';
+  const assessments = parts.map(participant => {
+    const participantTotals = totals.get(participant.id);
+    return {
+      participant,
+      equipment: participantTotals?.equipment ?? 0,
+      personnel: participantTotals?.personnel ?? 0,
+      result: evaluateEquipmentJustification(
+        participantTotals?.equipment ?? 0,
+        participantTotals?.personnel ?? 0,
+        equipmentItems.get(participant.id) ?? [],
+      ),
+    };
+  });
+  const overThreshold = assessments.filter(entry => entry.result.requiresJustification > 0);
+  const shortfalls = overThreshold.filter(entry => !entry.result.compliant).sort((a, b) => b.result.shortfall - a.result.shortfall);
+
+  if (parts.length === 0 || (personnelTotal === 0 && equipmentTotal === 0)) {
+    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: equipmentCriterion, severity: 'warning', message: 'No personnel costs to measure equipment against', status: 'skipped' });
+  } else if (shortfalls.length > 0) {
+    const shown = shortfalls.slice(0, 3).map(entry => entry.result.threshold === 0
+      ? `${partnerName(entry.participant)}: ${formatCurrency(entry.equipment)} equipment with no personnel costs, so all of it requires justification, ${formatCurrency(entry.result.justified)} justified, ${formatCurrency(entry.result.shortfall)} short`
+      : `${partnerName(entry.participant)}: equipment is ${formatPercent(entry.result.ratio * 100)} of personnel costs; ${formatCurrency(entry.result.requiresJustification)} requires justification, ${formatCurrency(entry.result.justified)} justified, ${formatCurrency(entry.result.shortfall)} short`);
+    const extra = shortfalls.length - shown.length;
+    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: equipmentCriterion, severity: 'warning', message: `${shown.join('. ')}${extra > 0 ? ` and ${extra} others` : ''}.`, status: 'failed' });
+  } else if (overThreshold.length > 0) {
+    const shown = overThreshold.map(entry => `${partnerName(entry.participant)}: ${formatCurrency(entry.result.requiresJustification)} of ${formatCurrency(entry.equipment)} equipment requires justification, ${formatCurrency(entry.result.justified)} justified`);
+    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: equipmentCriterion, severity: 'warning', message: `${shown.join('. ')}.`, status: 'passed' });
   } else {
-    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: 'Equipment above 15% of personnel costs carries a justification', severity: 'warning', message: 'No personnel costs to measure equipment against', status: 'skipped' });
+    const highest = assessments.reduce((best, entry) => entry.result.ratio > best.result.ratio ? entry : best, assessments[0]);
+    results.push({ id: 'equipment-ratio', name: 'Equipment costs', criterion: equipmentCriterion, severity: 'warning', message: `Highest equipment share is ${formatPercent(highest.result.ratio * 100)} of personnel costs (${partnerName(highest.participant)}) — no justification required.`, status: 'passed' });
   }
   return results;
 }
