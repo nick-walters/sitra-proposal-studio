@@ -483,12 +483,14 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
     wpChipList(m.wpNumbers, m.wpColors, data.wps.length, m.primaryWpNumber),
     lit(monthLabel(m.due_month)),
   ]);
-  const headers = storedHeaders(data, 'b31-milestones', [
-    'Milestone',
+  const headers = storedHeaders(data, 'b31-milestones-v2', [
+    '№',
+    'Milestone title',
     'Means of verification',
     'WP(s)',
     'Due',
   ]);
+
   const milestoneCaption = data.captions.milestones || MILESTONES_CAPTION;
   return [
     `he-caption(${typstString(tableLabel(ctx, 'Table 3.1.d.'))}, ${captionWithVectorStar(milestoneCaption)})`,
