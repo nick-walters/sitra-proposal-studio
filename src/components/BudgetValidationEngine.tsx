@@ -176,6 +176,14 @@ async function validateLumpSumBudget(
       participantTotals.hasData ||= hasData;
       participantTotals.equipment += costLineAmount(participantItems, 'C.2.equipment', wp.id) + depreciationAmount(participantDepreciation, 'equipment', wp.id);
     }
+    equipmentItems.set(participant.id, [
+      ...participantItems
+        .filter(item => item.cost_line === 'C.2.equipment')
+        .map(item => ({ amount: Number(item.amount ?? 0), justified: Boolean(String(item.justification ?? '').trim()) })),
+      ...participantDepreciation
+        .filter(item => item.include_in_c2 && item.resource_type === 'equipment')
+        .map(item => ({ amount: Number(item.charged_depreciation ?? 0), justified: Boolean(String(item.comments ?? '').trim()) })),
+    ]);
     totals.set(participant.id, participantTotals);
     totalDirect += participantTotals.direct;
     totalDirectExFstp += participantTotals.direct;
