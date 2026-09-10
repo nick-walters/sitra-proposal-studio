@@ -29,7 +29,7 @@ export const SOURCE_FED_EMPTY_REASONS: Record<string, string> = {
   'b31.table_g':
     'This table will not appear in the proposal because there are no subcontracting costs in the budget.',
   'b31.table_h':
-    'This table will not appear in the proposal because no participant has purchase costs exceeding 15% of their personnel costs.',
+    'This table will not appear in the proposal because no participant has equipment purchase costs exceeding 15% of their personnel costs.',
   'b31.gantt':
     'This figure will not appear in the proposal because the Gantt chart has not been created on the figures page.',
   'b31.pert':
