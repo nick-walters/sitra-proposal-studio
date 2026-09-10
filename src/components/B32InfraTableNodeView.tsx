@@ -81,10 +81,7 @@ export function B32InfraTableLiveView({ proposalId, header, onHeaderChange }: Li
             <tr key={row.participantId}>
               <td className="align-top cell-pl-0 py-0 leading-tight text-[11pt]">
                 <span>{joinInfraNotes(row.notes)}</span>{' '}
-                <ParticipantBubble
-                  number={row.number ?? undefined}
-                  shortName={row.shortName}
-                />
+                <ParticipantBubble shortName={row.shortName} />
               </td>
             </tr>
           ))}
