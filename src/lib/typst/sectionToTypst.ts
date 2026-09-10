@@ -730,10 +730,10 @@ export async function fetchTypstDocMeta(
       : '',
     banner: isFirstSection
       ? {
-          topicLine: row.banner_topic_line_override ?? computedTopic,
+          topicLine: liveOrOverride(computedTopic, row.banner_topic_line_override),
           acronym: row.acronym || '',
 
-          title: row.banner_title_override ?? row.title ?? '',
+          title: liveOrOverride(row.title || '', row.banner_title_override),
         }
       : null,
   };
