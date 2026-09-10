@@ -388,11 +388,14 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// against the document's top-edge: cap-height / bottom-edge: descender
 /// settings, so its own bottom edge — not the glyph baseline — lands on the
 /// line, lifting the label about 1.56pt. Unboxed inline text keeps the line's
-/// own baseline whatever face it uses, so the display swap does not move it:
-/// measured at 1200 ppi against the serif rendering, the cap top rises by
-/// 0.10pt (Archivo Black's cap height is marginally taller) and the baseline
-/// is identical to within 0.02pt, in body text, table cells, footnotes and the
-/// running footer alike. No baseline or edge correction is applied.
+/// own baseline whatever face it uses, so the display swap barely moves it.
+/// Re-measured at 1200 ppi, display against the previous serif rendering: the
+/// baseline drops 0.12pt in body text and table cells and 0.06pt in footnotes
+/// and the running footer, and the cap top drops 0.06pt everywhere. Against
+/// the adjacent body ink the acronym baseline now sits within 0.12pt (it was
+/// 0.18-0.24pt under the serif face), so the acronym still shares the body
+/// baseline in body text, table cells, footnotes and the running footer alike.
+/// No baseline or edge correction is applied.
 #let chip-acronym(segments) = segments.map(seg =>
   text(font: "${TYPST_DISPLAY}", weight: "regular", fill: rgb(seg.at(1)), seg.at(0))
 ).join()
