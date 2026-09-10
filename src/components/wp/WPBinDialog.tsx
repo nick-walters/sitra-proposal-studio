@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDateTime } from '@/lib/formatDate';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { refreshReferenceData } from '@/lib/referenceData';
 
 interface WPBinDialogProps {
   isOpen: boolean;
@@ -61,6 +62,7 @@ export function useWPBinCount(
 interface BinRow {
   id: string;
   deleted_at: string;
+  proposal_id: string | null;
   payload: Record<string, unknown> | null;
 }
 
