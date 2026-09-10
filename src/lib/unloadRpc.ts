@@ -13,6 +13,9 @@ export function unloadRpc(
   fnName: string,
   body: Record<string, unknown>,
   accessToken: string | null,
+  /** Optional: inspect the RPC result when the page is still alive (tab
+   *  hidden rather than closing). Silently skipped on a genuine unload. */
+  onResult?: (data: unknown) => void,
 ): void {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
