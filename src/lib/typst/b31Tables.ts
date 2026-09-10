@@ -474,8 +474,9 @@ function captionWithVectorStar(text: string): string {
 export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[] {
   if (!data.milestones.length) return [];
   // Same five columns as the editor: the MS badge in a column of its own, the
-  // milestone name beside it, then verification, WP(s) and due month. The
-  // heading over the first two columns is a single merged "Milestone".
+  // milestone name beside it, then verification, WP(s) and due month. Each
+  // column carries its own heading, exactly as on screen.
+
   const rows = data.milestones.map((m) => [
     milestoneChip(m.number),
     rich(m.title, ctx),
@@ -495,9 +496,9 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
   return [
     `he-caption(${typstString(tableLabel(ctx, 'Table 3.1.d.'))}, ${captionWithVectorStar(milestoneCaption)})`,
     table(
-      // Widths and headers must come from the SAME editor: the live milestones
-      // manager stores five widths under `b31-milestones-v6` and four headers
-      // under `b31-milestones`. Older stored rows describe the retired
+      // Widths and headers come from the SAME editor: the live milestones
+      // manager stores five widths under `b31-milestones-v6` and five headers
+      // under `b31-milestones-v2`. Older stored rows describe the retired
       // four-column geometry and can no longer be applied.
       // Badge and due-month columns are fixed to their content (41 px and 35 px);
       // the two long-text columns and the WP column share the remainder.
@@ -507,16 +508,12 @@ export function emitMilestones(data: B31TypstData, ctx: ConvertContext): string[
         5,
         '(31.5pt, 38fr, 42fr, 55.5pt, 26.25pt)',
         [41, 60, 60, 74, 35],
-
-
       ),
       headers.map((h) => lit(h)),
       rows,
       undefined,
       true,
-      false,
-      // "Milestone" spans the badge column and the name column.
-      { headerSpans: [2, 1, 1, 1] },
+
     ),
   ];
 
