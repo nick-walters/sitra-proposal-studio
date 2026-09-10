@@ -248,6 +248,29 @@ interface EvaluatorSelection {
   brief: string;
 }
 
+/**
+ * Prompt text stating which B3.1 cost justification tables the Horizon Europe
+ * template requires for this proposal's budget. Snapshotted onto the run at
+ * "start"; historical runs have no snapshot and get no extra text at all.
+ */
+function justificationTablesPromptBlock(analysisData: any): string {
+  const tables = Array.isArray(analysisData?.required_justification_tables)
+    ? analysisData.required_justification_tables
+    : [];
+  if (!tables.length) return "";
+  const lines = tables
+    .map(
+      (t: any) =>
+        `- Table ${t?.table}: ${t?.required ? "REQUIRED" : "NOT REQUIRED"} — ${String(t?.reason || "")}`,
+    )
+    .join("\n");
+  return `
+
+B3.1 COST JUSTIFICATION TABLES (authoritative for this proposal):
+${lines}
+Do not criticise the proposal for the absence of a justification table listed as NOT REQUIRED, and do not treat its absence as missing budget detail.`;
+}
+
 interface EvaluationRecord {
   id: string;
   proposal_id: string;
@@ -711,7 +734,7 @@ ${instrumentContext}
 PROPOSAL STAGE: ${stageKey === "stage1" ? "Stage 1 of 2" : "Full proposal"}
 ${stageContext}
 
-BUDGET TYPE: ${budgetTypeLabel}${budgetContext}
+BUDGET TYPE: ${budgetTypeLabel}${budgetContext}${justificationTablesPromptBlock(baseAnalysisData)}
 
 EVALUATION RULES
 - Evaluate the proposal as submitted.
@@ -1108,7 +1131,7 @@ SYNTHESIS RULES:
 - Strengths and weaknesses must be specific. Generic statements are not acceptable.
 - Tone: direct, professional — matching official EC ESR style. Avoid hedging language.
 - Flag minority opinion inline for any criterion where any evaluator scored more than 1.0 away from the mean.
-- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}${panelInstructionsBlock}`;
+- Do not inflate scores or soften criticism. The ESR must reflect the honest consensus of the panel.${topicSpecificContext}${panelInstructionsBlock}${justificationTablesPromptBlock(analysisData)}`;
 
   const synthesisUser = `PROPOSAL: ${proposal.title} (${proposal.acronym})
 CALL: ${proposal.work_programme || "n/a"} | TOPIC: ${proposal.topic_id || "n/a"}
@@ -1394,7 +1417,10 @@ serve(async (req) => {
     const action = body?.action || "start";
 
     if (action === "start") {
-      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel, evaluationInstructions } = body || {};
+      const { proposalId, selectedEvaluators, instrumentCode, proposalStage, budgetType, eligibilityFlags, renderedProposal, modelOverride, modelOverridePrices, haikuUsage, haikuModel, evaluationInstructions, requiredJustificationTables } = body || {};
+      const normalizedJustificationTables = Array.isArray(requiredJustificationTables)
+        ? requiredJustificationTables
+        : null;
       // Snapshotted onto the run so the record stays faithful even if the
       // proposal's stored instructions change later.
       const normalizedInstructions =
@@ -1477,6 +1503,7 @@ serve(async (req) => {
             eligibility_flags: eligibilityFlags ?? [],
             instrument_code: instrumentCode,
             rendered_proposal: renderedProposal,
+            required_justification_tables: normalizedJustificationTables,
             model_override: normalizedOverride,
             model_override_prices: overrideRunPrices,
 

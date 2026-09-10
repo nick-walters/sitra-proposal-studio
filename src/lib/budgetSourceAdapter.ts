@@ -85,6 +85,24 @@ const EMPTY_CATEGORIES = (): Record<BudgetCategory, BudgetCostEntry[]> => ({
 
 const num = (v: unknown) => Number(v ?? 0) || 0;
 
+/**
+ * The Horizon Europe "purchase costs" justification rule as this module has
+ * always applied it: a participant's EQUIPMENT costs exceeding 15 % of that
+ * participant's PERSONNEL costs. Per participant, equipment only.
+ *
+ * NOTE: the combined travel + equipment + other-goods 15 % test is a DIFFERENT
+ * obligation (the lump sum Excel budget's comments sheet) and is deliberately
+ * NOT what this helper computes.
+ */
+export const EQUIPMENT_PERSONNEL_RATIO_THRESHOLD = 0.15;
+
+export function equipmentExceedsPersonnelThreshold(
+  equipmentCost: number,
+  personnelCost: number,
+): boolean {
+  return personnelCost > 0 && equipmentCost > personnelCost * EQUIPMENT_PERSONNEL_RATIO_THRESHOLD;
+}
+
 /** Which justification category a lump-sum cost line belongs to. */
 function categoryForCostLine(costLine: string): BudgetCategory | null {
   if (costLine === 'B.1') return 'subcontracting';
@@ -185,7 +203,7 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
     const totalEquip = itemTotal > 0 ? itemTotal : num(row.purchase_equipment);
     if (totalEquip <= 0) continue;
     const personnel = personnelCosts[row.participant_id] || 0;
-    if (personnel > 0 && totalEquip > personnel * 0.15) equipmentAboveThreshold = true;
+    if (equipmentExceedsPersonnelThreshold(totalEquip, personnel)) equipmentAboveThreshold = true;
     else equipmentBelowThreshold = true;
   }
   // The 15 % equipment rule lives here for both models, so no consumer filters
@@ -193,7 +211,7 @@ async function fetchTraditional(proposalId: string): Promise<BudgetSourceData> {
   // participants whose equipment exceeds 15 % of their personnel costs appear.
   categories.equipment = categories.equipment.filter((entry) => {
     const personnel = personnelCosts[entry.participantId] || 0;
-    return personnel > 0 && entry.totalCost > personnel * 0.15;
+    return equipmentExceedsPersonnelThreshold(entry.totalCost, personnel);
   });
 
   return {
@@ -319,7 +337,7 @@ async function fetchLumpSum(proposalId: string): Promise<BudgetSourceData> {
     );
     personnelCosts[participantId] = totals.personnelCost;
     if (totals.equipmentCost <= 0) continue;
-    if (totals.personnelCost > 0 && totals.equipmentCost > totals.personnelCost * 0.15) equipmentAboveThresholdFor.add(participantId);
+    if (equipmentExceedsPersonnelThreshold(totals.equipmentCost, totals.personnelCost)) equipmentAboveThresholdFor.add(participantId);
     else equipmentBelowThreshold = true;
   }
 
@@ -406,6 +424,17 @@ export interface EvaluationBudgetParticipant {
   requestedEu: number;
   totalEligible: number;
   fundingRate: number;
+  subcontracting: number;
+  equipment: number;
+  personnel: number;
+  /** equipment / personnel; 0 when personnel is 0. */
+  equipmentRatio: number;
+}
+
+export interface RequiredJustificationTable {
+  table: '3.1.g' | '3.1.h';
+  required: boolean;
+  reason: string;
 }
 
 export interface EvaluationBudget {
@@ -414,6 +443,57 @@ export interface EvaluationBudget {
   totalIndirect: number;
   totalEligible: number;
   perParticipant: EvaluationBudgetParticipant[];
+  requiredJustificationTables: RequiredJustificationTable[];
+}
+
+const describeParticipant = (p: EvaluationBudgetParticipant) =>
+  `participant ${p.participantNumber ?? '?'}${p.shortName ? ` (${p.shortName})` : ''}`;
+
+/**
+ * Derives which B3.1 cost justification tables the template requires, using the
+ * SAME rule the adapter already applies elsewhere in this file:
+ *  - 3.1.g when any participant has subcontracting costs > 0;
+ *  - 3.1.h when any participant's equipment costs exceed 15 % of that
+ *    participant's personnel costs (per participant, equipment only).
+ * The combined travel + equipment + other-goods 15 % test is a DIFFERENT
+ * obligation (the lump sum Excel budget's comments sheet) and is deliberately
+ * not computed here.
+ */
+export function deriveRequiredJustificationTables(
+  perParticipant: EvaluationBudgetParticipant[],
+): RequiredJustificationTable[] {
+  const withSub = perParticipant.filter((p) => p.subcontracting > 0);
+  const overThreshold = perParticipant.filter((p) =>
+    equipmentExceedsPersonnelThreshold(p.equipment, p.personnel),
+  );
+  const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+  return [
+    {
+      table: '3.1.g',
+      required: withSub.length > 0,
+      reason: withSub.length
+        ? `Required: subcontracting costs of €${withSub
+            .map((p) => `${p.subcontracting.toFixed(2)} for ${describeParticipant(p)}`)
+            .join('; €')}.`
+        : 'Not required: no participant has subcontracting costs.',
+    },
+    {
+      table: '3.1.h',
+      required: overThreshold.length > 0,
+      reason: overThreshold.length
+        ? `Required: equipment is ${overThreshold
+            .map((p) => `${pct(p.equipmentRatio)} of personnel costs for ${describeParticipant(p)}`)
+            .join('; ')}, above the 15% threshold.`
+        : `Not required: no participant's equipment costs exceed 15% of their personnel costs (highest is ${
+            perParticipant.length
+              ? `${pct(Math.max(...perParticipant.map((p) => p.equipmentRatio)))} for ${describeParticipant(
+                  perParticipant.reduce((a, b) => (b.equipmentRatio > a.equipmentRatio ? b : a)),
+                )}`
+              : 'n/a'
+          }).`,
+    },
+  ];
 }
 
 /**
@@ -474,6 +554,15 @@ export async function fetchEvaluationBudget(proposalId: string): Promise<Evaluat
       totalDirectCosts += output.directCosts;
       totalIndirect += output.indirect;
       totalEligible += output.totalEligible;
+      // Personnel is derived exactly as fetchTraditional() derives it, so the
+      // 15 % equipment test sees the same denominator in both places.
+      const pmRate = row.pm_rate != null ? Number(row.pm_rate) : 0;
+      const personnel =
+        pmRate > 0
+          ? Math.round(pmRate * (pmTotals.get(row.participant_id) || 0))
+          : Number(row.personnel_costs ?? 0) || 0;
+      const equipment = Number(row.purchase_equipment ?? 0) || 0;
+      const subcontracting = Number(row.subcontracting_costs ?? 0) || 0;
       perParticipant.push({
         participantId: row.participant_id,
         participantNumber: participant?.participant_number ?? null,
@@ -481,11 +570,22 @@ export async function fetchEvaluationBudget(proposalId: string): Promise<Evaluat
         requestedEu: output.requestedEuContribution,
         totalEligible: output.totalEligible,
         fundingRate: output.fundingRate,
+        subcontracting,
+        equipment,
+        personnel,
+        equipmentRatio: personnel > 0 ? equipment / personnel : 0,
       });
     }
 
     perParticipant.sort((a, b) => (a.participantNumber || 999) - (b.participantNumber || 999));
-    return { totalRequestedEu, totalDirectCosts, totalIndirect, totalEligible, perParticipant };
+    return {
+      totalRequestedEu,
+      totalDirectCosts,
+      totalIndirect,
+      totalEligible,
+      perParticipant,
+      requiredJustificationTables: deriveRequiredJustificationTables(perParticipant),
+    };
   }
 
   const [wpResult, roleResult, effortResult, budgetResult, costResult, depreciationResult, wpBudgetResult] = await Promise.all([
@@ -556,6 +656,24 @@ export async function fetchEvaluationBudget(proposalId: string): Promise<Evaluat
     totalDirectCosts += participantDirectCosts;
     totalIndirect += participantIndirect;
     totalEligible += participantEligible;
+    // Equipment / personnel exactly as fetchLumpSum() computes them for the
+    // 15 % test: all C.2 sub-lines plus depreciation included in C.2.
+    const ratioTotals = equipmentAndPersonnelTotals(
+      participantRoles.filter((role) => /^A\.[1-4]$/.test(role.cost_line)),
+      efforts,
+      workPackages,
+      Number(participantBudget?.a4_unit_cost ?? 0),
+      (participantCosts as LumpSumCostItem[]).map((item) =>
+        item.cost_line.startsWith('C.2.') ? { ...item, cost_line: 'C.2.equipment' } : item,
+      ),
+      (participantDepreciation as DepreciationItem[]).map((item) =>
+        item.include_in_c2 ? { ...item, resource_type: 'equipment' } : item,
+      ),
+    );
+    const subcontracting = participantCosts
+      .filter((item: any) => item.cost_line === 'B.1')
+      .reduce((sum: number, item: any) => sum + num(item.amount), 0);
+
     perParticipant.push({
       participantId: participant.id,
       participantNumber: participant.participant_number ?? null,
@@ -563,6 +681,11 @@ export async function fetchEvaluationBudget(proposalId: string): Promise<Evaluat
       requestedEu: participantRequestedEu,
       totalEligible: participantEligible,
       fundingRate,
+      subcontracting,
+      equipment: ratioTotals.equipmentCost,
+      personnel: ratioTotals.personnelCost,
+      equipmentRatio:
+        ratioTotals.personnelCost > 0 ? ratioTotals.equipmentCost / ratioTotals.personnelCost : 0,
     });
   }
 
@@ -573,6 +696,7 @@ export async function fetchEvaluationBudget(proposalId: string): Promise<Evaluat
     totalIndirect: roundCents(totalIndirect),
     totalEligible: roundCents(totalEligible),
     perParticipant,
+    requiredJustificationTables: deriveRequiredJustificationTables(perParticipant),
   };
 }
 
