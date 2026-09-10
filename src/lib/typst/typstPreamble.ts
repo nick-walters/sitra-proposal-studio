@@ -378,7 +378,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /// Acronym: coloured segments, no shape, drawn in the DISPLAY face so it
 /// matches the editors, which render the acronym chip in Arial Black.
-/// `${TYPST_DISPLAY}` ships a single Regular face at usWeightClass 400 — it is
+/// Archivo Black ships a single Regular face at usWeightClass 400 — it is
 /// already a black design — so the weight stays "regular"; asking for "bold"
 /// only triggers synthetic emboldening, which is why every other display call
 /// site in this file does the same.
