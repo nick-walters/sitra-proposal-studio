@@ -185,3 +185,28 @@ table[data-table-key] > * > tr > td {
 .figure-caption-row .caption-label {
   color: #000 !important;
 }
+
+/* ── Author-set per-cell horizontal rules ────────────────────────────────── */
+/* `data-rule-bottom` on a cell overrides the default rule UNDER that cell.
+   Values reuse the two existing border tokens; no vertical or outer rules. */
+.card-table th[data-rule-bottom="thick"],
+.card-table td[data-rule-bottom="thick"],
+.he-table th[data-rule-bottom="thick"],
+.he-table td[data-rule-bottom="thick"],
+.ProseMirror table th[data-rule-bottom="thick"],
+.ProseMirror table td[data-rule-bottom="thick"],
+.document-content table th[data-rule-bottom="thick"],
+.document-content table td[data-rule-bottom="thick"] {
+  border-bottom: var(--card-table-header-border, 1.5px solid #000000) !important;
+}
+
+.card-table th[data-rule-bottom="thin"],
+.card-table td[data-rule-bottom="thin"],
+.he-table th[data-rule-bottom="thin"],
+.he-table td[data-rule-bottom="thin"],
+.ProseMirror table th[data-rule-bottom="thin"],
+.ProseMirror table td[data-rule-bottom="thin"],
+.document-content table th[data-rule-bottom="thin"],
+.document-content table td[data-rule-bottom="thin"] {
+  border-bottom: var(--card-table-body-border, 1px solid #e5e7eb) !important;
+}
