@@ -61,7 +61,6 @@ import { useSectionLocking } from "@/hooks/useSectionLocking";
 import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useBlockLocking } from "@/hooks/useBlockLocking";
-import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { renumberH3Headings } from "@/lib/renumberH3Headings";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
