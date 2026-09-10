@@ -55,8 +55,19 @@ export function ProposalBanner({
     },
   });
 
-  const topicLine = overrides?.banner_topic_line_override ?? computedTopicLine;
-  const titleLine = overrides?.banner_title_override ?? title;
+  // A manual override exists only to control where the lines break — it must
+  // never freeze old wording. If the underlying A1 value has since changed,
+  // the override no longer matches it once whitespace is ignored, so it is
+  // stale and the live A1 value wins.
+  const sameWords = (a: string, b: string) =>
+    a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
+
+  const topicOverride = overrides?.banner_topic_line_override;
+  const titleOverride = overrides?.banner_title_override;
+
+  const topicLine =
+    topicOverride && sameWords(topicOverride, computedTopicLine) ? topicOverride : computedTopicLine;
+  const titleLine = titleOverride && sameWords(titleOverride, title) ? titleOverride : title;
 
   const saveOverride = async (
     field: 'banner_topic_line_override' | 'banner_title_override',
