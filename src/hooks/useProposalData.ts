@@ -500,16 +500,27 @@ export function useProposalData(proposalId: string) {
       return;
     }
 
+    let reseqFailed = false;
     if (proposalId) {
       const { error: reseqError } = await supabase.rpc('resequence_participants', {
         p_proposal_id: proposalId,
       });
-      if (reseqError) logError('resequence_participants', reseqError);
+      if (reseqError) {
+        reseqFailed = true;
+        logError('resequence_participants', reseqError);
+      }
     }
 
     await fetchParticipants();
     await refreshReferenceData(queryClient, proposalId);
-    toast.success('Participant deleted');
+    // Renumbering used to fail silently behind a success message, leaving a
+    // gap in the participant numbers. Report it instead.
+    if (reseqFailed) {
+      toast.error('Participant deleted, but renumbering failed — the numbering now has a gap. Please try again or contact support.');
+    } else {
+      toast.success('Participant deleted');
+    }
+
   };
 
   // Add participant member
