@@ -164,13 +164,22 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         const live = getRefDisplayEntry('participant', a.participantId);
         const shortName = live ? live.shortName : a.shortName;
         const label = formatParticipantLabel({ organisation_short_name: shortName });
+        // The number is live data: after a resequence the badge must show the
+        // participant's current position, not the one baked in at insertion.
+        // The stored attribute is only a fallback for a participant the live
+        // map does not know about, and it remains the carrier of whether this
+        // particular tag has a number at all.
+        const liveNumber =
+          live && live.number !== null && live.number !== undefined
+            ? live.number
+            : a.participantNumber;
 
         // Broken only once participant data has arrived, the tag names a
         // participant, and that participant is absent from the live map.
         const broken =
           !!a.participantId && !live && hasPublishedRefDisplay('participant');
 
-        const key = `${label}|${broken ? 'broken' : ''}`;
+        const key = `${label}|${liveNumber ?? ''}|${broken ? 'broken' : ''}`;
         if (key === lastKey) return;
         lastKey = key;
 
@@ -178,8 +187,10 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         dom.setAttribute('class', 'participant-reference-badge');
         dom.setAttribute('contenteditable', 'false');
         if (a.participantId) dom.setAttribute('data-participant-id', a.participantId);
+        // Presence of the stored attribute is the per-tag choice; the value
+        // rendered is the live one.
         if (a.participantNumber !== null && a.participantNumber !== undefined) {
-          dom.setAttribute('data-participant-number', String(a.participantNumber));
+          dom.setAttribute('data-participant-number', String(liveNumber));
         }
         if (a.shortName) dom.setAttribute('data-participant-short-name', a.shortName);
 
