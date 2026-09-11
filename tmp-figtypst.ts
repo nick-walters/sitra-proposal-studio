@@ -1,0 +1,14 @@
+import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+const sess = JSON.parse(fs.readFileSync('/root/.cache/lovable-auth/session.json','utf8')).session;
+const url = process.env.VITE_SUPABASE_URL!;
+const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+const sb = createClient(url, key, { auth: { persistSession: false } });
+await sb.auth.setSession({ access_token: sess.access_token, refresh_token: sess.refresh_token });
+(globalThis as any).__sb = sb;
+const PID='11111111-2222-4333-8444-555566667777';
+const { data: secs } = await sb.from('proposal_template_sections').select('id,section_number,proposal_template_id').eq('section_number','B1.2');
+console.log('sections', secs);
+const { data: cards } = await sb.from('proposal_cards').select('id,title,order_index,section_id').eq('proposal_id',PID).is('deleted_at',null).order('order_index');
+const { data: fields } = await sb.from('card_fields').select('id,card_id,field_role,order_index,content_html').eq('proposal_id',PID).is('deleted_at',null).order('order_index');
+console.log('figure fields', fields?.filter(f=>f.field_role==='figure'));
