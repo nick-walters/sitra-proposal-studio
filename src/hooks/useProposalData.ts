@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
 import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
 import { logError } from '@/lib/logger';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshReferenceData } from '@/lib/referenceData';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
 interface EthicsAssessment {
@@ -67,6 +69,7 @@ interface ProposalData {
 
 export function useProposalData(proposalId: string) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [proposal, setProposal] = useState<ProposalData | null>(null);
   const [proposalError, setProposalError] = useState<'not_found' | 'error' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -454,21 +457,47 @@ export function useProposalData(proposalId: string) {
       // Refresh to get correct state from database
       await fetchParticipants();
     } else {
+      // A reorder writes 1..n itself, but if any row was missing from the
+      // dragged list the sequence could still hold a gap. Closing it here
+      // costs one call and guarantees contiguity, then badges are refreshed.
+      if (proposalId) {
+        const { error: reseqError } = await supabase.rpc('resequence_participants', {
+          p_proposal_id: proposalId,
+        });
+        if (reseqError) logError('resequence_participants', reseqError);
+        else await fetchParticipants();
+      }
+      await refreshReferenceData(queryClient, proposalId);
       toast.success('Participant order saved');
     }
   };
 
   // Delete participant
+  //
+  // Deleting a row used to leave a hole in the numbering (…9, 11…) because
+  // nothing renumbered the survivors. The database routine closes the gap in
+  // the same two-phase way tasks and deliverables are resequenced, and the
+  // reference-data cache is refreshed so participant badges elsewhere pick up
+  // the new numbers without a reload.
   const deleteParticipant = async (id: string) => {
     const { error } = await supabase.from('participants').delete().eq('id', id);
 
     if (error) {
       toast.error('Failed to delete participant');
       logError('useProposalData', error);
-    } else {
-      setParticipants((prev) => prev.filter((p) => p.id !== id));
-      toast.success('Participant deleted');
+      return;
     }
+
+    if (proposalId) {
+      const { error: reseqError } = await supabase.rpc('resequence_participants', {
+        p_proposal_id: proposalId,
+      });
+      if (reseqError) logError('resequence_participants', reseqError);
+    }
+
+    await fetchParticipants();
+    await refreshReferenceData(queryClient, proposalId);
+    toast.success('Participant deleted');
   };
 
   // Add participant member
