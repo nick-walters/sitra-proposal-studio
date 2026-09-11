@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
 import { camelToSnake, snakeToCamel, proposalFromDb, proposalToDb } from '@/lib/proposalMapper';
 import { logError } from '@/lib/logger';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshReferenceData } from '@/lib/referenceData';
 
 // Dynamic ethics assessment interface - supports all fields from EthicsForm
 interface EthicsAssessment {
