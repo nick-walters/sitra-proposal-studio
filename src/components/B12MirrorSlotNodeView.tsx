@@ -74,6 +74,8 @@ export function B12MirrorSlotLiveView({
   const { data: subsections = [] } = useMethodologySubsectionsMirror(proposalId);
   const row = slotKey ? subsections.find((s) => s.key === slotKey) : undefined;
 
+  // Stored subsection HTML is sanitised with the shared editor allow-list
+  // before it reaches the live DOM below.
   const html = row?.contentHtml ? sanitizeEditorHtml(row.contentHtml) : '';
 
   const isMethodologies = slotKey === 'methodologies';

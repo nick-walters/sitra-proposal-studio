@@ -123,7 +123,9 @@ export function B12MethodologiesSlotContent({
   const run = runs[runIndex ?? 0] ?? { items: [], placeholder: null };
 
   const blocks = run.items
-    .map((i) => ({ id: i.id, html: buildItemHtml(i.heading, i.contentHtml) }))
+    // Sanitised once more after assembly: the body is already cleaned inside
+    // buildItemHtml, this guards the composed string that reaches the live DOM.
+    .map((i) => ({ id: i.id, html: sanitizeEditorHtml(buildItemHtml(i.heading, i.contentHtml)) }))
     .filter((b) => b.html);
 
   const placeholder = run.placeholder;
@@ -132,7 +134,7 @@ export function B12MethodologiesSlotContent({
     if (type) {
       const label = getCaseTypeLabel(type.type_code, type.custom_type_name, { plural: true });
       // Heading is derived and always rendered — it labels the table beneath.
-      const html = buildItemHtml(label, placeholder.contentHtml);
+      const html = sanitizeEditorHtml(buildItemHtml(label, placeholder.contentHtml));
       if (html) blocks.push({ id: placeholder.id, html });
     }
   }

@@ -233,7 +233,9 @@ async function buildParticipantListHtml(
       try {
         const resolved = await resolveStorageUrl(p.logoUrl);
         if (resolved) {
-          logoHtml = `<td class="print-td" style="text-align:center;vertical-align:middle;"><img src="${resolved}" crossorigin="anonymous" style="max-width:30px;max-height:30px;object-fit:contain;display:inline-block;" /></td>`;
+          // The resolved URL derives from a stored field, so it is escaped
+          // like every other interpolated value before entering the markup.
+          logoHtml = `<td class="print-td" style="text-align:center;vertical-align:middle;"><img src="${escHtml(resolved)}" crossorigin="anonymous" style="max-width:30px;max-height:30px;object-fit:contain;display:inline-block;" /></td>`;
         }
       } catch { /* skip */ }
     }
