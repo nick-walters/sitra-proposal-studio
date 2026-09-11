@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-const dom = new JSDOM('<!doctype html><html><body></body></html>');
+const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:8080/' });
 (globalThis as any).window = dom.window as any;
 (globalThis as any).document = dom.window.document as any;
 (globalThis as any).Node = dom.window.Node as any;
