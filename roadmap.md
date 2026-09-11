@@ -13,3 +13,5 @@
 - Prompt 143: card dropdown chevrons removed, width deltas applied from single shared width constants, overflow indent fix for selected values.
 
 - [x] Prompt 160: capture B1.1 slow-autosave writer timing/version evidence; fix only after evidence; verify Background and TRL; restore SUSIE-Q field; delete nothing.
+
+- Figure modules: same layout controls as blocks; B3.1 full-width keyed by section; partial unique indexes on card_figure; backup edge function numbering aligned.
