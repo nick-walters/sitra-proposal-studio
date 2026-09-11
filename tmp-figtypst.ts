@@ -5,6 +5,8 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>');
 (globalThis as any).Node = dom.window.Node as any;
 (globalThis as any).Element = dom.window.Element as any;
 (globalThis as any).HTMLElement = dom.window.HTMLElement as any;
+(globalThis as any).location = dom.window.location as any;
+(globalThis as any).localStorage = dom.window.localStorage as any;
 
 import fs from 'fs';
 const sess = JSON.parse(fs.readFileSync('/root/.cache/lovable-auth/session.json','utf8')).session;
