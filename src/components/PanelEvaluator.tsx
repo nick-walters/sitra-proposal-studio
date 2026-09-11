@@ -905,23 +905,10 @@ export function PanelEvaluator({ proposalId }: Props) {
             .join("\n")
         : payload.text;
 
-      // Which B3.1 cost justification tables the template requires. Unlike the
-      // lump-sum "# Budget data" block above, this is appended for BOTH budget
-      // types: without it evaluators infer a deficiency from a table's absence.
-      const justificationTables = computedBudget.requiredJustificationTables ?? [];
-      const renderedProposalWithTables = justificationTables.length
-        ? `${renderedProposal}\n\n# B3.1 cost justification tables\n\n` +
-          `The following cost justification tables are omitted from this proposal because the ` +
-          `Horizon Europe template does not require them for this budget. Their absence is not a deficiency.\n\n` +
-          justificationTables
-            .map(
-              (entry) =>
-                `- Table ${entry.table}: ${entry.required ? "REQUIRED" : "NOT REQUIRED"} — ${entry.reason}`,
-            )
-            .join("\n")
-        : renderedProposal;
-
-      if (!renderedProposalWithTables || renderedProposalWithTables.length < 200) {
+      // Table requirements travel as evaluator metadata below. Keep them out
+      // of the rendered proposal so the model assesses the tables actually
+      // emitted by the Part B document rather than a synthetic content claim.
+      if (!renderedProposal || renderedProposal.length < 200) {
         throw new Error("Rendered proposal payload is empty — aborting.");
       }
 
@@ -939,7 +926,7 @@ export function PanelEvaluator({ proposalId }: Props) {
           proposalStage,
           budgetType: proposalStage === "stage1" ? null : budgetType,
           eligibilityFlags,
-          renderedProposal: renderedProposalWithTables,
+          renderedProposal,
           requiredJustificationTables: computedBudget.requiredJustificationTables ?? null,
           modelOverride: modelChoice,
           // Only sent when the model is not a configured option, so the
