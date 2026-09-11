@@ -1,6 +1,11 @@
-import { Window } from 'happy-dom';
-const w=new Window();
-(globalThis as any).window=w as any;(globalThis as any).document=w.document as any;(globalThis as any).Node=w.Node as any;(globalThis as any).Element=w.Element as any;(globalThis as any).HTMLElement=w.HTMLElement as any;
+import { JSDOM } from 'jsdom';
+const dom = new JSDOM('<!doctype html><html><body></body></html>');
+(globalThis as any).window = dom.window as any;
+(globalThis as any).document = dom.window.document as any;
+(globalThis as any).Node = dom.window.Node as any;
+(globalThis as any).Element = dom.window.Element as any;
+(globalThis as any).HTMLElement = dom.window.HTMLElement as any;
+
 import fs from 'fs';
 const sess = JSON.parse(fs.readFileSync('/root/.cache/lovable-auth/session.json','utf8')).session;
 const mod = await import('@/integrations/supabase/client');
