@@ -3,6 +3,7 @@ export {
   computeFigureNumbers,
   figureLetter,
   type FigureNumberingCard,
+  type FigureNumberingField,
   type FigureNumberingPlacement,
   type FigureNumberingSection,
 } from '../../supabase/functions/_shared/figureNumbering';
@@ -21,13 +22,22 @@ import {
 export async function fetchDerivedFigureNumbers(
   proposalId: string,
 ): Promise<Map<string, string>> {
-  const [placementRes, cardRes] = await Promise.all([
-    supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
+  const [placementRes, cardRes, fieldRes] = await Promise.all([
+    supabase
+      .from('card_figure')
+      .select('card_id, figure_id, field_id')
+      .eq('proposal_id', proposalId),
     supabase
       .from('proposal_cards')
       .select('id, section_id, order_index')
       .eq('proposal_id', proposalId)
       .is('deleted_at', null),
+    // Figure MODULES: their position inside the block decides their letter.
+    supabase
+      .from('card_fields')
+      .select('id, order_index, deleted_at, is_visible')
+      .eq('proposal_id', proposalId)
+      .eq('field_role', 'figure'),
   ]);
   const sectionIds = Array.from(
     new Set((cardRes.data || []).map((c: any) => c.section_id).filter(Boolean)),
@@ -42,6 +52,7 @@ export async function fetchDerivedFigureNumbers(
     (placementRes.data || []) as any[],
     (cardRes.data || []) as any[],
     (sectionRes.data || []) as any[],
+    (fieldRes.data || []) as any[],
   );
 }
 
