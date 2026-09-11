@@ -692,10 +692,12 @@ export type Database = {
           card_id: string
           created_at: string
           custom_width_pct: number
+          field_id: string | null
           figure_id: string | null
           float: string
           group_with_above: boolean
           group_with_below: boolean
+          id: string
           max_width_cm: number | null
           page_break_mode: string
           position_mode: string
@@ -708,10 +710,12 @@ export type Database = {
           card_id: string
           created_at?: string
           custom_width_pct?: number
+          field_id?: string | null
           figure_id?: string | null
           float?: string
           group_with_above?: boolean
           group_with_below?: boolean
+          id?: string
           max_width_cm?: number | null
           page_break_mode?: string
           position_mode?: string
@@ -724,10 +728,12 @@ export type Database = {
           card_id?: string
           created_at?: string
           custom_width_pct?: number
+          field_id?: string | null
           figure_id?: string | null
           float?: string
           group_with_above?: boolean
           group_with_below?: boolean
+          id?: string
           max_width_cm?: number | null
           page_break_mode?: string
           position_mode?: string
@@ -739,8 +745,15 @@ export type Database = {
           {
             foreignKeyName: "card_figure_card_id_fkey"
             columns: ["card_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "proposal_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_figure_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "card_fields"
             referencedColumns: ["id"]
           },
           {
@@ -7376,6 +7389,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_card_figure_module: {
+        Args: { p_card_id: string }
+        Returns: string
+      }
       create_figure_card: {
         Args: { p_figure_id?: string; p_section_id: string }
         Returns: string
@@ -7585,7 +7602,7 @@ export type Database = {
         Returns: number
       }
       save_card_figure: {
-        Args: { p_card_id: string; p_patch: Json }
+        Args: { p_card_id: string; p_field_id?: string; p_patch: Json }
         Returns: Json
       }
       save_card_text: {
