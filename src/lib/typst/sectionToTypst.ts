@@ -535,6 +535,18 @@ export function buildSectionTypstBody(
         // `content_html`, rendered live by `CasesTableLiveView` from
         // `case_drafts`. Walking its HTML therefore yields nothing, so the rows
         // are emitted here from the fetched case data instead.
+        // A figure MODULE renders exactly as a figure block does, in its own
+        // position among the block's modules.
+        if (field.fieldRole === 'figure') {
+          const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+          const placed = options.authoredFigures?.get(field.id) ?? null;
+          const fallbackLabel =
+            ctx.captionNumbering && slot != null
+              ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+              : '';
+          cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, ''));
+          continue;
+        }
         if (field.fieldRole === 'case_placeholder') {
           const numbering = ctx.captionNumbering;
           const label = numbering
