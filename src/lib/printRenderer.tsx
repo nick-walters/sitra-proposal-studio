@@ -477,7 +477,9 @@ export async function buildPrintContainer(
       aiP.style.lineHeight = '1';
       aiP.style.marginTop = '6pt';
       aiP.style.marginBottom = '6pt';
-      aiP.innerHTML = aiHtml;
+      // Stored A1 content is author-supplied: sanitise before it enters the
+      // export DOM, exactly as the section-content insertion below does.
+      aiP.innerHTML = DOMPurify.sanitize(aiHtml, PRINT_SANITIZE_CONFIG);
       container.appendChild(aiP);
     }
 
