@@ -6,7 +6,7 @@ export type CardKind = 'text' | 'figure' | 'outcome_list' | 'references';
 export type CardAnchor = 'head' | 'free' | 'tail';
 export type CardDocument = 'part_b' | 'fstp_annex';
 export type CardOrigin = 'auto' | 'manual';
-export type CardFieldRole = 'narrative' | 'case_placeholder';
+export type CardFieldRole = 'narrative' | 'case_placeholder' | 'figure';
 /** How a block's header behaves: hidden, mirrored to the preview, or editor-only. */
 export type CardTitleMode = 'off' | 'mirrored' | 'editor_only';
 

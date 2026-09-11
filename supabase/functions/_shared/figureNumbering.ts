@@ -31,6 +31,20 @@ export interface FigureNumberingSection {
 export interface FigureNumberingPlacement {
   card_id: string;
   figure_id: string | null;
+  /** Set when the figure is a MODULE inside the block rather than the block. */
+  field_id?: string | null;
+}
+
+/**
+ * The modules of the proposal's blocks. Only figure modules matter here, but
+ * the caller may pass every module: a placement without a matching live module
+ * row is dropped, which is how a deleted figure module leaves the sequence.
+ */
+export interface FigureNumberingField {
+  id: string;
+  order_index: number | null;
+  deleted_at?: string | null;
+  is_visible?: boolean | null;
 }
 
 function cleanSectionNumber(raw: string | null | undefined): string {
@@ -56,26 +70,40 @@ export function computeFigureNumbers(
   placements: ReadonlyArray<FigureNumberingPlacement>,
   cards: ReadonlyArray<FigureNumberingCard>,
   sections: ReadonlyArray<FigureNumberingSection>,
+  /** Figure MODULES take their place by module order inside their block. */
+  fields: ReadonlyArray<FigureNumberingField> = [],
 ): Map<string, string> {
   const sectionById = new Map(sections.map((s) => [s.id, s]));
   const cardById = new Map(cards.map((c) => [c.id, c]));
+  const fieldById = new Map(fields.map((f) => [f.id, f]));
 
   // Group the placed blocks by section, then order them by the block order.
-  const bySection = new Map<string, { order: number; figureId: string }[]>();
+  const bySection = new Map<string, { order: number; fieldOrder: number; figureId: string }[]>();
   for (const p of placements) {
     if (!p.figure_id) continue;
     const card = cardById.get(p.card_id);
     if (!card?.section_id) continue;
     if (!sectionById.has(card.section_id)) continue;
+    // A module placement follows its module's position inside the block; a
+    // deleted or hidden module takes no letter at all.
+    let fieldOrder = -1;
+    if (p.field_id) {
+      const field = fieldById.get(p.field_id);
+      if (!field || field.deleted_at || field.is_visible === false) continue;
+      fieldOrder = field.order_index ?? 0;
+    }
     const bucket = bySection.get(card.section_id) ?? [];
-    bucket.push({ order: card.order_index ?? 0, figureId: p.figure_id });
+    bucket.push({ order: card.order_index ?? 0, fieldOrder, figureId: p.figure_id });
     bySection.set(card.section_id, bucket);
   }
 
   const numbers = new Map<string, string>();
   for (const [sectionId, bucket] of bySection) {
     const sectionNumber = cleanSectionNumber(sectionById.get(sectionId)?.section_number);
-    bucket.sort((a, b) => a.order - b.order || a.figureId.localeCompare(b.figureId));
+    bucket.sort(
+      (a, b) =>
+        a.order - b.order || a.fieldOrder - b.fieldOrder || a.figureId.localeCompare(b.figureId),
+    );
     bucket.forEach((entry, index) => {
       numbers.set(entry.figureId, `${sectionNumber}.${figureLetter(index)}`);
     });

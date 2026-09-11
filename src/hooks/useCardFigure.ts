@@ -10,7 +10,11 @@ import type {
   FigureWidthMode,
 } from '@/lib/figureLayout';
 
-export const cardFigureKey = (cardId: string) => ['card-figure', cardId];
+export const cardFigureKey = (cardId: string, fieldId?: string | null) => [
+  'card-figure',
+  cardId,
+  fieldId ?? null,
+];
 
 /**
  * The three states a figure can be in.
@@ -42,20 +46,26 @@ export interface ProposalFigureOption {
 }
 
 
-/** Figure block placement row. `card_figure` alone decides where it renders. */
-export function useCardFigure(cardId: string) {
+/**
+ * Figure placement row. `card_figure` alone decides where a figure renders.
+ *
+ * With no `fieldId` this is the BLOCK's own figure (`field_id IS NULL`), which
+ * is exactly what it has always been. With a `fieldId` it is a figure MODULE
+ * sitting among the block's other modules.
+ */
+export function useCardFigure(cardId: string, fieldId?: string | null) {
   const queryClient = useQueryClient();
-  const queryKey = cardFigureKey(cardId);
+  const queryKey = cardFigureKey(cardId, fieldId);
 
   const query = useQuery({
     queryKey,
     enabled: !!cardId,
     queryFn: async (): Promise<CardFigureBlockData | null> => {
-      const { data, error } = await supabase
-        .from('card_figure')
-        .select('*')
-        .eq('card_id', cardId)
-        .maybeSingle();
+      const base = supabase.from('card_figure').select('*').eq('card_id', cardId);
+      const { data, error } = await (fieldId
+        ? base.eq('field_id', fieldId)
+        : base.is('field_id', null)
+      ).maybeSingle();
       if (error) throw error;
       return data ? mapCardFigure(data) : null;
     },
@@ -77,6 +87,7 @@ export function useCardFigure(cardId: string) {
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,
         p_patch: patch,
+        p_field_id: fieldId ?? null,
       });
       if (error) throw error;
     },
@@ -85,7 +96,7 @@ export function useCardFigure(cardId: string) {
       // Collapsed blocks show the caption as their one-line summary.
       invalidateCardFigureSummaries(queryClient, cardId);
     },
-    onError: (e: Error) => toast.error(e.message || 'Could not save the figure block'),
+    onError: (e: Error) => toast.error(e.message || 'Could not save the figure'),
   });
 
   return { figureBlock: query.data ?? null, isLoading: query.isLoading, save };
@@ -101,7 +112,7 @@ export function useProposalFigures(proposalId: string) {
     queryKey: ['figures', proposalId],
     enabled: !!proposalId,
     queryFn: async (): Promise<ProposalFigureOption[]> => {
-      const [figRes, placementRes, cardRes] = await Promise.all([
+      const [figRes, placementRes, cardRes, fieldRes] = await Promise.all([
         supabase
           .from('figures')
           .select('id, title, figure_type, caption, content, created_at')
@@ -109,13 +120,21 @@ export function useProposalFigures(proposalId: string) {
           // Soft-deleted figures live in the manager's recycle bin, not here.
           .is('deleted_at', null)
           .order('created_at'),
-        supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
+        supabase
+          .from('card_figure')
+          .select('card_id, figure_id, field_id')
+          .eq('proposal_id', proposalId),
         // Deleted blocks are fetched too: a figure held by a soft-deleted block
         // is a distinct state from an unplaced one.
         supabase
           .from('proposal_cards')
           .select('id, section_id, order_index, deleted_at')
           .eq('proposal_id', proposalId),
+        supabase
+          .from('card_fields')
+          .select('id, order_index, deleted_at, is_visible')
+          .eq('proposal_id', proposalId)
+          .eq('field_role', 'figure'),
       ]);
       if (figRes.error) throw figRes.error;
 
@@ -132,9 +151,19 @@ export function useProposalFigures(proposalId: string) {
 
       // Numbering sees LIVE blocks only, so a soft-deleted block numbers nothing.
       const numbers = computeFigureNumbers(
-        (placementRes.data ?? []) as { card_id: string; figure_id: string | null }[],
+        (placementRes.data ?? []) as {
+          card_id: string;
+          figure_id: string | null;
+          field_id: string | null;
+        }[],
         cards as { id: string; section_id: string | null; order_index: number | null }[],
         sections as { id: string; section_number: string | null; order_index: number | null }[],
+        (fieldRes.data ?? []) as {
+          id: string;
+          order_index: number | null;
+          deleted_at: string | null;
+          is_visible: boolean | null;
+        }[],
       );
       const cardById = new Map(allCards.map((c) => [c.id, c]));
       const sectionById = new Map(sections.map((s) => [s.id, s]));

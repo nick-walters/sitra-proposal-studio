@@ -147,6 +147,28 @@ export function useCardMutations(proposalId: string, sectionId: string) {
 
 
   /**
+   * A FIGURE module: a `card_fields` row plus its own `card_figure` placement,
+   * created together server-side so a module can never exist without one.
+   */
+  const createFigureField = useMutation({
+    mutationFn: async (input: { cardId: string }): Promise<CardField> => {
+      const { data: newId, error } = await supabase.rpc('create_card_figure_module', {
+        p_card_id: input.cardId,
+      });
+      if (error) throw error;
+      const { data, error: readErr } = await supabase
+        .from('card_fields')
+        .select('*')
+        .eq('id', newId as string)
+        .single();
+      if (readErr) throw readErr;
+      return mapField(data);
+    },
+    onSuccess: (field) => invalidateFields(field.cardId),
+    onError: (e: Error) => toast.error(e.message || 'Could not add the figure module'),
+  });
+
+  /**
    * Metadata-only field update. Content is deliberately NOT accepted here: it
    * must go through `save_card_text`, which carries the version check.
    */
@@ -242,6 +264,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     updateCard,
     reorderCards,
     createField,
+    createFigureField,
     updateField,
     reorderFields,
     deleteCard,

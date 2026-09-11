@@ -132,6 +132,12 @@ import { captionLetter, countCaptionSlots } from '@/lib/cards/captionSlots';
 import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards, invalidateCardFieldsBatches } from '@/hooks/useCardFields';
@@ -324,6 +330,10 @@ interface FieldRowProps {
   captionSectionNumber?: string;
   /** Template key of the owning block, e.g. 'b21.impact_summary'. */
   cardTemplateKey?: string | null;
+  /** "Figure 1.2.a." for a FIGURE module, derived from document order. */
+  figureCaptionLabel?: string;
+  /** The section renders every figure at full page width (B3.1). */
+  figuresFullWidth?: boolean;
 }
 
 
@@ -348,7 +358,8 @@ function FieldRow({
   captionNumbering,
   captionSectionNumber,
   cardTemplateKey,
-
+  figureCaptionLabel,
+  figuresFullWidth,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -447,6 +458,8 @@ function FieldRow({
   };
 
   const isPlaceholder = field.fieldRole === 'case_placeholder';
+  /** A figure sitting among the block's modules rather than as its own block. */
+  const isFigureModule = field.fieldRole === 'figure';
 
   // While another user holds the lock the same editor instance stays mounted
   // (non-editable) and mirrors their live text; when the lock is released the
@@ -478,7 +491,7 @@ function FieldRow({
   // The page-like editing surface is now the standard for every text module
   // in every Part B block. Case-study placeholder modules are not text
   // modules: they render a live table, so they keep the plain module frame.
-  const isDocumentSurface = !isPlaceholder;
+  const isDocumentSurface = !isPlaceholder && !isFigureModule;
 
   // A hidden module dims its CONTENT, exactly as a hidden block does. The dim
   // cannot live on the module wrapper: dnd-kit writes an inline `opacity` there
@@ -794,7 +807,27 @@ function FieldRow({
         </div>
       )}
 
-      {!isPlaceholder && (
+      {isFigureModule && (
+        <div
+          className={
+            collapsed || moduleCollapsed
+              ? 'hidden'
+              : `doc-surface-page bg-white px-[1.5cm] py-[3pt] ${fieldDimClass}`
+          }
+        >
+          <CardFigureBlock
+            cardId={field.cardId}
+            fieldId={field.id}
+            proposalId={proposalId}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            fullWidthOnly={figuresFullWidth}
+            captionLabel={figureCaptionLabel ?? 'Figure.'}
+          />
+        </div>
+      )}
+
+      {!isPlaceholder && !isFigureModule && (
         <div
           className={
             (collapsed || moduleCollapsed) && !(isDocumentSurface && headerField)
@@ -903,6 +936,8 @@ interface CardBlockProps {
   caseLetterByFieldId: Record<string, number>;
   /** Where each module's text box starts in the section caption sequences. */
   captionNumberingByFieldId?: Record<string, CaptionNumbering>;
+  /** "Figure 1.2.a." for each FIGURE module, keyed by module id. */
+  figureCaptionByFieldId?: Record<string, string>;
   /** Section number without the "B" prefix, e.g. "1.2". */
   captionSectionNumber?: string;
   collapsed: boolean;
@@ -918,7 +953,7 @@ interface CardBlockProps {
   onRename: (card: ProposalCard, title: string | null) => void;
   onToggleVisible: (card: ProposalCard) => void;
   onDeleteCard: (card: ProposalCard) => void;
-  onAddField: (card: ProposalCard) => void;
+  onAddField: (card: ProposalCard, kind: 'text' | 'figure') => void;
   onReorderFields: (card: ProposalCard, orderedIds: string[]) => void;
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
@@ -951,6 +986,7 @@ function CardBlock({
   caseTypeLabels,
   caseLetterByFieldId,
   captionNumberingByFieldId,
+  figureCaptionByFieldId,
   captionSectionNumber,
   collapsed,
   userCollapsed,
@@ -1493,17 +1529,30 @@ function CardBlock({
                 </Button>
               </Tip>
             ) : canAddModule ? (
-              <Tip label="Add module to this block">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Add module to this block"
-                  onClick={() => onAddField(card)}
-                >
-                  <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
-                </Button>
-              </Tip>
+              // A module is either text or a figure, mirroring the choice the
+              // add-block dialog offers for whole blocks.
+              <DropdownMenu>
+                <Tip label="Add module to this block">
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label="Add module to this block"
+                    >
+                      <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </Tip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => onAddField(card, 'text')}>
+                    Text module
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onAddField(card, 'figure')}>
+                    Figure module
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
 
             {/* Column 4 — restore. Only blocks that own deletable children
@@ -1723,6 +1772,8 @@ function CardBlock({
                         }
                         caseLetterIndex={caseLetterByFieldId[f.id] ?? 0}
                         captionNumbering={captionNumberingByFieldId?.[f.id] ?? null}
+                        figureCaptionLabel={figureCaptionByFieldId?.[f.id]}
+                        figuresFullWidth={figuresFullWidth}
                         captionSectionNumber={captionSectionNumber}
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
@@ -1955,6 +2006,7 @@ function BoardInner({
     updateCard,
     reorderCards,
     createField,
+    createFigureField,
     updateField,
     reorderFields,
     deleteCard,
@@ -2484,6 +2536,7 @@ function BoardInner({
     const cardLabels: Record<string, string> = {};
     const caseLetters: Record<string, number> = {};
     const fieldNumbering: Record<string, CaptionNumbering> = {};
+    const fieldFigureLabels: Record<string, string> = {};
     let tableIdx = 0;
     let figureIdx = 0;
 
@@ -2513,6 +2566,12 @@ function BoardInner({
           tableIdx += 1;
           continue;
         }
+        // A figure MODULE takes the next figure letter, in module order.
+        if (f.fieldRole === 'figure') {
+          fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+          figureIdx += 1;
+          continue;
+        }
         fieldNumbering[f.id] = {
           sectionNumber: captionNumber,
           tableOffset: tableIdx,
@@ -2524,7 +2583,7 @@ function BoardInner({
       }
     }
 
-    return { cardLabels, caseLetters, fieldNumbering };
+    return { cardLabels, caseLetters, fieldNumbering, fieldFigureLabels };
     // visibleCard derives from sectionCitesAnything and isCoordinator.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -2541,6 +2600,7 @@ function BoardInner({
   const caseLetterByFieldId = numbering.caseLetters;
   /** B3.1 numbers its own captions; every other section derives them here. */
   const captionNumberingByFieldId = isB31 ? undefined : numbering.fieldNumbering;
+  const figureCaptionByFieldId = numbering.fieldFigureLabels;
 
 
   const handleCreateBlock = (choice: NewBlockChoice) => {
@@ -2575,6 +2635,7 @@ function BoardInner({
       : {}),
     captionLabel: captionLabels[card.id],
     captionNumberingByFieldId,
+    figureCaptionByFieldId,
     captionSectionNumber: captionNumber,
     figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
@@ -2613,8 +2674,8 @@ function BoardInner({
     onToggleVisible: (c: ProposalCard) =>
       updateCard.mutate({ cardId: c.id, isVisible: !c.isVisible }),
     onDeleteCard: (c: ProposalCard) => deleteCard.mutate(c.id),
-    onAddField: (c: ProposalCard) =>
-      createField.mutate(
+    onAddField: (c: ProposalCard, kind: 'text' | 'figure' = 'text') =>
+      (kind === 'figure' ? createFigureField : createField).mutate(
         { cardId: c.id },
         // Same helper as a new block: bring the new module into view.
         { onSuccess: (f) => jumpToRestored('field', f.id) },

@@ -170,13 +170,21 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
   // Figure numbers are DERIVED from the block that places the figure — the
   // stored `figures.figure_number` column is never read. See
   // supabase/functions/_shared/figureNumbering.ts.
-  const [placementRes, cardRes] = await Promise.all([
-    supabase.from('card_figure').select('card_id, figure_id').eq('proposal_id', proposalId),
+  const [placementRes, cardRes, figFieldRes] = await Promise.all([
+    supabase
+      .from('card_figure')
+      .select('card_id, figure_id, field_id')
+      .eq('proposal_id', proposalId),
     supabase
       .from('proposal_cards')
       .select('id, section_id, order_index')
       .eq('proposal_id', proposalId)
       .is('deleted_at', null),
+    supabase
+      .from('card_fields')
+      .select('id, order_index, deleted_at, is_visible')
+      .eq('proposal_id', proposalId)
+      .eq('field_role', 'figure'),
   ]);
   const sectionIds = Array.from(
     new Set((cardRes.data || []).map((c: any) => c.section_id).filter(Boolean)),
@@ -191,6 +199,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
     (placementRes.data || []) as any[],
     (cardRes.data || []) as any[],
     (sectionRes.data || []) as any[],
+    (figFieldRes.data || []) as any[],
   );
 
   // Citation display numbers are DERIVED the same way: the internal `ref_key`
