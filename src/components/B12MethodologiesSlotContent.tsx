@@ -123,7 +123,9 @@ export function B12MethodologiesSlotContent({
   const run = runs[runIndex ?? 0] ?? { items: [], placeholder: null };
 
   const blocks = run.items
-    .map((i) => ({ id: i.id, html: buildItemHtml(i.heading, i.contentHtml) }))
+    // Sanitised once more after assembly: the body is already cleaned inside
+    // buildItemHtml, this guards the composed string that reaches the live DOM.
+    .map((i) => ({ id: i.id, html: sanitizeEditorHtml(buildItemHtml(i.heading, i.contentHtml)) }))
     .filter((b) => b.html);
 
   const placeholder = run.placeholder;
