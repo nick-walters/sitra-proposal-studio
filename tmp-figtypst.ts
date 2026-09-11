@@ -1,4 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { Window } from 'happy-dom';
+const w=new Window();
+(globalThis as any).window=w as any;(globalThis as any).document=w.document as any;(globalThis as any).Node=w.Node as any;(globalThis as any).Element=w.Element as any;(globalThis as any).HTMLElement=w.HTMLElement as any;
 import fs from 'fs';
 const sess = JSON.parse(fs.readFileSync('/root/.cache/lovable-auth/session.json','utf8')).session;
 const mod = await import('@/integrations/supabase/client');
@@ -12,7 +14,7 @@ const { fetchSectionBlockTree, buildSectionTypstBody } = await import('@/lib/typ
 const { fetchAuthoredFigures } = await import('@/lib/typst/authoredFigures');
 const tree = await fetchSectionBlockTree(PID, sec.id);
 const figs = await fetchAuthoredFigures(PID, sec.id, { textOnly: true });
-console.log('FIGURE BLOCKS', [...figs.blocks.entries()].map(([k,v]:any)=>[k, v.number, v.caption]));
+console.log('FIGURE BLOCKS', [...figs.blocks.entries()].map(([k,v]:any)=>[k, v.label, v.caption, v.status]));
 const built = buildSectionTypstBody(tree, { authoredFigures: figs.blocks, sectionLabel: 'B1.2' } as any);
 const src = built.source;
 const i = src.indexOf('figure');
