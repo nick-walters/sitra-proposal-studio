@@ -324,6 +324,10 @@ interface FieldRowProps {
   captionSectionNumber?: string;
   /** Template key of the owning block, e.g. 'b21.impact_summary'. */
   cardTemplateKey?: string | null;
+  /** "Figure 1.2.a." for a FIGURE module, derived from document order. */
+  figureCaptionLabel?: string;
+  /** The section renders every figure at full page width (B3.1). */
+  figuresFullWidth?: boolean;
 }
 
 
@@ -447,6 +451,8 @@ function FieldRow({
   };
 
   const isPlaceholder = field.fieldRole === 'case_placeholder';
+  /** A figure sitting among the block's modules rather than as its own block. */
+  const isFigureModule = field.fieldRole === 'figure';
 
   // While another user holds the lock the same editor instance stays mounted
   // (non-editable) and mirrors their live text; when the lock is released the
@@ -478,7 +484,7 @@ function FieldRow({
   // The page-like editing surface is now the standard for every text module
   // in every Part B block. Case-study placeholder modules are not text
   // modules: they render a live table, so they keep the plain module frame.
-  const isDocumentSurface = !isPlaceholder;
+  const isDocumentSurface = !isPlaceholder && !isFigureModule;
 
   // A hidden module dims its CONTENT, exactly as a hidden block does. The dim
   // cannot live on the module wrapper: dnd-kit writes an inline `opacity` there
@@ -794,7 +800,27 @@ function FieldRow({
         </div>
       )}
 
-      {!isPlaceholder && (
+      {isFigureModule && (
+        <div
+          className={
+            collapsed || moduleCollapsed
+              ? 'hidden'
+              : `doc-surface-page bg-white px-[1.5cm] py-[3pt] ${fieldDimClass}`
+          }
+        >
+          <CardFigureBlock
+            cardId={field.cardId}
+            fieldId={field.id}
+            proposalId={proposalId}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+            fullWidthOnly={figuresFullWidth}
+            captionLabel={figureCaptionLabel ?? 'Figure.'}
+          />
+        </div>
+      )}
+
+      {!isPlaceholder && !isFigureModule && (
         <div
           className={
             (collapsed || moduleCollapsed) && !(isDocumentSurface && headerField)

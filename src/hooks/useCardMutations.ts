@@ -264,6 +264,7 @@ export function useCardMutations(proposalId: string, sectionId: string) {
     updateCard,
     reorderCards,
     createField,
+    createFigureField,
     updateField,
     reorderFields,
     deleteCard,
