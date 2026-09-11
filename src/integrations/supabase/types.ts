@@ -7420,7 +7420,7 @@ export type Database = {
       }
       delete_proposal: { Args: { _proposal_id: string }; Returns: undefined }
       editable_participant_ids: {
-        Args: { _proposal_id: string; _user_id?: string }
+        Args: { _proposal_id: string }
         Returns: string[]
       }
       ensure_template_draft: {
