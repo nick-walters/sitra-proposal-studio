@@ -219,6 +219,9 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
           'link_description_html, responsible_participant_id, order_index',
       )
       .eq('proposal_id', proposalId)
+      // Soft-deleted rows sit in the 1.2.b recycle bin and are hidden in the
+      // editor; the export must hide them too.
+      .is('deleted_at', null)
       .order('order_index'),
   ]);
 
