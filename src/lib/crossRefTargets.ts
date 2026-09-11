@@ -109,7 +109,10 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
       .eq('proposal_id', proposalId)
       .is('deleted_at', null)
       .eq('is_visible', true),
-    supabase.from('card_figure').select('card_id, figure_id, caption').eq('proposal_id', proposalId),
+    supabase
+      .from('card_figure')
+      .select('card_id, figure_id, caption, field_id')
+      .eq('proposal_id', proposalId),
     supabase.from('figures').select('id, title, caption, deleted_at').eq('proposal_id', proposalId),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
     // The pilots table's caption belongs to the CASE TYPE it is bound to — the
@@ -151,8 +154,16 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
   }
   for (const list of fieldsByCard.values()) list.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
+  // Block placements key by block; MODULE placements key by module.
   const placementByCard = new Map(
-    (placementRes.data || []).map((p) => [p.card_id as string, p]),
+    (placementRes.data || [])
+      .filter((p) => !p.field_id)
+      .map((p) => [p.card_id as string, p]),
+  );
+  const placementByField = new Map(
+    (placementRes.data || [])
+      .filter((p) => !!p.field_id)
+      .map((p) => [p.field_id as string, p]),
   );
   const figureById = new Map((figureRes.data || []).map((f) => [f.id, f]));
   const captionOverride = new Map(
@@ -162,9 +173,14 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
   // Figure NUMBERS come from the one shared authority the board and the
   // previews already use, so a figure never shows two different numbers.
   const figureNumbers = computeFigureNumbers(
-    (placementRes.data || []) as { card_id: string; figure_id: string | null }[],
+    (placementRes.data || []) as {
+      card_id: string;
+      figure_id: string | null;
+      field_id: string | null;
+    }[],
     cards as { id: string; section_id: string | null; order_index: number | null }[],
     sections as { id: string; section_number: string | null; order_index: number | null }[],
+    (fieldRes.data || []) as { id: string; order_index: number | null }[],
   );
 
   const figures: CrossRefTarget[] = [];
@@ -239,6 +255,25 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
       if (card.is_source_fed || card.kind === 'references') continue;
 
       for (const field of fieldsByCard.get(card.id) || []) {
+        // A figure MODULE takes its place in the section's figure sequence
+        // exactly as a figure block does.
+        if (field.field_role === 'figure') {
+          const placement = placementByField.get(field.id);
+          const figureId = (placement?.figure_id as string | null) ?? null;
+          const figure = figureId ? figureById.get(figureId) : null;
+          figures.push({
+            kind: 'figure',
+            label:
+              (figureId && figureNumbers.get(figureId)) ||
+              `${number}.${captionLetter(figureIdx)}`,
+            title:
+              ((placement?.caption as string | null) || figure?.caption || figure?.title || '').trim(),
+            sectionId: section.id,
+            figureId: figureId || undefined,
+          });
+          figureIdx += 1;
+          continue;
+        }
         if (field.field_role === 'case_placeholder') {
           // NOT the block's title: the projected pilots table carries the
           // caption the case manager wrote for its bound case type.

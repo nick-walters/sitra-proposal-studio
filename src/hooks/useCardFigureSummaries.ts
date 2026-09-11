@@ -15,6 +15,9 @@ export function useCardFigureSummaries(cardIds: string[]) {
       const { data: rows, error } = await supabase
         .from('card_figure')
         .select('card_id, figure_id, caption')
+        // Block-level rows only: a figure MODULE is summarised by its block's
+        // own modules, not by the block header.
+        .is('field_id', null)
         .in('card_id', cardIds);
       if (error) throw error;
 

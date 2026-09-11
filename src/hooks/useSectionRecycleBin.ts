@@ -68,6 +68,7 @@ export function useSectionRecycleBin(proposalId: string, sectionId?: string) {
         const { data: figBlocks } = await supabase
           .from('card_figure')
           .select('card_id, figure_id, caption')
+          .is('field_id', null)
           .in('card_id', cardIds);
         const figureIds = (figBlocks || []).map((b) => b.figure_id).filter(Boolean) as string[];
         const { data: figs } = figureIds.length
