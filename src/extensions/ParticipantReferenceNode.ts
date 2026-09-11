@@ -179,7 +179,7 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         const broken =
           !!a.participantId && !live && hasPublishedRefDisplay('participant');
 
-        const key = `${label}|${broken ? 'broken' : ''}`;
+        const key = `${label}|${liveNumber ?? ''}|${broken ? 'broken' : ''}`;
         if (key === lastKey) return;
         lastKey = key;
 
@@ -187,8 +187,10 @@ export const ParticipantReferenceNode = Node.create<ParticipantReferenceOptions>
         dom.setAttribute('class', 'participant-reference-badge');
         dom.setAttribute('contenteditable', 'false');
         if (a.participantId) dom.setAttribute('data-participant-id', a.participantId);
+        // Presence of the stored attribute is the per-tag choice; the value
+        // rendered is the live one.
         if (a.participantNumber !== null && a.participantNumber !== undefined) {
-          dom.setAttribute('data-participant-number', String(a.participantNumber));
+          dom.setAttribute('data-participant-number', String(liveNumber));
         }
         if (a.shortName) dom.setAttribute('data-participant-short-name', a.shortName);
 
