@@ -120,6 +120,7 @@ export interface TypstLinkedActivity {
   duration_end: number | null;
   link_description_html: string | null;
   responsible_participant_id: string | null;
+  deleted_at: string | null;
 }
 
 export interface TypstFigureMeta {
@@ -216,7 +217,7 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
       .from('methodology_linked_activities')
       .select(
         'id, acronym, instrument_code, instrument_custom, duration_start, duration_end, ' +
-          'link_description_html, responsible_participant_id, order_index',
+          'link_description_html, responsible_participant_id, order_index, deleted_at',
       )
       .eq('proposal_id', proposalId)
       // Soft-deleted rows sit in the 1.2.b recycle bin and are hidden in the
@@ -439,7 +440,11 @@ export async function fetchB31TypstData(proposalId: string): Promise<B31TypstDat
     risks,
     subcontracting,
     purchaseBlocks,
-    linkedActivities: ((activityRows as any[]) || []) as TypstLinkedActivity[],
+    // Defence in depth: the server query excludes recycled rows, and this
+    // second check prevents a stale/intermediate response from reaching Typst.
+    linkedActivities: (((activityRows as any[]) || []).filter(
+      (activity) => activity.deleted_at == null,
+    )) as TypstLinkedActivity[],
     columnWidths,
     columnHeaders,
     pertFigure: pertFigureRow,

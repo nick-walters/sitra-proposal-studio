@@ -808,9 +808,12 @@ const LINKED_ACTIVITIES_CAPTION =
   'How relevant research & innovation activities will be linked & whom will establish the link';
 
 export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): string[] {
-  if (!data.linkedActivities.length) return [];
+  // Never trust a previously assembled source-data object to have applied the
+  // recycle-bin filter: deleted activities must not enter either preview or export.
+  const linkedActivities = data.linkedActivities.filter((activity) => activity.deleted_at == null);
+  if (!linkedActivities.length) return [];
   const byId = new Map(data.participants.map((p) => [p.id, p]));
-  const rows = data.linkedActivities.map((a) => {
+  const rows = linkedActivities.map((a) => {
     const abbrev = getInstrumentAbbreviation(a.instrument_code, a.instrument_custom);
     const duration = formatDurationShort(a.duration_start, a.duration_end);
     const project = [htmlToPlainText(a.acronym || '').trim(), abbrev, duration]
@@ -825,7 +828,7 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
 
   const legendEntries = Array.from(
     new Map(
-      data.linkedActivities
+      linkedActivities
         .map((a) => [
           getInstrumentAbbreviation(a.instrument_code, a.instrument_custom),
           getInstrumentFullName(a.instrument_code, a.instrument_custom),
