@@ -460,17 +460,29 @@ export function useProposalData(proposalId: string) {
       // A reorder writes 1..n itself, but if any row was missing from the
       // dragged list the sequence could still hold a gap. Closing it here
       // costs one call and guarantees contiguity, then badges are refreshed.
+      let reseqFailed = false;
       if (proposalId) {
         const { error: reseqError } = await supabase.rpc('resequence_participants', {
           p_proposal_id: proposalId,
         });
-        if (reseqError) logError('resequence_participants', reseqError);
-        else await fetchParticipants();
+        if (reseqError) {
+          reseqFailed = true;
+          logError('resequence_participants', reseqError);
+        } else {
+          await fetchParticipants();
+        }
       }
       await refreshReferenceData(queryClient, proposalId);
-      toast.success('Participant order saved');
+      // A silent renumbering failure used to leave a gap behind a success
+      // message, so the failure is surfaced to the author instead.
+      if (reseqFailed) {
+        toast.error('Participant order saved, but renumbering failed — the numbering may have a gap. Please try again or contact support.');
+      } else {
+        toast.success('Participant order saved');
+      }
     }
   };
+
 
   // Delete participant
   //
