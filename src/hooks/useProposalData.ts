@@ -459,16 +459,31 @@ export function useProposalData(proposalId: string) {
   };
 
   // Delete participant
+  //
+  // Deleting a row used to leave a hole in the numbering (…9, 11…) because
+  // nothing renumbered the survivors. The database routine closes the gap in
+  // the same two-phase way tasks and deliverables are resequenced, and the
+  // reference-data cache is refreshed so participant badges elsewhere pick up
+  // the new numbers without a reload.
   const deleteParticipant = async (id: string) => {
     const { error } = await supabase.from('participants').delete().eq('id', id);
 
     if (error) {
       toast.error('Failed to delete participant');
       logError('useProposalData', error);
-    } else {
-      setParticipants((prev) => prev.filter((p) => p.id !== id));
-      toast.success('Participant deleted');
+      return;
     }
+
+    if (proposalId) {
+      const { error: reseqError } = await supabase.rpc('resequence_participants', {
+        p_proposal_id: proposalId,
+      });
+      if (reseqError) logError('resequence_participants', reseqError);
+    }
+
+    await fetchParticipants();
+    await refreshReferenceData(queryClient, proposalId);
+    toast.success('Participant deleted');
   };
 
   // Add participant member
