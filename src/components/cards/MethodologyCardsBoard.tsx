@@ -352,7 +352,8 @@ function FieldRow({
   captionNumbering,
   captionSectionNumber,
   cardTemplateKey,
-
+  figureCaptionLabel,
+  figuresFullWidth,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -929,6 +930,8 @@ interface CardBlockProps {
   caseLetterByFieldId: Record<string, number>;
   /** Where each module's text box starts in the section caption sequences. */
   captionNumberingByFieldId?: Record<string, CaptionNumbering>;
+  /** "Figure 1.2.a." for each FIGURE module, keyed by module id. */
+  figureCaptionByFieldId?: Record<string, string>;
   /** Section number without the "B" prefix, e.g. "1.2". */
   captionSectionNumber?: string;
   collapsed: boolean;
@@ -977,6 +980,7 @@ function CardBlock({
   caseTypeLabels,
   caseLetterByFieldId,
   captionNumberingByFieldId,
+  figureCaptionByFieldId,
   captionSectionNumber,
   collapsed,
   userCollapsed,
@@ -1749,6 +1753,8 @@ function CardBlock({
                         }
                         caseLetterIndex={caseLetterByFieldId[f.id] ?? 0}
                         captionNumbering={captionNumberingByFieldId?.[f.id] ?? null}
+                        figureCaptionLabel={figureCaptionByFieldId?.[f.id]}
+                        figuresFullWidth={figuresFullWidth}
                         captionSectionNumber={captionSectionNumber}
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
@@ -2510,6 +2516,7 @@ function BoardInner({
     const cardLabels: Record<string, string> = {};
     const caseLetters: Record<string, number> = {};
     const fieldNumbering: Record<string, CaptionNumbering> = {};
+    const fieldFigureLabels: Record<string, string> = {};
     let tableIdx = 0;
     let figureIdx = 0;
 
@@ -2539,6 +2546,12 @@ function BoardInner({
           tableIdx += 1;
           continue;
         }
+        // A figure MODULE takes the next figure letter, in module order.
+        if (f.fieldRole === 'figure') {
+          fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+          figureIdx += 1;
+          continue;
+        }
         fieldNumbering[f.id] = {
           sectionNumber: captionNumber,
           tableOffset: tableIdx,
@@ -2550,7 +2563,7 @@ function BoardInner({
       }
     }
 
-    return { cardLabels, caseLetters, fieldNumbering };
+    return { cardLabels, caseLetters, fieldNumbering, fieldFigureLabels };
     // visibleCard derives from sectionCitesAnything and isCoordinator.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -2567,6 +2580,7 @@ function BoardInner({
   const caseLetterByFieldId = numbering.caseLetters;
   /** B3.1 numbers its own captions; every other section derives them here. */
   const captionNumberingByFieldId = isB31 ? undefined : numbering.fieldNumbering;
+  const figureCaptionByFieldId = numbering.fieldFigureLabels;
 
 
   const handleCreateBlock = (choice: NewBlockChoice) => {
@@ -2601,6 +2615,7 @@ function BoardInner({
       : {}),
     captionLabel: captionLabels[card.id],
     captionNumberingByFieldId,
+    figureCaptionByFieldId,
     captionSectionNumber: captionNumber,
     figuresFullWidth,
     fields: fieldsByCard[card.id] ?? [],
