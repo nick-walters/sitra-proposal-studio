@@ -7547,6 +7547,10 @@ export type Database = {
         Args: { p_parent_id: string; p_table: string }
         Returns: number
       }
+      resequence_participants: {
+        Args: { p_proposal_id: string }
+        Returns: undefined
+      }
       resequence_section_cards: {
         Args: { p_section_id: string }
         Returns: undefined
