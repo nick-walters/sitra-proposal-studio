@@ -2006,6 +2006,7 @@ function BoardInner({
     updateCard,
     reorderCards,
     createField,
+    createFigureField,
     updateField,
     reorderFields,
     deleteCard,

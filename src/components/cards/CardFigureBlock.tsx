@@ -189,6 +189,19 @@ export function CardFigureBlock({
         )}
       </div>
 
+      {/* A figure BLOCK opens its controls from the block header; a figure
+          MODULE has no header of its own, so it carries its own opener. */}
+      {fieldId && canEdit && (
+        <div className="flex justify-end">
+          <Tip label="Width, position and page breaks for this figure">
+            <Button size="sm" variant="ghost" onClick={() => setControlsOpen(true)}>
+              <Settings2 className="mr-1 h-3.5 w-3.5" />
+              Figure controls
+            </Button>
+          </Tip>
+        </div>
+      )}
+
       <Dialog open={controlsOpen} onOpenChange={setControlsOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
