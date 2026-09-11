@@ -134,7 +134,7 @@ export function B12MethodologiesSlotContent({
     if (type) {
       const label = getCaseTypeLabel(type.type_code, type.custom_type_name, { plural: true });
       // Heading is derived and always rendered — it labels the table beneath.
-      const html = buildItemHtml(label, placeholder.contentHtml);
+      const html = sanitizeEditorHtml(buildItemHtml(label, placeholder.contentHtml));
       if (html) blocks.push({ id: placeholder.id, html });
     }
   }
