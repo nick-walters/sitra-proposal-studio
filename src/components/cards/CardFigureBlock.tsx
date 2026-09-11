@@ -41,6 +41,11 @@ import { cn } from '@/lib/utils';
 
 interface CardFigureBlockProps {
   cardId: string;
+  /**
+   * Set when the figure is a MODULE inside the block. Left out for a figure
+   * BLOCK, which is the block's own single figure and behaves exactly as before.
+   */
+  fieldId?: string | null;
   proposalId: string;
   canEdit: boolean;
   /** Layout controls are coordinator-or-above only. */
@@ -65,6 +70,7 @@ interface CardFigureBlockProps {
  */
 export function CardFigureBlock({
   cardId,
+  fieldId = null,
   proposalId,
   canEdit,
   isCoordinator,
@@ -72,7 +78,7 @@ export function CardFigureBlock({
   captionLabel,
   onRegisterControls,
 }: CardFigureBlockProps) {
-  const { figureBlock, isLoading, save } = useCardFigure(cardId);
+  const { figureBlock, isLoading, save } = useCardFigure(cardId, fieldId);
   const { data: figures = [] } = useProposalFigures(proposalId);
   const [managerOpen, setManagerOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -270,7 +276,7 @@ export function CardFigureBlock({
                   >
                     {(Object.keys(FIGURE_POSITION_LABELS) as FigurePositionMode[]).map((p) => (
                       <label key={p} className="flex items-center gap-2 text-xs">
-                        <RadioGroupItem value={p} id={`${cardId}-pos-${p}`} />
+                        <RadioGroupItem value={p} id={`${fieldId ?? cardId}-pos-${p}`} />
                         {FIGURE_POSITION_LABELS[p]}
                       </label>
                     ))}
@@ -288,7 +294,7 @@ export function CardFigureBlock({
                 >
                   {(Object.keys(FIGURE_PAGE_BREAK_LABELS) as FigurePageBreakMode[]).map((p) => (
                     <label key={p} className="flex items-center gap-2 text-xs">
-                      <RadioGroupItem value={p} id={`${cardId}-brk-${p}`} />
+                      <RadioGroupItem value={p} id={`${fieldId ?? cardId}-brk-${p}`} />
                       {FIGURE_PAGE_BREAK_LABELS[p]}
                     </label>
                   ))}

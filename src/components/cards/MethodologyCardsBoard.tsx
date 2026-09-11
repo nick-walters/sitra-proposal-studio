@@ -132,6 +132,12 @@ import { captionLetter, countCaptionSlots } from '@/lib/cards/captionSlots';
 import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { AddBlockDialog, type NewBlockChoice } from '@/components/cards/AddBlockDialog';
 import { useSectionRecycleBin } from '@/hooks/useSectionRecycleBin';
 import { useCardFieldsForCards, invalidateCardFieldsBatches } from '@/hooks/useCardFields';
@@ -947,7 +953,7 @@ interface CardBlockProps {
   onRename: (card: ProposalCard, title: string | null) => void;
   onToggleVisible: (card: ProposalCard) => void;
   onDeleteCard: (card: ProposalCard) => void;
-  onAddField: (card: ProposalCard) => void;
+  onAddField: (card: ProposalCard, kind: 'text' | 'figure') => void;
   onReorderFields: (card: ProposalCard, orderedIds: string[]) => void;
   onHeadingChange: (field: CardField, heading: string | null) => void;
   onContentChange: (field: CardField, html: string) => void;
@@ -1523,17 +1529,30 @@ function CardBlock({
                 </Button>
               </Tip>
             ) : canAddModule ? (
-              <Tip label="Add module to this block">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  aria-label="Add module to this block"
-                  onClick={() => onAddField(card)}
-                >
-                  <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
-                </Button>
-              </Tip>
+              // A module is either text or a figure, mirroring the choice the
+              // add-block dialog offers for whole blocks.
+              <DropdownMenu>
+                <Tip label="Add module to this block">
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label="Add module to this block"
+                    >
+                      <Plus className="h-3.5 w-3.5 text-blue-600" strokeWidth={2.5} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </Tip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => onAddField(card, 'text')}>
+                    Text module
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onAddField(card, 'figure')}>
+                    Figure module
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
 
             {/* Column 4 — restore. Only blocks that own deletable children
@@ -2654,8 +2673,8 @@ function BoardInner({
     onToggleVisible: (c: ProposalCard) =>
       updateCard.mutate({ cardId: c.id, isVisible: !c.isVisible }),
     onDeleteCard: (c: ProposalCard) => deleteCard.mutate(c.id),
-    onAddField: (c: ProposalCard) =>
-      createField.mutate(
+    onAddField: (c: ProposalCard, kind: 'text' | 'figure' = 'text') =>
+      (kind === 'figure' ? createFigureField : createField).mutate(
         { cardId: c.id },
         // Same helper as a new block: bring the new module into view.
         { onSuccess: (f) => jumpToRestored('field', f.id) },
