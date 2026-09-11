@@ -53,8 +53,12 @@ export interface RefDisplayEntry {
    */
   segmentColors?: string[];
   /**
-   * WP only: the live number, so the badge can recompose either label form
-   * through `formatWPChipLabel` without parsing the composed label back.
+   * WP and participant: the live number.
+   *
+   * WP badges recompose either label form through `formatWPChipLabel` without
+   * parsing the composed label back. Participant badges carry the number as a
+   * data attribute, which must follow a resequence rather than keep the value
+   * baked in at insertion.
    */
   number?: number | string | null;
 }
