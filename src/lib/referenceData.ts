@@ -408,6 +408,10 @@ export function publishRefSnapshot(d: RefSnapshot): void {
       label: formatParticipantLabel({ organisation_short_name: p.organisation_short_name }),
       shortName: p.organisation_short_name ?? null,
       color: null,
+      // Published alongside the short name so a badge that carries the
+      // participant number reflects a resequence without the document being
+      // rewritten. Whether the number is shown stays a stored, per-tag choice.
+      number: p.participant_number ?? null,
     });
   }
   publishRefDisplayMap('participant', participants);
