@@ -69,6 +69,7 @@ interface ProposalData {
 
 export function useProposalData(proposalId: string) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [proposal, setProposal] = useState<ProposalData | null>(null);
   const [proposalError, setProposalError] = useState<'not_found' | 'error' | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
