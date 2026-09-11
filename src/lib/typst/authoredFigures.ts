@@ -45,6 +45,8 @@ export type AuthoredFigureStatus =
 
 export interface AuthoredFigureBlock {
   cardId: string;
+  /** Set when the figure is a MODULE inside the block, null for a block. */
+  fieldId: string | null;
   status: AuthoredFigureStatus;
   /** Virtual compiler path; only set when `status === 'ok'`. */
   assetPath: string | null;
@@ -60,6 +62,10 @@ export interface AuthoredFigureBlock {
 
 export interface AuthoredFigures {
   assets: TypstAsset[];
+  /**
+   * Keyed by the BLOCK id for a figure block, and by the MODULE id for a
+   * figure module — the two id spaces never collide.
+   */
   blocks: Map<string, AuthoredFigureBlock>;
 }
 
@@ -116,7 +122,7 @@ export async function fetchAuthoredFigures(
 ): Promise<AuthoredFigures> {
   const empty: AuthoredFigures = { assets: [], blocks: new Map() };
 
-  const [placementRes, cardRes, figureRes] = await Promise.all([
+  const [placementRes, cardRes, figureRes, fieldRes] = await Promise.all([
     supabase.from('card_figure').select('*').eq('proposal_id', proposalId),
     supabase
       .from('proposal_cards')
@@ -126,6 +132,11 @@ export async function fetchAuthoredFigures(
       .from('figures')
       .select('id, title, caption, content, deleted_at')
       .eq('proposal_id', proposalId),
+    supabase
+      .from('card_fields')
+      .select('id, card_id, order_index, deleted_at, is_visible')
+      .eq('proposal_id', proposalId)
+      .eq('field_role', 'figure'),
   ]);
   const placements = placementRes.data ?? [];
   const allCards = cardRes.data ?? [];
@@ -144,13 +155,21 @@ export async function fetchAuthoredFigures(
 
   // Numbering is the SAME derived authority the board uses, so the preview
   // never disagrees with the on-screen label.
+  const figureFields = fieldRes.data ?? [];
+  const fieldById = new Map(figureFields.map((f) => [f.id, f]));
   const numbers = computeFigureNumbers(
-    placements as { card_id: string; figure_id: string | null }[],
+    placements as { card_id: string; figure_id: string | null; field_id: string | null }[],
     liveCards as { id: string; section_id: string | null; order_index: number | null }[],
     (sectionRes.data ?? []) as {
       id: string;
       section_number: string | null;
       order_index: number | null;
+    }[],
+    figureFields as {
+      id: string;
+      order_index: number | null;
+      deleted_at: string | null;
+      is_visible: boolean | null;
     }[],
   );
 
@@ -165,6 +184,14 @@ export async function fetchAuthoredFigures(
     const card = cardById.get(cardId);
     if (!card || card.section_id !== sectionId || card.is_visible === false) continue;
 
+    // A MODULE placement renders only while its module is live and visible.
+    const fieldId = (p.field_id as string | null) ?? null;
+    if (fieldId) {
+      const field = fieldById.get(fieldId);
+      if (!field || field.deleted_at || field.is_visible === false) continue;
+    }
+    const key = fieldId ?? cardId;
+
     const figureId = (p.figure_id as string | null) ?? null;
     const figure = figureId ? figureById.get(figureId) : null;
     const widthPct = resolveFigureWidthPct(
@@ -173,6 +200,7 @@ export async function fetchAuthoredFigures(
     );
     const base: AuthoredFigureBlock = {
       cardId,
+      fieldId,
       status: 'ok',
       assetPath: null,
       label: figureId && numbers.has(figureId) ? `Figure ${numbers.get(figureId)}.` : null,
@@ -186,52 +214,52 @@ export async function fetchAuthoredFigures(
     };
 
     if (!figureId) {
-      blocks.set(cardId, { ...base, status: 'no_figure' });
+      blocks.set(key, { ...base, status: 'no_figure' });
       continue;
     }
     // The FK is ON DELETE SET NULL, but a SOFT-deleted figure keeps the link:
     // both read as "the asset is gone" here.
     if (!figure || figure.deleted_at) {
-      blocks.set(cardId, { ...base, status: 'missing_asset' });
+      blocks.set(key, { ...base, status: 'missing_asset' });
       continue;
     }
     const stored = (figure.content as { imageUrl?: string } | null)?.imageUrl ?? null;
     if (!stored) {
       // Canvas figures reach this state until they have been rasterised: the
       // rasteriser writes the bitmap's storage path into the same field.
-      blocks.set(cardId, { ...base, status: 'not_rendered' });
+      blocks.set(key, { ...base, status: 'not_rendered' });
       continue;
     }
 
     if (opts.textOnly) {
       // A path that no compile will ever open: it keeps the block on the same
       // emit branch, so the caption and label text match the real document.
-      blocks.set(cardId, { ...base, assetPath: `/figures/authored-${cardId}.png` });
+      blocks.set(key, { ...base, assetPath: `/figures/authored-${key}.png` });
       continue;
     }
 
     try {
       const url = await resolveStorageUrl(stored);
       if (!url) {
-        blocks.set(cardId, { ...base, status: 'unreadable' });
+        blocks.set(key, { ...base, status: 'unreadable' });
         continue;
       }
       const res = await fetch(url);
       if (!res.ok) {
-        blocks.set(cardId, { ...base, status: 'unreadable' });
+        blocks.set(key, { ...base, status: 'unreadable' });
         continue;
       }
       const raw = new Uint8Array(await res.arrayBuffer());
       const scaled = await downscale(raw, res.headers.get('content-type') || 'image/png');
       if (!scaled) {
-        blocks.set(cardId, { ...base, status: 'unreadable' });
+        blocks.set(key, { ...base, status: 'unreadable' });
         continue;
       }
-      const assetPath = `/figures/authored-${cardId}.${scaled.ext}`;
+      const assetPath = `/figures/authored-${key}.${scaled.ext}`;
       assets.push({ path: assetPath, bytes: scaled.bytes });
-      blocks.set(cardId, { ...base, assetPath });
+      blocks.set(key, { ...base, assetPath });
     } catch {
-      blocks.set(cardId, { ...base, status: 'unreadable' });
+      blocks.set(key, { ...base, status: 'unreadable' });
     }
   }
 
