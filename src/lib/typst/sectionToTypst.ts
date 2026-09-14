@@ -727,9 +727,7 @@ export async function fetchTypstDocMeta(
   const partLabel = sectionNumber
     ? `Part ${sectionNumber}.${sectionTitle ? ` ${sectionTitle}` : ''}`
     : 'Part B';
-  const computedTopic =
-    `${row.topic_id || ''}${row.topic_id && row.topic_title ? ': ' : ''}${row.topic_title || ''}` +
-    `${row.type ? ` (${row.type})` : ''}`;
+  const computedTopic = composeTopicLine(row.topic_id, row.topic_title, row.type);
   const isFirstSection = sectionNumber.toUpperCase() === 'B1.1';
 
   // Headings are DERIVED, never stored: the number is the template section's
