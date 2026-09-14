@@ -318,6 +318,13 @@ export function GeneralInfoForm({
     };
   }, [editedProposal, userCanEditOverview, proposal, debouncedSaveOverview]);
 
+  // "TOPIC_ID: TOPIC_TITLE (TYPE)" straight from the topic information page.
+  const derivedTopicLine = composeTopicLine(
+    (editedProposal as any)?.topicId ?? (proposal as any)?.topicId,
+    (editedProposal as any)?.topicTitle ?? (proposal as any)?.topicTitle,
+    editedProposal?.type ?? proposal?.type,
+  );
+
   const handleLogoChange = (url: string | null) => {
     if (editedProposal) {
       setEditedProposal({ ...editedProposal, logoUrl: url || undefined });
