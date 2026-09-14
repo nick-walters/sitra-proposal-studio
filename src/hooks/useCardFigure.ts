@@ -45,6 +45,41 @@ export interface ProposalFigureOption {
   state: FigurePlacementState;
 }
 
+/**
+ * Clears a placement row that still claims `figureId` on behalf of a figure
+ * module that has been deleted. Deleting a module releases its figure at the
+ * time of deletion (see `useCardMutations.deleteField`); this is the guard for
+ * rows that reached the stale state by any other path, so a picture is never
+ * permanently held by something that no longer exists.
+ */
+export async function releaseDefunctModuleClaim(
+  figureId: string,
+  cardId: string,
+  fieldId: string | null,
+): Promise<void> {
+  const { data: claims } = await supabase
+    .from('card_figure')
+    .select('card_id, field_id')
+    .eq('figure_id', figureId);
+  for (const claim of claims ?? []) {
+    if (claim.card_id === cardId && (claim.field_id ?? null) === fieldId) continue;
+    // Only MODULE claims are released here; a figure held by a soft-deleted
+    // BLOCK is a deliberate state — restoring the block brings it back.
+    if (!claim.field_id) continue;
+    const { data: field } = await supabase
+      .from('card_fields')
+      .select('id, deleted_at')
+      .eq('id', claim.field_id)
+      .maybeSingle();
+    if (field && !field.deleted_at) continue;
+    await supabase.rpc('save_card_figure', {
+      p_card_id: claim.card_id,
+      p_patch: { figure_id: null },
+      p_field_id: claim.field_id,
+    });
+  }
+}
+
 
 /**
  * Figure placement row. `card_figure` alone decides where a figure renders.
