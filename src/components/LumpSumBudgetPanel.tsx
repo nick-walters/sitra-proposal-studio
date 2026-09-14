@@ -32,7 +32,7 @@ const BLOCKS = [
 export function LumpSumBudgetPanel({
   proposalId,
   readOnly = false,
-  budgetView = 'enter',
+  budgetView = 'overview',
 }: {
   proposalId: string;
   readOnly?: boolean;

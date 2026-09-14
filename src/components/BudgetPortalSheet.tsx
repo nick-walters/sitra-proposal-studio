@@ -164,7 +164,7 @@ export function BudgetPortalSheet({
   const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const portalViewKey = user?.id ? PORTAL_VIEW_KEY(user.id, proposalId) : null;
-  const [budgetView, setBudgetView] = useState<BudgetView>('enter');
+  const [budgetView, setBudgetView] = useState<BudgetView>('overview');
   const restoredPortalViewKeyRef = useRef<string | null>(null);
   const budgetViewChosenRef = useRef(false);
   const [validationOpen, setValidationOpen] = useState(false);
@@ -202,7 +202,7 @@ export function BudgetPortalSheet({
     }
     const isView = (value: string | null): value is BudgetView =>
       value === 'enter' || value === 'portal' || value === 'overview';
-    if (!budgetViewChosenRef.current) setBudgetView(isView(stored) ? stored : 'enter');
+    if (!budgetViewChosenRef.current) setBudgetView(isView(stored) ? stored : 'overview');
   }, [portalViewKey]);
 
   const accessibleBudgetView = allowedBudgetViews.includes(budgetView)
