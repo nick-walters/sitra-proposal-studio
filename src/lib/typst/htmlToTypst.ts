@@ -220,16 +220,17 @@ function outermostChipWrapper(el: Element): Element {
   return node;
 }
 
-/** `[before, after]` gap expressions for a chip touching a bracket. */
-function bracketGaps(el: Element): [string, string] {
+/** Whether an opening / closing bracket touches this chip. */
+function bracketGaps(el: Element): [boolean, boolean] {
   const node = outermostChipWrapper(el);
   const prev = node.previousSibling;
   const next = node.nextSibling;
   const prevText = prev && prev.nodeType === Node.TEXT_NODE ? prev.textContent ?? '' : '';
   const nextText = next && next.nodeType === Node.TEXT_NODE ? next.textContent ?? '' : '';
-  const hasOpen = !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1));
-  const hasClose = !!nextText && CLOSE_BRACKETS.includes(nextText.slice(0, 1));
-  return [hasOpen ? ` + ${BRACKET_GAP}` : '', hasClose ? ` + ${BRACKET_GAP}` : ''];
+  return [
+    !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1)),
+    !!nextText && CLOSE_BRACKETS.includes(nextText.slice(0, 1)),
+  ];
 }
 
 function convertInline(node: Node, ctx: ConvertContext): string {
