@@ -25,6 +25,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AcronymColorEditor } from "./AcronymColorEditor";
+import { composeTopicLine, resolveTopicField } from "@/lib/proposalMapper";
 import { SaveIndicator } from "./SaveIndicator";
 import { Loader2, FileText, Calendar as CalendarIcon, Trash2, Plus, Send, Trophy, ThumbsDown, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
