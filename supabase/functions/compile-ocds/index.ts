@@ -112,7 +112,9 @@ serve(async (req) => {
     // Sort by participant number
     toMerge.sort((a, b) => a.participantNumber - b.participantNumber);
 
-    // Merge all PDFs
+    // Merge all PDFs. The merged bytes are uploaded to storage and handed back
+    // as a short-lived signed URL: base64-encoding a multi-megabyte merge in
+    // memory exhausted the function's memory limit.
     const mergedPdf = await PDFDocument.create();
 
     for (const item of toMerge) {
@@ -127,7 +129,7 @@ serve(async (req) => {
         }
 
         const pdfBytes = await fileData.arrayBuffer();
-        const pdf = await PDFDocument.load(pdfBytes);
+        const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
         for (const page of pages) {
           mergedPdf.addPage(page);
@@ -139,22 +141,43 @@ serve(async (req) => {
 
     const mergedBytes = await mergedPdf.save();
 
-    // Convert to base64
-    let binary = "";
-    for (let i = 0; i < mergedBytes.length; i++) {
-      binary += String.fromCharCode(mergedBytes[i]);
-    }
-    const fileBase64 = btoa(binary);
-
     const acronym = proposal?.acronym || "project";
     const filename = `Ownership_Control_Declarations_${acronym}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const objectPath = `${proposalId}/ocd/compiled/${filename}`;
+
+    const { error: upError } = await supabase.storage
+      .from("proposal-files")
+      .upload(objectPath, mergedBytes, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (upError) {
+      console.error("Failed to store merged OCD:", upError);
+      return new Response(JSON.stringify({ error: "Failed to store the compiled file" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from("proposal-files")
+      .createSignedUrl(objectPath, 600);
+
+    if (signError || !signed?.signedUrl) {
+      return new Response(JSON.stringify({ error: "Failed to create a download link" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(
-      JSON.stringify({ fileBase64, filename, missing }),
+      JSON.stringify({ downloadUrl: signed.signedUrl, filename, missing }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (err) {
     console.error("Compile OCDs error:", err);
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {

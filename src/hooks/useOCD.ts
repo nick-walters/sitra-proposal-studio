@@ -227,17 +227,26 @@ export function useOCD(proposalId: string | undefined): UseOCDReturn {
 
       if (error) throw error;
 
-      if (data?.fileBase64) {
+      const filename = data?.filename || 'Ownership_Control_Declarations.pdf';
+
+      if (data?.downloadUrl) {
+        // The merged file is stored and fetched over a short-lived link; the
+        // whole document is no longer base64-encoded inside the function.
+        const response = await fetch(data.downloadUrl);
+        if (!response.ok) throw new Error('Download failed');
+        saveAs(await response.blob(), filename);
+      } else if (data?.fileBase64) {
         const binaryString = atob(data.fileBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const blob = new Blob([bytes], { type: 'application/pdf' });
-        saveAs(blob, data.filename || 'Ownership_Control_Declarations.pdf');
+        saveAs(blob, filename);
       } else {
         toast.error('Failed to compile OCDs');
       }
+
     } catch (err) {
       console.error('Failed to compile OCDs:', err);
       toast.error('Failed to compile OCDs');
