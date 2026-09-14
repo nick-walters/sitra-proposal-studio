@@ -166,7 +166,6 @@ function headerSource(meta: TypstDocMeta): string {
   if ${meta.banner ? 'counter(page).at(here()).first() > 1' : 'true'} {
     set align(center)
     set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-    ${'' /* newlines typed into A1's header field become real line breaks */}
     t-lines(${lineArray(text)})
   }
 }`;
