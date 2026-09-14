@@ -45,6 +45,41 @@ export interface ProposalFigureOption {
   state: FigurePlacementState;
 }
 
+/**
+ * Clears a placement row that still claims `figureId` on behalf of a figure
+ * module that has been deleted. Deleting a module releases its figure at the
+ * time of deletion (see `useCardMutations.deleteField`); this is the guard for
+ * rows that reached the stale state by any other path, so a picture is never
+ * permanently held by something that no longer exists.
+ */
+export async function releaseDefunctModuleClaim(
+  figureId: string,
+  cardId: string,
+  fieldId: string | null,
+): Promise<void> {
+  const { data: claims } = await supabase
+    .from('card_figure')
+    .select('card_id, field_id')
+    .eq('figure_id', figureId);
+  for (const claim of claims ?? []) {
+    if (claim.card_id === cardId && (claim.field_id ?? null) === fieldId) continue;
+    // Only MODULE claims are released here; a figure held by a soft-deleted
+    // BLOCK is a deliberate state — restoring the block brings it back.
+    if (!claim.field_id) continue;
+    const { data: field } = await supabase
+      .from('card_fields')
+      .select('id, deleted_at')
+      .eq('id', claim.field_id)
+      .maybeSingle();
+    if (field && !field.deleted_at) continue;
+    await supabase.rpc('save_card_figure', {
+      p_card_id: claim.card_id,
+      p_patch: { figure_id: null },
+      p_field_id: claim.field_id,
+    });
+  }
+}
+
 
 /**
  * Figure placement row. `card_figure` alone decides where a figure renders.
@@ -84,6 +119,13 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       position_mode?: FigurePositionMode;
       page_break_mode?: FigurePageBreakMode;
     }) => {
+      // A figure can be claimed by exactly one placement row (unique index on
+      // card_figure.figure_id). A claim held by a DELETED figure module is
+      // defunct — the module is gone and restoring it no longer returns the
+      // figure — so release it here rather than refusing the insertion.
+      if (patch.figure_id) {
+        await releaseDefunctModuleClaim(patch.figure_id, cardId, fieldId ?? null);
+      }
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,
         p_patch: patch,
@@ -91,6 +133,7 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       });
       if (error) throw error;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       // Collapsed blocks show the caption as their one-line summary.
@@ -166,6 +209,7 @@ export function useProposalFigures(proposalId: string) {
         }[],
       );
       const cardById = new Map(allCards.map((c) => [c.id, c]));
+      const fieldById = new Map((fieldRes.data ?? []).map((f) => [f.id, f]));
       const sectionById = new Map(sections.map((s) => [s.id, s]));
       const placementByFigure = new Map<
         string,
@@ -174,12 +218,22 @@ export function useProposalFigures(proposalId: string) {
       for (const p of placementRes.data ?? []) {
         if (!p.figure_id) continue;
         const card = cardById.get(p.card_id);
+        // A MODULE placement whose module has been deleted (or has vanished
+        // altogether) holds nothing: the figure is free and must be listed as
+        // unplaced, whatever left the row behind.
+        if (p.field_id) {
+          const field = fieldById.get(p.field_id);
+          if (!field || field.deleted_at) continue;
+        }
+        // Likewise a placement whose block row no longer exists at all.
+        if (!card) continue;
         placementByFigure.set(p.figure_id, {
           cardId: p.card_id,
           sectionId: card?.section_id ?? null,
           sectionLabel: card?.section_id ? sectionById.get(card.section_id)?.section_number ?? null : null,
           deleted: !!card?.deleted_at,
         });
+
       }
 
       return (figRes.data ?? []).map((f) => {

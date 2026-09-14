@@ -234,7 +234,26 @@ export function useCardMutations(proposalId: string, sectionId: string) {
   });
 
   const deleteField = useMutation({
-    mutationFn: async ({ fieldId, cardId: _cardId }: { fieldId: string; cardId: string }) => {
+    mutationFn: async ({ fieldId, cardId }: { fieldId: string; cardId: string }) => {
+      // A figure MODULE holds its picture through `card_figure`, and the unique
+      // index on `figure_id` means that claim survives the module unless it is
+      // released here. Deleting the module therefore frees the picture at once;
+      // restoring the module from the recycle bin brings the module back EMPTY,
+      // which is the safe answer when the picture has since been placed
+      // elsewhere.
+      const { data: placement } = await supabase
+        .from('card_figure')
+        .select('figure_id')
+        .eq('field_id', fieldId)
+        .maybeSingle();
+      if (placement?.figure_id) {
+        const { error: releaseError } = await supabase.rpc('save_card_figure', {
+          p_card_id: cardId,
+          p_patch: { figure_id: null },
+          p_field_id: fieldId,
+        });
+        if (releaseError) throw releaseError;
+      }
       const { error } = await supabase.rpc('soft_delete_card_field', { p_field_id: fieldId });
       if (error) throw error;
     },
@@ -242,10 +261,13 @@ export function useCardMutations(proposalId: string, sectionId: string) {
       invalidateFields(vars.cardId);
       invalidateBin();
       invalidateCitations();
+      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['card-figure', vars.cardId] });
       toast.success('Module moved to the recycle bin');
     },
     onError: (e: Error) => toast.error(e.message || 'Could not delete the module'),
   });
+
 
 
   const seedCards = useMutation({
