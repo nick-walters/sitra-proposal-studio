@@ -125,8 +125,15 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
           found.push({ participantNumber: num, participantName: name, field: 'PIC', severity: 'warning', message: 'PIC number is missing', icon: <Hash className="w-3.5 h-3.5" /> });
         if (!p.contact_email?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'Email', severity: 'warning', message: 'Contact email is missing', icon: <Mail className="w-3.5 h-3.5" /> });
-        if (!p.main_contact_first_name?.trim() && !p.main_contact_last_name?.trim())
-          found.push({ participantNumber: num, participantName: name, field: 'Contact person', severity: 'warning', message: 'Main contact person is missing', icon: <User className="w-3.5 h-3.5" /> });
+        // The contacts interface writes the main contact to `participant_members`
+        // (is_primary_contact = true); the legacy `main_contact_*` columns on
+        // `participants` are only a fallback for older rows.
+        const hasPrimaryContact = mems.some(
+          (m: any) => m.participant_id === p.id && m.is_primary_contact && m.full_name?.trim(),
+        );
+        const hasLegacyContact = !!p.main_contact_first_name?.trim() || !!p.main_contact_last_name?.trim();
+        if (!hasPrimaryContact && !hasLegacyContact)
+          found.push({ participantNumber: num, participantName: name, field: 'Contact person', severity: 'error', message: 'Main contact person is missing', icon: <User className="w-3.5 h-3.5" /> });
         if (!p.street?.trim() || !p.town?.trim() || !p.postcode?.trim())
           found.push({ participantNumber: num, participantName: name, field: 'Address', severity: 'warning', message: 'Address is incomplete', icon: <MapPin className="w-3.5 h-3.5" /> });
 
