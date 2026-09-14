@@ -3,7 +3,9 @@ import { PartACard } from '@/components/PartACard';
 import { PART_A_FIELD_DENSITY } from '@/components/partAFieldDensity';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
+import { useParticipantAccess } from '@/hooks/useParticipantAccess';
+
 import { Input } from '@/components/ui/input';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
@@ -305,8 +307,8 @@ export function ParticipantDetailForm({
   onAddMember,
   onUpdateMember,
   onDeleteMember,
-  canEdit,
-  canDelete,
+  canEdit: canEditProp,
+  canDelete: canDeleteProp,
   canGrant = false,
   proposalId,
   proposalAcronym,
@@ -317,8 +319,18 @@ export function ParticipantDetailForm({
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // Per-participant rights: a person listed against this organisation in A2,
+  // a coordinator, or someone granted rights for this participant. A locked
+  // participant is read-only for everybody, coordinators included, so every
+  // section below (contacts, researchers and the rest) inherits this value.
+  const participantAccess = useParticipantAccess(proposalId);
+  const isLocked = participantAccess.isLocked(participant.id);
+  const canEdit = canEditProp && participantAccess.canEditParticipant(participant.id);
+  const canDelete = canDeleteProp && !isLocked;
+
   // OCD hook
   const ocd = useOCD(proposalId);
+
 
   // Use new participant details hook for extended data
   const {
@@ -389,8 +401,15 @@ export function ParticipantDetailForm({
               ({participant.organisationShortName})
             </span>
           )}
+          {isLocked && (
+            <span className="ml-3 inline-flex items-center gap-1 align-middle text-xs font-normal text-destructive">
+              <Lock className="h-3.5 w-3.5" />
+              Locked — a coordinator must unlock this participant before it can be edited
+            </span>
+          )}
         </h1>
       }
+
       titleLeftAdornment={
         <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
           <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
