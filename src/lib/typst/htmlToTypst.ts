@@ -185,6 +185,72 @@ function previousMeaningful(node: Node): Node | null {
   return prev;
 }
 
+/* ─────────────────────── bracket hairline (print) ────────────────────────
+ * On screen `glueBadgeBrackets` (src/lib/renderRefBadges.ts) inserts a 1px
+ * spacer between a chip and a round/square bracket touching it. The PDF needs
+ * the same hairline, but ONLY there — the generated tables emit their chips
+ * through other modules and must stay untouched, so the rule lives here, in
+ * the authored-prose path, rather than in `chip-pill` itself.
+ *
+ * `weak: false` is deliberate: a weak space collapses at the start of a line,
+ * which is exactly the case — an opening bracket plus chip wrapping together —
+ * the gap is there for.
+ */
+const BRACKET_GAP = 'h(0.6pt, weak: false)';
+const OPEN_BRACKETS = '([';
+const CLOSE_BRACKETS = ')]';
+
+/**
+ * The outermost element that contains this chip and nothing else.
+ *
+ * Stored chips are routinely nested in a presentational `<span>` (and, once
+ * `glueBadgeBrackets` has run, inside a `ref-bracket-glue` span), so the
+ * bracket sits beside the WRAPPER, not the chip. Mirrors the climb at
+ * renderRefBadges.ts:503–511.
+ */
+function outermostChipWrapper(el: Element): Element {
+  let node: Element = el;
+  while (
+    node.parentElement &&
+    node.parentElement.tagName === 'SPAN' &&
+    node.parentElement.childNodes.length === 1
+  ) {
+    node = node.parentElement;
+  }
+  return node;
+}
+
+/**
+ * The neighbouring node, skipping the empty spacer spans `glueBadgeBrackets`
+ * leaves between the bracket and the chip. Nothing else is skipped: a space,
+ * or any element carrying ink, still means the chip is not touching a bracket.
+ */
+function bracketNeighbour(node: Node, dir: 'previous' | 'next'): Node | null {
+  let sib = dir === 'previous' ? node.previousSibling : node.nextSibling;
+  while (
+    sib &&
+    sib.nodeType === Node.ELEMENT_NODE &&
+    (sib as Element).tagName === 'SPAN' &&
+    !(sib.textContent || '')
+  ) {
+    sib = dir === 'previous' ? sib.previousSibling : sib.nextSibling;
+  }
+  return sib;
+}
+
+/** Whether an opening / closing bracket touches this chip. */
+function bracketGaps(el: Element): [boolean, boolean] {
+  const node = outermostChipWrapper(el);
+  const prev = bracketNeighbour(node, 'previous');
+  const next = bracketNeighbour(node, 'next');
+  const prevText = prev && prev.nodeType === Node.TEXT_NODE ? prev.textContent ?? '' : '';
+  const nextText = next && next.nodeType === Node.TEXT_NODE ? next.textContent ?? '' : '';
+  return [
+    !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1)),
+    !!nextText && CLOSE_BRACKETS.includes(nextText.slice(0, 1)),
+  ];
+}
+
 function convertInline(node: Node, ctx: ConvertContext): string {
   if (node.nodeType === Node.TEXT_NODE) {
     let text = (node.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
@@ -211,8 +277,13 @@ function convertInline(node: Node, ctx: ConvertContext): string {
   const kind = chipKind(el);
   if (kind) {
     const chip = reduceChip(el, kind, ctx.data);
-    return chip ? chipToTypst(chip) : '';
+    if (!chip) return '';
+    const [open, close] = bracketGaps(el);
+    return [open ? BRACKET_GAP : '', chipToTypst(chip), close ? BRACKET_GAP : '']
+      .filter(Boolean)
+      .join(' + ');
   }
+
 
   if (tag === 'br') return `linebreak()`;
   if (tag === 'img') {
