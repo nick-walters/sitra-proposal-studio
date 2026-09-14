@@ -496,6 +496,58 @@ function EthicsQuestionRow({
   );
 }
 
+const SELF_ASSESSMENT_LIMIT = 5000;
+
+/**
+ * Rich field with a hard character limit on its plain text.
+ *
+ * The counter always shows the current length. Text beyond the limit is not
+ * saved: an edit that would leave the field over the limit is only accepted
+ * when it makes the field shorter, so existing content can always be cut back.
+ */
+function LimitedRichField({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  proposalId,
+  maxLength = SELF_ASSESSMENT_LIMIT,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder: string;
+  disabled: boolean;
+  proposalId?: string;
+  maxLength?: number;
+}) {
+  const length = htmlToPlainText(value || '').length;
+  const over = length > maxLength;
+
+  const handleChange = (next: string) => {
+    const nextLength = htmlToPlainText(next || '').length;
+    if (nextLength > maxLength && nextLength >= length) return;
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-1">
+      <LazyRichField
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        minHeight="80px"
+        disabled={disabled}
+        proposalId={proposalId || ''}
+        staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
+      />
+      <div className={cn('text-xs text-right', over ? 'text-destructive' : 'text-muted-foreground')}>
+        {formatNumber(length)} / {formatNumber(maxLength)} characters
+        {over && ' — text beyond the limit is not saved'}
+      </div>
+    </div>
+  );
+}
+
 export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps) {
   const ethicsData: EthicsAssessment = ethics || { proposalId: '' };
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
