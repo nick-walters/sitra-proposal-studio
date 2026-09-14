@@ -652,7 +652,35 @@ export function GeneralInfoForm({
               </div>
             </div>
           </div>
+
+          {/* The two export lines composed from the topic information. Each one
+              follows the topic information until it is edited; the reset
+              control clears the edit (stores an empty string) and hands the
+              field back to the derived value. */}
+          <div className="mt-4 pt-4 border-t grid gap-4 md:grid-cols-2">
+            <TopicLineField
+              label="Topic ID, title &amp; type banner"
+              hint="Shown on the black banner on the first page. Press Return to choose where it breaks."
+              stored={(editedProposal as any)?.bannerTopicText}
+              derived={derivedTopicLine}
+              canEdit={isEditing && !!editedProposal}
+              onChange={(value) =>
+                setEditedProposal({ ...(editedProposal as any), bannerTopicText: value } as any)
+              }
+            />
+            <TopicLineField
+              label="Topic ID, title &amp; type header"
+              hint="Shown in the small header at the top of every other page. Press Return to choose where it breaks."
+              stored={(editedProposal as any)?.headerTopicText}
+              derived={derivedTopicLine}
+              canEdit={isEditing && !!editedProposal}
+              onChange={(value) =>
+                setEditedProposal({ ...(editedProposal as any), headerTopicText: value } as any)
+              }
+            />
+          </div>
         </PartACard>
+
 
         {/* Proposal Status Card */}
         <PartACard
