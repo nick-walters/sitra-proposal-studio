@@ -41,7 +41,15 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     const $from = doc.resolve(badgeFrom);
     if ($from.parentOffset > 0) {
       const charBefore = doc.textBetween(badgeFrom - 1, badgeFrom);
-      if (charBefore === '(' || charBefore === '[') start = badgeFrom - 1;
+      if (charBefore === '(' || charBefore === '[') {
+        start = badgeFrom - 1;
+        decorations.push(
+          Decoration.inline(badgeFrom - 1, badgeFrom, {
+            class: 'ref-bracket-open',
+            style: 'padding-right: 1px;',
+          }),
+        );
+      }
     }
 
     // Character immediately after the badge, within the same text block.
@@ -51,7 +59,17 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     const $to = doc.resolve(badgeTo);
     if ($to.parentOffset < $to.parent.content.size) {
       const charAfter = doc.textBetween(badgeTo, badgeTo + 1);
-      if (charAfter === ')' || charAfter === ']' || charAfter === ' ') end = badgeTo + 1;
+      if (charAfter === ')' || charAfter === ']') {
+        end = badgeTo + 1;
+        decorations.push(
+          Decoration.inline(badgeTo, badgeTo + 1, {
+            class: 'ref-bracket-close',
+            style: 'padding-left: 1px;',
+          }),
+        );
+      } else if (charAfter === ' ') {
+        end = badgeTo + 1;
+      }
     }
 
 

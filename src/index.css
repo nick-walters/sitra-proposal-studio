@@ -2062,7 +2062,14 @@ body.table-col-resizing * {
 /* Cross-reference chips: a bracket must never wrap away from its chip.
    `glueBadgeBrackets` (src/lib/renderRefBadges.ts) wraps "(chip)" / "[chip]"
    in this span; only those two characters plus the chip are held together, so
-   surrounding prose still wraps normally. */
+   surrounding prose still wraps normally. The gap is a fixed hairline, not a
+   word space, and remains inside the no-wrap island. */
 .ref-bracket-glue {
+  white-space: nowrap;
+}
+
+.ref-bracket-gap {
+  display: inline-block;
+  width: 1px;
   white-space: nowrap;
 }
