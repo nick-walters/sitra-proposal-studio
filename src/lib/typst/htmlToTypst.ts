@@ -260,8 +260,10 @@ function convertInline(node: Node, ctx: ConvertContext): string {
   if (kind) {
     const chip = reduceChip(el, kind, ctx.data);
     if (!chip) return '';
-    const [before, after] = bracketGaps(el);
-    return `${before ? `${BRACKET_GAP} + ` : ''}${chipToTypst(chip)}${after}`;
+    const [open, close] = bracketGaps(el);
+    return [open ? BRACKET_GAP : '', chipToTypst(chip), close ? BRACKET_GAP : '']
+      .filter(Boolean)
+      .join(' + ');
   }
 
 
