@@ -64,17 +64,13 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
       }
     }
 
-    if (gapLeft || gapRight) {
+    if (start < badgeFrom || end > badgeTo) {
       decorations.push(
-        Decoration.inline(badgeFrom, badgeTo, {
-          class: 'ref-bracket-badge-gap',
-          style: `margin-left: ${gapLeft ? 1 : 0}px; margin-right: ${gapRight ? 1 : 0}px;`,
+        Decoration.inline(start, end, {
+          class: 'ref-bracket-editor-glue',
+          style: `white-space: nowrap; padding-left: ${gapLeft ? 1 : 0}px; padding-right: ${gapRight ? 1 : 0}px;`,
         }),
       );
-    }
-
-    if (start < badgeFrom || end > badgeTo) {
-      decorations.push(Decoration.inline(start, end, { style: 'white-space: nowrap;' }));
     }
   });
 
