@@ -695,27 +695,30 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-h2-plain(s) = he-h2(t(s))
 
 // ── page-one banner ────────────────────────────────────────────────────────
+/// The proposal logo's bounding box in the page-one banner. The image is fitted
+/// INSIDE these two dimensions rather than given one of them: a project logo
+/// may be square, wide or tall, and "contain" scales it down until whichever
+/// edge binds first, never stretching and never cropping it.
+#let banner-logo-max-width = 3.4cm
+#let banner-logo-max-height = 1.6cm
+
 /// Full-bleed black banner flush to the top edge of page one — no page margin
-/// above or beside it, its own 15mm / 12pt padding inside. Composed exactly as
-/// \`ProposalBanner.tsx\` and the browser-print export compose it: the Sitra
-/// logo with "and partners" beneath it in the top-right corner, then the topic
-/// line (8pt serif), the acronym (18pt) and the title (13pt) in Arial Black.
+/// above or beside it, its own 15mm / 12pt padding inside: the PROPOSAL's own
+/// logo in the top-right corner, then the topic line (8pt serif), the acronym
+/// (18pt) and the title (13pt) in Arial Black.
+/// An empty logo path draws the banner with no mark at all: the text then takes
+/// the full width and nothing else moves.
 /// Only the FIRST section of the document emits this.
 #let doc-banner(topic, acronym, title, logo) = context {
+  // Drawn at the full height first; if that makes it wider than the box allows
+  // (a very wide logo), it is redrawn to the width instead. Only ONE dimension
+  // is ever given, so the aspect ratio is always the file's own, and the mark
+  // ends up flush with the right margin whatever its shape.
   let mark = if logo != "" {
-    // "and partners" is set to the SAME WIDTH as the logo above it: the label
-    // is measured at a base size and scaled by the ratio of the two widths.
-    let img = image(logo, height: 0.8cm, fit: "contain")
-    let lw = measure(img).width
-    let base = text(font: "${TYPST_DISPLAY}", size: 10pt, weight: "regular", t("and partners"))
-    let tw = measure(base).width
-    let size = if tw > 0pt { 10pt * (lw / tw) } else { 10pt }
-    block(width: lw, {
-      set align(center)
-      img
-      v(2pt, weak: false)
-      text(font: "${TYPST_DISPLAY}", size: size, weight: "regular", fill: white, t("and partners"))
-    })
+    let tallest = image(logo, height: banner-logo-max-height, fit: "contain")
+    if measure(tallest).width > banner-logo-max-width {
+      image(logo, width: banner-logo-max-width, fit: "contain")
+    } else { tallest }
   } else { none }
   let lines = {
     set text(fill: white)
@@ -840,7 +843,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /**
  * Banner call for page one; empty string when there is nothing to show.
- * `logoPath` is the compiler shadow path of the Sitra mark (see
+ * `logoPath` is the compiler shadow path of the PROPOSAL's own logo (see
  * `frontMatter.ts`); pass an empty string to draw the banner without it.
  */
 export function bannerCall(meta: TypstDocMeta, logoPath = ''): string {

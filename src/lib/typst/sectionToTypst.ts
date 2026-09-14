@@ -25,7 +25,6 @@ import {
 import { bannerCall, buildTypstPreamble, type TypstDocMeta } from './typstPreamble';
 import {
   emitParticipantList,
-  SITRA_LOGO_ASSET_PATH,
   type TypstFrontMatter,
 } from './frontMatter';
 
@@ -417,10 +416,10 @@ export function buildSectionTypstBody(
   const figurePaths = options.figurePaths ?? {};
   const frontMatter = options.frontMatter ?? null;
 
-  // Page one: banner (with the Sitra mark, when its bitmap was supplied),
-  // then the mirrored list of participants and the AI usage statement.
+  // Page one: banner (with the proposal's own logo, when its bitmap was
+  // fetched), then the mirrored list of participants and the AI usage statement.
   const banner = options.meta
-    ? bannerCall(options.meta, frontMatter ? SITRA_LOGO_ASSET_PATH : '')
+    ? bannerCall(options.meta, frontMatter?.bannerLogoPath ?? '')
     : '';
   if (banner) out.push(banner);
   // The participant list is a BLOCK on the B1.1 board (`b11.participants`), so

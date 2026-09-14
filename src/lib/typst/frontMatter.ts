@@ -1,14 +1,15 @@
 /**
- * Page-one furniture for the Typst document: the Sitra logo bitmap, the list
- * of participants and the AI usage statement.
+ * Page-one furniture for the Typst document: the proposal's banner logo, the
+ * list of participants and the AI usage statement.
  *
  * WHERE EACH PIECE COMES FROM — these are the same sources the browser-print
  * export (`printRenderer.tsx`) uses, re-issued as plain async queries because
  * Typst is compiled outside React:
  *
- *  - Sitra logo        → `SITRA_LOGO_BASE64` (the same inline PNG the on-screen
- *                        banner and the PDF export draw), decoded to bytes and
- *                        handed to the compiler as a shadow file.
+ *  - banner logo       → `proposals.logo_url`, uploaded through A1, resolved to
+ *                        a signed URL and fetched to bytes exactly as the
+ *                        participant logos and authored figures are, then handed
+ *                        to the compiler as a shadow file.
  *  - participant list  → `participants` for the rows, `wp_drafts` and
  *                        `case_drafts` for the "Lead roles" bubbles, and the
  *                        storage bucket for each organisation's logo. Sorted
@@ -27,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { resolveAiStatementHtml } from '@/lib/aiStatement';
 import { buildCaseLabel, getCaseTypePrefix } from '@/lib/caseTypeLabels';
-import { SITRA_LOGO_BASE64 } from '@/lib/sitraLogo';
+
 import type { TypstAsset } from './typstCompiler';
 import { typstString, htmlToTypstBlocks, type ConvertContext } from './htmlToTypst';
 import {
@@ -37,8 +38,12 @@ import {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Virtual path the banner's logo is mapped to inside the compiler. */
-export const SITRA_LOGO_ASSET_PATH = '/assets/sitra-logo.png';
+/**
+ * Virtual path the banner's logo is mapped to inside the compiler. The real
+ * extension is appended once the bytes have been sniffed, because Typst picks
+ * its decoder from the extension.
+ */
+const PROPOSAL_LOGO_ASSET_BASE = '/assets/proposal-logo';
 
 interface RoleBubble {
   label: string;
@@ -67,17 +72,15 @@ export interface TypstFrontMatter {
    */
   columnWidths: number[];
   aiStatementHtml: string | null;
-  /** Logo bitmaps (Sitra + organisations) to map as compiler shadow files. */
+  /**
+   * Compiler path of the proposal's own logo for the page-one banner, or null
+   * when the proposal has none or the file could not be fetched.
+   */
+  bannerLogoPath: string | null;
+  /** Logo bitmaps (proposal + organisations) to map as compiler shadow files. */
   assets: TypstAsset[];
 }
 
-function decodeBase64(dataUrl: string): Uint8Array {
-  const base64 = dataUrl.includes(',') ? dataUrl.slice(dataUrl.indexOf(',') + 1) : dataUrl;
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
 
 /** Typst picks the decoder from the extension, so sniff the real format. */
 function extensionFor(bytes: Uint8Array): string | null {
@@ -107,9 +110,41 @@ export async function fetchTypstFrontMatter(
   proposalId: string,
   opts: { textOnly?: boolean } = {},
 ): Promise<TypstFrontMatter> {
-  const assets: TypstAsset[] = [
-    { path: SITRA_LOGO_ASSET_PATH, bytes: decodeBase64(SITRA_LOGO_BASE64) },
-  ];
+  const assets: TypstAsset[] = [];
+
+  // The banner mark: the proposal's OWN logo, uploaded through A1 and stored as
+  // `proposals.logo_url`. Fetched down the same route the participant logos and
+  // the authored figures take — `resolveStorageUrl` for the signed URL, then a
+  // plain fetch to bytes, then a compiler shadow file. Any failure along the
+  // way leaves `bannerLogoPath` null and the banner simply draws without a mark.
+  let bannerLogoPath: string | null = null;
+  if (!opts.textOnly) {
+    try {
+      const { data: proposalRow } = await supabase
+        .from('proposals')
+        .select('logo_url')
+        .eq('id', proposalId)
+        .maybeSingle();
+      const logoUrl = (proposalRow as { logo_url?: string | null } | null)?.logo_url;
+      if (logoUrl) {
+        const resolved = await resolveStorageUrl(logoUrl);
+        if (resolved) {
+          const response = await fetch(resolved);
+          if (response.ok) {
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            const ext = extensionFor(bytes);
+            if (ext) {
+              bannerLogoPath = `${PROPOSAL_LOGO_ASSET_BASE}.${ext}`;
+              assets.push({ path: bannerLogoPath, bytes });
+            }
+          }
+        }
+      }
+    } catch {
+      /* an unreachable logo must never fail the compile — the banner goes bare */
+    }
+  }
+
 
   const [{ data: partRows }, { data: wpRows }, { data: caseRows }, { data: caseTypes }, { data: aiRow }, { data: widthRow }] =
     await Promise.all([
@@ -232,6 +267,7 @@ export async function fetchTypstFrontMatter(
     participants,
     columnWidths: columnWidths.every((n) => n > 0) ? columnWidths : [],
     aiStatementHtml,
+    bannerLogoPath,
     assets,
   };
 }
