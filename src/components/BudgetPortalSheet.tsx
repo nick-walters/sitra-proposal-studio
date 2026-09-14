@@ -117,24 +117,21 @@ export function BudgetPortalSheet({
   const lumpSumAccess = useLumpSumBudgetAccess(proposalId);
   const { allCollapsed, setAll } = useLsCollapse(user?.id, proposalId);
 
-  // Cheap existence checks (limit 1) so a budget type holding real data stays
-  // visible even when its lock flag is false. The lock fields remain here solely
-  // for the existing tab-visibility rule; they do not drive editability.
+  // A budget type is visible only when it is the proposal's current budget type
+  // or its lock flag is set. Holding legacy data no longer makes a tab appear:
+  // once a proposal has migrated, the superseded budget stays in the database
+  // but is hidden from the interface.
   const { data: budgetDataPresence } = useQuery({
     queryKey: ['budget-data-presence', proposalId],
     enabled: !!proposalId,
     staleTime: 60_000,
     queryFn: async () => {
-      const [proposalFlags, traditionalRows, roles, costItems, depreciation] = await Promise.all([
-        supabase.from('proposals').select('traditional_budget_locked, lump_sum_budget_locked').eq('id', proposalId).maybeSingle(),
-        supabase.from('budget_rows').select('id').eq('proposal_id', proposalId).limit(1),
-        supabase.from('ls_personnel_roles').select('id').eq('proposal_id', proposalId).limit(1),
-        supabase.from('ls_cost_items').select('id').eq('proposal_id', proposalId).limit(1),
-        supabase.from('ls_depreciation_items').select('id').eq('proposal_id', proposalId).limit(1),
-      ]);
+      const proposalFlags = await supabase
+        .from('proposals')
+        .select('traditional_budget_locked, lump_sum_budget_locked')
+        .eq('id', proposalId)
+        .maybeSingle();
       return {
-        traditional: (traditionalRows.data?.length ?? 0) > 0,
-        lumpSum: [roles, costItems, depreciation].some((r) => (r.data?.length ?? 0) > 0),
         traditionalLocked: proposalFlags.data?.traditional_budget_locked ?? false,
         lumpSumLocked: proposalFlags.data?.lump_sum_budget_locked ?? false,
       };
@@ -144,8 +141,8 @@ export function BudgetPortalSheet({
   const budgetTabs = useMemo(() => {
     const currentIsLumpSum = budgetType === 'lump_sum';
     const tabs: Array<'budget' | 'lump-sum'> = [];
-    const showLumpSum = currentIsLumpSum || !!budgetDataPresence?.lumpSumLocked || !!budgetDataPresence?.lumpSum;
-    const showTraditional = !currentIsLumpSum || !!budgetDataPresence?.traditionalLocked || !!budgetDataPresence?.traditional;
+    const showLumpSum = currentIsLumpSum || !!budgetDataPresence?.lumpSumLocked;
+    const showTraditional = !currentIsLumpSum || !!budgetDataPresence?.traditionalLocked;
     if (currentIsLumpSum) {
       if (showLumpSum) tabs.push('lump-sum');
       if (showTraditional) tabs.push('budget');
