@@ -220,11 +220,29 @@ function outermostChipWrapper(el: Element): Element {
   return node;
 }
 
+/**
+ * The neighbouring node, skipping the empty spacer spans `glueBadgeBrackets`
+ * leaves between the bracket and the chip. Nothing else is skipped: a space,
+ * or any element carrying ink, still means the chip is not touching a bracket.
+ */
+function bracketNeighbour(node: Node, dir: 'previous' | 'next'): Node | null {
+  let sib = dir === 'previous' ? node.previousSibling : node.nextSibling;
+  while (
+    sib &&
+    sib.nodeType === Node.ELEMENT_NODE &&
+    (sib as Element).tagName === 'SPAN' &&
+    !(sib.textContent || '')
+  ) {
+    sib = dir === 'previous' ? sib.previousSibling : sib.nextSibling;
+  }
+  return sib;
+}
+
 /** Whether an opening / closing bracket touches this chip. */
 function bracketGaps(el: Element): [boolean, boolean] {
   const node = outermostChipWrapper(el);
-  const prev = node.previousSibling;
-  const next = node.nextSibling;
+  const prev = bracketNeighbour(node, 'previous');
+  const next = bracketNeighbour(node, 'next');
   const prevText = prev && prev.nodeType === Node.TEXT_NODE ? prev.textContent ?? '' : '';
   const nextText = next && next.nodeType === Node.TEXT_NODE ? next.textContent ?? '' : '';
   return [
