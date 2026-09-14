@@ -17,3 +17,5 @@
 - Figure modules: same layout controls as blocks; B3.1 full-width keyed by section; partial unique indexes on card_figure; backup edge function numbering aligned.
 
 - [ ] Prompt 166 override change: separate participant-info override table + sibling access functions (budget functions unchanged).
+
+- [ ] Prompt 172: report then delete card_figure rows whose card is missing/deleted; verify SUSIE-Q figures unchanged
