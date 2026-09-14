@@ -209,6 +209,7 @@ export function useProposalFigures(proposalId: string) {
         }[],
       );
       const cardById = new Map(allCards.map((c) => [c.id, c]));
+      const fieldById = new Map((fieldRes.data ?? []).map((f) => [f.id, f]));
       const sectionById = new Map(sections.map((s) => [s.id, s]));
       const placementByFigure = new Map<
         string,
@@ -217,12 +218,22 @@ export function useProposalFigures(proposalId: string) {
       for (const p of placementRes.data ?? []) {
         if (!p.figure_id) continue;
         const card = cardById.get(p.card_id);
+        // A MODULE placement whose module has been deleted (or has vanished
+        // altogether) holds nothing: the figure is free and must be listed as
+        // unplaced, whatever left the row behind.
+        if (p.field_id) {
+          const field = fieldById.get(p.field_id);
+          if (!field || field.deleted_at) continue;
+        }
+        // Likewise a placement whose block row no longer exists at all.
+        if (!card) continue;
         placementByFigure.set(p.figure_id, {
           cardId: p.card_id,
           sectionId: card?.section_id ?? null,
           sectionLabel: card?.section_id ? sectionById.get(card.section_id)?.section_number ?? null : null,
           deleted: !!card?.deleted_at,
         });
+
       }
 
       return (figRes.data ?? []).map((f) => {
