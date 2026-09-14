@@ -95,6 +95,7 @@ import { dropBlankBlocks, hasVisibleBlocks } from './emptyBlocks';
 import { emitB32Slot, type B32TypstData } from './b32Mirrors';
 import { emitB32InfraTable } from './b32InfraData';
 import { B32_INFRA_DEFAULT_HEADER } from '@/extensions/B32InfraTableNode';
+import { composeTopicLine, resolveTopicField } from '@/lib/proposalMapper';
 
 /**
  * Mirrors the board's `B32BlockMirrors` map: which A2 mirror slots each B3.2
@@ -703,7 +704,9 @@ export async function fetchTypstDocMeta(
   const [{ data }, section] = await Promise.all([
     supabase
       .from('proposals')
-      .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override')
+      .select(
+        'acronym, title, topic_id, topic_title, type, banner_topic_line_override, banner_topic_text, header_topic_text',
+      )
       .eq('id', proposalId)
       .maybeSingle(),
     sectionId
@@ -725,9 +728,7 @@ export async function fetchTypstDocMeta(
   const partLabel = sectionNumber
     ? `Part ${sectionNumber}.${sectionTitle ? ` ${sectionTitle}` : ''}`
     : 'Part B';
-  const computedTopic =
-    `${row.topic_id || ''}${row.topic_id && row.topic_title ? ': ' : ''}${row.topic_title || ''}` +
-    `${row.type ? ` (${row.type})` : ''}`;
+  const computedTopic = composeTopicLine(row.topic_id, row.topic_title, row.type);
   const isFirstSection = sectionNumber.toUpperCase() === 'B1.1';
 
   // Headings are DERIVED, never stored: the number is the template section's
@@ -746,13 +747,17 @@ export async function fetchTypstDocMeta(
     // …and the action type in parentheses after it: `proposals.type`, the
     // RIA / IA / CSA value chosen when the proposal was created (locked
     // afterwards by `lock_proposal_action_type`).
-    runningHeader: row.topic_id || row.topic_title
-      ? `${row.topic_id ? `${row.topic_id}: ` : ''}${row.topic_title || ''}` +
-        `${row.type ? ` (${row.type})` : ''}`
-      : '',
+    // A1's "Topic ID, title & type header" field wins when the author has
+    // edited it; otherwise the derived topic line is used, exactly as before.
+    runningHeader: resolveTopicField(row.header_topic_text, computedTopic),
     banner: isFirstSection
       ? {
-          topicLine: liveOrOverride(computedTopic, row.banner_topic_line_override),
+          // Likewise A1's "Topic ID, title & type banner" field, ahead of the
+          // legacy in-banner line-break override.
+          topicLine: resolveTopicField(
+            row.banner_topic_text,
+            liveOrOverride(computedTopic, row.banner_topic_line_override),
+          ),
           acronym: row.acronym || '',
 
           // The banner title is the A1 title verbatim: its own newlines are

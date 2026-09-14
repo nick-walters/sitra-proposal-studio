@@ -25,6 +25,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AcronymColorEditor } from "./AcronymColorEditor";
+import { composeTopicLine, resolveTopicField } from "@/lib/proposalMapper";
 import { SaveIndicator } from "./SaveIndicator";
 import { Loader2, FileText, Calendar as CalendarIcon, Trash2, Plus, Send, Trophy, ThumbsDown, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -316,6 +317,13 @@ export function GeneralInfoForm({
       }
     };
   }, [editedProposal, userCanEditOverview, proposal, debouncedSaveOverview]);
+
+  // "TOPIC_ID: TOPIC_TITLE (TYPE)" straight from the topic information page.
+  const derivedTopicLine = composeTopicLine(
+    (editedProposal as any)?.topicId ?? (proposal as any)?.topicId,
+    (editedProposal as any)?.topicTitle ?? (proposal as any)?.topicTitle,
+    editedProposal?.type ?? proposal?.type,
+  );
 
   const handleLogoChange = (url: string | null) => {
     if (editedProposal) {
@@ -651,7 +659,35 @@ export function GeneralInfoForm({
               </div>
             </div>
           </div>
+
+          {/* The two export lines composed from the topic information. Each one
+              follows the topic information until it is edited; the reset
+              control clears the edit (stores an empty string) and hands the
+              field back to the derived value. */}
+          <div className="mt-4 pt-4 border-t grid gap-4 md:grid-cols-2">
+            <TopicLineField
+              label="Topic ID, title &amp; type banner"
+              hint="Shown on the black banner on the first page. Press Return to choose where it breaks."
+              stored={(editedProposal as any)?.bannerTopicText}
+              derived={derivedTopicLine}
+              canEdit={isEditing && !!editedProposal}
+              onChange={(value) =>
+                setEditedProposal({ ...(editedProposal as any), bannerTopicText: value } as any)
+              }
+            />
+            <TopicLineField
+              label="Topic ID, title &amp; type header"
+              hint="Shown in the small header at the top of every other page. Press Return to choose where it breaks."
+              stored={(editedProposal as any)?.headerTopicText}
+              derived={derivedTopicLine}
+              canEdit={isEditing && !!editedProposal}
+              onChange={(value) =>
+                setEditedProposal({ ...(editedProposal as any), headerTopicText: value } as any)
+              }
+            />
+          </div>
         </PartACard>
+
 
         {/* Proposal Status Card */}
         <PartACard
@@ -1048,6 +1084,64 @@ function AiStatementField({
   );
 }
 
+
+/**
+ * One of the two export topic lines. While nothing is stored (NULL, or an empty
+ * string left by the reset control) the field shows and uses the derived
+ * "TOPIC_ID: TOPIC_TITLE (TYPE)" and follows any change to the topic
+ * information; the moment the author types, the stored text wins.
+ */
+function TopicLineField({
+  label,
+  hint,
+  stored,
+  derived,
+  canEdit,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  stored: string | null | undefined;
+  derived: string;
+  canEdit: boolean;
+  onChange: (value: string) => void;
+}) {
+  const isEdited = !!(stored && stored.trim());
+  const value = resolveTopicField(stored, derived);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-0.5">
+        <label className="text-xs text-muted-foreground block">{label}</label>
+        {canEdit && isEdited && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="text-xs text-primary hover:underline"
+          >
+            Use topic information
+          </button>
+        )}
+      </div>
+      {canEdit ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-sm resize-none"
+          rows={3}
+        />
+      ) : (
+        <p className="text-sm whitespace-pre-line">{value || '—'}</p>
+      )}
+      <InlineGuideline className="mt-1">
+        {hint}{' '}
+        {isEdited
+          ? 'Edited — it no longer follows the topic information.'
+          : 'Following the topic information.'}
+      </InlineGuideline>
+    </div>
+  );
+}
 
 function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: string; proposalTitle: string }) {
   const navigate = useNavigate();

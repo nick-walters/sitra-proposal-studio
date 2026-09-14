@@ -5599,6 +5599,7 @@ export type Database = {
           b31_show_travel_justification: boolean
           banner_title_override: string | null
           banner_topic_line_override: string | null
+          banner_topic_text: string | null
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible: boolean
@@ -5626,6 +5627,7 @@ export type Database = {
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
           fstp_type: string | null
+          header_topic_text: string | null
           id: string
           impact_canvas_enabled: boolean
           indicative_budget_per_project: string | null
@@ -5686,6 +5688,7 @@ export type Database = {
           b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
+          banner_topic_text?: string | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
@@ -5713,6 +5716,7 @@ export type Database = {
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
+          header_topic_text?: string | null
           id?: string
           impact_canvas_enabled?: boolean
           indicative_budget_per_project?: string | null
@@ -5773,6 +5777,7 @@ export type Database = {
           b31_show_travel_justification?: boolean
           banner_title_override?: string | null
           banner_topic_line_override?: string | null
+          banner_topic_text?: string | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
@@ -5800,6 +5805,7 @@ export type Database = {
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
           fstp_type?: string | null
+          header_topic_text?: string | null
           id?: string
           impact_canvas_enabled?: boolean
           indicative_budget_per_project?: string | null

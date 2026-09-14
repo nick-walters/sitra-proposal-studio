@@ -154,7 +154,10 @@ function footerSource(meta: TypstDocMeta): string {
 }
 
 /**
- * The running header: the topic identifier, centred, on every page. Page one
+ * The running header: the topic identifier, centred, on every page. A newline
+ * typed into A1's header field becomes a real line break (`t-lines`), and every
+ * line is escaped by `typstString`, so no stray character can break the compile.
+ * Page one
  * is skipped ONLY when the full-bleed banner is there (B1.1) — a header above
  * it would print inside the black area. Every other section shows it on page
  * one too.
@@ -166,7 +169,7 @@ function headerSource(meta: TypstDocMeta): string {
   if ${meta.banner ? 'counter(page).at(here()).first() > 1' : 'true'} {
     set align(center)
     set text(font: "${TYPST_SERIF}", size: 9pt, fill: rgb("#666666"))
-    t(${typstString(text)})
+    t-lines(${lineArray(text)})
   }
 }`;
 }
@@ -699,8 +702,13 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// INSIDE these two dimensions rather than given one of them: a project logo
 /// may be square, wide or tall, and "contain" scales it down until whichever
 /// edge binds first, never stretching and never cropping it.
-#let banner-logo-max-width = 3.4cm
-#let banner-logo-max-height = 1.6cm
+/// Both dimensions are scaled by the SAME 1.9 factor (3.4cm → 6.5cm,
+/// 1.6cm → 3cm): the box binds on whichever edge the logo's own shape hits
+/// first, so scaling only the width would leave a tall logo exactly as narrow
+/// as before. Scaling both makes every logo, whatever its shape, render about
+/// 190% of its previous width with its aspect ratio untouched.
+#let banner-logo-max-width = 6.5cm
+#let banner-logo-max-height = 3cm
 
 /// Full-bleed black banner flush to the top edge of page one — no page margin
 /// above or beside it, its own 15mm / 12pt padding inside: the PROPOSAL's own

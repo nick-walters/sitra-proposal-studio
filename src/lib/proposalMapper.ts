@@ -110,6 +110,10 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
   logoUrl:                      { snakeCase: 'logo_url',                        fromDb: orUndefined,    toDb: identity },
   bannerTitleOverride:          { snakeCase: 'banner_title_override',           fromDb: orUndefined,    toDb: identity },
   bannerTopicLineOverride:      { snakeCase: 'banner_topic_line_override',      fromDb: orUndefined,    toDb: identity },
+  // Editable A1 replacements for the composed "TOPIC_ID: TOPIC_TITLE (TYPE)"
+  // line. NULL/empty means "not edited" — the derived value is used instead.
+  bannerTopicText:              { snakeCase: 'banner_topic_text',               fromDb: orUndefined,    toDb: identity },
+  headerTopicText:              { snakeCase: 'header_topic_text',               fromDb: orUndefined,    toDb: identity },
 
   // ── Template ──
   templateTypeId:               { snakeCase: 'template_type_id',                fromDb: orUndefined,    toDb: identity },
@@ -142,6 +146,31 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
   ocdTemplatePath:              { snakeCase: 'ocd_template_path',               fromDb: orUndefined,    toDb: identity },
   requiresOcd:                  { snakeCase: 'requires_ocd',                    fromDb: orFalse,        toDb: identity },
 };
+
+/**
+ * The topic line as it is composed from the topic information page:
+ * `TOPIC_ID: TOPIC_TITLE (TOPIC_TYPE)`, with any missing part simply left out.
+ */
+export function composeTopicLine(
+  topicId?: string | null,
+  topicTitle?: string | null,
+  type?: string | null,
+): string {
+  const id = (topicId || '').trim();
+  const title = (topicTitle || '').trim();
+  const t = (type || '').trim();
+  return `${id}${id && title ? ': ' : ''}${title}${t ? ` (${t})` : ''}`;
+}
+
+/**
+ * An A1 banner/header field falls back to the derived topic line until the
+ * author actually types something: a NULL column (never edited) and an empty
+ * one (edit cleared with the reset control) both mean "follow the topic
+ * information".
+ */
+export function resolveTopicField(stored: string | null | undefined, derived: string): string {
+  return stored && stored.trim() ? stored : derived;
+}
 
 /**
  * Convert a raw DB row to a ProposalData-shaped object.
