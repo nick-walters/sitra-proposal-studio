@@ -758,14 +758,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
               that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
             </CardDescription>
-            <LazyRichField
+            <LimitedRichField
               value={ethicsData.ethicsSelfAssessmentCompliance || ''}
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
               placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
-              minHeight="80px"
               disabled={!canEdit}
               proposalId={ethicsData.proposalId || undefined}
-              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
         </PartACard>
