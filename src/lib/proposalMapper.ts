@@ -110,6 +110,10 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
   logoUrl:                      { snakeCase: 'logo_url',                        fromDb: orUndefined,    toDb: identity },
   bannerTitleOverride:          { snakeCase: 'banner_title_override',           fromDb: orUndefined,    toDb: identity },
   bannerTopicLineOverride:      { snakeCase: 'banner_topic_line_override',      fromDb: orUndefined,    toDb: identity },
+  // Editable A1 replacements for the composed "TOPIC_ID: TOPIC_TITLE (TYPE)"
+  // line. NULL/empty means "not edited" — the derived value is used instead.
+  bannerTopicText:              { snakeCase: 'banner_topic_text',               fromDb: orUndefined,    toDb: identity },
+  headerTopicText:              { snakeCase: 'header_topic_text',               fromDb: orUndefined,    toDb: identity },
 
   // ── Template ──
   templateTypeId:               { snakeCase: 'template_type_id',                fromDb: orUndefined,    toDb: identity },
