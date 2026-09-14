@@ -95,6 +95,7 @@ import { dropBlankBlocks, hasVisibleBlocks } from './emptyBlocks';
 import { emitB32Slot, type B32TypstData } from './b32Mirrors';
 import { emitB32InfraTable } from './b32InfraData';
 import { B32_INFRA_DEFAULT_HEADER } from '@/extensions/B32InfraTableNode';
+import { composeTopicLine, resolveTopicField } from '@/lib/proposalMapper';
 
 /**
  * Mirrors the board's `B32BlockMirrors` map: which A2 mirror slots each B3.2
