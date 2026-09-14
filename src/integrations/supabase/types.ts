@@ -5947,6 +5947,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "section_comments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles_full"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "section_comments_parent_comment_id_fkey"
             columns: ["parent_comment_id"]
             isOneToOne: false
@@ -5972,6 +5979,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_full"
             referencedColumns: ["id"]
           },
         ]
@@ -7358,6 +7372,93 @@ export type Database = {
           id?: string | null
           last_name?: string | null
           organisation?: string | null
+        }
+        Relationships: []
+      }
+      profiles_full: {
+        Row: {
+          address: string | null
+          address_line_2: string | null
+          avatar_url: string | null
+          bluesky: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string | null
+          department: string | null
+          email: string | null
+          facebook: string | null
+          feature_tour_seen_at: string | null
+          first_name: string | null
+          full_name: string | null
+          gdpr_consented_at: string | null
+          id: string | null
+          instagram: string | null
+          last_name: string | null
+          linkedin: string | null
+          organisation: string | null
+          other_links: Json | null
+          phone_number: string | null
+          postcode: string | null
+          track_changes_enabled: boolean | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          address_line_2?: string | null
+          avatar_url?: string | null
+          bluesky?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          facebook?: string | null
+          feature_tour_seen_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          gdpr_consented_at?: string | null
+          id?: string | null
+          instagram?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          organisation?: string | null
+          other_links?: Json | null
+          phone_number?: string | null
+          postcode?: string | null
+          track_changes_enabled?: boolean | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          address_line_2?: string | null
+          avatar_url?: string | null
+          bluesky?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          facebook?: string | null
+          feature_tour_seen_at?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          gdpr_consented_at?: string | null
+          id?: string | null
+          instagram?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          organisation?: string | null
+          other_links?: Json | null
+          phone_number?: string | null
+          postcode?: string | null
+          track_changes_enabled?: boolean | null
+          updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }
