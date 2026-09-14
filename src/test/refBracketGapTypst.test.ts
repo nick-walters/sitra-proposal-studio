@@ -55,3 +55,17 @@ describe('bracket hairline', () => {
     expect((out.match(/h\(0\.6pt/g) || []).length).toBe(1);
   });
 });
+
+/* Real stored markup from SUSIE-Q (card_fields d398a80d-…): a deliverable chip
+ * nested inside a presentational span and wrapped in round brackets. */
+describe('SUSIE-Q stored markup', () => {
+  const realChip =
+    '<span style="color: inherit;"><span data-ref-type="deliverable" data-deliverable-number="D1.2" data-deliverable-id="e446cea9-e66c-40fa-82ae-c1f903cc3973" data-wp-color="#73C92D" data-inline-reference="" class="inline-ref inline-ref-deliverable" contenteditable="false"><span>D1.2</span></span></span>';
+
+  it('bracketed gains the gap, unbracketed does not', () => {
+    const bracketed = htmlToTypstInline(`<p>where feasible (${realChip}), and</p>`, ctx());
+    const plain = htmlToTypstInline(`<p>delivered through ${realChip} in month 12.</p>`, ctx());
+    expect((bracketed.match(/h\(0\.6pt/g) || []).length).toBe(2);
+    expect(plain).not.toContain('h(0.6pt');
+  });
+});
