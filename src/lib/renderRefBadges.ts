@@ -471,6 +471,7 @@ export function glueBadgeSpacing(root: ParentNode) {
 
 const OPEN_BRACKETS = '([';
 const CLOSE_BRACKETS = ')]';
+const WORD_JOINER = '\u2060';
 export const BRACKET_GLUE_CLASS = 'ref-bracket-glue';
 export const BRACKET_GAP_CLASS = 'ref-bracket-gap';
 
@@ -518,8 +519,10 @@ export function glueBadgeBrackets(root: ParentNode) {
     const next = node.nextSibling;
     const prevText = prev && prev.nodeType === 3 ? prev.textContent ?? '' : '';
     const nextText = next && next.nodeType === 3 ? next.textContent ?? '' : '';
-    const hasOpen = !!prevText && OPEN_BRACKETS.includes(prevText.slice(-1));
-    const hasClose = !!nextText && CLOSE_BRACKETS.includes(nextText.slice(0, 1));
+    const openIndex = prevText.endsWith(WORD_JOINER) ? prevText.length - 2 : prevText.length - 1;
+    const closeIndex = nextText.startsWith(WORD_JOINER) ? 1 : 0;
+    const hasOpen = openIndex >= 0 && OPEN_BRACKETS.includes(prevText.charAt(openIndex));
+    const hasClose = CLOSE_BRACKETS.includes(nextText.charAt(closeIndex));
     if (!hasOpen && !hasClose) return;
 
     const doc = badge.ownerDocument;
@@ -533,15 +536,15 @@ export function glueBadgeBrackets(root: ParentNode) {
 
     (parent as ParentNode).insertBefore(glue, node);
     if (hasOpen && prev) {
-      prev.textContent = prevText.slice(0, -1);
-      glue.appendChild(doc.createTextNode(prevText.slice(-1)));
+      prev.textContent = prevText.slice(0, openIndex);
+      glue.appendChild(doc.createTextNode(prevText.charAt(openIndex)));
       glue.appendChild(bracketGap(doc));
     }
     glue.appendChild(node);
     if (hasClose && next) {
-      next.textContent = nextText.slice(1);
+      next.textContent = nextText.slice(closeIndex + 1);
       glue.appendChild(bracketGap(doc));
-      glue.appendChild(doc.createTextNode(nextText.slice(0, 1)));
+      glue.appendChild(doc.createTextNode(nextText.charAt(closeIndex)));
     }
   });
 }
