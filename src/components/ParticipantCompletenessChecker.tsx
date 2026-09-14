@@ -60,7 +60,7 @@ export function ParticipantCompletenessChecker({ proposalId }: ParticipantComple
         .eq('proposal_id', proposalId) as any;
       const { data: members } = await supabase
         .from('participant_members')
-        .select('participant_id')
+        .select('participant_id, full_name, email, is_primary_contact')
         .in('participant_id', (participants || []).map((p: any) => p.id)) as any;
 
       const ocdRequired = !!proposal?.requires_ocd && !!proposal?.ocd_template_path;
