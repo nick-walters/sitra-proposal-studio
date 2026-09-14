@@ -848,11 +848,11 @@ export function BudgetPortalSheet({
               </TabsList>
               {activeTab === 'lump-sum' && (
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
-                  {/* Enter budget and Copy to portal are editing surfaces; Overview is
-                      read-only and therefore available to every user with access. */}
+                  {/* Overview is read-only and available to every user with access;
+                      Enter budget and Copy to portal are editing surfaces. */}
+                  <Button type="button" variant={accessibleBudgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                     <Button type="button" variant={accessibleBudgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
                     <Button type="button" variant={accessibleBudgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
-                  <Button type="button" variant={accessibleBudgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                 </div>
               )}
             </div>
