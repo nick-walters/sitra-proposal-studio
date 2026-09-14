@@ -84,6 +84,13 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       position_mode?: FigurePositionMode;
       page_break_mode?: FigurePageBreakMode;
     }) => {
+      // A figure can be claimed by exactly one placement row (unique index on
+      // card_figure.figure_id). A claim held by a DELETED figure module is
+      // defunct — the module is gone and restoring it no longer returns the
+      // figure — so release it here rather than refusing the insertion.
+      if (patch.figure_id) {
+        await releaseDefunctModuleClaim(patch.figure_id, cardId, fieldId ?? null);
+      }
       const { error } = await supabase.rpc('save_card_figure', {
         p_card_id: cardId,
         p_patch: patch,
@@ -91,6 +98,7 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       });
       if (error) throw error;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       // Collapsed blocks show the caption as their one-line summary.
