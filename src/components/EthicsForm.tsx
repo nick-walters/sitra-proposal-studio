@@ -496,6 +496,58 @@ function EthicsQuestionRow({
   );
 }
 
+const SELF_ASSESSMENT_LIMIT = 5000;
+
+/**
+ * Rich field with a hard character limit on its plain text.
+ *
+ * The counter always shows the current length. Text beyond the limit is not
+ * saved: an edit that would leave the field over the limit is only accepted
+ * when it makes the field shorter, so existing content can always be cut back.
+ */
+function LimitedRichField({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  proposalId,
+  maxLength = SELF_ASSESSMENT_LIMIT,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder: string;
+  disabled: boolean;
+  proposalId?: string;
+  maxLength?: number;
+}) {
+  const length = htmlToPlainText(value || '').length;
+  const over = length > maxLength;
+
+  const handleChange = (next: string) => {
+    const nextLength = htmlToPlainText(next || '').length;
+    if (nextLength > maxLength && nextLength >= length) return;
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-1">
+      <LazyRichField
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        minHeight="80px"
+        disabled={disabled}
+        proposalId={proposalId || ''}
+        staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
+      />
+      <div className={cn('text-xs text-right', over ? 'text-destructive' : 'text-muted-foreground')}>
+        {formatNumber(length)} / {formatNumber(maxLength)} characters
+        {over && ' — text beyond the limit is not saved'}
+      </div>
+    </div>
+  );
+}
+
 export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps) {
   const ethicsData: EthicsAssessment = ethics || { proposalId: '' };
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -686,14 +738,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
               <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
             </ul>
-            <LazyRichField
+            <LimitedRichField
               value={ethicsData.ethicsSelfAssessmentObjectives || ''}
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
               placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
-              minHeight="80px"
               disabled={!canEdit}
               proposalId={ethicsData.proposalId || undefined}
-              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
 
@@ -708,14 +758,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
               that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
             </CardDescription>
-            <LazyRichField
+            <LimitedRichField
               value={ethicsData.ethicsSelfAssessmentCompliance || ''}
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
               placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
-              minHeight="80px"
               disabled={!canEdit}
               proposalId={ethicsData.proposalId || undefined}
-              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
         </PartACard>
