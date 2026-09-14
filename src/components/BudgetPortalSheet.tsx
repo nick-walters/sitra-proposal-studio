@@ -164,7 +164,7 @@ export function BudgetPortalSheet({
   const storageKey = `budget-active-tab:${proposalId}`;
   const [activeTab, setActiveTab] = useState<string>(() => availableTabs[0] ?? 'budget');
   const portalViewKey = user?.id ? PORTAL_VIEW_KEY(user.id, proposalId) : null;
-  const [budgetView, setBudgetView] = useState<BudgetView>('enter');
+  const [budgetView, setBudgetView] = useState<BudgetView>('overview');
   const restoredPortalViewKeyRef = useRef<string | null>(null);
   const budgetViewChosenRef = useRef(false);
   const [validationOpen, setValidationOpen] = useState(false);
@@ -202,7 +202,7 @@ export function BudgetPortalSheet({
     }
     const isView = (value: string | null): value is BudgetView =>
       value === 'enter' || value === 'portal' || value === 'overview';
-    if (!budgetViewChosenRef.current) setBudgetView(isView(stored) ? stored : 'enter');
+    if (!budgetViewChosenRef.current) setBudgetView(isView(stored) ? stored : 'overview');
   }, [portalViewKey]);
 
   const accessibleBudgetView = allowedBudgetViews.includes(budgetView)
@@ -848,11 +848,11 @@ export function BudgetPortalSheet({
               </TabsList>
               {activeTab === 'lump-sum' && (
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
-                  {/* Enter budget and Copy to portal are editing surfaces; Overview is
-                      read-only and therefore available to every user with access. */}
+                  {/* Overview is read-only and available to every user with access;
+                      Enter budget and Copy to portal are editing surfaces. */}
+                  <Button type="button" variant={accessibleBudgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                     <Button type="button" variant={accessibleBudgetView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'enter'} onClick={() => chooseBudgetView('enter')}>Enter budget</Button>
                     <Button type="button" variant={accessibleBudgetView === 'portal' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'portal'} onClick={() => chooseBudgetView('portal')}>Copy to portal</Button>
-                  <Button type="button" variant={accessibleBudgetView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleBudgetView === 'overview'} onClick={() => chooseBudgetView('overview')}>Overview</Button>
                 </div>
               )}
             </div>
