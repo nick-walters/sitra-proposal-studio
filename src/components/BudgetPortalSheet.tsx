@@ -833,16 +833,20 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <TabsList>
-                {/* Order follows `budgetTabs`, so the proposal's current budget
-                    type always sits first and any superseded one after it. */}
-                {budgetTabs.map((tab) => (
-                  <TabsTrigger key={tab} value={tab}>
-                    {tab === 'budget' ? 'Actual costs budget' : 'Lump sum budget'}
-                  </TabsTrigger>
-                ))}
-                {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-              </TabsList>
+              {/* A single available tab needs no chooser, so the strip is only
+                  rendered when there is genuinely something to choose between. */}
+              {availableTabs.length > 1 && (
+                <TabsList>
+                  {/* Order follows `budgetTabs`, so the proposal's current budget
+                      type always sits first and any superseded one after it. */}
+                  {budgetTabs.map((tab) => (
+                    <TabsTrigger key={tab} value={tab}>
+                      {tab === 'budget' ? 'Actual costs budget' : 'Lump sum budget'}
+                    </TabsTrigger>
+                  ))}
+                  {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+                </TabsList>
+              )}
               {activeTab === 'lump-sum' && (
                 <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Budget view">
                   {/* Overview is read-only and available to every user with access;
