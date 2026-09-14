@@ -154,7 +154,10 @@ function footerSource(meta: TypstDocMeta): string {
 }
 
 /**
- * The running header: the topic identifier, centred, on every page. Page one
+ * The running header: the topic identifier, centred, on every page. A newline
+ * typed into A1's header field becomes a real line break (`t-lines`), and every
+ * line is escaped by `typstString`, so no stray character can break the compile.
+ * Page one
  * is skipped ONLY when the full-bleed banner is there (B1.1) — a header above
  * it would print inside the black area. Every other section shows it on page
  * one too.
