@@ -703,7 +703,9 @@ export async function fetchTypstDocMeta(
   const [{ data }, section] = await Promise.all([
     supabase
       .from('proposals')
-      .select('acronym, title, topic_id, topic_title, type, banner_topic_line_override')
+      .select(
+        'acronym, title, topic_id, topic_title, type, banner_topic_line_override, banner_topic_text, header_topic_text',
+      )
       .eq('id', proposalId)
       .maybeSingle(),
     sectionId
