@@ -738,14 +738,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
               <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
             </ul>
-            <LazyRichField
+            <LimitedRichField
               value={ethicsData.ethicsSelfAssessmentObjectives || ''}
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
               placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
-              minHeight="80px"
               disabled={!canEdit}
               proposalId={ethicsData.proposalId || undefined}
-              staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
             />
           </div>
 
