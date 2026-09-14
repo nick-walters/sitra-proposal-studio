@@ -1085,6 +1085,64 @@ function AiStatementField({
 }
 
 
+/**
+ * One of the two export topic lines. While nothing is stored (NULL, or an empty
+ * string left by the reset control) the field shows and uses the derived
+ * "TOPIC_ID: TOPIC_TITLE (TYPE)" and follows any change to the topic
+ * information; the moment the author types, the stored text wins.
+ */
+function TopicLineField({
+  label,
+  hint,
+  stored,
+  derived,
+  canEdit,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  stored: string | null | undefined;
+  derived: string;
+  canEdit: boolean;
+  onChange: (value: string) => void;
+}) {
+  const isEdited = !!(stored && stored.trim());
+  const value = resolveTopicField(stored, derived);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-0.5">
+        <label className="text-xs text-muted-foreground block">{label}</label>
+        {canEdit && isEdited && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="text-xs text-primary hover:underline"
+          >
+            Use topic information
+          </button>
+        )}
+      </div>
+      {canEdit ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-sm resize-none"
+          rows={3}
+        />
+      ) : (
+        <p className="text-sm whitespace-pre-line">{value || '—'}</p>
+      )}
+      <InlineGuideline className="mt-1">
+        {hint}{' '}
+        {isEdited
+          ? 'Edited — it no longer follows the topic information.'
+          : 'Following the topic information.'}
+      </InlineGuideline>
+    </div>
+  );
+}
+
 function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: string; proposalTitle: string }) {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
