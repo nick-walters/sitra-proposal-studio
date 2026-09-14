@@ -13,7 +13,6 @@ const REF_ATOM_NODE_NAMES = new Set([
   'participantReference',
   'inlineReference',
 ]);
-const WORD_JOINER = '\u2060';
 
 function buildGlueDecorations(doc: PMNode): DecorationSet {
   const schema = doc.type.schema;
@@ -43,10 +42,9 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     // dangling at the end of the previous line.
     const $from = doc.resolve(badgeFrom);
     if ($from.parentOffset > 0) {
-      const before = doc.textBetween(Math.max(0, badgeFrom - 2), badgeFrom);
-      const openMatch = before.match(/([([])\u2060?$/);
-      if (openMatch) {
-        start = badgeFrom - openMatch[0].length;
+      const charBefore = doc.textBetween(badgeFrom - 1, badgeFrom);
+      if (charBefore === '(' || charBefore === '[') {
+        start = badgeFrom - 1;
         gapLeft = true;
       }
     }
@@ -57,12 +55,11 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     // where it read as a stray indent after a wrapped chip.
     const $to = doc.resolve(badgeTo);
     if ($to.parentOffset < $to.parent.content.size) {
-      const afterText = doc.textBetween(badgeTo, Math.min(badgeTo + 2, $to.end()));
-      const closeMatch = afterText.match(/^\u2060?([)\]])/);
-      if (closeMatch) {
-        end = badgeTo + closeMatch[0].length;
+      const charAfter = doc.textBetween(badgeTo, badgeTo + 1);
+      if (charAfter === ')' || charAfter === ']') {
+        end = badgeTo + 1;
         gapRight = true;
-      } else if (afterText.startsWith(' ')) {
+      } else if (charAfter === ' ') {
         end = badgeTo + 1;
       }
     }
@@ -83,29 +80,6 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
 
 
   return DecorationSet.create(doc, decorations);
-}
-
-/**
- * Inserts a zero-width WORD JOINER at each bracket/badge boundary. The joiner
- * adds no visible spacing; it only removes the browser's break opportunity.
- * The 1px visual hairline remains a decoration margin on the badge itself.
- */
-function glueBracketJoiners(newState: any) {
-  const { doc, tr } = newState;
-  const inserts: number[] = [];
-  doc.descendants((node: PMNode, pos: number) => {
-    if (!(node.isInline && REF_ATOM_NODE_NAMES.has(node.type.name))) return;
-    const before = doc.textBetween(Math.max(0, pos - 1), pos);
-    if (before === '(' || before === '[') inserts.push(pos);
-    const after = pos + node.nodeSize;
-    const $after = doc.resolve(after);
-    if ($after.parentOffset >= $after.parent.content.size) return;
-    const next = doc.textBetween(after, Math.min(after + 1, $after.end()));
-    if (next === ')' || next === ']') inserts.push(after);
-  });
-  if (inserts.length === 0) return null;
-  [...inserts].sort((a, b) => b - a).forEach((pos) => tr.insertText(WORD_JOINER, pos));
-  return tr;
 }
 
 /**
@@ -144,7 +118,7 @@ export const ParenBadgeGlue = Extension.create({
         key: pluginKey,
         appendTransaction: (transactions, _oldState, newState) => {
           if (!transactions.some((t) => t.docChanged)) return null;
-          return glueBracketJoiners(newState) ?? glueTrailingSpaces(newState);
+          return glueTrailingSpaces(newState);
         },
         state: {
           init: (_config, state) => buildGlueDecorations(state.doc),
