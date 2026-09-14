@@ -472,6 +472,15 @@ export function glueBadgeSpacing(root: ParentNode) {
 const OPEN_BRACKETS = '([';
 const CLOSE_BRACKETS = ')]';
 export const BRACKET_GLUE_CLASS = 'ref-bracket-glue';
+export const BRACKET_GAP_CLASS = 'ref-bracket-gap';
+
+function bracketGap(doc: Document): HTMLSpanElement {
+  const gap = doc.createElement('span');
+  gap.className = BRACKET_GAP_CLASS;
+  gap.setAttribute('style', 'display: inline-block; width: 1px; white-space: nowrap');
+  gap.setAttribute('aria-hidden', 'true');
+  return gap;
+}
 
 /**
  * Keeps a round/square bracket on the same line as the chip it belongs to.
@@ -518,17 +527,20 @@ export function glueBadgeBrackets(root: ParentNode) {
     const glue = doc.createElement('span');
     glue.className = BRACKET_GLUE_CLASS;
     // Inline style as well as the class: export/print containers do not load
-    // the app stylesheet.
+    // the app stylesheet. The 1px gap spans sit inside this nowrap island, so
+    // they add a hairline without introducing a line-break opportunity.
     glue.setAttribute('style', 'white-space: nowrap');
 
     (parent as ParentNode).insertBefore(glue, node);
     if (hasOpen && prev) {
       prev.textContent = prevText.slice(0, -1);
       glue.appendChild(doc.createTextNode(prevText.slice(-1)));
+      glue.appendChild(bracketGap(doc));
     }
     glue.appendChild(node);
     if (hasClose && next) {
       next.textContent = nextText.slice(1);
+      glue.appendChild(bracketGap(doc));
       glue.appendChild(doc.createTextNode(nextText.slice(0, 1)));
     }
   });

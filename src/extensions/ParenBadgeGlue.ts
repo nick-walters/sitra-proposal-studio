@@ -34,6 +34,8 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     const badgeTo = pos + node.nodeSize;
     let start = badgeFrom;
     let end = badgeTo;
+    let gapLeft = false;
+    let gapRight = false;
 
     // Character immediately before the badge, within the same text block.
     // Round AND square opening brackets are glued, so neither can be left
@@ -41,7 +43,10 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     const $from = doc.resolve(badgeFrom);
     if ($from.parentOffset > 0) {
       const charBefore = doc.textBetween(badgeFrom - 1, badgeFrom);
-      if (charBefore === '(' || charBefore === '[') start = badgeFrom - 1;
+      if (charBefore === '(' || charBefore === '[') {
+        start = badgeFrom - 1;
+        gapLeft = true;
+      }
     }
 
     // Character immediately after the badge, within the same text block.
@@ -51,9 +56,22 @@ function buildGlueDecorations(doc: PMNode): DecorationSet {
     const $to = doc.resolve(badgeTo);
     if ($to.parentOffset < $to.parent.content.size) {
       const charAfter = doc.textBetween(badgeTo, badgeTo + 1);
-      if (charAfter === ')' || charAfter === ']' || charAfter === ' ') end = badgeTo + 1;
+      if (charAfter === ')' || charAfter === ']') {
+        end = badgeTo + 1;
+        gapRight = true;
+      } else if (charAfter === ' ') {
+        end = badgeTo + 1;
+      }
     }
 
+    if (gapLeft || gapRight) {
+      decorations.push(
+        Decoration.inline(badgeFrom, badgeTo, {
+          class: 'ref-bracket-badge-gap',
+          style: `margin-left: ${gapLeft ? 1 : 0}px; margin-right: ${gapRight ? 1 : 0}px;`,
+        }),
+      );
+    }
 
     if (start < badgeFrom || end > badgeTo) {
       decorations.push(Decoration.inline(start, end, { style: 'white-space: nowrap;' }));
