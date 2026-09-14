@@ -148,6 +148,31 @@ const PROPOSAL_FIELD_MAP: Record<string, FieldMapping> = {
 };
 
 /**
+ * The topic line as it is composed from the topic information page:
+ * `TOPIC_ID: TOPIC_TITLE (TOPIC_TYPE)`, with any missing part simply left out.
+ */
+export function composeTopicLine(
+  topicId?: string | null,
+  topicTitle?: string | null,
+  type?: string | null,
+): string {
+  const id = (topicId || '').trim();
+  const title = (topicTitle || '').trim();
+  const t = (type || '').trim();
+  return `${id}${id && title ? ': ' : ''}${title}${t ? ` (${t})` : ''}`;
+}
+
+/**
+ * An A1 banner/header field falls back to the derived topic line until the
+ * author actually types something: a NULL column (never edited) and an empty
+ * one (edit cleared with the reset control) both mean "follow the topic
+ * information".
+ */
+export function resolveTopicField(stored: string | null | undefined, derived: string): string {
+  return stored && stored.trim() ? stored : derived;
+}
+
+/**
  * Convert a raw DB row to a ProposalData-shaped object.
  * All fields are handled — no inline overrides needed at the call site.
  */
