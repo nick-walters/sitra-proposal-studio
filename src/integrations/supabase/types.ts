@@ -3812,6 +3812,54 @@ export type Database = {
           },
         ]
       }
+      participant_info_permission_overrides: {
+        Row: {
+          can_edit: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          participant_id: string
+          proposal_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          participant_id: string
+          proposal_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          participant_id?: string
+          proposal_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_info_permission_overrides_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_info_permission_overrides_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_infrastructure: {
         Row: {
           created_at: string
@@ -4148,6 +4196,9 @@ export type Database = {
           gep_work_life_balance: boolean | null
           has_gender_equality_plan: boolean | null
           id: string
+          info_locked: boolean
+          info_locked_at: string | null
+          info_locked_by: string | null
           is_sme: boolean | null
           legal_entity_type: string | null
           logo_url: string | null
@@ -4204,6 +4255,9 @@ export type Database = {
           gep_work_life_balance?: boolean | null
           has_gender_equality_plan?: boolean | null
           id?: string
+          info_locked?: boolean
+          info_locked_at?: string | null
+          info_locked_by?: string | null
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
@@ -4260,6 +4314,9 @@ export type Database = {
           gep_work_life_balance?: boolean | null
           has_gender_equality_plan?: boolean | null
           id?: string
+          info_locked?: boolean
+          info_locked_at?: string | null
+          info_locked_by?: string | null
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
@@ -7368,6 +7425,10 @@ export type Database = {
         Args: { _participant_id: string; _user_id: string }
         Returns: boolean
       }
+      can_edit_participant_info: {
+        Args: { _participant_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
@@ -7444,6 +7505,10 @@ export type Database = {
         Args: { p_template_type_id: string }
         Returns: string
       }
+      expertise_cell_editable: {
+        Args: { _column_id: string; _row_id: string }
+        Returns: boolean
+      }
       get_my_private_profile: {
         Args: never
         Returns: {
@@ -7471,6 +7536,10 @@ export type Database = {
       heartbeat_card_lock: {
         Args: { p_target_id: string; p_target_type: string }
         Returns: boolean
+      }
+      info_editable_participant_ids: {
+        Args: { _proposal_id: string }
+        Returns: string[]
       }
       insert_section_version: {
         Args: {
@@ -7516,6 +7585,10 @@ export type Database = {
       }
       numbered_order_expr: { Args: { p_table: string }; Returns: string }
       numbered_parent_column: { Args: { p_table: string }; Returns: string }
+      participant_info_editable: {
+        Args: { _participant_id: string }
+        Returns: boolean
+      }
       preview_proposal_restore: {
         Args: { p_proposal_id: string; p_snapshot_id: string }
         Returns: Json

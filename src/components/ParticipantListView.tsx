@@ -8,7 +8,13 @@ import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, FileText } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Upload, X, Loader2, FileText, Lock, Unlock, Users } from 'lucide-react';
+import { ParticipantDetailForm } from './ParticipantDetailForm';
+import { ParticipantPermissionsDialog } from './ParticipantPermissionsDialog';
+import { useParticipantAccess } from '@/hooks/useParticipantAccess';
+import { useAuth } from '@/hooks/useAuth';
+import { useProposalData } from '@/hooks/useProposalData';
+
 import { SaveIndicator } from './SaveIndicator';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
@@ -504,13 +510,61 @@ export function ParticipantListView({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('participants');
   const [lastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
   const templateInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const access = useParticipantAccess(proposalId);
+  const {
+    participantMembers,
+    deleteParticipant,
+    addParticipantMember,
+    updateParticipantMember,
+    deleteParticipantMember,
+  } = useProposalData(proposalId);
+
+  // ── Three views: Overview (read-only, everyone), Enter participant info,
+  //    Completeness check. Default Overview; the choice persists per user per
+  //    proposal and falls back to Overview when the stored view is unavailable.
+  type A2View = 'overview' | 'enter' | 'completeness';
+  const viewKey = user?.id ? `a2-view:${user.id}:${proposalId}` : null;
+  const [view, setView] = useState<A2View>('overview');
+  const restoredViewKeyRef = useRef<string | null>(null);
+  const viewChosenRef = useRef(false);
+  const [activeParticipantId, setActiveParticipantId] = useState<string | null>(null);
+  const [permissionsParticipantId, setPermissionsParticipantId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!viewKey || restoredViewKeyRef.current === viewKey) return;
+    restoredViewKeyRef.current = viewKey;
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(viewKey);
+    } catch {
+      stored = null;
+    }
+    const isView = (value: string | null): value is A2View =>
+      value === 'overview' || value === 'enter' || value === 'completeness';
+    if (!viewChosenRef.current) setView(isView(stored) ? stored : 'overview');
+  }, [viewKey]);
+
+  const allowedViews: A2View[] = isAdmin ? ['overview', 'enter', 'completeness'] : ['overview', 'enter'];
+  const accessibleView: A2View = allowedViews.includes(view) ? view : 'overview';
+
+  const chooseView = (next: A2View) => {
+    viewChosenRef.current = true;
+    setView(next);
+    if (!viewKey) return;
+    try {
+      window.localStorage.setItem(viewKey, next);
+    } catch {
+      // The view preference is optional when browser storage is unavailable.
+    }
+  };
+
 
   // Fetch case display setting (whether to show numbers vs short names on case bubbles)
   const { data: caseSettings } = useQuery({
@@ -602,6 +656,12 @@ export function ParticipantListView({
   const sortedParticipants = [...participants].sort(
     (a, b) => (a.participantNumber || 999) - (b.participantNumber || 999)
   );
+
+  // The first participant opens by default in the editing view.
+  const activeParticipant = sortedParticipants.find(p => p.id === activeParticipantId) ?? sortedParticipants[0] ?? null;
+  const permissionsParticipant = sortedParticipants.find(p => p.id === permissionsParticipantId) ?? null;
+
+
 
   return (
     <TooltipProvider>
@@ -710,13 +770,34 @@ export function ParticipantListView({
             </PartACard>
           )}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="participants">Participants</TabsTrigger>
-              {isAdmin && <TabsTrigger value="completeness">Completeness</TabsTrigger>}
-            </TabsList>
+          {/* Three views, mirroring the lump sum budget panel: a read-only
+              Overview open to everyone with proposal access, an editing
+              surface with per-participant tabs, and the completeness check. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Participants view">
+              <Button type="button" variant={accessibleView === 'overview' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleView === 'overview'} onClick={() => chooseView('overview')}>Overview</Button>
+              <Button type="button" variant={accessibleView === 'enter' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleView === 'enter'} onClick={() => chooseView('enter')}>Enter participant info</Button>
+              {isAdmin && <Button type="button" variant={accessibleView === 'completeness' ? 'default' : 'ghost'} className="h-10 px-4 py-2 text-sm" aria-pressed={accessibleView === 'completeness'} onClick={() => chooseView('completeness')}>Completeness check</Button>}
+            </div>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                aria-label={access.lockState === 'all' ? 'Unlock all participant information' : 'Lock all participant information'}
+                title={access.lockState === 'some' ? 'Some participants are locked — lock all participants' : undefined}
+                onClick={() => access.setLockAll(access.lockState !== 'all')}
+              >
+                {access.lockState === 'all'
+                  ? <Lock className="w-4 h-4 text-destructive" />
+                  : <Unlock className={`w-4 h-4 ${access.lockState === 'some' ? 'text-warning' : 'text-green-600'}`} />}
+                {access.lockState === 'all' ? 'Unlock all participants' : 'Lock all participants'}
+              </Button>
+            )}
+          </div>
 
-            <TabsContent value="participants">
+          {accessibleView === 'overview' && (
+            <div>
+
               {sortedParticipants.length === 0 ? (
                 <Card>
                   <CardContent className="py-8 text-center">
@@ -808,14 +889,110 @@ export function ParticipantListView({
               <div className="mt-6">
                 <ExpertiseMatrixCard proposalId={proposalId} participants={participants} />
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {isAdmin && (
-              <TabsContent value="completeness">
-                <ParticipantCompletenessChecker proposalId={proposalId} />
-              </TabsContent>
-            )}
-          </Tabs>
+          {accessibleView === 'enter' && (
+            <div className="space-y-2">
+              {/* Wrapping badge strip: every participant stays visible on
+                  further rows rather than scrolling sideways. */}
+              <div className="flex flex-wrap items-center gap-y-1 overflow-visible border-b border-border pb-1.5">
+                {sortedParticipants.map((participant) => {
+                  const active = participant.id === activeParticipant?.id;
+                  const locked = access.isLocked(participant.id);
+                  return (
+                    <div key={participant.id} className={`flex min-w-max items-center gap-0 border-b-2 ${active ? 'border-primary' : 'border-transparent'} mr-1 border-r border-r-border/60 pr-1`}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveParticipantId(participant.id)}
+                        className={`flex items-center px-1 py-1.5 text-left transition-colors ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                      >
+                        {/* ParticipantBubble paints its own colour inline, so the
+                            wrapper is faded rather than the badge itself. */}
+                        <span className={`inline-flex transition-opacity ${active ? 'opacity-100' : 'opacity-50 hover:opacity-80'}`}>
+                          <ParticipantBubble number={participant.participantNumber} shortName={participant.organisationShortName || participant.organisationName} />
+                        </span>
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            aria-label={locked ? `Unlock information for participant ${participant.participantNumber ?? ''}` : `Lock information for participant ${participant.participantNumber ?? ''}`}
+                            title={locked ? 'Unlock participant information' : 'Lock participant information'}
+                            onClick={() => access.setLock(participant.id, !locked)}
+                          >
+                            {locked ? <Lock className="h-3 w-3 text-destructive" /> : <Unlock className="h-3 w-3 text-green-600" />}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                            aria-label={`Manage information permissions for participant ${participant.participantNumber ?? ''}`}
+                            title="Manage participant information permissions"
+                            onClick={() => setPermissionsParticipantId(participant.id)}
+                          >
+                            <Users className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {activeParticipant ? (
+                <ParticipantDetailForm
+                  participant={activeParticipant}
+                  participantMembers={participantMembers}
+                  allParticipants={sortedParticipants.map(p => ({
+                    id: p.id,
+                    participant_number: p.participantNumber,
+                    organisation_short_name: p.organisationShortName || null,
+                    organisation_name: p.organisationName || '',
+                  }))}
+                  onUpdateParticipant={onUpdateParticipant ?? (async () => {})}
+                  onDeleteParticipant={(participantId) => {
+                    deleteParticipant(participantId);
+                    setActiveParticipantId(null);
+                  }}
+                  onAddMember={addParticipantMember}
+                  onUpdateMember={updateParticipantMember}
+                  onDeleteMember={deleteParticipantMember}
+                  canEdit={canEdit}
+                  canDelete={canEdit}
+                  canGrant={isAdmin}
+                  proposalId={proposalId}
+                  proposalAcronym={proposalAcronym}
+                  onBackToParticipants={() => chooseView('overview')}
+                />
+              ) : (
+                <p className="py-8 text-center text-sm text-muted-foreground">No participants found for this proposal.</p>
+              )}
+            </div>
+          )}
+
+          {accessibleView === 'completeness' && isAdmin && (
+            <ParticipantCompletenessChecker proposalId={proposalId} />
+          )}
+
+          {permissionsParticipant && (
+            <ParticipantPermissionsDialog
+              proposalId={proposalId}
+              participant={{
+                id: permissionsParticipant.id,
+                participant_number: permissionsParticipant.participantNumber,
+                organisation_short_name: permissionsParticipant.organisationShortName || null,
+                organisation_name: permissionsParticipant.organisationName || '',
+              }}
+              open={Boolean(permissionsParticipantId)}
+              onOpenChange={open => { if (!open) setPermissionsParticipantId(null); }}
+            />
+          )}
+
 
         {/* Invite to Proposal Dialog */}
 
