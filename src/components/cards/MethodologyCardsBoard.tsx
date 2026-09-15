@@ -2557,6 +2557,10 @@ function BoardInner({
   const captionNumber = (sectionNumber ?? '').replace(/^B/i, '') || DEFAULT_CAPTION_NUMBER;
   const isB31 = captionNumber === '3.1';
 
+  // A placed picture may be captioned as a TABLE instead of a figure; absent
+  // from this map means "figure", which is what every existing picture is.
+  const { data: captionKinds } = useFigureCaptionKinds(proposalId);
+
   const numbering = useMemo(() => {
     const ordered = [...headCards, ...orderedFree, ...tailCards];
     const cardLabels: Record<string, string> = {};
