@@ -132,7 +132,7 @@ export function CardFigureBlock({
     <div
       className={cn(
         'figure-caption-row w-full items-baseline gap-2',
-        captionsAsTable ? '!mb-0' : '!mt-0',
+        captionsAsTable ? '!mb-[2px]' : '!mt-[2px]',
       )}
     >
       <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
@@ -142,7 +142,7 @@ export function CardFigureBlock({
         <Input
           value={captionDraft}
           placeholder="Caption"
-          className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
+          className="h-auto min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 py-0 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
           onFocus={() => {
             captionTouched.current = true;
           }}
