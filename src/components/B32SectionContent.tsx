@@ -338,7 +338,7 @@ export function B32SectionContent({ proposalId }: Props) {
         <thead>
           <tr style={{ height: `${effectiveHeaderHeightPx}px` }}>
             <th
-              className="cell-pl-0 py-0 text-[10pt] text-left"
+              className="cell-pl-0 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold text-left"
               // `.platform-table > thead > tr > th { vertical-align: middle }`
               // out-specifies Tailwind's `align-bottom`, so set it inline to sit
               // level with the base of the rotated participant badges.

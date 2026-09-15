@@ -166,7 +166,7 @@ export function B12LinkedActivitiesSlotContent({
         <thead>
           <tr>
             {headers.map((header, index) => (
-              <th key={index} className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">
+              <th key={index} className="cell-pl-0 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold text-left align-bottom">
                 {header}
               </th>
             ))}

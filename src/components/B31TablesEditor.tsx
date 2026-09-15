@@ -329,7 +329,7 @@ function MirrorTable({
             <th
               key={i}
               style={c.padX || c.cellClass ? undefined : { paddingLeft: padPx(i).left, paddingRight: padPx(i).right }}
-              className={`${cellPad(i)} ${c.cellClass ?? ''} ${c.fit ? 'cell-fit' : ''} py-0 text-[10pt] align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
+              className={`${cellPad(i)} ${c.cellClass ?? ''} ${c.fit ? 'cell-fit' : ''} py-0 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold align-bottom relative ${c.align === 'center' ? 'text-center' : 'text-left'}`}
             >
               {c.label}
               <ColumnResizer onMouseDown={handleColResizeStart(i)} />
