@@ -25,6 +25,26 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: { componentStack?: string }) {
     // eslint-disable-next-line no-console
     console.error("Uncaught error:", error, info);
+
+    // A new deploy replaces the hashed chunk files, so a tab opened before the
+    // deploy fails to fetch the module it was told to load. Reload once (guarded
+    // by sessionStorage so a genuine failure can't loop) to pick up the new build.
+    const message = String(error?.message ?? "");
+    const isStaleChunk =
+      /Failed to fetch dynamically imported module/i.test(message) ||
+      /Importing a module script failed/i.test(message) ||
+      /error loading dynamically imported module/i.test(message);
+    if (isStaleChunk) {
+      try {
+        const KEY = "stale-chunk-reloaded";
+        if (!sessionStorage.getItem(KEY)) {
+          sessionStorage.setItem(KEY, "1");
+          window.location.reload();
+        }
+      } catch {
+        /* storage unavailable — fall through to the error screen */
+      }
+    }
   }
 
   private handleReset = () => {
