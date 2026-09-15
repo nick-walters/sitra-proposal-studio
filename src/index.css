@@ -56,6 +56,8 @@ html, body {
 .document-table-caption {
   margin-top: 3pt !important;
   margin-bottom: 1pt !important;
+  break-after: avoid !important;
+  page-break-after: avoid !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   text-align: left !important;
