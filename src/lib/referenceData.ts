@@ -179,7 +179,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
   const [placementRes, cardRes, figFieldRes] = await Promise.all([
     supabase
       .from('card_figure')
-      .select('card_id, figure_id, field_id')
+      .select('card_id, figure_id, field_id, caption_kind')
       .eq('proposal_id', proposalId),
     supabase
       .from('proposal_cards')
