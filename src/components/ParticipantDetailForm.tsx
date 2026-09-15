@@ -57,7 +57,7 @@ import { useOCD } from '@/hooks/useOCD';
 
 
 // PIC number input: digits only, max 9
-function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
+function PicNumberInput({ value, onDebouncedChange, locked }: { value: string; onDebouncedChange: (v: string) => void; locked: boolean }) {
   const [local, setLocal] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFocused = useRef(false);
@@ -82,7 +82,8 @@ function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string;
       }}
       placeholder="9-digit PIC"
       maxLength={9}
-      disabled={disabled}
+      className={lockedFieldClass(locked)}
+      {...lockedFieldProps(locked)}
       required
     />
   );
@@ -513,8 +514,7 @@ export function ParticipantDetailForm({
               <PicNumberInput
                 value={participant.picNumber || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
-                className={lockedFieldClass(!canEdit)}
-                {...lockedFieldProps(!canEdit)}
+                locked={!canEdit}
               />
               {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
                 <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>

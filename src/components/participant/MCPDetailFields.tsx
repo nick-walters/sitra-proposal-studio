@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { GENDER_OPTIONS } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 
 /** The main-contact-only fields held on the participant row. */
 export interface MCPFields {
