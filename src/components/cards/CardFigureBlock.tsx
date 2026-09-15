@@ -222,6 +222,34 @@ export function CardFigureBlock({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+          {/* CAPTION TYPE. A picture is a figure unless the author says it is a
+              table — a screenshot of a table, say. The choice moves it from one
+              numbering sequence to the other and moves its caption above it. */}
+          {canEdit && (
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Caption this as</Label>
+              <RadioGroup
+                value={figureBlock.captionKind}
+                onValueChange={(value) =>
+                  save.mutate({ caption_kind: value as 'figure' | 'table' })
+                }
+                className="gap-1"
+              >
+                <label className="flex items-center gap-2 text-xs">
+                  <RadioGroupItem value="figure" id={`${fieldId ?? cardId}-cap-figure`} />
+                  A figure — caption below, numbered in the figure sequence
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <RadioGroupItem value="table" id={`${fieldId ?? cardId}-cap-table`} />
+                  A table — caption above, numbered in the table sequence
+                </label>
+              </RadioGroup>
+              <p className="text-[11px] text-muted-foreground">
+                Both sequences renumber straight away, here and in the PDF, and any
+                cross-reference to this picture follows the change.
+              </p>
+            </div>
+          )}
           {showLayoutControls && !fullWidthOnly && (
             <div className="grid gap-4 md:grid-cols-2">
               {/* a. WIDTH */}
