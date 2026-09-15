@@ -325,7 +325,30 @@ export function LazyRichField({
         </span>
       )}
 
-      {mounted ? (
+      {lockedReadOnly ? (
+        // Locked: the same editor, permanently non-editable. `canEdit={false}`
+        // clears TipTap's contenteditable, so typing does nothing and no
+        // change is emitted, while the text stays selectable and copyable.
+        <div
+          className={cn('rounded-md', LOCKED_FIELD_CLASS)}
+          title="Locked — read-only"
+          aria-readonly
+        >
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={staticHtml}
+            onChange={() => { /* locked: never saves */ }}
+            canEdit={false}
+            isCoordinator={false}
+            minHeight={minHeight}
+            placeholder={placeholder}
+            documentSurface={documentSurface}
+            placeholderHideOnFocus={placeholderHideOnFocus}
+            placeholderIndent={placeholderIndent}
+            cellSurface={cellSurface}
+          />
+        </div>
+      ) : mounted ? (
         <MethodologyRichEditor
           proposalId={proposalId}
           value={resolvedValue}
