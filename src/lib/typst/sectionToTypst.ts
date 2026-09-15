@@ -343,7 +343,7 @@ function emitAuthoredFigure(
   // A picture captioned as a TABLE follows this project's table convention:
   // the caption sits ABOVE it, in the table caption style.
   const asTable = placed.captionKind === 'table';
-  const captionFn = asTable ? 'he-caption' : 'he-figure-caption';
+  const captionFn = asTable ? 'he-image-table-caption' : 'he-figure-caption';
   const caption = noCaption
     ? ''
     : placed.caption
@@ -362,7 +362,7 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = (asTable ? [captionBlock, captionBlock ? 'v(0.5pt)' : '', image] : [image, captionBlock])
+  const unit = (asTable ? [captionBlock, captionBlock ? 'v(1.5pt)' : '', image] : [image, captionBlock])
     .filter(Boolean)
     .join('\n');
 
@@ -372,7 +372,7 @@ function emitAuthoredFigure(
     out.push(`he-figure-float([\n${unit}\n])`);
   } else if (asTable) {
     if (captionBlock) out.push(captionBlock);
-    if (captionBlock) out.push('v(0.5pt)');
+    if (captionBlock) out.push('v(1.5pt)');
     out.push(image);
   } else {
     out.push(image);

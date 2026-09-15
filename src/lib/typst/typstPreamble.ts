@@ -455,6 +455,16 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
 
+/// A table caption attached to a raster image. Its lower margin is removed so
+/// the authored-image emitter owns the single small caption-to-image gap.
+#let he-image-table-caption(label, caption) = block(
+  width: he-table-width,
+  above: 6pt,
+  below: 0pt,
+  sticky: true,
+  text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
+)
+
 /// Caption below a figure, same typography. Nothing is sticky here: the
 /// binding is on the FIGURE above it (see \`he-image\`), which is what has to
 /// drag the caption along.
