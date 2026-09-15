@@ -511,12 +511,18 @@ export function buildSectionTypstBody(
       if (card.kind === 'figure') {
         // The figure keeps its slot in the section's caption sequence whether or
         // not a bitmap could be resolved, so a broken figure never renumbers the
-        // ones after it.
-        const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+        // ones after it. A picture captioned as a table takes its slot from the
+        // TABLE run instead.
         const placed = options.authoredFigures?.get(card.id) ?? null;
+        const asTable = placed?.captionKind === 'table';
+        const slot = ctx.captionNumbering
+          ? asTable
+            ? ctx.captionNumbering.tableIndex++
+            : ctx.captionNumbering.figureIndex++
+          : null;
         const fallbackLabel =
           ctx.captionNumbering && slot != null
-            ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+            ? `${asTable ? 'Table' : 'Figure'} ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
             : '';
         cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
         return;
