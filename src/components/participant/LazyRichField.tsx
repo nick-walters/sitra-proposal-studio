@@ -11,6 +11,7 @@ import { glueBadgeSpacingInHtml } from '@/lib/renderRefBadges';
 import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
 import { collapseToSingleLineHtml } from '@/lib/richTextUpgrade';
 import { isHtmlBlank } from '@/lib/htmlBlank';
+import { LOCKED_FIELD_CLASS } from '@/lib/lockedField';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
@@ -63,6 +64,13 @@ export interface LazyRichFieldProps {
   placeholderIndent?: string;
   /** Bare text presentation when the field already sits inside a table cell. */
   cellSurface?: boolean;
+  /**
+   * Locked presentation: while `disabled`, keep a REAL (non-editable) TipTap
+   * instance mounted instead of static markup, so the text keeps its exact
+   * formatting, the caret can be placed in it and the text can be selected and
+   * copied — typing does nothing and no change is ever emitted.
+   */
+  readOnlyEditor?: boolean;
 }
 
 
@@ -122,7 +130,10 @@ export function LazyRichField({
   placeholderHideOnFocus = false,
   placeholderIndent,
   cellSurface = false,
+  readOnlyEditor = false,
 }: LazyRichFieldProps) {
+  // Locked, read-only presentation: a live but non-editable editor.
+  const lockedReadOnly = disabled && readOnlyEditor;
 
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
@@ -315,7 +326,30 @@ export function LazyRichField({
         </span>
       )}
 
-      {mounted ? (
+      {lockedReadOnly ? (
+        // Locked: the same editor, permanently non-editable. `canEdit={false}`
+        // clears TipTap's contenteditable, so typing does nothing and no
+        // change is emitted, while the text stays selectable and copyable.
+        <div
+          className={cn('rounded-md', LOCKED_FIELD_CLASS)}
+          title="Locked — read-only"
+          aria-readonly
+        >
+          <MethodologyRichEditor
+            proposalId={proposalId}
+            value={staticHtml}
+            onChange={() => { /* locked: never saves */ }}
+            canEdit={false}
+            isCoordinator={false}
+            minHeight={minHeight}
+            placeholder={placeholder}
+            documentSurface={documentSurface}
+            placeholderHideOnFocus={placeholderHideOnFocus}
+            placeholderIndent={placeholderIndent}
+            cellSurface={cellSurface}
+          />
+        </div>
+      ) : mounted ? (
         <MethodologyRichEditor
           proposalId={proposalId}
           value={resolvedValue}

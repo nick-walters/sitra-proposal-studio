@@ -12,7 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle, Copy, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { PartAPageLayout } from './PartAPageLayout';
@@ -541,6 +542,7 @@ function LimitedRichField({
   placeholder,
   disabled,
   proposalId,
+  copyLabel,
   maxLength = SELF_ASSESSMENT_LIMIT,
 }: {
   value: string;
@@ -548,6 +550,7 @@ function LimitedRichField({
   placeholder: string;
   disabled: boolean;
   proposalId?: string;
+  copyLabel: string;
   maxLength?: number;
 }) {
   const length = htmlToPlainText(value || '').length;
@@ -576,17 +579,59 @@ function LimitedRichField({
         placeholder={placeholder}
         minHeight="80px"
         disabled={disabled}
+        readOnlyEditor
         proposalId={proposalId || ''}
         staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
       />
-      <div
-        className={cn('text-xs text-right tabular-nums', over ? 'font-medium text-destructive' : 'text-muted-foreground')}
-        aria-live="polite"
-      >
-        {formatNumber(length)} / {formatNumber(maxLength)} characters
-        {over && ` (${formatNumber(length - maxLength)} over — please shorten)`}
+      <div className="flex items-center justify-end gap-2">
+        <CopyPlainTextButton html={value} label={copyLabel} />
+        <div
+          className={cn('text-xs text-right tabular-nums', over ? 'font-medium text-destructive' : 'text-muted-foreground')}
+          aria-live="polite"
+        >
+          {formatNumber(length)} / {formatNumber(maxLength)} characters
+          {over && ` (${formatNumber(length - maxLength)} over — please shorten)`}
+        </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Copy the field's plain text, as it would be pasted into the portal.
+ *
+ * Matches the portal copy button (`CopyValue` in LumpSumPortalView.tsx, reused
+ * on the contact cards by Prompt 136): a small ghost icon button that shows a
+ * green tick once its text has been copied. Works whether the field is locked
+ * or not.
+ */
+function CopyPlainTextButton({ html, label }: { html: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const text = htmlToPlainText(html || '');
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy — your browser blocked clipboard access.');
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className="h-5 w-5 shrink-0"
+      title={`Copy ${label}`}
+      aria-label={`Copy ${label}`}
+      disabled={!text}
+      onClick={copy}
+    >
+      {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+    </Button>
   );
 }
 
@@ -785,6 +830,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
               placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
               disabled={!canEdit}
+              copyLabel="the ethical dimension text"
               proposalId={ethicsData.proposalId || undefined}
             />
           </div>
@@ -805,6 +851,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
               placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
               disabled={!canEdit}
+              copyLabel="the compliance text"
               proposalId={ethicsData.proposalId || undefined}
             />
           </div>
@@ -883,12 +930,19 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             placeholder="Describe the measures you intend to take to address the security issues..."
             minHeight="80px"
             disabled={!canEdit}
+            readOnlyEditor
             proposalId={ethicsData.proposalId || undefined}
             staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
           />
-          <p className="text-xs text-muted-foreground mt-1 text-right">
-            {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
-          </p>
+          <div className="mt-1 flex items-center justify-end gap-2">
+            <CopyPlainTextButton
+              html={ethicsData.securitySelfAssessment || ''}
+              label="the security self-assessment text"
+            />
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
+            </p>
+          </div>
         </PartACard>
       </div>
     </PartAPageLayout>
