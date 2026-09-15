@@ -2602,10 +2602,16 @@ function BoardInner({
           tableIdx += 1;
           continue;
         }
-        // A figure MODULE takes the next figure letter, in module order.
+        // A figure MODULE takes the next figure letter, in module order — or
+        // the next TABLE letter when it is captioned as a table.
         if (f.fieldRole === 'figure') {
-          fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
-          figureIdx += 1;
+          if (captionKinds?.byField[f.id] === 'table') {
+            fieldFigureLabels[f.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
+            tableIdx += 1;
+          } else {
+            fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+            figureIdx += 1;
+          }
           continue;
         }
         fieldNumbering[f.id] = {
@@ -2628,6 +2634,7 @@ function BoardInner({
     tailCards,
     fieldsByCard,
     captionNumber,
+    captionKinds,
     sectionCitesAnything,
     isCoordinator,
   ]);
