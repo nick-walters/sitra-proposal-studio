@@ -1041,11 +1041,16 @@ function ThreadCard({
         {deletedModule ? 'Deleted module' : (payload?.label ?? 'Module')}
       </p>
       <div className="flex items-start justify-between gap-1">
-        <span className="text-[11px] font-semibold">
-          {thread.user_name}
-          {wasEdited(thread) && (
-            <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
-          )}
+        <span className="flex flex-col">
+          <span className="text-[11px] font-semibold">
+            {thread.user_name}
+            {wasEdited(thread) && (
+              <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
+            )}
+          </span>
+          <span className="text-[10px] font-normal text-muted-foreground">
+            {when(thread.created_at)}
+          </span>
         </span>
         <div className="flex items-center gap-0.5">
           {isAuthor && !editing && (
