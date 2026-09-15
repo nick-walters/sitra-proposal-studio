@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LazyRichField } from '@/components/participant/LazyRichField';
 import { HEADING_TITLE_FIELD_EXTENSIONS } from '@/components/wp/wpDraftFieldExtensions';
-import { ensureRichHtml, displayRichHtml } from '@/lib/richTextUpgrade';
+import { ensureRichHtml, displayRichHtml, isBlankRichHtml } from '@/lib/richTextUpgrade';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import {
   DndContext,
@@ -334,6 +334,11 @@ interface FieldRowProps {
   figureCaptionLabel?: string;
   /** The section renders every figure at full page width (B3.1). */
   figuresFullWidth?: boolean;
+  /**
+   * Emptying the heading stores "cleared" (NULL) rather than an empty
+   * paragraph. False in B3.1, whose headings are required by the template.
+   */
+  headingClearable?: boolean;
 }
 
 
@@ -360,6 +365,7 @@ function FieldRow({
   cardTemplateKey,
   figureCaptionLabel,
   figuresFullWidth,
+  headingClearable = true,
 }: FieldRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -400,6 +406,15 @@ function FieldRow({
     lastCommittedHeading.current = field.heading ?? '';
   }, [field.heading]);
 
+  /**
+   * What a commit writes. An emptied rich field still emits `<p></p>`; storing
+   * that leaves a blank heading line in the editor and a gap in the PDF, so a
+   * blank value is committed as "" — `save_card_text` stores it as NULL and
+   * nothing is rendered. B3.1 keeps the old behaviour.
+   */
+  const committedHeading = (raw: string): string =>
+    headingClearable && isBlankRichHtml(raw) ? '' : raw.trim();
+
   const headerLock = useLockedBox(headerTarget, {
     getTyped: () => headingDraftRef.current,
     onLoseRace: (typed, holderName) => {
@@ -407,7 +422,7 @@ function FieldRow({
       onLostText(lostTextPayload(typed, holderName));
     },
     save: async () => {
-      const next = headingDraftRef.current.trim();
+      const next = committedHeading(headingDraftRef.current);
       if (lastCommittedHeading.current !== next) {
         lastCommittedHeading.current = next;
         onHeadingChange(field, next || null);
@@ -565,7 +580,7 @@ function FieldRow({
             }}
             onBlur={() => {
               headingFocused.current = false;
-              const next = headingDraftRef.current.trim();
+              const next = committedHeading(headingDraftRef.current);
               if (lastCommittedHeading.current !== next) {
                 lastCommittedHeading.current = next;
                 onHeadingChange(field, next || null);
@@ -968,6 +983,8 @@ interface CardBlockProps {
   captionLabel?: string;
   /** Section declares that figures and tables are always full width (B3.1). */
   figuresFullWidth: boolean;
+  /** Block title and module headings can be cleared away entirely (not B3.1). */
+  headingClearable: boolean;
   /** B3.2 conditional blocks: heading computed from A2 at render. */
   conditionTitle?: string | null;
   /** B3.2 conditional blocks: condition not met, so the block is left out downstream. */
@@ -1011,6 +1028,7 @@ function CardBlock({
   reloadNonce,
   captionLabel,
   figuresFullWidth,
+  headingClearable,
   conditionTitle,
   conditionUnmet,
   conditionReason,
@@ -1140,6 +1158,10 @@ function CardBlock({
     ((titleLock.lockedByOther ? (titleLock.streamed ?? mirroredTitle.current) : titleView) ??
       card.title ??
       null);
+  // A cleared title (including a legacy empty paragraph already in storage)
+  // reads as no title, so the board shows its "No title" placeholder.
+  const shownTitle =
+    headingClearable && isBlankRichHtml(displayedTitle) ? null : displayedTitle;
 
 
 
@@ -1167,7 +1189,10 @@ function CardBlock({
 
   const commitTitle = () => {
     setEditingTitle(false);
-    const next = titleDraftRef.current.trim();
+    const next =
+      headingClearable && isBlankRichHtml(titleDraftRef.current)
+        ? ''
+        : titleDraftRef.current.trim();
     if (next !== lastCommittedTitle.current) {
       lastCommittedTitle.current = next;
       onRename(card, next || null);
@@ -1400,11 +1425,11 @@ function CardBlock({
               <LockBoundary state={lockStateOf(titleLock)} holder={titleLock.holder}>
                 <h3
                   className={`truncate font-bold underline [&_p]:m-0 [&_p]:inline ${isCoordinator && !titleLock.lockedByOther ? 'cursor-text' : ''} ${
-                    displayedTitle ? '' : 'italic text-muted-foreground no-underline'
+                    shownTitle ? '' : 'italic text-muted-foreground no-underline'
                   } ${titleLock.lockedByOther ? 'px-1' : ''}`}
                   onClick={() => isCoordinator && !titleLock.lockedByOther && setEditingTitle(true)}
-                  {...(displayedTitle
-                    ? { dangerouslySetInnerHTML: { __html: displayRichHtml(displayedTitle) } }
+                  {...(shownTitle
+                    ? { dangerouslySetInnerHTML: { __html: displayRichHtml(shownTitle) } }
                     : { children: 'No title' })}
                 />
               </LockBoundary>
@@ -1774,6 +1799,7 @@ function CardBlock({
                         captionNumbering={captionNumberingByFieldId?.[f.id] ?? null}
                         figureCaptionLabel={figureCaptionByFieldId?.[f.id]}
                         figuresFullWidth={figuresFullWidth}
+                        headingClearable={headingClearable}
                         captionSectionNumber={captionSectionNumber}
                         onHeadingChange={onHeadingChange}
                         onContentChange={onContentChange}
@@ -2638,6 +2664,7 @@ function BoardInner({
     figureCaptionByFieldId,
     captionSectionNumber: captionNumber,
     figuresFullWidth,
+    headingClearable: !isB31,
     fields: fieldsByCard[card.id] ?? [],
     caseLetterByFieldId,
     proposalId,
