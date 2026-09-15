@@ -166,7 +166,7 @@ export function CardFigureBlock({
           controls — see onRegisterControls above. */}
 
       <div>
-        {captionsAsTable && captionRow}
+        {!noCaption && captionsAsTable && captionRow}
 
         <div
           className={cn(
@@ -204,7 +204,7 @@ export function CardFigureBlock({
           </div>
         </div>
 
-        {!captionsAsTable && captionRow}
+        {!noCaption && !captionsAsTable && captionRow}
       </div>
 
 
