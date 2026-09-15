@@ -688,7 +688,18 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 
 /// A figure pinned to the top of the page it lands on (page-break mode
 /// "float_top"). The caption travels inside the same float.
-#let he-figure-float(body) = place(top, float: true, clearance: 8pt, body)
+#let he-figure-float(body, caption: none, caption-above: false) = place(
+  top,
+  float: true,
+  clearance: 8pt,
+  if caption == none {
+    body
+  } else if caption-above {
+    stack(dir: ttb, spacing: 1.5pt, caption, body)
+  } else {
+    stack(dir: ttb, spacing: 0pt, body, caption)
+  },
+)
 
 
 // ── headings ───────────────────────────────────────────────────────────────

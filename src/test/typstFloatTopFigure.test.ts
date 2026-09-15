@@ -64,7 +64,7 @@ describe('Typst float-top authored figures', () => {
     const source = render('figure');
 
     expect(source).toContain(
-      'he-figure-float(stack(dir: ttb, spacing: 0pt, he-figure-image("/figures/authored-test.jpg", 100, tight: false), he-figure-caption("Figure 2.2.d.", "Impact summary canvas")))',
+      'he-figure-float(he-figure-image("/figures/authored-test.jpg", 100, tight: false), caption: he-figure-caption("Figure 2.2.d.", "Impact summary canvas"), caption-above: false)',
     );
     expect(source).not.toContain('he-figure-float([');
   });
@@ -73,7 +73,7 @@ describe('Typst float-top authored figures', () => {
     const source = render('table');
 
     expect(source).toContain(
-      'he-figure-float(stack(dir: ttb, spacing: 1.5pt, he-image-table-caption("Table 2.2.d.", "Impact summary canvas"), he-figure-image("/figures/authored-test.jpg", 100, tight: true)))',
+      'he-figure-float(he-figure-image("/figures/authored-test.jpg", 100, tight: true), caption: he-image-table-caption("Table 2.2.d.", "Impact summary canvas"), caption-above: true)',
     );
     expect(source).not.toContain('he-figure-float([');
   });
