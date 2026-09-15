@@ -122,12 +122,43 @@ export function CardFigureBlock({
   const widthPct = fullWidthOnly ? 100 : resolveFigureWidthPct(widthMode, figureBlock.customWidthPct);
   const isFullWidth = widthMode === 'full';
   const showLayoutControls = canEdit && isCoordinator;
+  /** A picture captioned as a table takes its caption ABOVE it, as tables do. */
+  const captionsAsTable = figureBlock.captionKind === 'table';
+
+  // Caption sits between the picture and the controls and spans the full block
+  // width. Its position depends on what the caption IS: below a figure, above
+  // a table.
+  const captionRow = (
+    <div className="figure-caption-row w-full items-baseline gap-2">
+      <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
+        {captionLabel}
+      </span>
+      {canEdit ? (
+        <Input
+          value={captionDraft}
+          placeholder="Caption"
+          className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
+          onFocus={() => {
+            captionTouched.current = true;
+          }}
+          onChange={(e) => setCaptionDraft(e.target.value)}
+          onBlur={() => {
+            captionTouched.current = false;
+            if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
+          }}
+        />
+      ) : (
+        <span className="flex-1 italic">{figureBlock.caption}</span>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-3">
       {/* The opener lives in the block header, in line with the other
           controls — see onRegisterControls above. */}
 
+      {captionsAsTable && captionRow}
 
       <div
         className={cn(
