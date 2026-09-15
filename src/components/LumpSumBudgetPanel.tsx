@@ -59,7 +59,10 @@ export function LumpSumBudgetPanel({
   const participantLock = selected ? budgetAccess.lockFor(selected.id) : null;
   const isLocked = Boolean(participantLock?.is_locked);
   const mayEdit = Boolean(selected && editableParticipantIds.has(selected.id));
-  const editable = !readOnly && mayEdit && (!isLocked || isCoordinator);
+  // The database refuses every write to a locked participant budget, including
+  // a coordinator's, so a lock closes the fields for everybody. Coordinators
+  // unlock first, then edit; otherwise the typing was silently discarded.
+  const editable = !readOnly && mayEdit && !isLocked;
   /**
    * Live updates only where nothing is being typed: the user cannot edit this
    * participant, or it is locked against them. An editable surface keeps its
@@ -191,7 +194,7 @@ export function LumpSumBudgetPanel({
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
            {saving && !readOnly && <span>Saving…</span>}
            {readOnly && <span>This lump sum budget is superseded and read-only.</span>}
-           {!readOnly && isLocked && <span>This participant budget is locked. A coordinator must unlock it before editing.</span>}
+           {!readOnly && isLocked && <span>This participant budget is locked and read-only. A coordinator must unlock it before it can be edited.</span>}
         </div>
          <section className="border-b border-border">
            <CollapsibleHeader collapsed={isCollapsed('A')} onToggle={() => toggle('A')} label="A. Personnel costs" level="major">
