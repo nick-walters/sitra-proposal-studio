@@ -577,17 +577,59 @@ function LimitedRichField({
         placeholder={placeholder}
         minHeight="80px"
         disabled={disabled}
+        readOnlyEditor
         proposalId={proposalId || ''}
         staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
       />
-      <div
-        className={cn('text-xs text-right tabular-nums', over ? 'font-medium text-destructive' : 'text-muted-foreground')}
-        aria-live="polite"
-      >
-        {formatNumber(length)} / {formatNumber(maxLength)} characters
-        {over && ` (${formatNumber(length - maxLength)} over — please shorten)`}
+      <div className="flex items-center justify-end gap-2">
+        <CopyPlainTextButton html={value} label={copyLabel} />
+        <div
+          className={cn('text-xs text-right tabular-nums', over ? 'font-medium text-destructive' : 'text-muted-foreground')}
+          aria-live="polite"
+        >
+          {formatNumber(length)} / {formatNumber(maxLength)} characters
+          {over && ` (${formatNumber(length - maxLength)} over — please shorten)`}
+        </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Copy the field's plain text, as it would be pasted into the portal.
+ *
+ * Matches the portal copy button (`CopyValue` in LumpSumPortalView.tsx, reused
+ * on the contact cards by Prompt 136): a small ghost icon button that shows a
+ * green tick once its text has been copied. Works whether the field is locked
+ * or not.
+ */
+function CopyPlainTextButton({ html, label }: { html: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const text = htmlToPlainText(html || '');
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy — your browser blocked clipboard access.');
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className="h-5 w-5 shrink-0"
+      title={`Copy ${label}`}
+      aria-label={`Copy ${label}`}
+      disabled={!text}
+      onClick={copy}
+    >
+      {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+    </Button>
   );
 }
 
