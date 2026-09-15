@@ -63,17 +63,18 @@ describe('Typst float-top authored figures', () => {
   it('executes an image and its figure caption inside the content block', () => {
     const source = render('figure');
 
-    expect(source).toContain('#he-figure-image("/figures/authored-test.jpg", 100, tight: false)');
-    expect(source).toContain('#he-figure-caption("Figure 2.2.d.", "Impact summary canvas")');
-    expect(source).not.toContain('\nhe-figure-caption(');
+    expect(source).toContain(
+      'he-figure-float(stack(dir: ttb, spacing: 0pt, he-figure-image("/figures/authored-test.jpg", 100, tight: false), he-figure-caption("Figure 2.2.d.", "Impact summary canvas")))',
+    );
+    expect(source).not.toContain('he-figure-float([');
   });
 
   it('executes a table caption, gap and image inside the content block', () => {
     const source = render('table');
 
-    expect(source).toContain('#he-image-table-caption("Table 2.2.d.", "Impact summary canvas")');
-    expect(source).toContain('#v(1.5pt)');
-    expect(source).toContain('#he-figure-image("/figures/authored-test.jpg", 100, tight: true)');
-    expect(source).not.toContain('\nhe-image-table-caption(');
+    expect(source).toContain(
+      'he-figure-float(stack(dir: ttb, spacing: 1.5pt, he-image-table-caption("Table 2.2.d.", "Impact summary canvas"), he-figure-image("/figures/authored-test.jpg", 100, tight: true)))',
+    );
+    expect(source).not.toContain('he-figure-float([');
   });
 });

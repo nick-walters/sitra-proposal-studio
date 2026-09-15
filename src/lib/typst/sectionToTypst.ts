@@ -369,13 +369,15 @@ function emitAuthoredFigure(
   const out: string[] = [];
   if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
   if (placed.pageBreakMode === 'float_top') {
-    // Square brackets switch Typst into content mode. Calls inside that block
-    // therefore need `#` to execute; without it Typst prints their source text.
-    const executableUnit = unit
-      .split('\n')
-      .map((line) => `#${line}`)
-      .join('\n');
-    out.push(`he-figure-float([\n${executableUnit}\n])`);
+    // Keep a floated pair in code mode. A Typst content block introduces markup
+    // whitespace between its children (and previously printed bare calls), which
+    // caused the one-off gap/line on a table-captioned floated image.
+    const floatChildren = asTable
+      ? [captionBlock, image].filter(Boolean)
+      : [image, captionBlock].filter(Boolean);
+    out.push(
+      `he-figure-float(stack(dir: ttb, spacing: ${asTable && captionBlock ? '1.5pt' : '0pt'}, ${floatChildren.join(', ')}))`,
+    );
   } else if (asTable) {
     if (captionBlock) out.push(captionBlock);
     if (captionBlock) out.push('v(1.5pt)');
