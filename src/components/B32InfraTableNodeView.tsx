@@ -63,7 +63,7 @@ export function B32InfraTableLiveView({ proposalId, header, onHeaderChange }: Li
         </colgroup>
         <thead>
           <tr>
-            <th className="cell-pl-0 py-0 text-[11pt] text-left align-bottom">
+            <th className="cell-pl-0 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold text-left align-bottom">
               <span
                 contentEditable={!!onHeaderChange}
                 suppressContentEditableWarning
