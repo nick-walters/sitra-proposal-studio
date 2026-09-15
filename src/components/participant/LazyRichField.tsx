@@ -63,6 +63,13 @@ export interface LazyRichFieldProps {
   placeholderIndent?: string;
   /** Bare text presentation when the field already sits inside a table cell. */
   cellSurface?: boolean;
+  /**
+   * Locked presentation: while `disabled`, keep a REAL (non-editable) TipTap
+   * instance mounted instead of static markup, so the text keeps its exact
+   * formatting, the caret can be placed in it and the text can be selected and
+   * copied — typing does nothing and no change is ever emitted.
+   */
+  readOnlyEditor?: boolean;
 }
 
 
