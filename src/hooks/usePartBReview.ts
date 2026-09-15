@@ -229,7 +229,6 @@ export function usePartBReview(proposalId: string) {
      * own 'open' status that resolving the thread never touches, so listing
      * them separately kept resolved threads on screen for ever.
      */
-    const statusById = new Map(comments.map((c) => [c.id, c.status]));
     const liveFieldIds = new Set((blocks?.fields || []).map((f) => f.id));
     const liveCardIds = new Set((blocks?.cards || []).map((c) => c.id));
     /** A comment whose module was deleted has nowhere to navigate to. */
