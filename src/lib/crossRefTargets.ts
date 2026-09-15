@@ -231,6 +231,9 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
           ((placement?.caption as string | null) || figure?.caption || figure?.title || '').trim();
         // A picture captioned as a table is listed among the TABLES, and takes
         // its letter from the table sequence.
+        // A picture with NO caption takes no letter in either sequence and is
+        // not offered as a cross-reference target.
+        if ((placement?.caption_kind as string | null) === 'none') continue;
         if ((placement?.caption_kind as string | null) === 'table') {
           tables.push({
             kind: 'table',
@@ -275,8 +278,11 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
           const placement = placementByField.get(field.id);
           const figureId = (placement?.figure_id as string | null) ?? null;
           const figure = figureId ? figureById.get(figureId) : null;
-          if ((placement?.caption_kind as string | null) === 'table') {
-            tables.push({
+        // A picture with NO caption takes no letter in either sequence and is
+        // not offered as a cross-reference target.
+        if ((placement?.caption_kind as string | null) === 'none') continue;
+        if ((placement?.caption_kind as string | null) === 'table') {
+          tables.push({
               kind: 'table',
               label: `${number}.${captionLetter(tableIdx)}`,
               title:

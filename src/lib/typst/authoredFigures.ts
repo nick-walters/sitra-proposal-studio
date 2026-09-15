@@ -53,8 +53,11 @@ export interface AuthoredFigureBlock {
   /** "Figure 1.2.a." — derived exactly as the board derives it. */
   label: string | null;
   caption: string;
-  /** 'table' when the picture is captioned and numbered as a table. */
-  captionKind: 'figure' | 'table';
+  /**
+   * 'table' when the picture is captioned and numbered as a table, 'none' when
+   * it carries no caption at all (a figure continued from the page before).
+   */
+  captionKind: 'figure' | 'table' | 'none';
   widthPct: number;
   positionMode: FigurePositionMode;
   pageBreakMode: FigurePageBreakMode;
@@ -211,7 +214,8 @@ export async function fetchAuthoredFigures(
       label: figureId && numbers.has(figureId) ? `Figure ${numbers.get(figureId)}.` : null,
       caption:
         ((p.caption as string | null) || figure?.caption || figure?.title || '').trim(),
-      captionKind: p.caption_kind === 'table' ? 'table' : 'figure',
+      captionKind:
+        p.caption_kind === 'table' ? 'table' : p.caption_kind === 'none' ? 'none' : 'figure',
       widthPct,
       positionMode: ((p.position_mode as FigurePositionMode) ?? 'below'),
       pageBreakMode: ((p.page_break_mode as FigurePageBreakMode) ?? 'auto'),

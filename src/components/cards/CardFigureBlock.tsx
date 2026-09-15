@@ -124,6 +124,8 @@ export function CardFigureBlock({
   const showLayoutControls = canEdit && isCoordinator;
   /** A picture captioned as a table takes its caption ABOVE it, as tables do. */
   const captionsAsTable = figureBlock.captionKind === 'table';
+  /** A picture split across a page break: only its other half is captioned. */
+  const noCaption = figureBlock.captionKind === 'none';
 
   // Caption sits between the picture and the controls and spans the full block
   // width. Its position depends on what the caption IS: below a figure, above
@@ -164,7 +166,7 @@ export function CardFigureBlock({
           controls — see onRegisterControls above. */}
 
       <div>
-        {captionsAsTable && captionRow}
+        {!noCaption && captionsAsTable && captionRow}
 
         <div
           className={cn(
@@ -202,7 +204,7 @@ export function CardFigureBlock({
           </div>
         </div>
 
-        {!captionsAsTable && captionRow}
+        {!noCaption && !captionsAsTable && captionRow}
       </div>
 
 
@@ -239,7 +241,7 @@ export function CardFigureBlock({
                 value={figureBlock.captionKind}
                 onValueChange={(value) =>
                   save.mutate(
-                    { caption_kind: value as 'figure' | 'table' },
+                    { caption_kind: value as 'figure' | 'table' | 'none' },
                     {
                       // Both sequences are derived, so the numbers change the
                       // moment this lands. Telling the reference data to
@@ -260,6 +262,11 @@ export function CardFigureBlock({
                 <label className="flex items-center gap-2 text-xs">
                   <RadioGroupItem value="table" id={`${fieldId ?? cardId}-cap-table`} />
                   A table — caption above, numbered in the table sequence
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <RadioGroupItem value="none" id={`${fieldId ?? cardId}-cap-none`} />
+                  No caption — takes no number, for the first half of a picture
+                  split over two pages
                 </label>
               </RadioGroup>
               <p className="text-[11px] text-muted-foreground">
