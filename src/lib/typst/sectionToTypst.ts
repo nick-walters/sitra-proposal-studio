@@ -594,7 +594,8 @@ export function buildSectionTypstBody(
         if (field.fieldRole === 'figure') {
           const placed = options.authoredFigures?.get(field.id) ?? null;
           const asTable = placed?.captionKind === 'table';
-          const slot = ctx.captionNumbering
+          // An uncaptioned picture consumes no slot in either sequence.
+          const slot = ctx.captionNumbering && placed?.captionKind !== 'none'
             ? asTable
               ? ctx.captionNumbering.tableIndex++
               : ctx.captionNumbering.figureIndex++
