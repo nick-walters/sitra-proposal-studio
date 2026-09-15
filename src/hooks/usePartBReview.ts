@@ -244,7 +244,7 @@ export function usePartBReview(proposalId: string) {
       if (row.parent_comment_id) continue;
       const payload = row.anchor_payload as { label?: string; targetKey?: string } | null;
       if (!anchorAlive(payload?.targetKey)) continue;
-      void statusById;
+      
       push(row.section_id, {
         kind: 'comment',
         id: row.id,
