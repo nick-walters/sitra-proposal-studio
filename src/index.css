@@ -31,8 +31,11 @@ html, body {
   font-family: "Times New Roman", Times, serif;
   font-size: 11pt;
   line-height: 1;
-  margin-top: 3pt;
+  margin-top: 1.5pt;
   margin-bottom: 6pt;
+  break-inside: avoid;
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 .figure-caption-row .caption-label {
