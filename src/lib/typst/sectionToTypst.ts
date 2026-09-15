@@ -347,7 +347,7 @@ function emitAuthoredFigure(
       ? `${captionFn}(${typstString(label)}, ${typstString('')})`
       : '';
   const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
-    placed.groupWithAbove ? 'true' : 'false'
+    asTable || placed.groupWithAbove ? 'true' : 'false'
   })`;
   // `group_with_below` binds the figure to the paragraph AFTER it: the caption
   // block is already sticky-adjacent to the image, so the flag adds stickiness
