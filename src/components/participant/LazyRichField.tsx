@@ -11,6 +11,7 @@ import { glueBadgeSpacingInHtml } from '@/lib/renderRefBadges';
 import { capabilitiesOfExtensions, registerFieldCapabilities, unregisterFieldCapabilities } from '@/lib/fieldCapabilities';
 import { collapseToSingleLineHtml } from '@/lib/richTextUpgrade';
 import { isHtmlBlank } from '@/lib/htmlBlank';
+import { LOCKED_FIELD_CLASS } from '@/lib/lockedField';
 
 export interface LazyRichFieldProps {
   /** Stored HTML for this field. */
