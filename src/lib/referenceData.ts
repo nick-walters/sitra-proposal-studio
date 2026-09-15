@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
+import { fetchCrossRefTargets } from '@/lib/crossRefTargets';
 import { buildCitationNumberMap } from '@/lib/citationSources';
 import { publishCitationDisplayMap } from '@/lib/citationDisplay';
 import { publishCaseDisplayMap, type CaseDisplayEntry } from '@/lib/caseDisplay';
@@ -80,6 +81,12 @@ export interface FigureData {
   figure_number: string;
   figure_type: string;
   title: string;
+  /**
+   * 'table' when the author captioned this picture as a table: it then carries
+   * a table number and its chips read "Table 1.2.b". Absent means 'figure',
+   * which is what every picture is unless it is said otherwise.
+   */
+  caption_kind?: 'figure' | 'table';
 }
 
 export interface AcronymSegmentData {
@@ -173,7 +180,7 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
   const [placementRes, cardRes, figFieldRes] = await Promise.all([
     supabase
       .from('card_figure')
-      .select('card_id, figure_id, field_id')
+      .select('card_id, figure_id, field_id, caption_kind')
       .eq('proposal_id', proposalId),
     supabase
       .from('proposal_cards')
@@ -303,6 +310,29 @@ export async function fetchReferenceData(proposalId: string): Promise<RefSnapsho
       figure_type: f.figure_type,
       title: f.title,
     }));
+
+  // A picture captioned as a TABLE leaves the figure sequence entirely, so it
+  // has no figure number above. Its table number comes from the same walk the
+  // caption picker uses, and its chips then read "Table 1.2.b". This runs only
+  // when such a picture exists, so nothing changes for a proposal without one.
+  const tableCaptioned = (placementRes.data || []).filter(
+    (p: any) => p.caption_kind === 'table' && p.figure_id,
+  );
+  if (tableCaptioned.length > 0) {
+    const { tables } = await fetchCrossRefTargets(proposalId);
+    const titleById = new Map((figureRes.data || []).map((f: any) => [f.id, f]));
+    for (const t of tables) {
+      if (!t.figureId) continue;
+      const row = titleById.get(t.figureId) as any;
+      figures.push({
+        id: t.figureId,
+        figure_number: t.label,
+        figure_type: row?.figure_type ?? 'image',
+        title: row?.title ?? t.title,
+        caption_kind: 'table',
+      });
+    }
+  }
 
   const tableCaptionMap = new Map<string, string>();
   for (const tc of tableCaptionRes.data || []) {

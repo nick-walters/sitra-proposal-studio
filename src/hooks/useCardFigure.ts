@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCardFigureSummaries } from './useCardFigureSummaries';
+import { invalidateFigureCaptionKinds } from './useFigureCaptionKinds';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
 import type {
@@ -110,6 +111,7 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
     mutationFn: async (patch: {
       figure_id?: string | null;
       caption?: string;
+      caption_kind?: 'figure' | 'table';
       float?: 'none' | 'left' | 'right';
       max_width_cm?: number | null;
       width_mode?: FigureWidthMode;
@@ -138,6 +140,8 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       queryClient.invalidateQueries({ queryKey });
       // Collapsed blocks show the caption as their one-line summary.
       invalidateCardFigureSummaries(queryClient, cardId);
+      // Captioning a picture as a table renumbers both sequences on the board.
+      invalidateFigureCaptionKinds(queryClient);
     },
     onError: (e: Error) => toast.error(e.message || 'Could not save the figure'),
   });

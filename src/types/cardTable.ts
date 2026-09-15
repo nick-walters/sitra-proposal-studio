@@ -17,6 +17,11 @@ export interface CardFigureBlockData {
   float: 'none' | 'left' | 'right';
   maxWidthCm: number | null;
   caption: string | null;
+  /**
+   * Whether the picture is captioned as a figure (the default, and what every
+   * existing picture is) or as a table.
+   */
+  captionKind: 'figure' | 'table';
   /** Width as a fraction of the PAGE width. */
   widthMode: FigureWidthMode;
   /** Percentage of the page width, honoured only when widthMode is 'custom'. */
@@ -38,6 +43,7 @@ export const mapCardFigure = (row: any): CardFigureBlockData => ({
   float: (row.float ?? 'none') as 'none' | 'left' | 'right',
   maxWidthCm: row.max_width_cm != null ? Number(row.max_width_cm) : null,
   caption: row.caption ?? null,
+  captionKind: row.caption_kind === 'table' ? 'table' : 'figure',
   widthMode: (row.width_mode ?? 'full') as FigureWidthMode,
   customWidthPct: row.custom_width_pct != null ? Number(row.custom_width_pct) : 100,
   groupWithAbove: row.group_with_above ?? false,

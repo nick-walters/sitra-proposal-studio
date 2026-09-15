@@ -81,8 +81,17 @@ export function formatParticipantLabel(p: { organisation_short_name?: string | n
   return p.organisation_short_name || "Partner";
 }
 
-export function formatFigureLabel(f: { figure_number: string | number | null | undefined }): string {
-  return `Figure ${f.figure_number ?? ""}`;
+/**
+ * ADDITIVE: `caption_kind` is absent for every picture captioned the ordinary
+ * way, and the label is then exactly what it has always been. Only the
+ * explicit value "table" changes the word — that picture is captioned and
+ * numbered as a table.
+ */
+export function formatFigureLabel(f: {
+  figure_number: string | number | null | undefined;
+  caption_kind?: string | null;
+}): string {
+  return `${f.caption_kind === "table" ? "Table" : "Figure"} ${f.figure_number ?? ""}`;
 }
 
 export function formatTableLabel(entry: { table_key: string; caption?: string | null }): string {

@@ -336,10 +336,14 @@ function emitAuthoredFigure(
   }
 
   const label = placed.label || fallbackLabel;
+  // A picture captioned as a TABLE follows this project's table convention:
+  // the caption sits ABOVE it, in the table caption style.
+  const asTable = placed.captionKind === 'table';
+  const captionFn = asTable ? 'he-caption' : 'he-figure-caption';
   const caption = placed.caption
-    ? `${label ? `he-figure-caption(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
+    ? `${label ? `${captionFn}(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
     : label
-      ? `he-figure-caption(${typstString(label)}, ${typstString('')})`
+      ? `${captionFn}(${typstString(label)}, ${typstString('')})`
       : '';
   const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
     placed.groupWithAbove ? 'true' : 'false'
@@ -352,12 +356,17 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = [image, captionBlock].filter(Boolean).join('\n');
+  const unit = (asTable ? [captionBlock, image] : [image, captionBlock])
+    .filter(Boolean)
+    .join('\n');
 
   const out: string[] = [];
   if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
   if (placed.pageBreakMode === 'float_top') {
     out.push(`he-figure-float([\n${unit}\n])`);
+  } else if (asTable) {
+    if (captionBlock) out.push(captionBlock);
+    out.push(image);
   } else {
     out.push(image);
     if (captionBlock) out.push(captionBlock);
@@ -502,12 +511,18 @@ export function buildSectionTypstBody(
       if (card.kind === 'figure') {
         // The figure keeps its slot in the section's caption sequence whether or
         // not a bitmap could be resolved, so a broken figure never renumbers the
-        // ones after it.
-        const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
+        // ones after it. A picture captioned as a table takes its slot from the
+        // TABLE run instead.
         const placed = options.authoredFigures?.get(card.id) ?? null;
+        const asTable = placed?.captionKind === 'table';
+        const slot = ctx.captionNumbering
+          ? asTable
+            ? ctx.captionNumbering.tableIndex++
+            : ctx.captionNumbering.figureIndex++
+          : null;
         const fallbackLabel =
           ctx.captionNumbering && slot != null
-            ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+            ? `${asTable ? 'Table' : 'Figure'} ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
             : '';
         cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, titleText(card.title)));
         return;
@@ -539,11 +554,16 @@ export function buildSectionTypstBody(
         // A figure MODULE renders exactly as a figure block does, in its own
         // position among the block's modules.
         if (field.fieldRole === 'figure') {
-          const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
           const placed = options.authoredFigures?.get(field.id) ?? null;
+          const asTable = placed?.captionKind === 'table';
+          const slot = ctx.captionNumbering
+            ? asTable
+              ? ctx.captionNumbering.tableIndex++
+              : ctx.captionNumbering.figureIndex++
+            : null;
           const fallbackLabel =
             ctx.captionNumbering && slot != null
-              ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+              ? `${asTable ? 'Table' : 'Figure'} ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
               : '';
           cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, ''));
           continue;

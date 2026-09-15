@@ -689,6 +689,7 @@ export type Database = {
       card_figure: {
         Row: {
           caption: string | null
+          caption_kind: string
           card_id: string
           created_at: string
           custom_width_pct: number
@@ -707,6 +708,7 @@ export type Database = {
         }
         Insert: {
           caption?: string | null
+          caption_kind?: string
           card_id: string
           created_at?: string
           custom_width_pct?: number
@@ -725,6 +727,7 @@ export type Database = {
         }
         Update: {
           caption?: string | null
+          caption_kind?: string
           card_id?: string
           created_at?: string
           custom_width_pct?: number

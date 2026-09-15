@@ -122,12 +122,43 @@ export function CardFigureBlock({
   const widthPct = fullWidthOnly ? 100 : resolveFigureWidthPct(widthMode, figureBlock.customWidthPct);
   const isFullWidth = widthMode === 'full';
   const showLayoutControls = canEdit && isCoordinator;
+  /** A picture captioned as a table takes its caption ABOVE it, as tables do. */
+  const captionsAsTable = figureBlock.captionKind === 'table';
+
+  // Caption sits between the picture and the controls and spans the full block
+  // width. Its position depends on what the caption IS: below a figure, above
+  // a table.
+  const captionRow = (
+    <div className="figure-caption-row w-full items-baseline gap-2">
+      <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
+        {captionLabel}
+      </span>
+      {canEdit ? (
+        <Input
+          value={captionDraft}
+          placeholder="Caption"
+          className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
+          onFocus={() => {
+            captionTouched.current = true;
+          }}
+          onChange={(e) => setCaptionDraft(e.target.value)}
+          onBlur={() => {
+            captionTouched.current = false;
+            if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
+          }}
+        />
+      ) : (
+        <span className="flex-1 italic">{figureBlock.caption}</span>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-3">
       {/* The opener lives in the block header, in line with the other
           controls — see onRegisterControls above. */}
 
+      {captionsAsTable && captionRow}
 
       <div
         className={cn(
@@ -165,29 +196,8 @@ export function CardFigureBlock({
         </div>
       </div>
 
-      {/* Caption sits between the figure and controls and spans the full block width. */}
-      <div className="figure-caption-row w-full items-baseline gap-2">
-        <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
-          {captionLabel}
-        </span>
-        {canEdit ? (
-          <Input
-            value={captionDraft}
-            placeholder="Caption"
-            className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
-            onFocus={() => {
-              captionTouched.current = true;
-            }}
-            onChange={(e) => setCaptionDraft(e.target.value)}
-            onBlur={() => {
-              captionTouched.current = false;
-              if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
-            }}
-          />
-        ) : (
-          <span className="flex-1 italic">{figureBlock.caption}</span>
-        )}
-      </div>
+      {!captionsAsTable && captionRow}
+
 
       {/* A figure BLOCK opens its controls from the block header; a figure
           MODULE has no header of its own, so it carries its own opener. */}
@@ -212,6 +222,34 @@ export function CardFigureBlock({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+          {/* CAPTION TYPE. A picture is a figure unless the author says it is a
+              table — a screenshot of a table, say. The choice moves it from one
+              numbering sequence to the other and moves its caption above it. */}
+          {canEdit && (
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Caption this as</Label>
+              <RadioGroup
+                value={figureBlock.captionKind}
+                onValueChange={(value) =>
+                  save.mutate({ caption_kind: value as 'figure' | 'table' })
+                }
+                className="gap-1"
+              >
+                <label className="flex items-center gap-2 text-xs">
+                  <RadioGroupItem value="figure" id={`${fieldId ?? cardId}-cap-figure`} />
+                  A figure — caption below, numbered in the figure sequence
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <RadioGroupItem value="table" id={`${fieldId ?? cardId}-cap-table`} />
+                  A table — caption above, numbered in the table sequence
+                </label>
+              </RadioGroup>
+              <p className="text-[11px] text-muted-foreground">
+                Both sequences renumber straight away, here and in the PDF, and any
+                cross-reference to this picture follows the change.
+              </p>
+            </div>
+          )}
           {showLayoutControls && !fullWidthOnly && (
             <div className="grid gap-4 md:grid-cols-2">
               {/* a. WIDTH */}

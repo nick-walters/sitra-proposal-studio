@@ -129,6 +129,7 @@ import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
 import { CasesTableLiveView } from '@/components/CasesTableNodeView';
 import { captionLetter, countCaptionSlots } from '@/lib/cards/captionSlots';
+import { useFigureCaptionKinds } from '@/hooks/useFigureCaptionKinds';
 import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
@@ -2557,6 +2558,10 @@ function BoardInner({
   const captionNumber = (sectionNumber ?? '').replace(/^B/i, '') || DEFAULT_CAPTION_NUMBER;
   const isB31 = captionNumber === '3.1';
 
+  // A placed picture may be captioned as a TABLE instead of a figure; absent
+  // from this map means "figure", which is what every existing picture is.
+  const { data: captionKinds } = useFigureCaptionKinds(proposalId);
+
   const numbering = useMemo(() => {
     const ordered = [...headCards, ...orderedFree, ...tailCards];
     const cardLabels: Record<string, string> = {};
@@ -2570,8 +2575,13 @@ function BoardInner({
       if (!visibleCard(card)) continue;
 
       if (card.kind === 'figure') {
-        cardLabels[card.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
-        figureIdx += 1;
+        if (captionKinds?.byCard[card.id] === 'table') {
+          cardLabels[card.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
+          tableIdx += 1;
+        } else {
+          cardLabels[card.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+          figureIdx += 1;
+        }
         continue;
       }
 
@@ -2592,10 +2602,16 @@ function BoardInner({
           tableIdx += 1;
           continue;
         }
-        // A figure MODULE takes the next figure letter, in module order.
+        // A figure MODULE takes the next figure letter, in module order — or
+        // the next TABLE letter when it is captioned as a table.
         if (f.fieldRole === 'figure') {
-          fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
-          figureIdx += 1;
+          if (captionKinds?.byField[f.id] === 'table') {
+            fieldFigureLabels[f.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
+            tableIdx += 1;
+          } else {
+            fieldFigureLabels[f.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+            figureIdx += 1;
+          }
           continue;
         }
         fieldNumbering[f.id] = {
@@ -2618,6 +2634,7 @@ function BoardInner({
     tailCards,
     fieldsByCard,
     captionNumber,
+    captionKinds,
     sectionCitesAnything,
     isCoordinator,
   ]);
