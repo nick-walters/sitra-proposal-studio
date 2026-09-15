@@ -450,7 +450,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-caption(label, caption) = block(
   width: he-table-width,
   above: 6pt,
-  below: 0pt,
+  below: 1pt,
   sticky: true,
   text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
