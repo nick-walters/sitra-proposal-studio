@@ -554,11 +554,16 @@ export function buildSectionTypstBody(
         // A figure MODULE renders exactly as a figure block does, in its own
         // position among the block's modules.
         if (field.fieldRole === 'figure') {
-          const slot = ctx.captionNumbering ? ctx.captionNumbering.figureIndex++ : null;
           const placed = options.authoredFigures?.get(field.id) ?? null;
+          const asTable = placed?.captionKind === 'table';
+          const slot = ctx.captionNumbering
+            ? asTable
+              ? ctx.captionNumbering.tableIndex++
+              : ctx.captionNumbering.figureIndex++
+            : null;
           const fallbackLabel =
             ctx.captionNumbering && slot != null
-              ? `Figure ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
+              ? `${asTable ? 'Table' : 'Figure'} ${ctx.captionNumbering.sectionNumber.replace(/^[A-Za-z]+/, '')}.${captionLetter(slot)}.`
               : '';
           cardOut.push(...emitAuthoredFigure(placed, ctx, fallbackLabel, ''));
           continue;
