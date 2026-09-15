@@ -22,6 +22,7 @@ import { LazyRichField } from '@/components/participant/LazyRichField';
 import { LAZY_RICH_FIELD_EXTENSIONS } from '@/components/participant/lazyRichFieldExtensions';
 import { ParticipantCrossRefDropdown } from '@/components/participant/ParticipantCrossRefDropdown';
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { toast } from 'sonner';
 import ethicsQuestionsRaw from '@/data/ethicsQuestions.json';
 
 // Extended ethics assessment interface for full proposals
@@ -499,11 +500,40 @@ function EthicsQuestionRow({
 const SELF_ASSESSMENT_LIMIT = 5000;
 
 /**
- * Rich field with a hard character limit on its plain text.
+ * Cut rich-text HTML down to `max` characters of plain text, keeping the markup
+ * that survives the cut well-formed. Used when a paste overshoots the limit:
+ * what fits is kept and saved, the remainder is dropped with a visible warning.
+ */
+export function truncateHtmlToPlainLength(html: string, max: number): string {
+  if (htmlToPlainText(html || '').length <= max) return html;
+  const doc = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
+  const root = doc.body.firstElementChild as HTMLElement | null;
+  if (!root) return html;
+  let remaining = max;
+  const walk = (node: Node) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (remaining <= 0) { child.parentNode?.removeChild(child); continue; }
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent ?? '';
+        if (text.length > remaining) child.textContent = text.slice(0, remaining);
+        remaining -= Math.min(text.length, remaining);
+      } else {
+        walk(child);
+      }
+    }
+  };
+  walk(root);
+  return root.innerHTML;
+}
+
+/**
+ * Rich field with a character limit on its plain text.
  *
- * The counter always shows the current length. Text beyond the limit is not
- * saved: an edit that would leave the field over the limit is only accepted
- * when it makes the field shorter, so existing content can always be cut back.
+ * Matches the budget justification counter (`LocalTextInput` in
+ * LumpSumCostsSection.tsx, JUSTIFICATION_LIMIT = 150): an existing over-length
+ * value keeps its own length as the ceiling, so stored text is never shortened
+ * behind the user's back, while new text stops at the limit. Anything pasted
+ * beyond the remaining room is cut off, saved as what fits, and reported.
  */
 function LimitedRichField({
   value,
@@ -522,11 +552,20 @@ function LimitedRichField({
 }) {
   const length = htmlToPlainText(value || '').length;
   const over = length > maxLength;
+  // An existing over-length value keeps its own length as the ceiling.
+  const cap = Math.max(maxLength, length);
 
   const handleChange = (next: string) => {
     const nextLength = htmlToPlainText(next || '').length;
-    if (nextLength > maxLength && nextLength >= length) return;
-    onChange(next);
+    if (nextLength <= cap) {
+      onChange(next);
+      return;
+    }
+    const trimmed = truncateHtmlToPlainLength(next, cap);
+    onChange(trimmed);
+    toast.error(
+      `${formatNumber(nextLength - cap)} characters were not added — this field is limited to ${formatNumber(maxLength)} characters.`,
+    );
   };
 
   return (
@@ -540,9 +579,12 @@ function LimitedRichField({
         proposalId={proposalId || ''}
         staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
       />
-      <div className={cn('text-xs text-right', over ? 'text-destructive' : 'text-muted-foreground')}>
+      <div
+        className={cn('text-xs text-right tabular-nums', over ? 'font-medium text-destructive' : 'text-muted-foreground')}
+        aria-live="polite"
+      >
         {formatNumber(length)} / {formatNumber(maxLength)} characters
-        {over && ' — text beyond the limit is not saved'}
+        {over && ` (${formatNumber(length - maxLength)} over — please shorten)`}
       </div>
     </div>
   );
