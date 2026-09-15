@@ -357,7 +357,7 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = (asTable ? [captionBlock, captionBlock ? 'v(-1pt)' : '', image] : [image, captionBlock])
+  const unit = (asTable ? [captionBlock, captionBlock ? 'v(0.5pt)' : '', image] : [image, captionBlock])
     .filter(Boolean)
     .join('\n');
 
