@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 import { CountrySelect } from './CountrySelect';
 import { StorageImage } from './StorageImage';
 import { isEligibleForGEP } from '@/lib/countries';
@@ -478,7 +479,8 @@ export function ParticipantDetailForm({
                 value={participant.organisationName || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('organisationName', v)}
                 placeholder="Full legal name of the organisation"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
                 required
               />
             </div>
@@ -488,7 +490,8 @@ export function ParticipantDetailForm({
                 value={participant.englishName || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('englishName', v)}
                 placeholder="English name (if legal name is not in English)"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
               <p className="text-xs text-muted-foreground">
                 If the legal name is not in English, provide the English translation here
@@ -500,7 +503,8 @@ export function ParticipantDetailForm({
                 value={participant.organisationShortName || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('organisationShortName', v)}
                 placeholder="e.g. UH, CNRS"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
                 required
               />
             </div>
@@ -509,7 +513,8 @@ export function ParticipantDetailForm({
               <PicNumberInput
                 value={participant.picNumber || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
               {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
                 <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>
@@ -571,7 +576,12 @@ export function ParticipantDetailForm({
                   onValueChange={(v) => handleFieldUpdate('country', v)}
                 />
               ) : (
-                <Input value={participant.country || ''} disabled />
+                <Input
+                  value={participant.country || ''}
+                  aria-label="Country"
+                  className={lockedFieldClass(true)}
+                  {...lockedFieldProps(true)}
+                />
               )}
             </div>
             <div className="space-y-2">
@@ -580,7 +590,8 @@ export function ParticipantDetailForm({
                 value={participant.website || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('website', v)}
                 placeholder="https://www.example.org"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
             </div>
           </div>
@@ -591,7 +602,8 @@ export function ParticipantDetailForm({
                 value={participant.street || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('street', v)}
                 placeholder="e.g. Campusvej 55"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
             </div>
             <div className="space-y-2">
@@ -600,7 +612,8 @@ export function ParticipantDetailForm({
                 value={participant.postcode || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
                 placeholder="e.g. 5230"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
             </div>
             <div className="space-y-2">
@@ -609,7 +622,8 @@ export function ParticipantDetailForm({
                 value={participant.town || ''}
                 onDebouncedChange={(v) => handleFieldUpdate('town', v)}
                 placeholder="e.g. Odense"
-                disabled={!canEdit}
+                className={lockedFieldClass(!canEdit)}
+                {...lockedFieldProps(!canEdit)}
               />
             </div>
           </div>
