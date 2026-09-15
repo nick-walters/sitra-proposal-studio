@@ -1,21 +1,2 @@
-# Roadmap
-
-- [ ] Prompt 221: capture and compare the three Gantt artefacts, log the selected DOM element, verify the served selector logic, fix the proven fault, and verify checks.
-- [ ] Prompt 224: run one subagent browser-capability test and report its response verbatim.- [ ] Prompt 81: per-subcategory mirroring flags for Table 3.1.h; adapter is the single 15% decision point; consumers must not re-filter.
-
-- [x] Prompt 119: "All participants" badge derived from current selection (editor field, B3.1 mirror, Typst PDF).
-- [ ] Prompt 120: diagnose and fix false "another user is editing" warnings on task title/description.
-
-- [ ] Prompt 136 — Contact card rework: remove avatar, placeholder labels, MCP/access pills, copy buttons, pale blue cards, denser padding (ContactPersonsSection.tsx, MCPDetailFields.tsx)
-
-- Prompt 142: researcher cards rebuilt to contact-card conventions; contact Email widened; explicit insert trigger for new researcher drafts.
-
-- Prompt 143: card dropdown chevrons removed, width deltas applied from single shared width constants, overflow indent fix for selected values.
-
-- [x] Prompt 160: capture B1.1 slow-autosave writer timing/version evidence; fix only after evidence; verify Background and TRL; restore SUSIE-Q field; delete nothing.
-
-- Figure modules: same layout controls as blocks; B3.1 full-width keyed by section; partial unique indexes on card_figure; backup edge function numbering aligned.
-
-- [ ] Prompt 166 override change: separate participant-info override table + sibling access functions (budget functions unchanged).
-
-- [ ] Prompt 172: report then delete card_figure rows whose card is missing/deleted; verify SUSIE-Q figures unchanged
+- [ ] Diagnose and fix the unique black line and extra caption gap at SUSIE-Q Table 2.2.a without changing proposal content.
+- [ ] Verify typecheck and production build.
