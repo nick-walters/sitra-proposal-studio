@@ -7,7 +7,7 @@
  * Nothing outside this file may hard-code the instrument list.
  */
 
-export type FundingInstrumentCode = 'HE' | 'DEU' | 'RCF' | 'NCM' | 'EU4H' | 'CERV' | 'VIN' | 'BF' | 'EDF' | 'OTHER';
+export type FundingInstrumentCode = 'HE' | 'DEU' | 'RCF' | 'NCM' | 'EU4H' | 'CERV' | 'VIN' | 'BF' | 'EDF' | 'ITEA4' | 'OTHER';
 
 export interface FundingInstrumentDef {
   code: FundingInstrumentCode;
@@ -25,6 +25,7 @@ export const FUNDING_INSTRUMENTS: ReadonlyArray<FundingInstrumentDef> = [
   { code: 'VIN', abbreviation: 'Vinnova', fullName: 'Swedish Agency for Innovation Systems' },
   { code: 'BF', abbreviation: 'BF', fullName: 'Business Finland' },
   { code: 'EDF', abbreviation: 'EDF', fullName: 'European Defence Fund' },
+  { code: 'ITEA4', abbreviation: 'ITEA4', fullName: 'Information Technology for European Advancement' },
   { code: 'OTHER', abbreviation: '', fullName: '' },
 ];
 
