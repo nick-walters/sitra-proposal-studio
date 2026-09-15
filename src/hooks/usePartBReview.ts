@@ -224,9 +224,28 @@ export function usePartBReview(proposalId: string) {
       }
     }
 
+    /**
+     * A thread is ONE review item — its opening comment. Replies carry their
+     * own 'open' status that resolving the thread never touches, so listing
+     * them separately kept resolved threads on screen for ever.
+     */
+    const statusById = new Map(comments.map((c) => [c.id, c.status]));
+    const liveFieldIds = new Set((blocks?.fields || []).map((f) => f.id));
+    const liveCardIds = new Set((blocks?.cards || []).map((c) => c.id));
+    /** A comment whose module was deleted has nowhere to navigate to. */
+    const anchorAlive = (targetKey?: string) => {
+      if (!targetKey) return true;
+      if (targetKey.startsWith('card_field:')) return liveFieldIds.has(targetKey.split(':')[1]);
+      if (targetKey.startsWith('card:')) return liveCardIds.has(targetKey.split(':')[1]);
+      return true;
+    };
+
     for (const row of comments) {
       if (!sectionById.has(row.section_id)) continue;
-      const payload = row.anchor_payload as { label?: string } | null;
+      if (row.parent_comment_id) continue;
+      const payload = row.anchor_payload as { label?: string; targetKey?: string } | null;
+      if (!anchorAlive(payload?.targetKey)) continue;
+      void statusById;
       push(row.section_id, {
         kind: 'comment',
         id: row.id,
