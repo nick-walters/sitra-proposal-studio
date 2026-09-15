@@ -110,6 +110,7 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
     mutationFn: async (patch: {
       figure_id?: string | null;
       caption?: string;
+      caption_kind?: 'figure' | 'table';
       float?: 'none' | 'left' | 'right';
       max_width_cm?: number | null;
       width_mode?: FigureWidthMode;

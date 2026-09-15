@@ -43,6 +43,7 @@ export const mapCardFigure = (row: any): CardFigureBlockData => ({
   float: (row.float ?? 'none') as 'none' | 'left' | 'right',
   maxWidthCm: row.max_width_cm != null ? Number(row.max_width_cm) : null,
   caption: row.caption ?? null,
+  captionKind: row.caption_kind === 'table' ? 'table' : 'figure',
   widthMode: (row.width_mode ?? 'full') as FigureWidthMode,
   customWidthPct: row.custom_width_pct != null ? Number(row.custom_width_pct) : 100,
   groupWithAbove: row.group_with_above ?? false,
