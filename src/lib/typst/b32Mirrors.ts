@@ -325,10 +325,15 @@ function emitMatrix(data: B32TypstData, _ctx: ConvertContext): string[] {
 
 
   const caption = data.captions.get('b32-expertise-matrix') || 'Expertise of participants';
-  return [
-    `he-caption(${typstString('Table 3.2.a.')}, ${lit(caption)})`,
-    `he-authored-table(${columns}, (${cells.join(', ')},), ${m.rows.length + 1})`,
-  ];
+  // The matrix must never be split across a page boundary: it floats to the top
+  // of the page it lands on, caption and table together as one unbreakable unit.
+  // Inside `he-figure-float` we are in content mode, so each command needs `#`.
+  const floatBody = [
+    `#he-caption(${typstString('Table 3.2.a.')}, ${lit(caption)})`,
+    `#v(1.5pt)`,
+    `#he-authored-table(${columns}, (${cells.join(', ')},), ${m.rows.length + 1})`,
+  ].join('\n');
+  return [`he-figure-float([\n${floatBody}\n])`];
 }
 
 /** Emits one B3.2 mirror slot; `[]` when its source is empty or switched off. */
