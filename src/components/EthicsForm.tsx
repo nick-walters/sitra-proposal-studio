@@ -542,6 +542,7 @@ function LimitedRichField({
   placeholder,
   disabled,
   proposalId,
+  copyLabel,
   maxLength = SELF_ASSESSMENT_LIMIT,
 }: {
   value: string;
@@ -549,6 +550,7 @@ function LimitedRichField({
   placeholder: string;
   disabled: boolean;
   proposalId?: string;
+  copyLabel: string;
   maxLength?: number;
 }) {
   const length = htmlToPlainText(value || '').length;
