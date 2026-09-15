@@ -134,7 +134,7 @@ export function CardFigureBlock({
     <div
       className={cn(
         'figure-caption-row w-full items-baseline gap-2',
-        captionsAsTable ? '!mb-[2px]' : '!mt-[2px]',
+        captionsAsTable ? '!mb-0' : '!mt-[2px]',
       )}
     >
       <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
@@ -165,7 +165,7 @@ export function CardFigureBlock({
       {/* The opener lives in the block header, in line with the other
           controls — see onRegisterControls above. */}
 
-      <div>
+      <div className={cn(captionsAsTable && !noCaption ? 'flex flex-col gap-[2px]' : '')}>
         {!noCaption && captionsAsTable && captionRow}
 
         <div
@@ -195,7 +195,7 @@ export function CardFigureBlock({
                 )}
               </div>
             ) : imageUrl ? (
-              <StorageImage storedPath={imageUrl} alt={figure?.title ?? ''} className="h-auto w-full" />
+              <StorageImage storedPath={imageUrl} alt={figure?.title ?? ''} className="block h-auto w-full" />
             ) : (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 {figure?.title} has no rendered image yet. Open it on the figures page to render it.
