@@ -44,6 +44,7 @@ import {
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
 import { isBlankRichHtml } from '@/lib/richTextUpgrade';
+import { formatFigureLabel } from '@/lib/referenceLabels';
 import { emitCasesTable, type CasesTypstData } from './casesData';
 import type { AuthoredFigureBlock } from './authoredFigures';
 
@@ -375,6 +376,35 @@ function emitAuthoredFigure(
 }
 
 /**
+ * A cross-reference to a PICTURE stores only the picture's id; its visible
+ * words are rebuilt on every render. On screen `renderRefBadges` does that
+ * rebuild — the PDF never did, so a chip printed whatever text was baked in
+ * when it was inserted. It is redone here, with the same shared formatter, so
+ * a picture re-captioned as a table reads "Table 1.2.b" in the PDF exactly as
+ * it does on the board. An id that does not resolve keeps its stored words.
+ */
+function resolveFigTableRefs(
+  html: string | null | undefined,
+  data: RefSnapshot | undefined,
+): string {
+  const raw = (html ?? '').toString();
+  if (!raw || !data || typeof document === 'undefined') return raw;
+  if (!raw.includes('data-fig-table-ref')) return raw;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = raw;
+  tpl.content.querySelectorAll('[data-fig-table-ref]').forEach((el) => {
+    const figureId = (el.getAttribute('data-figure-id') || '').trim();
+    if (!figureId) return;
+    const figure = data.figureById.get(figureId);
+    if (!figure) return;
+    el.textContent = formatFigureLabel(figure);
+  });
+  const out = document.createElement('div');
+  out.appendChild(tpl.content.cloneNode(true));
+  return out.innerHTML;
+}
+
+/**
  * One section's BODY — every emitted expression, without the preamble. The
  * full Part B document concatenates six of these under a single preamble
  * (`partBDocument.ts`); `buildSectionTypstDocument` wraps one of them.
@@ -592,7 +622,9 @@ export function buildSectionTypstBody(
         // The body is converted FIRST: a module heading is printed only when
         // something follows it. Blank paragraphs left by the editor are
         // trimmed, so an "empty" module reads as empty here too.
-        const body = dropBlankBlocks(htmlToTypstBlocks(field.contentHtml, ctx));
+        const body = dropBlankBlocks(
+          htmlToTypstBlocks(resolveFigTableRefs(field.contentHtml, ctx.data), ctx),
+        );
         if (field.headingEnabled && !isBlankRichHtml(field.heading) && body.length) {
           // A module boundary is NOT a structural break: the heading gets the
           // ordinary 3pt paragraph spacing, so items from two different modules
