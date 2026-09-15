@@ -336,10 +336,14 @@ function emitAuthoredFigure(
   }
 
   const label = placed.label || fallbackLabel;
+  // A picture captioned as a TABLE follows this project's table convention:
+  // the caption sits ABOVE it, in the table caption style.
+  const asTable = placed.captionKind === 'table';
+  const captionFn = asTable ? 'he-caption' : 'he-figure-caption';
   const caption = placed.caption
-    ? `${label ? `he-figure-caption(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
+    ? `${label ? `${captionFn}(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
     : label
-      ? `he-figure-caption(${typstString(label)}, ${typstString('')})`
+      ? `${captionFn}(${typstString(label)}, ${typstString('')})`
       : '';
   const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
     placed.groupWithAbove ? 'true' : 'false'
