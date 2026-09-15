@@ -115,6 +115,8 @@ function extractChanges(
 }
 
 export function usePartBReview(proposalId: string) {
+  const queryClient = useQueryClient();
+
   const { data: sections = [], isPending: sectionsPending } = useQuery({
     queryKey: ['partb-sections', proposalId],
     enabled: !!proposalId,
@@ -155,7 +157,7 @@ export function usePartBReview(proposalId: string) {
       const { data, error } = await supabase
         .from('section_comments')
         .select(
-          'id, section_id, user_id, content, status, created_at, anchor_payload, profiles:user_id (full_name, email)',
+          'id, section_id, user_id, content, status, created_at, anchor_payload, parent_comment_id, profiles:user_id (full_name, email)',
         )
         .eq('proposal_id', proposalId)
         .order('created_at', { ascending: true });
@@ -163,6 +165,38 @@ export function usePartBReview(proposalId: string) {
       return (data || []) as unknown as CommentRow[];
     },
   });
+
+  /**
+   * Resolving, deleting or replying to a comment happens elsewhere (the
+   * per-section panel keeps its own state), so this list has to learn about it
+   * from the database itself. A realtime subscription refetches immediately —
+   * the cache time is left alone deliberately; shortening it would only shrink
+   * the window in which the panel lies.
+   */
+  useEffect(() => {
+    if (!proposalId) return;
+    const channel = supabase
+      .channel(`partb-review:${proposalId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'section_comments',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: ['partb-review-comments', proposalId],
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, queryClient]);
+
 
   const groups = useMemo<ReviewGroup[]>(() => {
     const sectionById = new Map<string, PartBSection>(sections.map((s) => [s.id, s]));
