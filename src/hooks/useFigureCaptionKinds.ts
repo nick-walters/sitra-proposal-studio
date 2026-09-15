@@ -3,11 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const figureCaptionKindsKey = (proposalId: string) => ['figure-caption-kinds', proposalId];
 
+export type FigureCaptionKind = 'figure' | 'table' | 'none';
+
 export interface FigureCaptionKinds {
-  /** Block-level placements: card id → 'figure' | 'table'. */
-  byCard: Record<string, 'figure' | 'table'>;
-  /** Module placements: module id → 'figure' | 'table'. */
-  byField: Record<string, 'figure' | 'table'>;
+  /** Block-level placements: card id → 'figure' | 'table' | 'none'. */
+  byCard: Record<string, FigureCaptionKind>;
+  /** Module placements: module id → 'figure' | 'table' | 'none'. */
+  byField: Record<string, FigureCaptionKind>;
 }
 
 /**
@@ -28,7 +30,8 @@ export function useFigureCaptionKinds(proposalId: string) {
       if (error) throw error;
       const out: FigureCaptionKinds = { byCard: {}, byField: {} };
       for (const row of data ?? []) {
-        const kind = row.caption_kind === 'table' ? 'table' : 'figure';
+        const kind: FigureCaptionKind =
+          row.caption_kind === 'table' ? 'table' : row.caption_kind === 'none' ? 'none' : 'figure';
         if (row.field_id) out.byField[row.field_id] = kind;
         else out.byCard[row.card_id] = kind;
       }
