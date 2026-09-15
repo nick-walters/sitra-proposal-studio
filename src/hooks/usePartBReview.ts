@@ -191,6 +191,30 @@ export function usePartBReview(proposalId: string) {
           });
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'card_fields',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['partb-review-blocks', proposalId] });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'proposal_cards',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['partb-review-blocks', proposalId] });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
