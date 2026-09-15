@@ -184,6 +184,7 @@ export function ParticipantDescriptionsSection({
                   value={descriptions[field.key] || ''}
                   onChange={(v) => onUpdateField(field.key, v)}
                   disabled={!canEdit}
+                  readOnlyEditor
                   prefix={prefixNode}
                   minHeight="90px"
                   proposalId={proposalId ?? ''}
