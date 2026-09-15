@@ -460,7 +460,7 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 /// drag the caption along.
 #let he-figure-caption(label, caption) = block(
   width: he-table-width,
-  above: 0pt,
+  above: 1.5pt,
   below: 6pt,
   text(size: 11pt, fill: black, strong(emph(t(label))) + t(" ") + emph(caption)),
 )
