@@ -41,7 +41,9 @@ html, body {
 }
 
 .figure-caption {
-  margin-top: 3pt !important;
+  margin-top: 1.5pt !important;
+  break-before: avoid !important;
+  page-break-before: avoid !important;
   margin-bottom: 6pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
