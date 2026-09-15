@@ -56,3 +56,24 @@ export function collapseToSingleLineHtml(html: string): string {
     .replace(/<br\s*\/?>/gi, ' ')
     .replace(/\s{2,}/g, ' ');
 }
+
+/**
+ * True when an editor's HTML carries no visible text at all — `<p></p>`,
+ * `<p><br></p>`, whitespace or non-breaking spaces only. A single-line rich
+ * field (a block title, a module heading) cleared by the user emits exactly
+ * such a value; treating it as blank is what lets "cleared" be stored as NULL
+ * rather than as an empty heading that still occupies a line.
+ */
+export function isBlankRichHtml(value: string | null | undefined): boolean {
+  const html = String(value ?? '');
+  if (!html) return true;
+  // An image, figure or horizontal rule is visible without carrying text.
+  if (/<(img|figure|hr|table|svg)\b/i.test(html)) return false;
+  return (
+    html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\u00a0/g, ' ')
+      .trim().length === 0
+  );
+}

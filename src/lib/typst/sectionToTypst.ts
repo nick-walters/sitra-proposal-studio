@@ -43,6 +43,7 @@ import {
 } from './b31Tables';
 
 import { htmlToPlainText } from '@/lib/htmlToPlainText';
+import { isBlankRichHtml } from '@/lib/richTextUpgrade';
 import { emitCasesTable, type CasesTypstData } from './casesData';
 import type { AuthoredFigureBlock } from './authoredFigures';
 
@@ -572,7 +573,7 @@ export function buildSectionTypstBody(
         // something follows it. Blank paragraphs left by the editor are
         // trimmed, so an "empty" module reads as empty here too.
         const body = dropBlankBlocks(htmlToTypstBlocks(field.contentHtml, ctx));
-        if (field.headingEnabled && field.heading && body.length) {
+        if (field.headingEnabled && !isBlankRichHtml(field.heading) && body.length) {
           // A module boundary is NOT a structural break: the heading gets the
           // ordinary 3pt paragraph spacing, so items from two different modules
           // sit exactly as far apart as two paragraphs in one module.
@@ -607,7 +608,7 @@ export function buildSectionTypstBody(
 
     // Editor-only headers (B3.1) exist for navigation in the board and are
     // never emitted to the preview or the export.
-    if (card.title && card.titleMode === 'mirrored') {
+    if (!isBlankRichHtml(card.title) && card.titleMode === 'mirrored') {
       // Colour is carried per RUN, so colouring one word colours one word.
       out.push(
         `block(above: 3pt, below: 3pt, sticky: true, text(size: 11pt, weight: "bold", underline(${htmlToTypstInline(card.title, ctx)})))`,
