@@ -357,7 +357,7 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = (asTable ? [captionBlock, captionBlock ? 'v(-1pt)' : '', image] : [image, captionBlock])
+  const unit = (asTable ? [captionBlock, captionBlock ? 'v(0.5pt)' : '', image] : [image, captionBlock])
     .filter(Boolean)
     .join('\n');
 
@@ -367,7 +367,7 @@ function emitAuthoredFigure(
     out.push(`he-figure-float([\n${unit}\n])`);
   } else if (asTable) {
     if (captionBlock) out.push(captionBlock);
-    if (captionBlock) out.push('v(-1pt)');
+    if (captionBlock) out.push('v(0.5pt)');
     out.push(image);
   } else {
     out.push(image);
