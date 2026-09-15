@@ -1,3 +1,4 @@
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -218,11 +219,11 @@ function LocalNumberInput({ value, decimals, disabled, max, onCommit }: {
     : (dirty ? localValue : serverValue) ? formatNumber(numericValue(dirty ? localValue : serverValue), decimals) : '';
 
   return <Input
-    className={`${FIELD} text-right tabular-nums`}
+    className={lockedFieldClass(disabled, `${FIELD} text-right tabular-nums`)}
     type="text"
     inputMode="decimal"
     value={display}
-    disabled={disabled}
+    {...lockedFieldProps(disabled)}
     onFocus={() => { setFocused(true); if (!dirty) setLocalValue(serverValue); }}
     onChange={event => schedule(event.target.value)}
     onBlur={() => { setFocused(false); if (dirty) commit(); }}
@@ -254,10 +255,10 @@ function LocalTextInput({ value, disabled, maxLength, onCommit }: { value: strin
   const shown = focused || dirty ? localValue : value;
   return <div className="space-y-0.5">
     <Input
-      className={FIELD}
+      className={lockedFieldClass(disabled, FIELD)}
       value={shown}
       maxLength={maxLength}
-      disabled={disabled}
+      {...lockedFieldProps(disabled)}
       onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
       onChange={event => schedule(event.target.value)}
       onBlur={() => { setFocused(false); if (dirty) commit(); }}

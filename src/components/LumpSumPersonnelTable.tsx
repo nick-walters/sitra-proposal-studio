@@ -1,3 +1,4 @@
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -135,13 +136,13 @@ export function NumericInput({
       : (serverValue ? formatNumber(numberValue(serverValue), decimals) : '');
 
   return <Input
-    className={className}
+    className={lockedFieldClass(disabled, className)}
     type="text"
     inputMode="decimal"
     min="0"
     step={step}
     value={displayValue}
-    disabled={disabled}
+    {...lockedFieldProps(disabled)}
     onFocus={() => {
       setFocused(true);
       if (!dirty) setLocalValue(serverValue);

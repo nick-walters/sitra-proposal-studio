@@ -1,3 +1,4 @@
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 import { useEffect, useRef, useState } from 'react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -146,11 +147,11 @@ function LocalNumberInput({ value, decimals, disabled, onCommit, className = '' 
   const displayValue = focused ? localValue : dirty ? (localValue ? formatNumber(numericValue(localValue), decimals) : '') : (serverValue ? formatNumber(numericValue(serverValue), decimals) : '');
 
   return <Input
-    className={`${FIELD} text-right tabular-nums ${className}`}
+    className={lockedFieldClass(disabled, `${FIELD} text-right tabular-nums ${className}`)}
     type="text"
     inputMode="decimal"
     value={displayValue}
-    disabled={disabled}
+    {...lockedFieldProps(disabled)}
     onFocus={() => { setFocused(true); if (!dirty) setLocalValue(serverValue); }}
     onChange={event => schedule(event.target.value)}
     onBlur={() => { setFocused(false); if (dirty) commit(); }}
@@ -190,9 +191,9 @@ function LocalTextInput({ value, disabled, onCommit, className = '', maxLength }
   const over = maxLength !== undefined && shown.length > maxLength;
   if (maxLength === undefined) {
     return <Input
-      className={`${FIELD} ${className}`}
+      className={lockedFieldClass(disabled, `${FIELD} ${className}`)}
       value={shown}
-      disabled={disabled}
+      {...lockedFieldProps(disabled)}
       onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
       onChange={event => schedule(event.target.value)}
       onBlur={() => { setFocused(false); if (dirty) commit(); }}
@@ -200,10 +201,10 @@ function LocalTextInput({ value, disabled, onCommit, className = '', maxLength }
   }
   return <div className="space-y-0.5">
     <Input
-      className={`${FIELD} ${className}`}
+      className={lockedFieldClass(disabled, `${FIELD} ${className}`)}
       value={shown}
       maxLength={cap}
-      disabled={disabled}
+      {...lockedFieldProps(disabled)}
       onFocus={() => { setFocused(true); if (!dirty) setLocalValue(value); }}
       onChange={event => schedule(event.target.value)}
       onBlur={() => { setFocused(false); if (dirty) commit(); }}
