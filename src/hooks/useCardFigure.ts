@@ -139,6 +139,8 @@ export function useCardFigure(cardId: string, fieldId?: string | null) {
       queryClient.invalidateQueries({ queryKey });
       // Collapsed blocks show the caption as their one-line summary.
       invalidateCardFigureSummaries(queryClient, cardId);
+      // Captioning a picture as a table renumbers both sequences on the board.
+      invalidateFigureCaptionKinds(queryClient);
     },
     onError: (e: Error) => toast.error(e.message || 'Could not save the figure'),
   });
