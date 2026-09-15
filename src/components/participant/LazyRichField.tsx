@@ -129,7 +129,10 @@ export function LazyRichField({
   placeholderHideOnFocus = false,
   placeholderIndent,
   cellSurface = false,
+  readOnlyEditor = false,
 }: LazyRichFieldProps) {
+  // Locked, read-only presentation: a live but non-editable editor.
+  const lockedReadOnly = disabled && readOnlyEditor;
 
   const [mounted, setMounted] = useState(false);
   const clickCoordsRef = useRef<{ left: number; top: number } | null>(null);
