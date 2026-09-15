@@ -53,6 +53,8 @@ export interface AuthoredFigureBlock {
   /** "Figure 1.2.a." — derived exactly as the board derives it. */
   label: string | null;
   caption: string;
+  /** 'table' when the picture is captioned and numbered as a table. */
+  captionKind: 'figure' | 'table';
   widthPct: number;
   positionMode: FigurePositionMode;
   pageBreakMode: FigurePageBreakMode;
