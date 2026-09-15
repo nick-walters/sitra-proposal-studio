@@ -691,9 +691,11 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
 #let he-figure-float(body, caption: none, caption-above: false) = place(
   top,
   float: true,
-  clearance: 8pt,
+  clearance: 6pt,
   block(
     width: he-table-width,
+    above: 0pt,
+    below: 0pt,
     breakable: false,
     if caption == none {
       body
