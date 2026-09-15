@@ -930,12 +930,19 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             placeholder="Describe the measures you intend to take to address the security issues..."
             minHeight="80px"
             disabled={!canEdit}
+            readOnlyEditor
             proposalId={ethicsData.proposalId || undefined}
             staticExtensions={LAZY_RICH_FIELD_EXTENSIONS}
           />
-          <p className="text-xs text-muted-foreground mt-1 text-right">
-            {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
-          </p>
+          <div className="mt-1 flex items-center justify-end gap-2">
+            <CopyPlainTextButton
+              html={ethicsData.securitySelfAssessment || ''}
+              label="the security self-assessment text"
+            />
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {formatNumber(htmlToPlainText(ethicsData.securitySelfAssessment || '').length)}/{formatNumber(5000)} characters
+            </p>
+          </div>
         </PartACard>
       </div>
     </PartAPageLayout>
