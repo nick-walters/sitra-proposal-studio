@@ -1,3 +1,4 @@
+import { lockedFieldClass, lockedFieldProps } from '@/lib/lockedField';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -104,11 +105,11 @@ function DebouncedNumberField({ value, placeholder, disabled, decimals, max, war
         <span aria-hidden className="pointer-events-none absolute inset-y-0 flex items-center text-xs text-muted-foreground md:text-sm" style={{ right: 6 + textWidth }}>{prefix}</span>
       </>}
       <Input
-      className={`${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+      className={lockedFieldClass(disabled, `${FIELD} ${exceededMax ? 'border-destructive focus-visible:ring-destructive' : ''}`)}
       type="text"
       inputMode="decimal"
       placeholder={placeholder}
-      disabled={disabled}
+      {...lockedFieldProps(disabled)}
       value={display}
       onFocus={() => setFocused(true)}
       onChange={event => {
@@ -141,9 +142,9 @@ function DebouncedComment({ value, disabled, onCommit }: { value: string; disabl
 
   return <div className="space-y-0.5">
     <Textarea
-      className="min-h-16 text-xs md:text-sm"
+      className={lockedFieldClass(disabled, 'min-h-16 text-xs md:text-sm')}
       value={local}
-      disabled={disabled}
+      {...lockedFieldProps(disabled)}
       maxLength={WP_COMMENT_LIMIT}
       onFocus={() => setFocused(true)}
       onChange={event => {
