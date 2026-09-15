@@ -33,6 +33,16 @@ export interface FigureNumberingPlacement {
   figure_id: string | null;
   /** Set when the figure is a MODULE inside the block rather than the block. */
   field_id?: string | null;
+  /**
+   * ADDITIVE, and deliberately so: absent, null or "figure" behaves exactly as
+   * this module always has. Only the explicit value "table" changes anything —
+   * that picture is captioned as a table, so it leaves the figure sequence
+   * entirely and takes its letter from the section's TABLE sequence instead
+   * (derived where the table walk lives: the board, the cross-reference
+   * picker and the Typst emitter). It is therefore absent from this map, and
+   * every resolver already treats a missing entry as "no figure number".
+   */
+  caption_kind?: string | null;
 }
 
 /**
@@ -81,6 +91,8 @@ export function computeFigureNumbers(
   const bySection = new Map<string, { order: number; fieldOrder: number; figureId: string }[]>();
   for (const p of placements) {
     if (!p.figure_id) continue;
+    // A picture captioned as a table is not a figure for numbering purposes.
+    if (p.caption_kind === "table") continue;
     const card = cardById.get(p.card_id);
     if (!card?.section_id) continue;
     if (!sectionById.has(card.section_id)) continue;
