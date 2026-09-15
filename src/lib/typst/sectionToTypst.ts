@@ -336,12 +336,17 @@ function emitAuthoredFigure(
     return [];
   }
 
-  const label = placed.label || fallbackLabel;
+  // A picture may carry NO caption at all — the first half of a figure that
+  // had to be split over two pages, whose caption belongs to the second half.
+  const noCaption = placed.captionKind === 'none';
+  const label = noCaption ? '' : placed.label || fallbackLabel;
   // A picture captioned as a TABLE follows this project's table convention:
   // the caption sits ABOVE it, in the table caption style.
   const asTable = placed.captionKind === 'table';
   const captionFn = asTable ? 'he-caption' : 'he-figure-caption';
-  const caption = placed.caption
+  const caption = noCaption
+    ? ''
+    : placed.caption
     ? `${label ? `${captionFn}(${typstString(label)}, ${typstString(placed.caption)})` : ''}`
     : label
       ? `${captionFn}(${typstString(label)}, ${typstString('')})`
