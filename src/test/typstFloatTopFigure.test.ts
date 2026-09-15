@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSectionTypstBody, type SectionBlockTree } from '@/lib/typst/sectionToTypst';
 import type { AuthoredFigureBlock } from '@/lib/typst/authoredFigures';
+import { TYPST_PREAMBLE } from '@/lib/typst/typstPreamble';
 import type { ProposalCard } from '@/types/cards';
 
 function figureCard(id: string): ProposalCard {
@@ -60,11 +61,17 @@ function render(captionKind: AuthoredFigureBlock['captionKind']): string {
 }
 
 describe('Typst float-top authored figures', () => {
+  it('defines the complete floated pair as an unbreakable full-width block', () => {
+    expect(TYPST_PREAMBLE).toMatch(
+      /#let he-figure-float[\s\S]*?block\([\s\S]*?width: he-table-width,[\s\S]*?breakable: false,/,
+    );
+  });
+
   it('executes an image and its figure caption inside the content block', () => {
     const source = render('figure');
 
     expect(source).toContain(
-      'he-figure-float(stack(dir: ttb, spacing: 0pt, he-figure-image("/figures/authored-test.jpg", 100, tight: false), he-figure-caption("Figure 2.2.d.", "Impact summary canvas")))',
+      'he-figure-float(he-figure-image("/figures/authored-test.jpg", 100, tight: false), caption: he-figure-caption("Figure 2.2.d.", "Impact summary canvas"), caption-above: false)',
     );
     expect(source).not.toContain('he-figure-float([');
   });
@@ -73,7 +80,7 @@ describe('Typst float-top authored figures', () => {
     const source = render('table');
 
     expect(source).toContain(
-      'he-figure-float(stack(dir: ttb, spacing: 1.5pt, he-image-table-caption("Table 2.2.d.", "Impact summary canvas"), he-figure-image("/figures/authored-test.jpg", 100, tight: true)))',
+      'he-figure-float(he-figure-image("/figures/authored-test.jpg", 100, tight: true), caption: he-image-table-caption("Table 2.2.d.", "Impact summary canvas"), caption-above: true)',
     );
     expect(source).not.toContain('he-figure-float([');
   });

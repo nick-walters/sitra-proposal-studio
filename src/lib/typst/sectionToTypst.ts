@@ -369,14 +369,10 @@ function emitAuthoredFigure(
   const out: string[] = [];
   if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
   if (placed.pageBreakMode === 'float_top') {
-    // Keep a floated pair in code mode. A Typst content block introduces markup
-    // whitespace between its children (and previously printed bare calls), which
-    // caused the one-off gap/line on a table-captioned floated image.
-    const floatChildren = asTable
-      ? [captionBlock, image].filter(Boolean)
-      : [image, captionBlock].filter(Boolean);
+    // Pass executable expressions directly to the float helper. Do not build a
+    // content block here: bare function calls inside one are rendered as text.
     out.push(
-      `he-figure-float(stack(dir: ttb, spacing: ${asTable && captionBlock ? '1.5pt' : '0pt'}, ${floatChildren.join(', ')}))`,
+      `he-figure-float(${image}${captionBlock ? `, caption: ${captionBlock}` : ''}, caption-above: ${asTable ? 'true' : 'false'})`,
     );
   } else if (asTable) {
     if (captionBlock) out.push(captionBlock);
