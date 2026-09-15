@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSectionTypstBody, type SectionBlockTree } from '@/lib/typst/sectionToTypst';
 import type { AuthoredFigureBlock } from '@/lib/typst/authoredFigures';
+import { TYPST_PREAMBLE } from '@/lib/typst/typstPreamble';
 import type { ProposalCard } from '@/types/cards';
 
 function figureCard(id: string): ProposalCard {
@@ -60,6 +61,12 @@ function render(captionKind: AuthoredFigureBlock['captionKind']): string {
 }
 
 describe('Typst float-top authored figures', () => {
+  it('defines the complete floated pair as an unbreakable full-width block', () => {
+    expect(TYPST_PREAMBLE).toMatch(
+      /#let he-figure-float[\s\S]*?block\([\s\S]*?width: he-table-width,[\s\S]*?breakable: false,/,
+    );
+  });
+
   it('executes an image and its figure caption inside the content block', () => {
     const source = render('figure');
 

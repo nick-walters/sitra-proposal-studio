@@ -692,13 +692,17 @@ export function buildTypstPreamble(meta: TypstDocMeta = {}): string {
   top,
   float: true,
   clearance: 8pt,
-  if caption == none {
-    body
-  } else if caption-above {
-    stack(dir: ttb, spacing: 1.5pt, caption, body)
-  } else {
-    stack(dir: ttb, spacing: 0pt, body, caption)
-  },
+  block(
+    width: he-table-width,
+    breakable: false,
+    if caption == none {
+      body
+    } else if caption-above {
+      stack(dir: ttb, spacing: 1.5pt, caption, body)
+    } else {
+      stack(dir: ttb, spacing: 0pt, body, caption)
+    },
+  ),
 )
 
 
