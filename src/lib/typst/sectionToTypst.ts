@@ -347,7 +347,7 @@ function emitAuthoredFigure(
       ? `${captionFn}(${typstString(label)}, ${typstString('')})`
       : '';
   const image = `he-figure-image(${typstString(placed.assetPath)}, ${placed.widthPct}, tight: ${
-    placed.groupWithAbove ? 'true' : 'false'
+    asTable || placed.groupWithAbove ? 'true' : 'false'
   })`;
   // `group_with_below` binds the figure to the paragraph AFTER it: the caption
   // block is already sticky-adjacent to the image, so the flag adds stickiness
@@ -357,7 +357,7 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = (asTable ? [captionBlock, image] : [image, captionBlock])
+  const unit = (asTable ? [captionBlock, captionBlock ? 'v(-1pt)' : '', image] : [image, captionBlock])
     .filter(Boolean)
     .join('\n');
 
@@ -367,6 +367,7 @@ function emitAuthoredFigure(
     out.push(`he-figure-float([\n${unit}\n])`);
   } else if (asTable) {
     if (captionBlock) out.push(captionBlock);
+    if (captionBlock) out.push('v(-1pt)');
     out.push(image);
   } else {
     out.push(image);

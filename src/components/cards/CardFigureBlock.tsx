@@ -129,7 +129,12 @@ export function CardFigureBlock({
   // width. Its position depends on what the caption IS: below a figure, above
   // a table.
   const captionRow = (
-    <div className="figure-caption-row w-full items-baseline gap-2">
+    <div
+      className={cn(
+        'figure-caption-row w-full items-baseline gap-2',
+        captionsAsTable ? '!mb-0' : '!mt-0',
+      )}
+    >
       <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
         {captionLabel}
       </span>
@@ -158,45 +163,47 @@ export function CardFigureBlock({
       {/* The opener lives in the block header, in line with the other
           controls — see onRegisterControls above. */}
 
-      {captionsAsTable && captionRow}
+      <div>
+        {captionsAsTable && captionRow}
 
-      <div
-        className={cn(
-          'flex',
-          figureBlock.positionMode === 'left_wrap' && !isFullWidth ? 'justify-start' : '',
-          figureBlock.positionMode === 'right_wrap' && !isFullWidth ? 'justify-end' : '',
-          figureBlock.positionMode === 'below' || isFullWidth ? 'justify-center' : '',
-        )}
-      >
-        <div style={{ width: `${widthPct}%` }} className="max-w-full">
-          {missingAsset ? (
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center">
-              <ImageIcon className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {figureBlock.figureId
-                  ? 'The figure this block pointed to has been deleted.'
-                  : 'No figure chosen for this block yet.'}
-              </p>
-              {canEdit && (
-                <Tip label="Insert a figure into this block">
-                  <Button size="sm" onClick={() => setManagerOpen(true)}>
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Insert a figure
-                  </Button>
-                </Tip>
-              )}
-            </div>
-          ) : imageUrl ? (
-            <StorageImage storedPath={imageUrl} alt={figure?.title ?? ''} className="h-auto w-full" />
-          ) : (
-            <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {figure?.title} has no rendered image yet. Open it on the figures page to render it.
-            </div>
+        <div
+          className={cn(
+            'flex',
+            figureBlock.positionMode === 'left_wrap' && !isFullWidth ? 'justify-start' : '',
+            figureBlock.positionMode === 'right_wrap' && !isFullWidth ? 'justify-end' : '',
+            figureBlock.positionMode === 'below' || isFullWidth ? 'justify-center' : '',
           )}
+        >
+          <div style={{ width: `${widthPct}%` }} className="max-w-full">
+            {missingAsset ? (
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center">
+                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {figureBlock.figureId
+                    ? 'The figure this block pointed to has been deleted.'
+                    : 'No figure chosen for this block yet.'}
+                </p>
+                {canEdit && (
+                  <Tip label="Insert a figure into this block">
+                    <Button size="sm" onClick={() => setManagerOpen(true)}>
+                      <Plus className="mr-1 h-3.5 w-3.5" />
+                      Insert a figure
+                    </Button>
+                  </Tip>
+                )}
+              </div>
+            ) : imageUrl ? (
+              <StorageImage storedPath={imageUrl} alt={figure?.title ?? ''} className="h-auto w-full" />
+            ) : (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                {figure?.title} has no rendered image yet. Open it on the figures page to render it.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {!captionsAsTable && captionRow}
+        {!captionsAsTable && captionRow}
+      </div>
 
 
       {/* A figure BLOCK opens its controls from the block header; a figure
