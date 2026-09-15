@@ -1,2 +1,2 @@
-- [ ] Diagnose and fix the unique black line and extra caption gap at SUSIE-Q Table 2.2.a without changing proposal content.
-- [ ] Verify typecheck and production build.
+- [x] Diagnose and fix the unique black line and extra caption gap at SUSIE-Q Table 2.2.a without changing proposal content.
+- [x] Verify typecheck and production build.
