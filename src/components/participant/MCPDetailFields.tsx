@@ -55,14 +55,16 @@ export function SelectPlaceholder({ text }: { text: string }) {
  */
 export function ReadValue({ value, placeholder }: { value?: string | null; placeholder: string }) {
   const text = value?.trim() || '';
+  // Read-only rather than disabled: the cursor can be placed in it and the
+  // text selected and copied, but typing does nothing and nothing is saved.
   return (
-    <p
-      className={`h-7 min-w-0 flex-1 flex items-center text-sm px-2 truncate ${
-        text ? '' : 'italic text-muted-foreground/70'
-      }`}
-    >
-      {text || placeholder}
-    </p>
+    <Input
+      value={text}
+      placeholder={placeholder}
+      aria-label={placeholder.replace('*', '')}
+      className={`${FIELD_CLASS} min-w-0 flex-1 ${lockedFieldClass(true)}`}
+      {...lockedFieldProps(true)}
+    />
   );
 }
 
