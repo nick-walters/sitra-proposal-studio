@@ -72,6 +72,7 @@ import {
 } from '@/lib/commentNotifications';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
+import { smartTimestamp } from '@/lib/smartTimestamp';
 import { useSectionComments, type Comment } from '@/hooks/useSectionComments';
 import { useRightPanel } from '@/components/panels/RightPanelRegion';
 import {
