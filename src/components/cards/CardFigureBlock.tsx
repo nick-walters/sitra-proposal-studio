@@ -196,29 +196,8 @@ export function CardFigureBlock({
         </div>
       </div>
 
-      {/* Caption sits between the figure and controls and spans the full block width. */}
-      <div className="figure-caption-row w-full items-baseline gap-2">
-        <span className={cn(TABLE_CAPTION_LABEL_CLASS, 'shrink-0 whitespace-nowrap')}>
-          {captionLabel}
-        </span>
-        {canEdit ? (
-          <Input
-            value={captionDraft}
-            placeholder="Caption"
-            className="h-7 min-w-0 w-auto flex-1 border-transparent bg-transparent px-1 font-[inherit] text-[inherit] italic leading-[inherit] shadow-none focus-visible:border-input focus-visible:bg-background"
-            onFocus={() => {
-              captionTouched.current = true;
-            }}
-            onChange={(e) => setCaptionDraft(e.target.value)}
-            onBlur={() => {
-              captionTouched.current = false;
-              if ((figureBlock.caption ?? '') !== captionDraft) save.mutate({ caption: captionDraft });
-            }}
-          />
-        ) : (
-          <span className="flex-1 italic">{figureBlock.caption}</span>
-        )}
-      </div>
+      {!captionsAsTable && captionRow}
+
 
       {/* A figure BLOCK opens its controls from the block header; a figure
           MODULE has no header of its own, so it carries its own opener. */}
