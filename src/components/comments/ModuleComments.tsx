@@ -1146,11 +1146,16 @@ function ThreadCard({
         return (
           <div key={r.id} className="mt-1.5 border-l-2 border-border pl-2">
             <div className="flex items-start justify-between gap-1">
-              <span className="text-[11px] font-semibold">
-                {r.user_name}
-                {wasEdited(r) && (
-                  <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
-                )}
+              <span className="flex flex-col">
+                <span className="text-[11px] font-semibold">
+                  {r.user_name}
+                  {wasEdited(r) && (
+                    <span className="ml-1 font-normal italic text-muted-foreground">(edited)</span>
+                  )}
+                </span>
+                <span className="text-[10px] font-normal text-muted-foreground">
+                  {when(r.created_at)}
+                </span>
               </span>
               {mine && editingReplyId !== r.id && (
                 <div className="flex items-center gap-0.5">
