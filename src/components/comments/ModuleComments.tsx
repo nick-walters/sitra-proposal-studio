@@ -111,6 +111,17 @@ const wasEdited = (c: Comment) =>
   !!c.updated_at &&
   new Date(c.updated_at).getTime() - new Date(c.created_at).getTime() > 2000;
 
+/** Same treatment as tracked changes and the comments sidebar. */
+const when = (ts: string | null | undefined): string => {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? '' : smartTimestamp(d);
+  } catch {
+    return '';
+  }
+};
+
 /* --------------------------------------------------------------- provider */
 
 interface ProviderProps {
