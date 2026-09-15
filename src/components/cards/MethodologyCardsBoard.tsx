@@ -2578,6 +2578,8 @@ function BoardInner({
       if (!visibleCard(card)) continue;
 
       if (card.kind === 'figure') {
+        // A picture with NO caption takes no letter from either sequence.
+        if (captionKinds?.byCard[card.id] === 'none') continue;
         if (captionKinds?.byCard[card.id] === 'table') {
           cardLabels[card.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
           tableIdx += 1;
@@ -2608,6 +2610,8 @@ function BoardInner({
         // A figure MODULE takes the next figure letter, in module order — or
         // the next TABLE letter when it is captioned as a table.
         if (f.fieldRole === 'figure') {
+          // A picture with NO caption takes no letter from either sequence.
+          if (captionKinds?.byField[f.id] === 'none') continue;
           if (captionKinds?.byField[f.id] === 'table') {
             fieldFigureLabels[f.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
             tableIdx += 1;

@@ -92,7 +92,9 @@ export function computeFigureNumbers(
   for (const p of placements) {
     if (!p.figure_id) continue;
     // A picture captioned as a table is not a figure for numbering purposes.
-    if (p.caption_kind === "table") continue;
+    // A picture captioned as a table, or with no caption at all, is not a
+    // figure for numbering purposes.
+    if (p.caption_kind === "table" || p.caption_kind === "none") continue;
     const card = cardById.get(p.card_id);
     if (!card?.section_id) continue;
     if (!sectionById.has(card.section_id)) continue;
