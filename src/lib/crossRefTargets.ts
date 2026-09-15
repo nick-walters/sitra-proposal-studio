@@ -275,6 +275,18 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
           const placement = placementByField.get(field.id);
           const figureId = (placement?.figure_id as string | null) ?? null;
           const figure = figureId ? figureById.get(figureId) : null;
+          if ((placement?.caption_kind as string | null) === 'table') {
+            tables.push({
+              kind: 'table',
+              label: `${number}.${captionLetter(tableIdx)}`,
+              title:
+                ((placement?.caption as string | null) || figure?.caption || figure?.title || '').trim(),
+              sectionId: section.id,
+              figureId: figureId || undefined,
+            });
+            tableIdx += 1;
+            continue;
+          }
           figures.push({
             kind: 'figure',
             label:
