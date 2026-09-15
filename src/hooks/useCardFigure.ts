@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCardFigureSummaries } from './useCardFigureSummaries';
+import { invalidateFigureCaptionKinds } from './useFigureCaptionKinds';
 import { computeFigureNumbers } from '@/lib/figureNumbering';
 import { mapCardFigure, type CardFigureBlockData } from '@/types/cardTable';
 import type {
