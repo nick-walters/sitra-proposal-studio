@@ -356,12 +356,17 @@ function emitAuthoredFigure(
       ? `block(sticky: true, ${caption})`
       : caption
     : '';
-  const unit = [image, captionBlock].filter(Boolean).join('\n');
+  const unit = (asTable ? [captionBlock, image] : [image, captionBlock])
+    .filter(Boolean)
+    .join('\n');
 
   const out: string[] = [];
   if (placed.pageBreakMode === 'next_page') out.push('pagebreak(weak: true)');
   if (placed.pageBreakMode === 'float_top') {
     out.push(`he-figure-float([\n${unit}\n])`);
+  } else if (asTable) {
+    if (captionBlock) out.push(captionBlock);
+    out.push(image);
   } else {
     out.push(image);
     if (captionBlock) out.push(captionBlock);
