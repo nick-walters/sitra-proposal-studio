@@ -833,7 +833,7 @@ export function emitLinkedActivities(data: B31TypstData, ctx: ConvertContext): s
           getInstrumentAbbreviation(a.instrument_code, a.instrument_custom),
           getInstrumentFullName(a.instrument_code, a.instrument_custom),
         ])
-        .filter(([abbrev, full]) => abbrev && full) as [string, string][],
+        .filter(([abbrev, full]) => abbrev && full && abbrev !== full) as [string, string][],
     ),
   )
     .sort((a, b) => a[0].localeCompare(b[0]))
