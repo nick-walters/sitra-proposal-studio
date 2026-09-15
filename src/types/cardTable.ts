@@ -17,6 +17,11 @@ export interface CardFigureBlockData {
   float: 'none' | 'left' | 'right';
   maxWidthCm: number | null;
   caption: string | null;
+  /**
+   * Whether the picture is captioned as a figure (the default, and what every
+   * existing picture is) or as a table.
+   */
+  captionKind: 'figure' | 'table';
   /** Width as a fraction of the PAGE width. */
   widthMode: FigureWidthMode;
   /** Percentage of the page width, honoured only when widthMode is 'custom'. */
