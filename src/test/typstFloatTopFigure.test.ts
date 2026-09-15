@@ -43,7 +43,7 @@ function floatedFigure(
     caption: 'Impact summary canvas',
     captionKind,
     widthPct: 100,
-    positionMode: 'center',
+    positionMode: 'below',
     pageBreakMode: 'float_top',
     groupWithAbove: false,
     groupWithBelow: false,
