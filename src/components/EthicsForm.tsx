@@ -851,6 +851,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               onChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
               placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
               disabled={!canEdit}
+              copyLabel="the compliance text"
               proposalId={ethicsData.proposalId || undefined}
             />
           </div>
