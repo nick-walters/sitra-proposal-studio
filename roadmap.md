@@ -1,4 +1,4 @@
 - [x] Diagnose and fix the unique black line and extra caption gap at SUSIE-Q Table 2.2.a without changing proposal content.
 - [x] Verify typecheck and production build.
-- [ ] Keep the SUSIE-Q Impact summary canvas and its caption as one unbreakable floated unit.
-- [ ] Verify the focused regression, typecheck, and production build without changing SUSIE-Q content.
+- [x] Keep the SUSIE-Q Impact summary canvas and its caption as one unbreakable floated unit.
+- [x] Verify the focused regression, typecheck, and production build without changing SUSIE-Q content.
