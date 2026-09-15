@@ -80,6 +80,12 @@ export interface FigureData {
   figure_number: string;
   figure_type: string;
   title: string;
+  /**
+   * 'table' when the author captioned this picture as a table: it then carries
+   * a table number and its chips read "Table 1.2.b". Absent means 'figure',
+   * which is what every picture is unless it is said otherwise.
+   */
+  caption_kind?: 'figure' | 'table';
 }
 
 export interface AcronymSegmentData {
