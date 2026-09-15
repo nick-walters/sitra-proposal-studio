@@ -129,6 +129,7 @@ import LinkedActivitiesTable from '@/components/LinkedActivitiesTable';
 import { useLinkedActivities } from '@/hooks/useLinkedActivities';
 import { CasesTableLiveView } from '@/components/CasesTableNodeView';
 import { captionLetter, countCaptionSlots } from '@/lib/cards/captionSlots';
+import { useFigureCaptionKinds } from '@/hooks/useFigureCaptionKinds';
 import type { CaptionNumbering } from '@/extensions/CaptionAutoNumber';
 import { RefDataProvider } from '@/lib/refDataContext';
 import { CardFigureBlock } from '@/components/cards/CardFigureBlock';
@@ -2574,8 +2575,13 @@ function BoardInner({
       if (!visibleCard(card)) continue;
 
       if (card.kind === 'figure') {
-        cardLabels[card.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
-        figureIdx += 1;
+        if (captionKinds?.byCard[card.id] === 'table') {
+          cardLabels[card.id] = `Table ${captionNumber}.${captionLetter(tableIdx)}.`;
+          tableIdx += 1;
+        } else {
+          cardLabels[card.id] = `Figure ${captionNumber}.${captionLetter(figureIdx)}.`;
+          figureIdx += 1;
+        }
         continue;
       }
 
