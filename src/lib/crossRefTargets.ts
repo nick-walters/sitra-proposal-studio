@@ -111,7 +111,7 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
       .eq('is_visible', true),
     supabase
       .from('card_figure')
-      .select('card_id, figure_id, caption, field_id')
+      .select('card_id, figure_id, caption, field_id, caption_kind')
       .eq('proposal_id', proposalId),
     supabase.from('figures').select('id, title, caption, deleted_at').eq('proposal_id', proposalId),
     supabase.from('table_captions').select('table_key, caption').eq('proposal_id', proposalId),
@@ -227,12 +227,26 @@ export async function fetchCrossRefTargets(proposalId: string): Promise<CrossRef
         const placement = placementByCard.get(card.id);
         const figureId = (placement?.figure_id as string | null) ?? null;
         const figure = figureId ? figureById.get(figureId) : null;
+        const title =
+          ((placement?.caption as string | null) || figure?.caption || figure?.title || '').trim();
+        // A picture captioned as a table is listed among the TABLES, and takes
+        // its letter from the table sequence.
+        if ((placement?.caption_kind as string | null) === 'table') {
+          tables.push({
+            kind: 'table',
+            label: `${number}.${captionLetter(tableIdx)}`,
+            title,
+            sectionId: section.id,
+            figureId: figureId || undefined,
+          });
+          tableIdx += 1;
+          continue;
+        }
         figures.push({
           kind: 'figure',
           // Prefer the shared authority; fall back to the local walk.
           label: (figureId && figureNumbers.get(figureId)) || `${number}.${captionLetter(figureIdx)}`,
-          title:
-            ((placement?.caption as string | null) || figure?.caption || figure?.title || '').trim(),
+          title,
           sectionId: section.id,
           figureId: figureId || undefined,
         });
