@@ -231,10 +231,21 @@ export function CardFigureBlock({
               <RadioGroup
                 value={figureBlock.captionKind}
                 onValueChange={(value) =>
-                  save.mutate({ caption_kind: value as 'figure' | 'table' })
+                  save.mutate(
+                    { caption_kind: value as 'figure' | 'table' },
+                    {
+                      // Both sequences are derived, so the numbers change the
+                      // moment this lands. Telling the reference data to
+                      // refresh is what makes every cross-reference chip on
+                      // the page — including the ones inside an open editing
+                      // box — reword and renumber without a reload.
+                      onSuccess: () => window.dispatchEvent(new Event('cross-ref-data-changed')),
+                    },
+                  )
                 }
                 className="gap-1"
               >
+
                 <label className="flex items-center gap-2 text-xs">
                   <RadioGroupItem value="figure" id={`${fieldId ?? cardId}-cap-figure`} />
                   A figure — caption below, numbered in the figure sequence

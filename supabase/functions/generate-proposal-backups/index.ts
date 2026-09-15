@@ -204,11 +204,21 @@ async function loadRefSnapshot(supabase: any, proposalId: string): Promise<RefSn
     for (const p of partRes.data ?? []) snap.participantById.set(p.id, p);
     // Figure numbers are DERIVED from the placing block, exactly as the client
     // does. Unplaced figures get no entry, so their chips keep stored labels.
+    // A picture captioned as a TABLE has no figure number at all: it carries a
+    // table number and `caption_kind`, so the shared label builder writes
+    // "Table 2.2.b" in the chip, as the app and the PDF do (prompt 193).
     const figureNumbers = await deriveFigureNumbers(supabase, proposalId);
+    const tableNumbers = await deriveTableCaptionNumbers(supabase, proposalId);
     for (const f of figRes.data ?? []) {
+      const asTable = tableNumbers.get(f.id);
+      if (asTable) {
+        snap.figureById.set(f.id, { id: f.id, figure_number: asTable, caption_kind: "table" } as any);
+        continue;
+      }
       const derived = figureNumbers.get(f.id);
       if (derived) snap.figureById.set(f.id, { id: f.id, figure_number: derived });
     }
+
     for (const c of capRes.data ?? []) snap.tableCaptionKeys.add(c.table_key);
     // Citation numbers are derived the same way the app derives them, from
     // first-citation order across visible, non-binned content — including the
@@ -2733,7 +2743,11 @@ async function buildWpDraft(supabase: any, proposal: any, wp: any, participants:
  */
 async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<Map<string, string>> {
   const [placementRes, cardRes, fieldRes] = await Promise.all([
-    supabase.from("card_figure").select("card_id, figure_id, field_id").eq("proposal_id", proposalId),
+    // `caption_kind` is what tells the shared rule that a picture is captioned
+    // as a TABLE and must leave the figure sequence (prompt 192/193). Without
+    // it the backup numbered such a picture as a figure and disagreed with the
+    // app and the PDF.
+    supabase.from("card_figure").select("card_id, figure_id, field_id, caption_kind").eq("proposal_id", proposalId),
     supabase.from("proposal_cards").select("id, section_id, order_index").eq("proposal_id", proposalId).is("deleted_at", null),
     supabase
       .from("card_fields")
@@ -2752,6 +2766,161 @@ async function deriveFigureNumbers(supabase: any, proposalId: string): Promise<M
     (fieldRes.data ?? []) as any[],
   );
 }
+
+/** A caption written before the caption classes existed still starts with its label. */
+const LEGACY_CAPTION_LABEL = /^\s*(Figure|Table)\s+\d+(?:\.\d+)*\.[a-z]+\./i;
+
+/**
+ * How many table and figure caption slots a stored text box occupies — the
+ * same detection the board uses (`src/lib/cards/captionSlots.ts`): the caption
+ * classes first, then the legacy label text, plus the cases-table atom which
+ * carries its caption inside its node view.
+ */
+function countCaptionSlotsHtml(html: string | null | undefined): { tables: number; figures: number } {
+  if (!html) return { tables: 0, figures: 0 };
+  let root: any;
+  try {
+    root = parseHtml(html);
+  } catch {
+    return { tables: 0, figures: 0 };
+  }
+  let tables = root.querySelectorAll("div[data-cases-table-node]").length;
+  let figures = 0;
+  for (const p of root.querySelectorAll("p")) {
+    const cls = p.getAttribute("class") ?? "";
+    let kind: "table" | "figure" | null = null;
+    if (cls.includes("document-table-caption")) kind = "table";
+    else if (cls.includes("figure-caption")) kind = "figure";
+    else {
+      const labelEl = p.querySelector("[data-caption-label]");
+      const m = LEGACY_CAPTION_LABEL.exec(labelEl?.text ?? "") ?? LEGACY_CAPTION_LABEL.exec(p.text ?? "");
+      if (m) kind = m[1].toLowerCase() === "figure" ? "figure" : "table";
+    }
+    if (kind === "table") tables += 1;
+    else if (kind === "figure") figures += 1;
+  }
+  return { tables, figures };
+}
+
+const ANCHOR_ORDER: Record<string, number> = { head: 0, free: 1, tail: 2 };
+
+/**
+ * figureId → "2.2.b" for every picture captioned as a TABLE.
+ *
+ * Such a picture leaves the figure sequence (the shared rule drops it) and
+ * takes its letter from the section's TABLE sequence instead. The walk below
+ * mirrors the board's numbering pass exactly: blocks in head → free → tail
+ * order, then each block's visible modules, counting table slots as it goes.
+ *
+ * Returns an EMPTY map when no picture in the proposal is captioned as a
+ * table, so a proposal without one is untouched and costs nothing.
+ */
+async function deriveTableCaptionNumbers(supabase: any, proposalId: string): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const { data: placements } = await supabase
+    .from("card_figure").select("card_id, field_id, figure_id, caption_kind")
+    .eq("proposal_id", proposalId);
+  const tablePlacements = (placements ?? []).filter((p: any) => p.caption_kind === "table" && p.figure_id);
+  if (!tablePlacements.length) return out;
+
+  const [cardRes, fieldRes] = await Promise.all([
+    supabase
+      .from("proposal_cards")
+      .select("id, section_id, order_index, anchor, kind, source_key, is_source_fed, is_visible")
+      .eq("proposal_id", proposalId).is("deleted_at", null),
+    supabase
+      .from("card_fields")
+      .select("id, card_id, order_index, field_role, is_visible, content_html")
+      .eq("proposal_id", proposalId).is("deleted_at", null),
+  ]);
+  const cards = (cardRes.data ?? []) as any[];
+  const sectionIds = [...new Set(cards.map((c) => c.section_id).filter(Boolean))];
+  const sectionRes = sectionIds.length
+    ? await supabase.from("proposal_template_sections").select("id, section_number").in("id", sectionIds)
+    : { data: [] };
+  const sectionNumberById = new Map(
+    ((sectionRes.data ?? []) as any[]).map((s) => [s.id, (s.section_number ?? "").replace(/^[A-Za-z]+/, "").trim()]),
+  );
+
+  const byCardKind = new Map<string, string>();
+  const byFieldKind = new Map<string, string>();
+  for (const p of placements ?? []) {
+    const kind = p.caption_kind === "table" ? "table" : "figure";
+    if (p.field_id) byFieldKind.set(p.field_id, kind);
+    else byCardKind.set(p.card_id, kind);
+  }
+  const figureByCard = new Map<string, string>();
+  const figureByField = new Map<string, string>();
+  for (const p of placements ?? []) {
+    if (!p.figure_id) continue;
+    if (p.field_id) figureByField.set(p.field_id, p.figure_id);
+    else figureByCard.set(p.card_id, p.figure_id);
+  }
+
+  const fieldsByCard = new Map<string, any[]>();
+  for (const f of (fieldRes.data ?? []) as any[]) {
+    const arr = fieldsByCard.get(f.card_id) ?? [];
+    arr.push(f);
+    fieldsByCard.set(f.card_id, arr);
+  }
+  for (const arr of fieldsByCard.values()) arr.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+  const bySection = new Map<string, any[]>();
+  for (const c of cards) {
+    if (!c.section_id) continue;
+    const arr = bySection.get(c.section_id) ?? [];
+    arr.push(c);
+    bySection.set(c.section_id, arr);
+  }
+
+  for (const [sectionId, sectionCards] of bySection) {
+    const sectionNumber = sectionNumberById.get(sectionId) ?? "";
+    // B3.1 numbers its own compulsory tables; the board's walk does not own
+    // that sequence, so the backup must not invent letters there either.
+    if (!sectionNumber || sectionNumber === "3.1") continue;
+    sectionCards.sort(
+      (a, b) =>
+        (ANCHOR_ORDER[a.anchor ?? "free"] ?? 1) - (ANCHOR_ORDER[b.anchor ?? "free"] ?? 1) ||
+        (a.order_index ?? 0) - (b.order_index ?? 0) ||
+        String(a.id).localeCompare(String(b.id)),
+    );
+    let tableIdx = 0;
+    for (const card of sectionCards) {
+      if (card.is_visible === false) continue;
+      if (card.kind === "figure") {
+        if (byCardKind.get(card.id) === "table") {
+          const figureId = figureByCard.get(card.id);
+          if (figureId) out.set(figureId, `${sectionNumber}.${figureLetter(tableIdx)}`);
+          tableIdx += 1;
+        }
+        continue;
+      }
+      if (card.source_key === "b12.linked_activities" && !card.is_source_fed) {
+        tableIdx += 1;
+        continue;
+      }
+      if (card.is_source_fed || card.kind === "references") continue;
+      for (const f of fieldsByCard.get(card.id) ?? []) {
+        if (f.is_visible === false) continue;
+        if (f.field_role === "case_placeholder") {
+          tableIdx += 1;
+          continue;
+        }
+        if (f.field_role === "figure") {
+          if (byFieldKind.get(f.id) === "table") {
+            const figureId = figureByField.get(f.id);
+            if (figureId) out.set(figureId, `${sectionNumber}.${figureLetter(tableIdx)}`);
+            tableIdx += 1;
+          }
+          continue;
+        }
+        tableIdx += countCaptionSlotsHtml(f.content_html).tables;
+      }
+    }
+  }
+  return out;
+}
+
 
 /**
  * The figures that are actually PART OF THE DOCUMENT: those with at least one
@@ -3105,7 +3274,10 @@ Deno.serve(async (req) => {
       // captions with (prompt 91 item 1). The stored `figures.figure_number`
       // column is dead. PERT and Gantt are source-fed blocks of B3.1 with no
       // `card_figure` placement, so they take the B3.1 system numbers.
+      // A picture captioned as a TABLE takes a TABLE number and a "Table …"
+      // file name, exactly as the app and the PDF caption it (prompt 193).
       const figureFileNumbers = await deriveFigureNumbers(db, proposal.id);
+      const tableFileNumbers = await deriveTableCaptionNumbers(db, proposal.id);
       const systemNumbers = await deriveB31SystemFigureNumbers(db, proposal.id);
       const livePlacedFigures = await livePlacedFigureIds(db, proposal.id);
       const usedFigureNames = new Set<string>();
@@ -3113,28 +3285,33 @@ Deno.serve(async (req) => {
       let orphanedFigures = 0;
       const orphanedFigureIds: string[] = [];
 
-      const figureNumberFor = (fig: any): { token: string; numbered: boolean } => {
+      const figureNumberFor = (fig: any): { token: string; numbered: boolean; word: string } => {
+        const asTable = tableFileNumbers.get(fig.id);
+        if (asTable) {
+          return { token: String(asTable).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true, word: "Table" };
+        }
         const token = figureFileNumbers.get(fig.id)
           || (fig.figure_type === "pert" ? systemNumbers.pert : "")
           || (fig.figure_type === "gantt" ? systemNumbers.gantt : "");
-        if (token) return { token: String(token).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true };
+        if (token) return { token: String(token).replace(/[\/\\:*?"<>|]/g, "_"), numbered: true, word: "Figure" };
         // Unplaced figure: no derivable number. Fall back to the id so the file
         // is still produced and can never collide with a numbered sibling.
-        return { token: String(fig.id), numbered: false };
+        return { token: String(fig.id), numbered: false, word: "Figure" };
       };
 
 
       /** Two figures resolving to the same number get " (2)", " (3)" … appended. */
-      const uniqueFigureName = (base: string, ext: string): string => {
-        let name = `${acr} Figure ${base} ${stamp}.${ext}`;
+      const uniqueFigureName = (base: string, ext: string, word = "Figure"): string => {
+        let name = `${acr} ${word} ${base} ${stamp}.${ext}`;
         let n = 1;
         while (usedFigureNames.has(name)) {
           n += 1;
-          name = `${acr} Figure ${base} (${n}) ${stamp}.${ext}`;
+          name = `${acr} ${word} ${base} (${n}) ${stamp}.${ext}`;
         }
         usedFigureNames.add(name);
         return name;
       };
+
 
       for (const fig of figures ?? []) {
         // ORPHAN EXCLUSION (prompt 92). PERT and Gantt are source-fed B3.1
@@ -3147,7 +3324,7 @@ Deno.serve(async (req) => {
           orphanedFigureIds.push(fig.id);
           continue;
         }
-        const { token, numbered } = figureNumberFor(fig);
+        const { token, numbered, word: numberWord } = figureNumberFor(fig);
         if (!numbered) unnumberedFigures += 1;
         let bytes: Uint8Array | null = null;
         let ext = "png";
@@ -3175,7 +3352,7 @@ Deno.serve(async (req) => {
 
         // Canvas figures (impact/overview) have no exportable raster at all, so
         // they are not expected and their absence is not a partial run.
-        const name = exportable ? uniqueFigureName(token, ext) : null;
+        const name = exportable ? uniqueFigureName(token, ext, numberWord) : null;
         if (name) expected.push(name);
         if (bytes && name) {
           const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"

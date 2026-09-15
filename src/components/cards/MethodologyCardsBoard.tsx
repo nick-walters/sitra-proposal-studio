@@ -78,6 +78,9 @@ import { PartBCrossRefControls } from '@/components/PartBCrossRefControls';
 import { CitationDialog } from '@/components/CitationDialog';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useReferenceData } from '@/lib/referenceData';
+import { formatFigureLabel } from '@/lib/referenceLabels';
+import { findEditorForNode } from '@/lib/trackChangeEditorRegistry';
+
 import { scheduleCitationInstanceReconcile } from '@/lib/reconcileCitationInstances';
 import type { Editor } from '@tiptap/core';
 import { MethodologyRichEditor } from '@/components/MethodologyRichEditor';
@@ -2644,6 +2647,68 @@ function BoardInner({
   /** B3.1 numbers its own captions; every other section derives them here. */
   const captionNumberingByFieldId = isB31 ? undefined : numbering.fieldNumbering;
   const figureCaptionByFieldId = numbering.fieldFigureLabels;
+
+  // ---- LIVE CHIP REFRESH ------------------------------------------------
+  // A figure/table cross-reference is a MARK over ordinary text, not a node
+  // view, so unlike the WP/task/participant badges it has no display channel:
+  // the words sit in the document exactly as they were inserted. Renumbering —
+  // or switching a picture between a figure caption and a table caption — left
+  // a chip inside an editing box reading the old label, while the read-only
+  // previews and the PDF (which re-resolve every chip) were already right.
+  //
+  // This rewrites the chips on the page whenever the derived labels change:
+  // through the owning editor when the box is live, straight on the DOM when
+  // it is still the static mirror. Nothing else in the document is touched.
+  const { data: chipRefData } = useReferenceData(proposalId);
+  const figureChipLabels = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [id, f] of chipRefData?.figureById ?? []) {
+      map.set(id, formatFigureLabel({ figure_number: f.figure_number, caption_kind: f.caption_kind }));
+    }
+    return map;
+  }, [chipRefData?.figureById]);
+
+
+  useEffect(() => {
+    if (figureChipLabels.size === 0) return;
+    const chips = Array.from(
+      document.querySelectorAll<HTMLElement>('span[data-fig-table-ref][data-figure-id]'),
+    );
+    const liveEditors = new Set<Editor>();
+    for (const chip of chips) {
+      const figureId = chip.getAttribute('data-figure-id');
+      const label = figureId ? figureChipLabels.get(figureId) : undefined;
+      if (!label || chip.textContent === label) continue;
+      const editor = findEditorForNode(chip);
+      if (editor) liveEditors.add(editor);
+      else chip.textContent = label;
+    }
+    for (const editor of liveEditors) {
+      if (editor.isDestroyed) continue;
+      const markType = editor.schema.marks.figureTableReference;
+      if (!markType) continue;
+      const updates: { from: number; to: number; text: string; marks: readonly unknown[] }[] = [];
+      editor.state.doc.descendants((node, pos) => {
+        if (!node.isText) return;
+        const mark = node.marks.find((m) => m.type === markType);
+        if (!mark) return;
+        const label = figureChipLabels.get(mark.attrs.figureId);
+        if (!label || node.text === label) return;
+        updates.push({ from: pos, to: pos + node.nodeSize, text: label, marks: node.marks });
+      });
+      if (updates.length === 0) continue;
+      const tr = editor.state.tr;
+      // Applied in reverse so earlier positions stay valid.
+      for (let i = updates.length - 1; i >= 0; i -= 1) {
+        const u = updates[i];
+        tr.replaceWith(u.from, u.to, editor.schema.text(u.text, u.marks as never));
+      }
+      tr.setMeta('blockReorder', true); // a renumbering, never a tracked change
+      tr.setMeta('addToHistory', false);
+      editor.view.dispatch(tr);
+    }
+  }, [figureChipLabels]);
+
 
 
   const handleCreateBlock = (choice: NewBlockChoice) => {
